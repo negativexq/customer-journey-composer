@@ -1,11 +1,12 @@
 # Interface design
 
-The interface uses a restrained violet/slate palette, a grouped workspace navigation, compact journey actions and a canvas-first builder. Metrics come from persisted workspace records; empty states do not invent activity, uplift or conversion results.
+The interface uses one native system UI font family, readable body text, restrained heading weights, and a violet/slate palette, a grouped workspace navigation, compact journey actions and a canvas-first builder. Metrics come from persisted workspace records; empty states do not invent activity, uplift or conversion results.
 
 Workflow interaction references were reviewed from the official [Customer.io builder guide](https://docs.customer.io/messaging/send/workflows/builder/), [Braze Canvas components](https://www.braze.com/docs/user_guide/messaging/canvas/canvas_components) and [Loops builder](https://loops.so/docs/loop-builder). Their product images were used for visual research only; no product screenshots, marks or assets are shipped in the application.
 
 ## Components and behavior
 
+- Interface text uses a 12px minimum, 13–14px controls/body text, and clear secondary-text contrast. Code and payloads retain monospace. There are no downloaded font assets or decorative letter spacing.
 - Shared icons, status badges, metric cards and an actual-data trend chart establish a common visual language.
 - Journey creation uses a focused dialog; journey lists use bounded server pagination and search.
 - The builder keeps metadata collapsed, the step library on the left and contextual node settings on the right. AI remains a proposal drawer with Apply/Discard and separate publication.

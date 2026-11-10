@@ -11,7 +11,7 @@ flowchart LR
     SMTP[Mailpit sandbox SMTP]
 ```
 
-The frontend uses same-origin endpoints: Vite proxies during native development, Nginx proxies in Docker. This avoids permissive CORS and keeps provider secrets out of the browser. Fonts are packaged locally; rendering does not require a third-party font service.
+The frontend uses same-origin endpoints: Vite proxies during native development, Nginx proxies in Docker. This avoids permissive CORS and keeps provider secrets out of the browser. System UI fonts require no font downloads or third-party font service.
 
 The API uses Go's HTTP server and Huma typed operations to generate OpenAPI. `/healthz` describes process liveness; `/readyz` verifies database connectivity and applied migration checksums with a two-second deadline. HTTP timeouts and SIGTERM/interrupt draining bound startup and shutdown. JSON logs omit request bodies, query strings and database credentials.
 

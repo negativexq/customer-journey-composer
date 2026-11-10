@@ -29,7 +29,7 @@ const showCreate = ref(false);
 const readOnly = computed(() => identity.value?.role === 'Viewer');
 const navGroups = computed(() => [
   {
-    label: 'WORKSPACE',
+    label: 'Workspace',
     items: [
       { name: 'Overview', icon: 'home' },
       { name: 'Journeys', icon: 'workflow' },
@@ -38,14 +38,14 @@ const navGroups = computed(() => [
     ],
   },
   {
-    label: 'AUDIENCE',
+    label: 'Audience',
     items: [
       { name: 'Customers', icon: 'users' },
       { name: 'Events', icon: 'events' },
     ],
   },
   {
-    label: 'TESTING',
+    label: 'Testing',
     items: [
       { name: 'Test Lab', icon: 'flask' },
       { name: 'Test Inbox', icon: 'inbox' },
@@ -213,7 +213,7 @@ onErrorCaptured((cause) => {
     <aside class="sidebar" aria-label="Application navigation">
       <a class="brand" href="/" @click.prevent="navigate('Overview')"
         ><span class="brand-mark"><AppIcon name="workflow" :size="23" /></span
-        ><span>journey<span class="brand-subtitle">COMPOSER</span></span></a
+        ><span>journey<span class="brand-subtitle">Composer</span></span></a
       >
       <div class="workspace">
         <span class="workspace-avatar">{{ identity.workspace[0] }}</span>
