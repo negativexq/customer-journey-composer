@@ -12,8 +12,10 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ofk/customer-journey-composer/apps/api/internal/database"
 )
@@ -197,4 +199,70 @@ func TestWorkflowValidationAndImmutablePublishing(t *testing.T) {
 	if len(versions) != 2 || versions[0].Version != 2 || versions[1].Version != 1 {
 		t.Fatalf("version history: %+v", versions)
 	}
+}
+
+func TestScopedEventAPIKeys(t *testing.T) {
+	ctx := context.Background()
+	pool, err := database.Open(ctx, os.Getenv("TEST_DATABASE_URL"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	if err := database.Migrate(ctx, pool); err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(New(slog.New(slog.NewTextHandler(io.Discard, nil)), func(context.Context) error { return nil }, pool))
+	defer server.Close()
+	jar, _ := cookiejar.New(nil)
+	client := &http.Client{Jar: jar}
+	csrf := ""
+	call := func(method, path string, body any, want int) []byte {
+		t.Helper()
+		b, _ := json.Marshal(body)
+		req, _ := http.NewRequest(method, server.URL+"/api/v1"+path, bytes.NewReader(b))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-CSRF-Token", csrf)
+		r, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer r.Body.Close()
+		out, _ := io.ReadAll(r.Body)
+		if r.StatusCode != want {
+			t.Fatalf("%s: %d %s", path, r.StatusCode, out)
+		}
+		return out
+	}
+	var p Identity
+	json.Unmarshal(call("POST", "/auth/register", map[string]any{"name": "Owner", "workspace": "Key tests", "email": randomToken()[:12] + "@example.invalid", "password": randomToken()}, 200), &p)
+	csrf = p.CSRF
+	call("POST", "/customers", map[string]any{"customer_id": "key_customer", "attributes": map[string]any{"first_name": "Ada"}, "consents": map[string]bool{"email": false}}, 200)
+	var key map[string]string
+	json.Unmarshal(call("POST", "/settings/api-keys", map[string]any{"name": "Integration key"}, 200), &key)
+	bearer := func(method, path string, body any, want int) {
+		t.Helper()
+		b, _ := json.Marshal(body)
+		req, _ := http.NewRequest(method, server.URL+"/api/v1"+path, bytes.NewReader(b))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+key["token"])
+		r, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer r.Body.Close()
+		if r.StatusCode != want {
+			b, _ := io.ReadAll(r.Body)
+			t.Fatalf("bearer %s: %d %s", path, r.StatusCode, b)
+		}
+	}
+	event := map[string]any{"event_id": randomToken(), "customer_id": "key_customer", "event_name": "cart_updated", "occurred_at": time.Now().UTC().Format(time.RFC3339Nano), "properties": map[string]any{"amount": 42}}
+	bearer("POST", "/events", event, 200)
+	bearer("POST", "/events", event, 200)
+	bearer("GET", "/customers", nil, 401)
+	listed := string(call("GET", "/settings/api-keys", nil, 200))
+	if strings.Contains(listed, key["token"]) {
+		t.Fatal("API key plaintext leaked in listing")
+	}
+	call("DELETE", "/settings/api-keys/"+key["id"], nil, 200)
+	bearer("POST", "/events", event, 401)
 }

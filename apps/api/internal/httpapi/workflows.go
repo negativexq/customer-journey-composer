@@ -86,7 +86,7 @@ func registerWorkflows(api huma.API, pool *pgxpool.Pool) {
 		if err != nil {
 			return nil, err
 		}
-		_, err = tx.Exec(ctx, `UPDATE journeys SET current_version_id=$3,status='Active',revision=revision+1,updated_at=now() WHERE workspace_id=$1 AND id=$2`, who(ctx).WorkspaceID, in.ID, out.Body.ID)
+		_, err = tx.Exec(ctx, `UPDATE journeys SET current_version_id=$3,entry_event_name=$4,status='Active',revision=revision+1,updated_at=now() WHERE workspace_id=$1 AND id=$2`, who(ctx).WorkspaceID, in.ID, out.Body.ID, w.Start().Config.EventName)
 		if err != nil {
 			return nil, dbError(err)
 		}

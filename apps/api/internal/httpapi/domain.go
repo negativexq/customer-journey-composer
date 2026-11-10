@@ -136,6 +136,19 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 			next(ctx)
 			return
 		}
+
+		if (path == "/api/v1/events" || path == "/api/v1/events/batch") && ctx.Method() == "POST" && strings.HasPrefix(ctx.Header("Authorization"), "Bearer ") {
+			token := strings.TrimPrefix(ctx.Header("Authorization"), "Bearer ")
+			var p Identity
+			err := pool.QueryRow(ctx.Context(), `SELECT workspace_id::text,created_by::text FROM api_keys WHERE token_hash=$1 AND revoked_at IS NULL`, digest(token)).Scan(&p.WorkspaceID, &p.ID)
+			if err != nil {
+				_ = huma.WriteErr(api, ctx, 401, "Invalid API key")
+				return
+			}
+			p.Role = "Editor"
+			next(huma.WithContext(ctx, context.WithValue(ctx.Context(), principalKey{}, p)))
+			return
+		}
 		req := &http.Request{Header: http.Header{"Cookie": []string{ctx.Header("Cookie")}}}
 		c, err := req.Cookie("cjc_session")
 		if err != nil {
@@ -297,6 +310,7 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 		return jsonRow[Journey](pool.QueryRow(ctx, `UPDATE journeys SET status='Archived',revision=revision+1,updated_at=now() WHERE workspace_id=$1 AND id=$2 AND status='Draft' RETURNING to_jsonb(journeys)-'workspace_id'`, who(ctx).WorkspaceID, in.ID))
 	})
 	registerWorkflows(api, pool)
+	registerCustomers(api, pool)
 }
 
 var dummyPasswordHash, _ = bcrypt.GenerateFromPassword([]byte(randomToken()), 12)
