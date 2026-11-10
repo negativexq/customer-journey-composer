@@ -12,7 +12,15 @@ until docker exec "$container" pg_isready -U postgres -d journey_test >/dev/null
   sleep 1
 done
 port=$(docker port "$container" 5432/tcp | sed 's/.*://')
-export TEST_DATABASE_URL="postgres://postgres:$password@127.0.0.1:$port/journey_test?sslmode=disable"
 cd apps/api
 if [ "$#" -eq 0 ]; then set -- ./internal/...; fi
-go test -race -count=1 -p 1 -tags integration "$@"
+# Each package gets a fresh database. Migration tests intentionally reset their
+# schema, while workers claim globally; neither may affect another package.
+packages=$(go list "$@")
+index=0
+for test_package in $packages; do
+  index=$((index + 1))
+  test_db="package_$index"
+  docker exec "$container" createdb -U postgres "$test_db"
+  TEST_DATABASE_URL="postgres://postgres:$password@127.0.0.1:$port/$test_db?sslmode=disable" go test -race -count=1 -tags integration "$test_package"
+done

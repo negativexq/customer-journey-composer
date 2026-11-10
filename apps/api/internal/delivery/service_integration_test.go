@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/ofk/customer-journey-composer/apps/api/internal/analytics"
 	"github.com/ofk/customer-journey-composer/apps/api/internal/database"
 	engine "github.com/ofk/customer-journey-composer/apps/api/internal/runtime"
 	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
@@ -119,6 +120,20 @@ func TestDeliveryRetryBackoffAndLogicalIdempotency(t *testing.T) {
 	if sends != 2 || accepted != 2 || attempts != 4 || email.calls != 3 {
 		t.Fatalf("sends=%d accepted=%d attempts=%d provider_calls=%d", sends, accepted, attempts, email.calls)
 	}
+	for {
+		n, e := analytics.Drain(ctx, pool)
+		if e != nil {
+			t.Fatal(e)
+		}
+		if n == 0 {
+			break
+		}
+	}
+	var logical float64
+	if err := pool.QueryRow(ctx, `SELECT sum(value) FROM metric_totals WHERE workspace_id=$1 AND journey_id=$2 AND version_id=$2 AND dimension='channel' AND metric='attempted'`, workspace, analytics.ZeroID).Scan(&logical); err != nil || logical != 2 {
+		t.Fatal("retries counted as logical sends", logical, err)
+	}
+
 }
 func TestConsentAndWorkspaceFrequencyReservations(t *testing.T) {
 	t.Run("consent", func(t *testing.T) {

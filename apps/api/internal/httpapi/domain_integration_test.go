@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ofk/customer-journey-composer/apps/api/internal/analytics"
 	"github.com/ofk/customer-journey-composer/apps/api/internal/database"
 )
 
@@ -136,6 +137,38 @@ func TestWorkspaceSessionsAndJourneyPersistence(t *testing.T) {
 	if counts[200] != 1 || counts[409] != 1 {
 		t.Fatalf("concurrent writers: %v", counts)
 	}
+	for {
+		n, e := analytics.Drain(ctx, pool)
+		if e != nil {
+			t.Fatal(e)
+		}
+		if n == 0 {
+			break
+		}
+	}
+	var overview struct {
+		Metrics []struct {
+			Dimension string  `json:"dimension"`
+			Metric    string  `json:"metric"`
+			Value     float64 `json:"value"`
+		} `json:"metrics"`
+	}
+	json.Unmarshal(request("GET", "/overview", nil, 200), &overview)
+	found := false
+	for _, m := range overview.Metrics {
+		if m.Dimension == "journey" && m.Metric == "total" {
+			found = m.Value == 1
+		}
+	}
+	if !found {
+		t.Fatal("workspace overview not scoped", overview)
+	}
+	request("GET", "/analytics", nil, 200)
+	request("GET", "/analytics/comparison", nil, 200)
+	request("GET", "/overview/activity", nil, 200)
+	request("GET", "/overview/entries-24h", nil, 200)
+	request("GET", "/journeys/"+journey.ID+"/stats", nil, 200)
+
 }
 
 func TestWorkflowValidationAndImmutablePublishing(t *testing.T) {

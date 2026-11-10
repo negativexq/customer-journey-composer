@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/ofk/customer-journey-composer/apps/api/internal/analytics"
 	"github.com/ofk/customer-journey-composer/apps/api/internal/delivery"
 	"log/slog"
 	"os"
@@ -50,6 +51,7 @@ func run() error {
 	sender.Log = log
 	var group sync.WaitGroup
 	group.Go(func() { _ = sender.Run(ctx) })
+	group.Go(func() { analytics.Run(ctx, pool, log) })
 	err = worker.Run(ctx)
 	group.Wait()
 	return err
