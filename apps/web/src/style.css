@@ -4208,3 +4208,27 @@ td {
     font-size: 12px;
   }
 }
+
+/* Compact desktop navigation; form and mobile text sizes stay readable. */
+.sidebar .nav-item {
+  min-height: 34px;
+  padding: 7px 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  gap: 9px;
+  margin-bottom: 2px;
+}
+.sidebar .nav-item > svg {
+  width: 16px;
+  height: 16px;
+}
+.sidebar .nav-group {
+  margin-bottom: 18px;
+}
+.sidebar .nav-label {
+  margin-bottom: 6px;
+}
+.sidebar .workspace {
+  margin-top: 21px;
+  margin-bottom: 20px;
+}
