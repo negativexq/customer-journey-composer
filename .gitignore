@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+.tmp/
+*.test
+apps/api/bin/
+playwright-report/
+test-results/
