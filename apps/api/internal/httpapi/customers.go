@@ -51,6 +51,7 @@ func eventError(err error) error {
 	return dbError(err)
 }
 func registerCustomers(api huma.API, pool *pgxpool.Pool) {
+	admission := ingestionAdmission(api, int(pool.Config().MaxConns))
 	save := func(ctx context.Context, body customerBody, update bool) (*Result[Customer], error) {
 		if err := canEdit(ctx); err != nil {
 			return nil, err
@@ -148,7 +149,7 @@ func registerCustomers(api huma.API, pool *pgxpool.Pool) {
 			return nil, eventError(err)
 		}
 		return &Result[engine.Ingestion]{Body: out}, nil
-	})
+	}, admission)
 	huma.Post(api, "/api/v1/events/batch", func(ctx context.Context, in *struct {
 		Body struct {
 			Events []engine.Event `json:"events" minItems:"1" maxItems:"100"`
@@ -210,5 +211,5 @@ func registerCustomers(api huma.API, pool *pgxpool.Pool) {
 			return nil, dbError(err)
 		}
 		return &Result[map[string]string]{Body: map[string]string{"id": id, "status": "revoked"}}, nil
-	})
+	}, admission)
 }

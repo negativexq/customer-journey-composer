@@ -34,6 +34,16 @@ var queueAge = prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: "journey_queue_
 var queueSample = prometheus.NewGauge(prometheus.GaugeOpts{Name: "journey_queue_sample_timestamp_seconds", Help: "Unix timestamp of last successful bounded queue probe."})
 var queueErrors = prometheus.NewCounter(prometheus.CounterOpts{Name: "journey_queue_probe_errors_total", Help: "Queue sampler errors; previous values remain until next successful sample."})
 
+var admissionDuration = prometheus.NewHistogram(prometheus.HistogramOpts{Name: "journey_ingestion_admission_wait_seconds", Help: "Event admission wait outside the DB pool.", Buckets: durationBuckets})
+var admissionRejected = prometheus.NewCounter(prometheus.CounterOpts{Name: "journey_ingestion_admission_rejected_total", Help: "Event requests rejected by timeout/cancellation before obtaining a transaction slot."})
+
+func ObserveAdmission(d time.Duration, rejected bool) {
+	admissionDuration.Observe(d.Seconds())
+	if rejected {
+		admissionRejected.Inc()
+	}
+}
+
 var leaseRecoveries = prometheus.NewCounterVec(prometheus.CounterOpts{Name: "journey_lease_recoveries_total", Help: "Recovered expired leases; UNKNOWN requires provider reconciliation."}, []string{"queue", "result"})
 var runtimeRetries = prometheus.NewCounter(prometheus.CounterOpts{Name: "journey_runtime_retries_total", Help: "Runtime job retries scheduled after failed transactions."})
 
@@ -45,7 +55,7 @@ func ObserveLeaseRecovery(queue, result string, count int64) {
 func ObserveRuntimeRetry() { runtimeRetries.Inc() }
 
 func init() {
-	Registry.MustRegister(leaseRecoveries, runtimeRetries, httpDuration, httpRequests, sqlDuration, acquireDuration, operationDuration, operations, providerDuration, providerCalls, jobLag, queueDepth, queueCapped, queueAge, queueSample, queueErrors, collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	Registry.MustRegister(admissionDuration, admissionRejected, leaseRecoveries, runtimeRetries, httpDuration, httpRequests, sqlDuration, acquireDuration, operationDuration, operations, providerDuration, providerCalls, jobLag, queueDepth, queueCapped, queueAge, queueSample, queueErrors, collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 }
 func Handler() http.Handler {
 	return promhttp.HandlerFor(Registry, promhttp.HandlerOpts{MaxRequestsInFlight: 2, Timeout: 5 * time.Second})

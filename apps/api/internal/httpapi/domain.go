@@ -150,6 +150,10 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 			var p Identity
 			err := pool.QueryRow(ctx.Context(), `SELECT workspace_id::text,created_by::text FROM api_keys WHERE token_hash=$1 AND revoked_at IS NULL`, digest(token)).Scan(&p.WorkspaceID, &p.ID)
 			if err != nil {
+				if !errors.Is(err, pgx.ErrNoRows) {
+					_ = huma.WriteErr(api, ctx, 503, "Authentication temporarily unavailable")
+					return
+				}
 				_ = huma.WriteErr(api, ctx, 401, "Invalid API key")
 				return
 			}
@@ -166,6 +170,10 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 		var p Identity
 		err = pool.QueryRow(ctx.Context(), `SELECT u.id::text,u.workspace_id::text,w.name,u.email,u.name,u.role,s.csrf_token FROM sessions s JOIN users u ON u.id=s.user_id JOIN workspaces w ON w.id=u.workspace_id WHERE s.token_hash=$1 AND s.expires_at>now()`, digest(c.Value)).Scan(&p.ID, &p.WorkspaceID, &p.Workspace, &p.Email, &p.Name, &p.Role, &p.CSRF)
 		if err != nil {
+			if !errors.Is(err, pgx.ErrNoRows) {
+				_ = huma.WriteErr(api, ctx, 503, "Authentication temporarily unavailable")
+				return
+			}
 			_ = huma.WriteErr(api, ctx, 401, "Session expired or invalid")
 			return
 		}

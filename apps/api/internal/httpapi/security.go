@@ -1,7 +1,6 @@
 package httpapi
 
 import (
-	"context"
 	"github.com/danielgtaylor/huma/v2"
 	"net"
 	"os"
@@ -57,10 +56,6 @@ func registerSecurityMiddleware(api huma.API) {
 	limiter := &requestLimiter{}
 	api.UseMiddleware(func(ctx huma.Context, next func(huma.Context)) {
 		path := ctx.URL().Path
-		timeout := 20 * time.Second
-		if strings.HasPrefix(path, "/api/v1/ai/") {
-			timeout = 90 * time.Second
-		}
 		if p, ok := ctx.Context().Value(principalKey{}).(Identity); ok {
 			key := "ui:" + p.WorkspaceID
 			rate, burst := 10.0, 200.0
@@ -92,8 +87,6 @@ func registerSecurityMiddleware(api huma.API) {
 				return
 			}
 		}
-		request, cancel := context.WithTimeout(ctx.Context(), timeout)
-		defer cancel()
-		next(huma.WithContext(ctx, request))
+		next(ctx)
 	})
 }

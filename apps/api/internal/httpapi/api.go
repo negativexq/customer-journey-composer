@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -111,6 +112,13 @@ func middleware(log *slog.Logger, next http.Handler) http.Handler {
 		w.Header().Set("X-Request-ID", requestID)
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
+		budget := 20 * time.Second
+		if strings.HasPrefix(r.URL.Path, "/api/v1/ai/") {
+			budget = 90 * time.Second
+		}
+		bounded, cancel := context.WithTimeout(r.Context(), budget)
+		defer cancel()
+		r = r.WithContext(bounded)
 		info := &requestInfo{route: "unmatched"}
 		method := normalMethod(r.Method)
 		ctx, span := observability.HTTP(observability.Parent(r.Context(), r.Header.Get("traceparent")), method, attribute.String("http.request.method", method))
