@@ -14,4 +14,5 @@ done
 port=$(docker port "$container" 5432/tcp | sed 's/.*://')
 export TEST_DATABASE_URL="postgres://postgres:$password@127.0.0.1:$port/journey_test?sslmode=disable"
 cd apps/api
-go test -race -count=1 -p 1 -tags integration ./internal/...
+if [ "$#" -eq 0 ]; then set -- ./internal/...; fi
+go test -race -count=1 -p 1 -tags integration "$@"

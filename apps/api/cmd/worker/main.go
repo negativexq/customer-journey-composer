@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"github.com/ofk/customer-journey-composer/apps/api/internal/delivery"
 	"log/slog"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -44,5 +46,11 @@ func run() error {
 	worker.Log = log
 	log.Info("durable worker started")
 	defer log.Info("durable worker drained")
-	return worker.Run(ctx)
+	sender := delivery.New(pool, nil)
+	sender.Log = log
+	var group sync.WaitGroup
+	group.Go(func() { _ = sender.Run(ctx) })
+	err = worker.Run(ctx)
+	group.Wait()
+	return err
 }

@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -265,4 +266,80 @@ func TestScopedEventAPIKeys(t *testing.T) {
 	}
 	call("DELETE", "/settings/api-keys/"+key["id"], nil, 200)
 	bearer("POST", "/events", event, 401)
+}
+
+func TestMessagePreviewIsolationAndAllowlistedTestSend(t *testing.T) {
+	ctx := context.Background()
+	pool, err := database.Open(ctx, os.Getenv("TEST_DATABASE_URL"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	if err := database.Migrate(ctx, pool); err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(New(slog.New(slog.NewTextHandler(io.Discard, nil)), func(context.Context) error { return nil }, pool))
+	defer server.Close()
+	jar, _ := cookiejar.New(nil)
+	client := &http.Client{Jar: jar}
+	csrf := ""
+	key := ""
+	call := func(method, path string, body any, want int) []byte {
+		t.Helper()
+		b, _ := json.Marshal(body)
+		req, _ := http.NewRequest(method, server.URL+"/api/v1"+path, bytes.NewReader(b))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-CSRF-Token", csrf)
+		if key != "" {
+			req.Header.Set("Idempotency-Key", key)
+		}
+		r, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer r.Body.Close()
+		out, _ := io.ReadAll(r.Body)
+		if r.StatusCode != want {
+			t.Fatalf("%s: %d %s", path, r.StatusCode, out)
+		}
+		return out
+	}
+	var p Identity
+	json.Unmarshal(call("POST", "/auth/register", map[string]any{"name": "Message editor", "workspace": "Message tests", "email": randomToken()[:12] + "@example.invalid", "password": randomToken()}, 200), &p)
+	csrf = p.CSRF
+	call("POST", "/customers", map[string]any{"customer_id": "preview_customer", "email": "original@example.invalid", "attributes": map[string]any{"first_name": "Original"}, "consents": map[string]bool{"email": false}}, 200)
+	preview := map[string]any{"channel": "email", "config": map[string]any{"subject": "Hello {{ customer.first_name }}", "html": "<p>Hello {{ customer.first_name }}</p><script>alert(1)</script>", "text": "Hello {{ customer.first_name }}"}, "customer_id": "preview_customer", "customer": map[string]any{"attributes": map[string]any{"first_name": "Preview only"}}}
+	var rendered map[string]any
+	json.Unmarshal(call("POST", "/messages/preview", preview, 200), &rendered)
+	if rendered["subject"] != "Hello Preview only" || strings.Contains(fmt.Sprint(rendered["html"]), "<script") {
+		t.Fatal(rendered)
+	}
+	var original string
+	pool.QueryRow(ctx, `SELECT attributes->>'first_name' FROM customers WHERE workspace_id=$1 AND customer_id='preview_customer'`, p.WorkspaceID).Scan(&original)
+	if original != "Original" {
+		t.Fatal("preview mutated live customer")
+	}
+	key = randomToken()
+	body := map[string]any{"preview": preview, "recipient": "test@example.invalid"}
+	call("POST", "/messages/test-send", body, 403)
+	call("PUT", "/settings/messaging", map[string]any{"frequency_limit": 3, "frequency_window_seconds": 86400, "test_allowlist": []string{"test@example.invalid"}}, 200)
+	var first, second map[string]any
+	json.Unmarshal(call("POST", "/messages/test-send", body, 200), &first)
+	json.Unmarshal(call("POST", "/messages/test-send", body, 200), &second)
+	if first["id"] != second["id"] || first["mode"] != "TEST" {
+		t.Fatal(first, second)
+	}
+	preview["config"] = map[string]any{"subject": "Changed", "text": "Changed"}
+	call("POST", "/messages/test-send", body, 409)
+	var live int
+	pool.QueryRow(ctx, `SELECT count(*) FROM delivery_jobs WHERE workspace_id=$1 AND mode='LIVE'`, p.WorkspaceID).Scan(&live)
+	if live != 0 {
+		t.Fatal("test send contaminated live deliveries")
+	}
+	_, err = pool.Exec(ctx, `UPDATE users SET role='Viewer' WHERE id=$1`, p.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	call("POST", "/messages/test-send", body, 403)
+	call("POST", "/messages/preview", preview, 200)
 }
