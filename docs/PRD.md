@@ -70,16 +70,16 @@ Templates: hazır ve kullanıcı journey şablonları. Analytics: karşılaştı
 
 **Vue Flow zorunludur.** Drag/drop node ekleme; bağlantı oluşturma/silme; sağ panelde node ayarları; zoom/pan/fit/minimap; undo/redo; copy/paste/duplicate; multi-select; otomatik yerleşim; autosave; klavye kısayolları; node validation; seçili node preview/test geçişi.
 
-| Node | Yapılandırma | Çıkış |
-| --- | --- | --- |
-| Event Trigger | Event adı, filtreler, yeniden giriş politikası | Started |
-| Wait / Delay | Süre, zaman dilimi | Completed |
-| Wait for Event | Filtreler, timeout | Matched / Timeout |
-| Condition | Alan, operatör, değer, AND/OR grupları | True / False |
-| Send Email | Template, subject, content | Next |
-| Send SMS | Template, content | Next |
-| Update Attribute | Attribute, işlem, değer | Next |
-| Exit | Reason/outcome | Completed |
+| Node             | Yapılandırma                                   | Çıkış             |
+| ---------------- | ---------------------------------------------- | ----------------- |
+| Event Trigger    | Event adı, filtreler, yeniden giriş politikası | Started           |
+| Wait / Delay     | Süre, zaman dilimi                             | Completed         |
+| Wait for Event   | Filtreler, timeout                             | Matched / Timeout |
+| Condition        | Alan, operatör, değer, AND/OR grupları         | True / False      |
+| Send Email       | Template, subject, content                     | Next              |
+| Send SMS         | Template, content                              | Next              |
+| Update Attribute | Attribute, işlem, değer                        | Next              |
+| Exit             | Reason/outcome                                 | Completed         |
 
 Event Trigger örnekleri: `user_registered`, `cart_updated`, `purchase_completed`. Yeniden giriş: once, önceki tamamlandıktan sonra, cooldown sonrası. Varsayılan müşteri/journey başına en fazla bir aktif execution.
 
@@ -205,16 +205,16 @@ Simulated inbox ile gerçek test gönderimi ayrıdır. Send Test Email açıkça
 
 ## 11. Journey Test Scenarios
 
-| Senaryo | Akış ve beklenen sonuç |
-| --- | --- |
-| A — Abandoned Cart | `cart_updated` → 2h wait → purchase condition → email → 24h purchase wait → SMS → complete. Email Test Inbox'ta. İlk 2h purchase: exit, mesaj yok. Timer/purchase yarışı: çift aksiyon ve exit sonrası send yok. |
-| B — Onboarding | `user_registered` → welcome email → 48h wait → activation/purchase condition → aktif exit, inaktif SMS. |
-| C — Duplicate Event | Aynı ID eşzamanlı iki kez: tek logical execution/action. |
-| D — Worker Crash | Wait claim sonrası crash: lease recovery, güvenli devam, görev kaybı yok. |
-| E — Provider Failure | 429 → 500 → success: backoff, bounded retry, attempt history. |
-| F — Frequency Cap | İki journey aynı müşteriye: workspace cap, block reason görünür. |
-| G — Version Update | v1 çalışırken v2 publish: mevcut v1, yeni giriş v2. |
-| H — Test Isolation | 1.000 sandbox customer: production execution/send/analytics etkilenmez. |
+| Senaryo              | Akış ve beklenen sonuç                                                                                                                                                                                           |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A — Abandoned Cart   | `cart_updated` → 2h wait → purchase condition → email → 24h purchase wait → SMS → complete. Email Test Inbox'ta. İlk 2h purchase: exit, mesaj yok. Timer/purchase yarışı: çift aksiyon ve exit sonrası send yok. |
+| B — Onboarding       | `user_registered` → welcome email → 48h wait → activation/purchase condition → aktif exit, inaktif SMS.                                                                                                          |
+| C — Duplicate Event  | Aynı ID eşzamanlı iki kez: tek logical execution/action.                                                                                                                                                         |
+| D — Worker Crash     | Wait claim sonrası crash: lease recovery, güvenli devam, görev kaybı yok.                                                                                                                                        |
+| E — Provider Failure | 429 → 500 → success: backoff, bounded retry, attempt history.                                                                                                                                                    |
+| F — Frequency Cap    | İki journey aynı müşteriye: workspace cap, block reason görünür.                                                                                                                                                 |
+| G — Version Update   | v1 çalışırken v2 publish: mevcut v1, yeni giriş v2.                                                                                                                                                              |
+| H — Test Isolation   | 1.000 sandbox customer: production execution/send/analytics etkilenmez.                                                                                                                                          |
 
 ## 12. Live Journey Monitor
 
@@ -234,39 +234,39 @@ Grafikler: günlük entry/conversion, funnel, send/skip/failure, channel breakdo
 
 ## 14. Journey Lifecycle & Safety
 
-| Durum | Anlam |
-| --- | --- |
-| Draft | Düzenlenir, canlı execution almaz. |
-| Active | Yeni girişler ve mevcut execution ilerler. |
-| Paused | Yeni girişler ve yeni aksiyonlar durur; resume sonrası timer/continuation kuralı açıkça tanımlanır. |
-| Sunset | Yeni giriş yok; mevcut execution devam eder. |
-| Completed | Journey çalışmaz. |
-| Archived | Tarihçe korunur; aktif execution yok. |
+| Durum     | Anlam                                                                                               |
+| --------- | --------------------------------------------------------------------------------------------------- |
+| Draft     | Düzenlenir, canlı execution almaz.                                                                  |
+| Active    | Yeni girişler ve mevcut execution ilerler.                                                          |
+| Paused    | Yeni girişler ve yeni aksiyonlar durur; resume sonrası timer/continuation kuralı açıkça tanımlanır. |
+| Sunset    | Yeni giriş yok; mevcut execution devam eder.                                                        |
+| Completed | Journey çalışmaz.                                                                                   |
+| Archived  | Tarihçe korunur; aktif execution yok.                                                               |
 
 Test ayrı execution mode. Publish gate: graph, kanal, consent/eligibility, exit, frequency cap, değişkenler, provider, test sonuçları. Publish immutable snapshot oluşturur.
 
 ## 15. Veri modeli
 
-| Tablo | Sorumluluk |
-| --- | --- |
-| workspaces | Çalışma alanı |
-| users | Panel kullanıcıları |
-| customers | Müşteri profilleri |
-| customer_events | Gelen olaylar |
-| journeys | Journey metadata |
-| journey_versions | Immutable workflow |
-| journey_executions | Müşteri execution |
-| step_executions | Node geçmişi |
-| scheduled_jobs | Kalıcı timer/görev |
-| event_waiters | Beklenen event |
-| message_templates | Kanal içerikleri |
-| delivery_jobs | Logical send |
-| delivery_attempts | Provider denemeleri |
-| customer_consents | İletişim izinleri |
-| test_scenarios | Kaydedilmiş senaryo |
-| test_runs | Test execution |
-| test_messages | Test Inbox |
-| audit_logs | Yönetim aksiyonları |
+| Tablo              | Sorumluluk          |
+| ------------------ | ------------------- |
+| workspaces         | Çalışma alanı       |
+| users              | Panel kullanıcıları |
+| customers          | Müşteri profilleri  |
+| customer_events    | Gelen olaylar       |
+| journeys           | Journey metadata    |
+| journey_versions   | Immutable workflow  |
+| journey_executions | Müşteri execution   |
+| step_executions    | Node geçmişi        |
+| scheduled_jobs     | Kalıcı timer/görev  |
+| event_waiters      | Beklenen event      |
+| message_templates  | Kanal içerikleri    |
+| delivery_jobs      | Logical send        |
+| delivery_attempts  | Provider denemeleri |
+| customer_consents  | İletişim izinleri   |
+| test_scenarios     | Kaydedilmiş senaryo |
+| test_runs          | Test execution      |
+| test_messages      | Test Inbox          |
+| audit_logs         | Yönetim aksiyonları |
 
 Unique constraint ve indeksler migration seviyesinde; yalnızca application kontrolü yeterli değildir.
 
@@ -274,13 +274,13 @@ Unique constraint ve indeksler migration seviyesinde; yalnızca application kont
 
 Prefix `/api/v1`.
 
-| Alan | Endpoint'ler |
-| --- | --- |
-| Journey | `POST /journeys`, `GET /journeys`, `GET /journeys/{id}`, `PUT /journeys/{id}/draft`, `POST /journeys/{id}/validate`, `POST /journeys/{id}/publish`, `POST /journeys/{id}/pause`, `POST /journeys/{id}/resume`, `GET /journeys/{id}/versions` |
-| AI | `POST /ai/journeys/generate`, `POST /ai/journeys/modify`, `POST /ai/messages/generate` |
-| Customer/Event | `POST /customers`, `GET /customers`, `GET /customers/{id}`, `POST /events`, `GET /customers/{id}/events` |
-| Test | `POST /test-scenarios`, `POST /test-runs`, `POST /test-runs/{id}/advance`, `GET /test-runs/{id}`, `GET /test-inbox`, `GET /test-messages/{id}`, `POST /messages/test-send` |
-| Monitor | `GET /journeys/{id}/executions`, `GET /executions/{id}`, `GET /journeys/{id}/stats`, `GET /journeys/{id}/analytics` |
+| Alan           | Endpoint'ler                                                                                                                                                                                                                                 |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Journey        | `POST /journeys`, `GET /journeys`, `GET /journeys/{id}`, `PUT /journeys/{id}/draft`, `POST /journeys/{id}/validate`, `POST /journeys/{id}/publish`, `POST /journeys/{id}/pause`, `POST /journeys/{id}/resume`, `GET /journeys/{id}/versions` |
+| AI             | `POST /ai/journeys/generate`, `POST /ai/journeys/modify`, `POST /ai/messages/generate`                                                                                                                                                       |
+| Customer/Event | `POST /customers`, `GET /customers`, `GET /customers/{id}`, `POST /events`, `GET /customers/{id}/events`                                                                                                                                     |
+| Test           | `POST /test-scenarios`, `POST /test-runs`, `POST /test-runs/{id}/advance`, `GET /test-runs/{id}`, `GET /test-inbox`, `GET /test-messages/{id}`, `POST /messages/test-send`                                                                   |
+| Monitor        | `GET /journeys/{id}/executions`, `GET /executions/{id}`, `GET /journeys/{id}/stats`, `GET /journeys/{id}/analytics`                                                                                                                          |
 
 Aksiyon API'lerinde auth, validation, idempotency. OpenAPI otomatik üretilebilir.
 
