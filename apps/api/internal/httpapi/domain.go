@@ -319,6 +319,7 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 	registerMessages(api, pool)
 	registerAI(api)
 	registerTesting(api, pool)
+	registerInbox(api, pool)
 }
 
 var dummyPasswordHash, _ = bcrypt.GenerateFromPassword([]byte(randomToken()), 12)

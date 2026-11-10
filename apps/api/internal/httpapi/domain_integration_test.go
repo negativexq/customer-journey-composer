@@ -329,6 +329,11 @@ func TestMessagePreviewIsolationAndAllowlistedTestSend(t *testing.T) {
 	if first["id"] != second["id"] || first["mode"] != "TEST" {
 		t.Fatal(first, second)
 	}
+	var inbox []map[string]any
+	json.Unmarshal(call("GET", "/test-inbox?status=TEST_PENDING", nil, 200), &inbox)
+	if len(inbox) != 1 || inbox[0]["mode"] != "REAL_TEST" || inbox[0]["delivery_id"] != first["id"] {
+		t.Fatal(inbox)
+	}
 	preview["config"] = map[string]any{"subject": "Changed", "text": "Changed"}
 	call("POST", "/messages/test-send", body, 409)
 	var live int

@@ -78,3 +78,11 @@ A scenario contains `name`, `start_time`, `mode` (`full` or `single_node`), opti
 `POST /preview/journey` accepts the same source input and returns an ephemeral full path; it creates no execution or provider request. Full simulations are limited to 5,000 transitions, 500 messages and 4 MiB rendered output. Event/attribute sequences are bounded to 100 entries each. At the same simulated timestamp, attributes precede entry, then external events, timers, nodes and deliveries. Thus a purchase at the exact deadline wins before a simulated timer. Production races are serialized transactionally and admit one valid transition; they cannot promise network ordering.
 
 Assertions include `state`, `message_sent`, `no_message`, `message_count`, `condition`, `no_duplicate_delivery`, `exit_reason`, `enrollment_count`. PASS/FAIL is final only when the queue is drained; interim assertions have result PENDING. `SIMULATED` means sandbox acceptance, never external delivery.
+
+## Test Inbox
+
+`GET /test-inbox` returns metadata only. Filters: `test_run_id`, `customer_id`, `journey_id`, `channel`, `status`, `limit` (maximum 200), and keyset pagination `before` plus `before_id` from the last row. `GET /test-messages/{id}` hydrates one message, decisions, provider attempts and run trace. `GET /test-messages/{id}/previous` compares the same logical node/execution index in a replay's parent run; 404 means no previous matching output.
+
+Sandbox statuses: SIMULATED (sandbox accepted), BLOCKED (policy), SKIPPED (cancelled), FAILED (render/provider failure). Explicit test sends use REAL_TEST mode and TEST_PENDING until the provider finishes; TEST_ACCEPTED means provider acceptance, not confirmed delivery. Ambiguous provider outcomes show FAILED with `provider_status:UNKNOWN`; they are not blindly retried. PostgreSQL mirrors only mode=TEST delivery jobs into this inbox. Live deliveries never enter the Test Inbox and sandbox messages never enter delivery jobs.
+
+The three-panel inbox supports customer/run/journey/channel/status filters, email/SMS rendering, isolated CSP/sandbox previews, rendered-content copy, payload/decision/attempt/trace inspection, replay and parent comparison. Replay creates a new historical run and preserves the original. Email bodies are fetched individually; list filters use workspace-leading B-tree indexes rather than JSON scans.

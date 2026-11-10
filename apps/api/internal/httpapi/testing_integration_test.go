@@ -103,6 +103,18 @@ func TestSandboxPersistenceReplayAndProductionIsolation(t *testing.T) {
 	if run.WorkflowHash != originalRun.WorkflowHash || run.State.Result != "PASS" {
 		t.Fatal("replay drift")
 	}
+	// List endpoints project metadata; details hydrate one rendered body and trace.
+	var inbox []map[string]any
+	json.Unmarshal(call("GET", "/test-inbox?test_run_id="+run.ID+"&channel=email&status=SIMULATED", nil, 200), &inbox)
+	if len(inbox) != 1 || inbox[0]["message"] != nil {
+		t.Fatal("inbox metadata", inbox)
+	}
+	var detail map[string]any
+	json.Unmarshal(call("GET", "/test-messages/"+inbox[0]["id"].(string), nil, 200), &detail)
+	if detail["trace_id"] != run.ID || detail["message"].(map[string]any)["html"] != "<p>Original body Sandbox</p>" {
+		t.Fatal(detail)
+	}
+	call("GET", "/test-messages/"+inbox[0]["id"].(string)+"/previous", nil, 200)
 	// Exact deadline purchase wins deterministically; no logical message is produced.
 	scenario.Events = []sim.TimedEvent{{AfterSeconds: 7200, Event: sim.Event{EventName: "purchase_completed"}}}
 	scenario.Assertions = []sim.Assertion{{Type: "state", Expected: "EXITED"}, {Type: "no_message", Channel: "email"}}
@@ -120,5 +132,6 @@ func TestSandboxPersistenceReplayAndProductionIsolation(t *testing.T) {
 	json.Unmarshal(call("POST", "/auth/register", map[string]any{"name": "Other", "workspace": "Other", "email": randomToken()[:12] + "@example.invalid", "password": randomToken()}, 200), &identity)
 	csrf = identity.CSRF
 	call("GET", "/test-runs/"+run.ID, nil, 404)
+	call("GET", "/test-messages/"+inbox[0]["id"].(string), nil, 404)
 	call("POST", "/test-runs", testInput{ScenarioID: saved["id"].(string)}, 404)
 }
