@@ -12,7 +12,7 @@ Source of truth for product scope: [PRD.md](PRD.md).
 | 6. Email & SMS                         | Complete                       | Safe rendering, channel studio, SMTP/Mailpit and mock SMS, durable deliveries/attempts, policy and retry tests; 14 browser tests passed.         |
 | 7. AI Journey Composer                 | Complete (live tests deferred) | Shared schema, Claude/OpenAI adapters, bounded repair, diff/approval; local provider contracts and 18 browser tests passed.                      |
 | 8. Preview & Test Lab                  | Complete                       | Virtual clock, snapshots, replay, event/attribute sequences, assertions and fault injection; 20 browser tests passed.                            |
-| 9. Test Inbox                          | Pending                        | Isolated persisted outputs and traces.                                                                                                           |
+| 9. Test Inbox                          | Complete                       | Three-panel inbox, scoped filters, payload/trace/attempts, replay comparison and actual test-send distinction; 20 browser tests.                 |
 | 10. Live Monitor & Analytics           | Pending                        | Execution-backed metrics with explicit denominators.                                                                                             |
 | 11. Lifecycle & Reliability            | Pending                        | Race, recovery, version, security and observability tests.                                                                                       |
 | 12. Final Product & Demo               | Pending                        | E2E, measured benchmark, demo and deployment verification.                                                                                       |
@@ -28,7 +28,7 @@ Source of truth for product scope: [PRD.md](PRD.md).
 
 ## Next slice
 
-Phase 9: first-class Test Inbox with bounded metadata lists, message detail/trace, filters and actual test-send distinction.
+Phase 10: asynchronous analytics projections, bounded live monitoring and measured query-plan verification.
 
 ## Phase 1 delivery — 2026-11-10
 
@@ -96,3 +96,9 @@ See [verification notes](VERIFICATION.md) for reproducible checks and [architect
 - `3a67d8c` — isolated deterministic scenario runtime with shared production decisions/eligibility, snapshot deduplication, revision-guarded persistence and separate rendered message storage.
 - Test Lab and journey path preview expose virtual time, run/pause/step/advance, scenarios, fault injection, assertions, replay and customer overrides. Draft saving is flushed before snapshot capture. Named timezones are embedded for minimal production containers.
 - Verified: `make check`, real PostgreSQL integration tests, and 20/20 desktop/mobile browser tests. Scenarios cover 26-hour flow, exact-deadline purchase, duplicates, retry/caps, deterministic replay and 1,000 pure sandbox customers; live records remain unchanged. No provider or live LLM calls occur in simulations.
+
+## Phase 9 delivery
+
+- `05e0043` — bounded inbox metadata API, individually loaded rendered outputs, provider attempts and execution traces; replay-parent comparison. Database trigger mirrors only explicit TEST sends and preserves immutable bodies.
+- Three-panel inbox provides run/customer/journey/channel/status filters, isolated email/SMS rendering, copy, replay, payload, policy and attempt inspection. Pending real tests use TEST_PENDING; acceptance uses TEST_ACCEPTED.
+- Verified: `make check`, all isolated PostgreSQL integration tests, 20/20 browser tests including inbox filtering/parent comparison, actual Mailpit TEST_ACCEPTED and exclusion of live deliveries.

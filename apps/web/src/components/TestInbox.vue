@@ -1,0 +1,348 @@
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue';
+import { api, type Journey } from '../lib/api';
+type Row = {
+  id: string;
+  test_run_id?: string;
+  delivery_id?: string;
+  journey_id?: string;
+  journey_name?: string;
+  customer_id?: string;
+  node_label: string;
+  source_node?: string;
+  channel: string;
+  mode: string;
+  status: string;
+  simulated_at: string;
+  created_at: string;
+  version?: number;
+};
+type Detail = Row & {
+  message: {
+    subject?: string;
+    preheader?: string;
+    html?: string;
+    text?: string;
+    to?: string;
+    personalization_values?: Record<string, string>;
+    template_id?: string;
+    encoding?: string;
+    segments?: number;
+  };
+  decision: unknown;
+  attempt_history: unknown[];
+  provider_response?: string;
+  provider_status?: string;
+  provider?: string;
+  execution_trace: unknown[];
+  trace_id: string;
+  workflow_hash?: string;
+};
+defineProps<{ readonly?: boolean }>();
+const rows = ref<Row[]>([]);
+const selected = ref<Detail>();
+const previous = ref<unknown>();
+const runs = ref<{ id: string; result: string; execution_state: string }[]>([]);
+const journeys = ref<Journey[]>([]);
+const run = ref('');
+const customer = ref('');
+const journey = ref('');
+const channel = ref('');
+const status = ref('');
+const error = ref('');
+const notice = ref('');
+const busy = ref(false);
+const tab = ref('Preview');
+const device = ref('desktop');
+const customers = computed(() => [
+  ...new Set(rows.value.map((r) => r.customer_id).filter((c): c is string => !!c)),
+]);
+const escape = (s: string) =>
+  s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+const document = computed(
+  () =>
+    `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none';style-src 'unsafe-inline';img-src data:;form-action 'none';base-uri 'none'"><meta name="viewport" content="width=device-width"><style>body{font:16px/1.7 Arial;padding:24px}img{max-width:100%}</style></head><body>${selected.value?.message.html || '<pre>' + escape(selected.value?.message.text || '') + '</pre>'}</body></html>`,
+);
+async function perform(action: () => Promise<void>) {
+  busy.value = true;
+  error.value = '';
+  try {
+    await action();
+  } catch (cause) {
+    error.value = String(cause);
+  } finally {
+    busy.value = false;
+  }
+}
+async function load(more = false) {
+  await perform(async () => {
+    const params = new URLSearchParams();
+    if (run.value) params.set('test_run_id', run.value);
+    if (customer.value) params.set('customer_id', customer.value);
+    if (journey.value) params.set('journey_id', journey.value);
+    if (channel.value) params.set('channel', channel.value);
+    if (status.value) params.set('status', status.value);
+    if (more && rows.value.length) {
+      const last = rows.value.at(-1)!;
+      params.set('before', last.created_at);
+      params.set('before_id', last.id);
+    }
+    const result = await api<Row[]>('/test-inbox?' + params);
+    rows.value = more ? [...rows.value, ...result] : result;
+  });
+}
+async function open(row: Row) {
+  await perform(async () => {
+    selected.value = await api<Detail>('/test-messages/' + row.id);
+    previous.value = undefined;
+    tab.value = 'Preview';
+  });
+}
+async function replay() {
+  await perform(async () => {
+    if (!selected.value?.test_run_id) return;
+    const next = await api<{ id: string; revision: number }>(
+      '/test-runs/' + selected.value.test_run_id + '/replay',
+      'POST',
+    );
+    await api('/test-runs/' + next.id + '/advance', 'POST', {
+      operation: 'complete',
+      revision: next.revision,
+    });
+    run.value = next.id;
+    notice.value = 'Replayed original snapshot; new messages are shown below.';
+  });
+  await load();
+}
+async function compare() {
+  await perform(async () => {
+    if (!selected.value) return;
+    previous.value = await api('/test-messages/' + selected.value.id + '/previous');
+    tab.value = 'Compare';
+  });
+}
+async function copy() {
+  await perform(async () => {
+    await navigator.clipboard.writeText(
+      selected.value?.message.html || selected.value?.message.text || '',
+    );
+    notice.value = 'Rendered content copied';
+  });
+}
+async function filterCustomer(value: string) {
+  customer.value = value;
+  await load();
+}
+onMounted(
+  () =>
+    void perform(async () => {
+      [runs.value, journeys.value] = await Promise.all([
+        api<typeof runs.value>('/test-runs'),
+        api<Journey[]>('/journeys?limit=200'),
+      ]);
+      await load();
+    }),
+);
+</script>
+<template>
+  <div class="page-heading">
+    <div>
+      <h1>Test Inbox</h1>
+      <p class="page-description">
+        Sandbox outputs and explicit test sends. SIMULATED never calls a provider; TEST_ACCEPTED
+        means provider acceptance.
+      </p>
+    </div>
+    <button :disabled="busy" @click="load()">Refresh inbox</button>
+  </div>
+  <p v-if="error" role="alert" class="error-message">{{ error }}</p>
+  <p role="status">{{ notice }}</p>
+  <div class="inbox-layout">
+    <aside class="panel inbox-filters">
+      <h2>Recipients &amp; runs</h2>
+      <label
+        >Test run<select v-model="run" @change="load()">
+          <option value="">All runs and explicit sends</option>
+          <option v-for="r in runs" :key="r.id" :value="r.id">
+            {{ r.id.slice(0, 8) }} · {{ r.result }}
+          </option>
+        </select></label
+      ><label>Customer ID<input v-model="customer" @keyup.enter="load()" /></label
+      ><button @click="load()">Filter customer</button
+      ><button v-for="c in customers" :key="c" class="list-row" @click="filterCustomer(c)">
+        {{ c }}</button
+      ><label
+        >Journey<select v-model="journey" @change="load()">
+          <option value="">All journeys</option>
+          <option v-for="j in journeys" :key="j.id" :value="j.id">{{ j.name }}</option>
+        </select></label
+      ><label
+        >Channel<select v-model="channel" @change="load()">
+          <option value="">All channels</option>
+          <option>email</option>
+          <option>sms</option>
+        </select></label
+      ><label
+        >Status<select v-model="status" aria-label="Status" @change="load()">
+          <option value="">All statuses</option>
+          <option
+            v-for="s in [
+              'SIMULATED',
+              'BLOCKED',
+              'SKIPPED',
+              'FAILED',
+              'TEST_ACCEPTED',
+              'TEST_PENDING',
+            ]"
+            :key="s"
+          >
+            {{ s }}
+          </option>
+        </select></label
+      >
+    </aside>
+    <section class="panel inbox-list" :aria-busy="busy">
+      <h2>Messages</h2>
+      <p v-if="!rows.length">
+        No matching test messages. Run a scenario in Test Lab or send an allowlisted test.
+      </p>
+      <button
+        v-for="r in rows"
+        :key="r.id"
+        class="inbox-row"
+        :class="{ selected: selected?.id === r.id }"
+        @click="open(r)"
+      >
+        <strong>{{ r.channel.toUpperCase() }} · {{ r.node_label }}</strong
+        ><span
+          >{{ r.journey_name || 'Explicit test' }} {{ r.version ? '· v' + r.version : '' }}</span
+        ><span>{{ r.customer_id || 'Test recipient' }} · {{ r.status }}</span
+        ><small>{{ r.mode }} · {{ r.simulated_at }}</small></button
+      ><button v-if="rows.length >= 50" @click="load(true)">Load older messages</button>
+    </section>
+    <section class="panel inbox-detail">
+      <template v-if="selected"
+        ><h2>{{ selected.message.subject || selected.node_label }}</h2>
+        <p>{{ selected.mode }} · {{ selected.status }} · {{ selected.provider_status || '' }}</p>
+        <p>To: {{ selected.message.to }} · {{ selected.message.preheader }}</p>
+        <div class="detail-tabs">
+          <button
+            v-for="t in ['Preview', 'Payload', 'Execution trace', 'Decision', 'Attempts']"
+            :key="t"
+            @click="tab = t"
+          >
+            {{ t }}
+          </button>
+        </div>
+        <div class="detail-tabs">
+          <button @click="copy">Copy rendered content</button
+          ><button :disabled="!selected.test_run_id || readonly || busy" @click="replay">
+            Replay scenario</button
+          ><button :disabled="!selected.test_run_id || busy" @click="compare">
+            Compare with previous run
+          </button>
+        </div>
+        <template v-if="tab === 'Preview'"
+          ><label v-if="selected.channel === 'email'"
+            >Device<select v-model="device">
+              <option>desktop</option>
+              <option>mobile</option>
+            </select></label
+          ><iframe
+            v-if="selected.channel === 'email'"
+            title="Test email preview"
+            sandbox=""
+            :srcdoc="document"
+            :style="{ width: device === 'mobile' ? 'min(100%,375px)' : '100%' }"
+          />
+          <div v-else class="sms-phone">
+            <p>{{ selected.message.text }}</p>
+            <small
+              >{{ selected.message.encoding }} · {{ selected.message.segments }} segments</small
+            >
+          </div>
+          <h3>Personalization values</h3>
+          <pre>{{ JSON.stringify(selected.message.personalization_values, null, 2) }}</pre>
+          <p>
+            Template {{ selected.message.template_id || 'inline' }} · Source node
+            {{ selected.source_node || 'explicit test' }} · Trace {{ selected.trace_id }}
+          </p>
+          <p>Workflow snapshot {{ selected.workflow_hash || 'standalone message' }}</p></template
+        >
+        <pre v-else-if="tab === 'Payload'">{{ JSON.stringify(selected, null, 2) }}</pre>
+        <pre v-else-if="tab === 'Execution trace'">{{
+          JSON.stringify(selected.execution_trace, null, 2)
+        }}</pre>
+        <pre v-else-if="tab === 'Decision'">{{ JSON.stringify(selected.decision, null, 2) }}</pre>
+        <pre v-else-if="tab === 'Attempts'"
+          >{{ JSON.stringify(selected.attempt_history, null, 2) }}
+Provider: {{ selected.provider }} {{ selected.provider_response }}</pre>
+        <pre v-else>{{ JSON.stringify(previous, null, 2) }}</pre>
+      </template>
+      <p v-else>
+        Select a message to inspect its rendered content, eligibility and execution trace.
+      </p>
+    </section>
+  </div>
+</template>
+<style scoped>
+.inbox-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(220px, 1fr) minmax(300px, 1.5fr);
+  gap: 16px;
+  align-items: start;
+}
+.inbox-filters {
+  display: grid;
+  gap: 12px;
+}
+.inbox-row {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  padding: 16px;
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+}
+.inbox-detail {
+  min-width: 0;
+}
+.inbox-detail iframe {
+  height: 480px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+}
+.inbox-detail pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 650px;
+  overflow: auto;
+}
+.detail-tabs {
+  flex-wrap: wrap;
+}
+.sms-phone {
+  border: 8px solid #263127;
+  border-radius: 28px;
+  padding: 24px;
+  max-width: 350px;
+  white-space: pre-wrap;
+}
+@media (max-width: 1200px) {
+  .inbox-layout {
+    grid-template-columns: 200px 1fr;
+  }
+  .inbox-detail {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 700px) {
+  .inbox-layout {
+    grid-template-columns: 1fr;
+  }
+  .inbox-detail {
+    grid-column: auto;
+  }
+}
+</style>

@@ -83,4 +83,19 @@ test('virtual clock runs persisted sandbox without changing production', async (
   await page.getByRole('button', { name: 'Preview journey path', exact: true }).click();
   await expect(page.getByTestId('test-result')).toHaveText('PASS');
   await expect(page.locator('.test-lab')).toContainText('No messages produced.');
+  await page
+    .locator('button:visible')
+    .filter({ hasText: /^Test Inbox$/ })
+    .first()
+    .click();
+  await expect(page.getByRole('heading', { name: 'Test Inbox', exact: true })).toBeVisible();
+  await expect(page.locator('.inbox-row')).toHaveCount(2);
+  await page.locator('.inbox-row').first().click();
+  await expect(page.getByTitle('Test email preview')).toBeVisible();
+  await page.getByRole('button', { name: 'Attempts', exact: true }).click();
+  await expect(page.locator('.inbox-detail')).toContainText('ACCEPTED');
+  await page.getByRole('button', { name: 'Compare with previous run', exact: true }).click();
+  await expect(page.locator('.inbox-detail pre')).toContainText('SIMULATED');
+  await page.getByLabel('Status', { exact: true }).selectOption('BLOCKED');
+  await expect(page.locator('.inbox-row')).toHaveCount(0);
 });

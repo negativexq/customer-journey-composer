@@ -88,6 +88,10 @@ test('renders personalized previews and sends isolated test email to Mailpit', a
   expect(jobs).toHaveLength(1);
   expect(jobs[0].mode).toBe('TEST');
   expect(jobs[0].status).toBe('ACCEPTED');
+  const inbox = await (await page.request.get('/api/v1/test-inbox?status=TEST_ACCEPTED')).json();
+  expect(inbox).toHaveLength(1);
+  expect(inbox[0].mode).toBe('REAL_TEST');
+  expect(inbox[0].delivery_id).toBe(jobs[0].id);
   const mailpit = await playwright.request.newContext({
     baseURL: process.env.E2E_MAILPIT_URL || 'http://127.0.0.1:8025',
   });
@@ -201,6 +205,7 @@ test('live nodes send through SMTP and mock SMS with visible attempts', async ({
     await page.request.get('/api/v1/deliveries?customer_id=delivery_customer')
   ).json();
   expect(jobs.map((j: { provider: string }) => j.provider).sort()).toEqual(['mock_sms', 'smtp']);
+  expect(await (await page.request.get('/api/v1/test-inbox')).json()).toEqual([]);
   for (const job of jobs) {
     const detail = await (await page.request.get(`/api/v1/deliveries/${job.id}`)).json();
     expect(detail.attempt_history).toHaveLength(1);

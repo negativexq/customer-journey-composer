@@ -9,6 +9,7 @@ import CustomersView from './components/CustomersView.vue';
 import EventsView from './components/EventsView.vue';
 import SettingsView from './components/SettingsView.vue';
 import TestLab from './components/TestLab.vue';
+import TestInbox from './components/TestInbox.vue';
 const identity = ref<Identity>();
 const loading = ref(true);
 const page = ref('Overview');
@@ -89,6 +90,7 @@ onErrorCaptured((cause) => {
             'Customers',
             'Events',
             'Test Lab',
+            'Test Inbox',
             ...(identity.role === 'Admin' ? ['Settings'] : []),
           ]"
           :key="item"
@@ -118,6 +120,7 @@ onErrorCaptured((cause) => {
           ><button @click="navigate('Journeys')">Journeys</button
           ><button @click="navigate('Customers')">Customers</button
           ><button @click="navigate('Events')">Events</button
+          ><button @click="navigate('Test Inbox')">Test Inbox</button
           ><button @click="navigate('Test Lab')">Test Lab</button
           ><button v-if="identity.role === 'Admin'" @click="navigate('Settings')">Settings</button
           ><button @click="logout">Sign out</button>
@@ -143,9 +146,10 @@ onErrorCaptured((cause) => {
         /><CustomersView v-else-if="page === 'Customers'" :readonly="readOnly" /><EventsView
           v-else-if="page === 'Events'"
           :readonly="readOnly"
-        /><TestLab v-else-if="page === 'Test Lab'" :readonly="readOnly" /><SettingsView
-          v-else-if="page === 'Settings'"
-        /><template v-else>
+        /><TestLab v-else-if="page === 'Test Lab'" :readonly="readOnly" /><TestInbox
+          v-else-if="page === 'Test Inbox'"
+          :readonly="readOnly"
+        /><SettingsView v-else-if="page === 'Settings'" /><template v-else>
           <div class="page-heading">
             <div>
               <p class="eyebrow">YOUR ORCHESTRATION WORKSPACE</p>
