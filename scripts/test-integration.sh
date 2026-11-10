@@ -13,7 +13,7 @@ until docker exec "$container" pg_isready -U postgres -d journey_test >/dev/null
 done
 port=$(docker port "$container" 5432/tcp | sed 's/.*://')
 cd apps/api
-if [ "$#" -eq 0 ]; then set -- ./internal/...; fi
+if [ "$#" -eq 0 ]; then set -- ./cmd/benchmark ./internal/...; fi
 # Each package gets a fresh database. Migration tests intentionally reset their
 # schema, while workers claim globally; neither may affect another package.
 packages=$(go list "$@")

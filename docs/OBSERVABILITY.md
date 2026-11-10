@@ -44,6 +44,8 @@ Queue sampling runs only in the worker, at most once every five seconds, with a 
 
 Histogram percentiles in Grafana are bucket estimates over the selected window; they are not interchangeable with exact interpolated benchmark samples. p95 by route remains separate from DB duration/pool waits and job lag.
 
+With bounded runtime turns, the operational `runtime_step` operation counts claimed job processing turns, which can include multiple short nodes. Node-level business metrics continue to come from individual `step_executions` records; job throughput must not be reported as node throughput. Timer resumes retain a separate scheduling boundary. Benchmark-only `--profile` and wait-event sampling are described in [bounded-turn measurements](BOUNDED-TURNS.md); they are not enabled on production request paths.
+
 ## Trace and log correlation
 
 Event admission adds `journey_ingestion_admission_wait_seconds` and `journey_ingestion_admission_rejected_total`. These measure waiting outside the database pool and admission saturation; rate-limiter rejections are a separate cause of HTTP 429. Single and batch endpoints share the same transaction budget.

@@ -23,6 +23,8 @@ The Docker setup persists PostgreSQL on a named volume, runs the Go service as a
 
 ## Implemented domain boundaries
 
+Runtime jobs execute bounded short-node turns (up to eight nodes, soft 10ms checks between nodes) under the existing fences. Timers yield before dependent work; messages, attribute mutations, waits and terminal states are boundaries. All node histories remain persisted, while redundant intra-transaction RUNNING writes and scheduler round trips are reduced. [Measurements and transaction semantics](BOUNDED-TURNS.md) include remaining lock contention.
+
 The implemented services enforce the following boundaries:
 
 - **Identity and workspace:** password/session authentication, role checks and workspace-scoped repositories. Workspace IDs come from authenticated identity, never blindly from a payload.

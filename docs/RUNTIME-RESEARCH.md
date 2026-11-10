@@ -1,5 +1,7 @@
 # Runtime darboğazları: benzer sistemlerde çözümler
 
+Uygulama devamı: [bounded turns ve gerçek ölçümler](BOUNDED-TURNS.md). Aşağıdaki belge araştırma anındaki önerileri korur; uygulanan kapsam ve açık darboğazlar takip raporunda ayrılmıştır.
+
 İnceleme tarihi: 10 Kasım 2026. Bu belge resmi doküman/kaynak kod araştırmasıdır; aşağıdaki öneriler henüz runtime'a uygulanmadı. Bizim ölçümlerimiz [operasyonel performans raporunda](OPERATIONS-PERFORMANCE.md). Rakip throughput rakamlarını kendi ürünümüz için sonuç kabul etmiyoruz.
 
 ## 1. Kapasite eşiğine göre toplu iş alma

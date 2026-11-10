@@ -10,6 +10,8 @@ Vue 3 / TypeScript frontend, Go API, PostgreSQL source of truth. The product inc
 
 The [operational follow-up](docs/OPERATIONS-PERFORMANCE.md) measures independent worker slots and event admission with telemetry enabled: 10,000 mock sends drain in 66.5s versus its matched 88.5s baseline. It also records the timer-latency regression and inconsistent UI tail results. [UI/UX research](docs/UX-RESEARCH.md) maps official competitor patterns to the next concrete interface improvements.
 
+The newer [bounded-turn measurements](docs/BOUNDED-TURNS.md) add wait sampling and profiling. Entry-to-wait improves by 42–43% and timer p95 by 8–9% against its matched baseline; total delivery drain stays roughly unchanged and customer-lock contention remains open. The Go module is `github.com/negativexq/customer-journey-composer/apps/api`; its internal imports resolve from the local checkout.
+
 ## Quick start with Docker
 
 Requires Docker Engine with Compose v2, Git and Node.js 24 LTS (Node is used to create the ignored local environment file).

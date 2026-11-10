@@ -1,5 +1,7 @@
 # Operational bottlenecks — 2026-11-10
 
+Follow-up: [bounded runtime turns](BOUNDED-TURNS.md) records actual wait samples, the discarded inline-timer regression and two final comparisons. It uses a new profiled baseline; do not mix baselines between these reports.
+
 Independent worker slots and bounded event admission improve total mock delivery drain, including delayed providers. They do **not** improve every stage: runtime completion and timer lateness regress under the mixed workload. This follow-up preserves those measurements and the intermediate implementation rather than replacing the earlier [SQL access-path report](PERFORMANCE.md).
 
 ## Reproduction and comparison boundary

@@ -32,6 +32,14 @@ Phase 12: address the prioritized [UI/UX findings](UX-RESEARCH.md), profile the 
 
 Runtime follow-up research is recorded in [RUNTIME-RESEARCH.md](RUNTIME-RESEARCH.md): bounded short-step advancement, capacity-threshold refill and queue fairness are candidates; wait-event profiling must distinguish actual lock waits from total statement duration. This research changes no production execution behavior.
 
+## Bounded runtime turn delivery — 2026-11-10
+
+- `a846d60` adds bounded wait-event/blocker occupancy sampling on a separate diagnostic connection and optional CPU/allocation profiles. The default integration command now includes the diagnostic lock test.
+- `89e373f` introduces bounded short-step turns with per-node history and recoverable inline failures. The first timer-inline benchmark regressed p95 to 36.503s; this behavior is superseded, with the artifact retained.
+- `1aa63b2` restores a timer-resume scheduling boundary and writes each node result once per transaction. Two final profiled 10,000-execution runs improve entry-to-wait from 40.415s to 22.958–23.495s and timer p95 from 11.412s to 10.352–10.526s. Total delivery drain is essentially unchanged; customer-lock contention remains. See [measured bounded turns](BOUNDED-TURNS.md), including the slower intermediate run and sampling limitations.
+- `9ff4258` aligns Go module/imports with `github.com/negativexq/customer-journey-composer/apps/api`. A private [GitHub repository](https://github.com/negativexq/customer-journey-composer) was created at the user's request. Historical benchmark source identities remain unchanged.
+- Verified locally: offline Go build, `make check`, complete PostgreSQL integration suite including diagnostic sampling, 32/32 desktop/mobile browser tests, Docker rebuild/readiness, telemetry/alert-rule checks and actual worker restart recovery. All five new benchmark runs preserve zero duplicate/failed logical actions and two expected provider retries. Gitleaks scans 51 pre-publication commits with no findings. No live LLM tests were run.
+
 ## Operational review delivery — 2026-11-10
 
 - `2c034f6` fixes Nginx upstream DNS after API container replacement; the isolated IP-replacement test passed without restarting the proxy.
