@@ -5,6 +5,8 @@ import WorkflowCanvas from './WorkflowCanvas.vue';
 import MessageStudio from './MessageStudio.vue';
 import AIPanel from './AIPanel.vue';
 import TestLab from './TestLab.vue';
+import LiveMonitor from './LiveMonitor.vue';
+import AnalyticsView from './AnalyticsView.vue';
 import type { Workflow, Issue } from '../lib/workflow';
 const props = defineProps<{ journey: Journey; readonly?: boolean }>();
 const emit = defineEmits<{ back: []; saved: [Journey] }>();
@@ -234,6 +236,8 @@ function back() {
   <nav class="detail-tabs">
     <button :class="{ selected: tab === 'Builder' }" @click="tab = 'Builder'">Builder</button
     ><button @click="tab = 'Preview & Test'">Preview &amp; Test</button
+    ><button @click="tab = 'Live Monitor'">Live Monitor</button
+    ><button @click="tab = 'Analytics'">Analytics</button
     ><button @click="showVersions">Versions</button>
   </nav>
   <section v-if="tab === 'Builder'" class="composer-layout">
@@ -288,6 +292,10 @@ function back() {
       <p v-else class="panel">Add an email or SMS node in Builder to preview a message.</p>
     </template>
   </section>
+  <LiveMonitor v-else-if="tab === 'Live Monitor'" :journey-id="journey.id" /><AnalyticsView
+    v-else-if="tab === 'Analytics'"
+    :journey-id="journey.id"
+  />
   <div v-else class="panel">
     <h2>Published versions</h2>
     <p v-if="!versions.length">No published versions yet.</p>

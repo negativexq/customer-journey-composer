@@ -10,6 +10,7 @@ import EventsView from './components/EventsView.vue';
 import SettingsView from './components/SettingsView.vue';
 import TestLab from './components/TestLab.vue';
 import TestInbox from './components/TestInbox.vue';
+import AnalyticsView from './components/AnalyticsView.vue';
 const identity = ref<Identity>();
 const loading = ref(true);
 const page = ref('Overview');
@@ -32,6 +33,14 @@ async function refresh() {
 async function open(journey: Journey) {
   try {
     selected.value = await api<Journey>(`/journeys/${journey.id}`);
+    page.value = 'Journeys';
+  } catch (cause) {
+    error.value = String(cause);
+  }
+}
+async function openID(id: string) {
+  try {
+    selected.value = await api<Journey>('/journeys/' + id);
     page.value = 'Journeys';
   } catch (cause) {
     error.value = String(cause);
@@ -91,6 +100,7 @@ onErrorCaptured((cause) => {
             'Events',
             'Test Lab',
             'Test Inbox',
+            'Analytics',
             ...(identity.role === 'Admin' ? ['Settings'] : []),
           ]"
           :key="item"
@@ -120,6 +130,7 @@ onErrorCaptured((cause) => {
           ><button @click="navigate('Journeys')">Journeys</button
           ><button @click="navigate('Customers')">Customers</button
           ><button @click="navigate('Events')">Events</button
+          ><button @click="navigate('Analytics')">Analytics</button
           ><button @click="navigate('Test Inbox')">Test Inbox</button
           ><button @click="navigate('Test Lab')">Test Lab</button
           ><button v-if="identity.role === 'Admin'" @click="navigate('Settings')">Settings</button
@@ -149,7 +160,9 @@ onErrorCaptured((cause) => {
         /><TestLab v-else-if="page === 'Test Lab'" :readonly="readOnly" /><TestInbox
           v-else-if="page === 'Test Inbox'"
           :readonly="readOnly"
-        /><SettingsView v-else-if="page === 'Settings'" /><template v-else>
+        /><AnalyticsView v-else-if="page === 'Analytics'" @open-journey="openID" /><SettingsView
+          v-else-if="page === 'Settings'"
+        /><template v-else>
           <div class="page-heading">
             <div>
               <p class="eyebrow">YOUR ORCHESTRATION WORKSPACE</p>
@@ -160,19 +173,7 @@ onErrorCaptured((cause) => {
             </div>
             <button class="primary" @click="navigate('Journeys')">Explore journeys →</button>
           </div>
-          <section class="stats-grid">
-            <button class="panel stat-card" @click="navigate('Journeys')">
-              <span>Total journeys</span><strong>{{ journeys.length }}</strong></button
-            ><button
-              v-for="status in ['Active', 'Draft', 'Paused', 'Completed']"
-              :key="status"
-              class="panel stat-card"
-              @click="navigate('Journeys')"
-            >
-              <span>{{ status }}</span
-              ><strong>{{ journeys.filter((j) => j.status === status).length }}</strong>
-            </button>
-          </section>
+          <AnalyticsView overview @open-journey="openID" />
           <section class="panel">
             <h2>Recent journeys</h2>
             <p v-if="!journeys.length">

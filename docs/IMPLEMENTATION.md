@@ -13,7 +13,7 @@ Source of truth for product scope: [PRD.md](PRD.md).
 | 7. AI Journey Composer                 | Complete (live tests deferred) | Shared schema, Claude/OpenAI adapters, bounded repair, diff/approval; local provider contracts and 18 browser tests passed.                      |
 | 8. Preview & Test Lab                  | Complete                       | Virtual clock, snapshots, replay, event/attribute sequences, assertions and fault injection; 20 browser tests passed.                            |
 | 9. Test Inbox                          | Complete                       | Three-panel inbox, scoped filters, payload/trace/attempts, replay comparison and actual test-send distinction; 20 browser tests.                 |
-| 10. Live Monitor & Analytics           | Pending                        | Execution-backed metrics with explicit denominators.                                                                                             |
+| 10. Live Monitor & Analytics           | Complete                       | Transactional delta projections, indexed summaries, version-aware monitor and inspector; 22 browser tests passed.                                |
 | 11. Lifecycle & Reliability            | Pending                        | Race, recovery, version, security and observability tests.                                                                                       |
 | 12. Final Product & Demo               | Pending                        | E2E, measured benchmark, demo and deployment verification.                                                                                       |
 
@@ -28,7 +28,7 @@ Source of truth for product scope: [PRD.md](PRD.md).
 
 ## Next slice
 
-Phase 10: asynchronous analytics projections, bounded live monitoring and measured query-plan verification.
+Phase 11: lifecycle/publishing gates, security, audit, failure recovery and observability. Phase 12 measures the 10,000-execution workload and query plans.
 
 ## Phase 1 delivery — 2026-11-10
 
@@ -102,3 +102,11 @@ See [verification notes](VERIFICATION.md) for reproducible checks and [architect
 - `05e0043` — bounded inbox metadata API, individually loaded rendered outputs, provider attempts and execution traces; replay-parent comparison. Database trigger mirrors only explicit TEST sends and preserves immutable bodies.
 - Three-panel inbox provides run/customer/journey/channel/status filters, isolated email/SMS rendering, copy, replay, payload, policy and attempt inspection. Pending real tests use TEST_PENDING; acceptance uses TEST_ACCEPTED.
 - Verified: `make check`, all isolated PostgreSQL integration tests, 20/20 browser tests including inbox filtering/parent comparison, actual Mailpit TEST_ACCEPTED and exclusion of live deliveries.
+
+## Phase 10 delivery
+
+- `42c86be` — atomic asynchronous analytics projection, workspace/journey/version totals and hourly cohorts, lifetime distinct identities, indexed activity and version-scoped node stats. Batched JSON processing avoids temporary-table catalog churn and per-event hot summary writes.
+- Live Monitor tracks customers on their actual published version, highlights visited/current paths, polls only while visible and exposes steps, deadlines, jobs, delivery decisions and attempts. Analytics shows denominators, cohort trends, channel outcomes, node funnel and comparisons. Dashboard totals no longer depend on the first 200 journeys.
+- Last-24-hour entries use hourly summaries plus two indexed one-hour boundary ranges; raw history is not scanned on refresh. Rendered content does not enter projections. See [ANALYTICS.md](ANALYTICS.md).
+- Verified: `make check`, package-isolated real PostgreSQL integration tests, concurrent projector/no-op/recovery rollback tests, distinct counts and retry-vs-logical-send counts; 22/22 browser tests including monitor/analytics and local demo login. Benchmark and EXPLAIN measurements remain phase 12 work.
+- Additional user request: `e887409` adds generated local demo credentials prefilled at login, gated to development; desktop/mobile login and production gating tests passed.

@@ -59,6 +59,25 @@ test('builds a connected workflow, validates and publishes an immutable version'
       return (await response.json()).state;
     })
     .toBe('COMPLETED');
+  await page.getByRole('button', { name: 'Live Monitor', exact: true }).click();
+  await page.getByLabel('Track customer ID').fill('cart_customer');
+  await page.getByRole('button', { name: 'Track customer', exact: true }).click();
+  await page.getByRole('button', { name: /cart_customer · COMPLETED/ }).click();
+  await expect(page.getByRole('heading', { name: 'Execution inspector' })).toBeVisible();
+  await expect(page.locator('.monitor-canvas .vue-flow__node')).toHaveCount(2);
+  await expect
+    .poll(async () => {
+      const result = await (await page.request.get(`/api/v1/journeys/${journey.id}/stats`)).json();
+      return result.metrics.find((m: { metric: string }) => m.metric === 'entries')?.value;
+    })
+    .toBe(1);
+  await page
+    .locator('.detail-tabs')
+    .getByRole('button', { name: 'Analytics', exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', { name: 'Channel performance · logical sends' }),
+  ).toBeVisible();
   await page.reload();
   await page.getByRole('button', { name: 'Canvas journey', exact: false }).click();
   await expect(page.locator('.vue-flow__node')).toHaveCount(2);
