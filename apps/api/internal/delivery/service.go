@@ -275,7 +275,13 @@ func (s *Service) Claim(ctx context.Context) (*Job, error) {
 func (s *Service) Dispatch(ctx context.Context, job Job) (err error) {
 	ctx, span := observability.Start(observability.Parent(ctx, job.TraceParent), "delivery.dispatch", attribute.String("delivery.id", job.ID), attribute.Int("delivery.attempt", job.Attempt))
 	ctx, finish := observability.TrackOperation(ctx, "delivery_dispatch")
-	defer func() { finish(err); span.End() }()
+	defer func() {
+		finish(err)
+		if err != nil && !errors.Is(err, context.Canceled) {
+			s.Log.ErrorContext(ctx, "delivery dispatch failed", "delivery_id", job.ID, "error_class", observability.ErrorClass(err))
+		}
+		span.End()
+	}()
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -374,6 +380,7 @@ func (s *Service) Dispatch(ctx context.Context, job Job) (err error) {
 	if status == "RETRY" {
 		if job.Attempt >= 5 {
 			out.Status = "FAILED"
+			observability.SetOutcome(ctx, "failed")
 			out.Response += "; retry limit exhausted"
 			status = "FAILED"
 		} else {
@@ -405,43 +412,88 @@ func (s *Service) Dispatch(ctx context.Context, job Job) (err error) {
 	return tx2.Commit(completed)
 }
 func (s *Service) Run(ctx context.Context) error {
-	for ctx.Err() == nil {
-		count, err := s.Schedule(ctx)
-		if err != nil {
-			s.Log.Error("delivery scheduling failed")
-		}
-		if err := s.Recover(ctx); err != nil {
-			s.Log.Error("delivery lease recovery failed")
-		}
-		var group sync.WaitGroup
-		claimed := 0
-		for range 4 {
-			job, err := s.Claim(ctx)
+	wake := make(chan struct{}, 4)
+	var group sync.WaitGroup
+	// Scheduling and lease recovery do not wait for provider network calls.
+	group.Go(func() {
+		for ctx.Err() == nil {
+			request, cancel := context.WithTimeout(ctx, 15*time.Second)
+			n, err := s.Schedule(request)
+			cancel()
 			if err != nil {
-				s.Log.Error("delivery claim failed")
-				break
-			}
-			if job == nil {
-				break
-			}
-			claimed++
-			group.Go(func() {
-				if err := s.Dispatch(ctx, *job); err != nil && ctx.Err() == nil {
-					s.Log.Error("delivery dispatch failed", "delivery_id", job.ID)
+				if ctx.Err() == nil {
+					s.Log.ErrorContext(ctx, "delivery scheduling failed")
 				}
-			})
-		}
-		group.Wait()
-		if count == 0 && claimed == 0 {
-			timer := time.NewTimer(250 * time.Millisecond)
-			select {
-			case <-ctx.Done():
-				timer.Stop()
-			case <-timer.C:
+				if !deliveryPause(ctx, nil, time.Second) {
+					return
+				}
+				continue
+			}
+			if n > 0 {
+				for range 4 {
+					select {
+					case wake <- struct{}{}:
+					default:
+					}
+				}
+			}
+			if n < 32 && !deliveryPause(ctx, nil, 250*time.Millisecond) {
+				return
 			}
 		}
+	})
+	group.Go(func() {
+		for ctx.Err() == nil {
+			request, cancel := context.WithTimeout(ctx, 10*time.Second)
+			err := s.Recover(request)
+			cancel()
+			if err != nil && ctx.Err() == nil {
+				s.Log.ErrorContext(ctx, "delivery lease recovery failed")
+			}
+			if !deliveryPause(ctx, nil, time.Second) {
+				return
+			}
+		}
+	})
+	for range 4 {
+		group.Go(func() {
+			for ctx.Err() == nil {
+				request, cancel := context.WithTimeout(ctx, 15*time.Second)
+				job, err := s.Claim(request)
+				cancel()
+				if err != nil {
+					if ctx.Err() == nil {
+						s.Log.ErrorContext(ctx, "delivery claim failed")
+					}
+					if !deliveryPause(ctx, nil, time.Second) {
+						return
+					}
+					continue
+				}
+				if job == nil {
+					if !deliveryPause(ctx, wake, 250*time.Millisecond) {
+						return
+					}
+					continue
+				}
+				_ = s.Dispatch(ctx, *job)
+			}
+		})
 	}
+	group.Wait()
 	return nil
+}
+func deliveryPause(ctx context.Context, wake <-chan struct{}, d time.Duration) bool {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-wake:
+		return true
+	case <-timer.C:
+		return true
+	}
 }
 func NormalizeAllowlist(addresses []string) []string {
 	out := []string{}

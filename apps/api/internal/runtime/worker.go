@@ -34,16 +34,23 @@ func NewWorker(pool *pgxpool.Pool, clock Clock) *Worker {
 	return &Worker{Pool: pool, Clock: clock, Log: slog.Default()}
 }
 func (w *Worker) Claim(ctx context.Context, limit int) ([]Job, error) {
+	if err := w.recoverLeases(ctx); err != nil {
+		return nil, err
+	}
+	return w.claimReady(ctx, limit)
+}
+func (w *Worker) recoverLeases(ctx context.Context) error {
+	tag, err := w.Pool.Exec(ctx, `UPDATE scheduled_jobs SET state='SCHEDULED',claim_token=NULL,lease_until=NULL,last_error='Lease expired; recovered' WHERE id IN (SELECT id FROM scheduled_jobs WHERE state='CLAIMED' AND lease_until<=$1 ORDER BY lease_until,id LIMIT 100 FOR UPDATE SKIP LOCKED)`, w.Clock.Now())
+	if err == nil {
+		observability.ObserveLeaseRecovery("runtime", "scheduled", tag.RowsAffected())
+	}
+	return err
+}
+func (w *Worker) claimReady(ctx context.Context, limit int) ([]Job, error) {
 	if limit < 1 || limit > 100 {
 		limit = 32
 	}
 	now := w.Clock.Now()
-	// Bounded stale-lease recovery; the fencing token is replaced on every claim.
-	tag, err := w.Pool.Exec(ctx, `UPDATE scheduled_jobs SET state='SCHEDULED',claim_token=NULL,lease_until=NULL,last_error='Lease expired; recovered' WHERE id IN (SELECT id FROM scheduled_jobs WHERE state='CLAIMED' AND lease_until<=$1 ORDER BY lease_until,id LIMIT 100 FOR UPDATE SKIP LOCKED)`, now)
-	if err != nil {
-		return nil, err
-	}
-	observability.ObserveLeaseRecovery("runtime", "scheduled", tag.RowsAffected())
 	// Keep the ordered jobs_due scan outside the one-to-one eligibility lookup.
 	// Joining from a selective Active journey made LIMIT 32 sort/probe every
 	// execution first. The guard is applied before LIMIT, so paused or locked
@@ -71,37 +78,72 @@ func (w *Worker) Claim(ctx context.Context, limit int) ([]Job, error) {
 	return jobs, rows.Err()
 }
 func (w *Worker) Run(ctx context.Context) error {
+	slots := make(chan struct{}, 8)
+	completed := make(chan struct{}, 8)
+	var group sync.WaitGroup
+	defer group.Wait()
+	var nextRecovery time.Time
 	for ctx.Err() == nil {
-		jobs, err := w.Claim(ctx, 32)
+		if !w.Clock.Now().Before(nextRecovery) {
+			if err := w.recoverLeases(ctx); err != nil {
+				if ctx.Err() == nil {
+					w.Log.ErrorContext(ctx, "lease recovery failed")
+				}
+				if !sleep(ctx, time.Second) {
+					break
+				}
+				continue
+			}
+			nextRecovery = w.Clock.Now().Add(time.Second)
+		}
+		available := cap(slots) - len(slots)
+		if available == 0 {
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-completed:
+				continue
+			}
+		}
+		jobs, err := w.claimReady(ctx, available)
 		if err != nil {
-			w.Log.Error("job claim failed")
+			if ctx.Err() == nil {
+				w.Log.ErrorContext(ctx, "job claim failed")
+			}
 			if !sleep(ctx, time.Second) {
 				break
 			}
 			continue
 		}
-		if len(jobs) == 0 {
-			if !sleep(ctx, 100*time.Millisecond) {
-				break
-			}
-			continue
-		}
-		sem := make(chan struct{}, 8)
-		var group sync.WaitGroup
 		for _, job := range jobs {
 			if ctx.Err() != nil {
 				break
 			}
-			sem <- struct{}{}
+			slots <- struct{}{}
 			group.Go(func() {
-				defer func() { <-sem }()
+				defer func() {
+					<-slots
+					select {
+					case completed <- struct{}{}:
+					default:
+					}
+				}()
 				if err := w.Process(ctx, job); err != nil && ctx.Err() == nil {
-					w.Log.Error("step transaction failed", "job_id", job.ID)
 					w.retry(ctx, job)
 				}
 			})
 		}
-		group.Wait()
+		if len(jobs) == 0 {
+			timer := time.NewTimer(100 * time.Millisecond)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return nil
+			case <-completed:
+				timer.Stop()
+			case <-timer.C:
+			}
+		}
 	}
 	return nil
 }
@@ -116,6 +158,8 @@ func sleep(ctx context.Context, d time.Duration) bool {
 	}
 }
 func (w *Worker) retry(ctx context.Context, job Job) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 	delay := time.Duration(1<<min(job.Attempts, 8)) * time.Second
 	tag, err := w.Pool.Exec(ctx, `UPDATE scheduled_jobs SET state='SCHEDULED',due_at=$3,lease_until=NULL,claim_token=NULL,last_error='Step transaction failed; retry scheduled' WHERE id=$1 AND state='CLAIMED' AND claim_token=$2`, job.ID, job.Token, w.Clock.Now().Add(delay))
 	if err == nil && tag.RowsAffected() > 0 {
@@ -127,7 +171,13 @@ func (w *Worker) Process(ctx context.Context, job Job) (err error) {
 	defer cancel()
 	ctx, span := observability.Start(observability.Parent(ctx, job.TraceParent), "runtime.step", attribute.String("execution.id", job.ExecutionID), attribute.String("node.id", job.NodeID))
 	ctx, finish := observability.TrackOperation(ctx, "runtime_step")
-	defer func() { finish(err); span.End() }()
+	defer func() {
+		finish(err)
+		if err != nil && !errors.Is(err, context.Canceled) {
+			w.Log.ErrorContext(ctx, "step transaction failed", "job_id", job.ID, "error_class", observability.ErrorClass(err))
+		}
+		span.End()
+	}()
 	if !job.DueAt.IsZero() {
 		observability.ObserveJobLag(job.Kind, w.Clock.Now().Sub(job.DueAt))
 	}
