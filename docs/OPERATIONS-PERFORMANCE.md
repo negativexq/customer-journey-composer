@@ -65,6 +65,8 @@ Every run has one event/execution/logical delivery per customer, exactly two exp
 
 ## Next measured work
 
+The [runtime research](RUNTIME-RESEARCH.md) maps official Camunda, Temporal, River and PostgreSQL patterns to these opportunities, with explicit safety boundaries and an experiment order. It does not claim those changes are implemented.
+
 - Profile runtime statement round trips/Go allocations and pool contention separately. Test bounded SQL batching or a bounded immutable-version cache only after identifying the dominant cost. Any queue microbatch change must keep the blocked-customer regression and lease safety.
 - Test scheduler/runtime fairness to reduce timer lateness while keeping independent delivery slots. A provider-drain speedup alone is insufficient evidence to raise worker concurrency.
 - Repeat sustained UI probes with many more samples, disk-backed data, remote latency, large paused prefixes and months of history. Current summary reads do not justify a new analytics cache or wide speculative indexes.

@@ -30,6 +30,8 @@ Source of truth for product scope: [PRD.md](PRD.md).
 
 Phase 12: address the prioritized [UI/UX findings](UX-RESEARCH.md), profile the remaining runtime claim/round-trip cost and timer fairness identified in the [operational benchmark](OPERATIONS-PERFORMANCE.md), then complete final demo/deployment artifacts. Templates, demo data/events and measured 10,000-execution scenarios are already present. Live LLM tests remain deferred.
 
+Runtime follow-up research is recorded in [RUNTIME-RESEARCH.md](RUNTIME-RESEARCH.md): bounded short-step advancement, capacity-threshold refill and queue fairness are candidates; wait-event profiling must distinguish actual lock waits from total statement duration. This research changes no production execution behavior.
+
 ## Operational review delivery — 2026-11-10
 
 - `2c034f6` fixes Nginx upstream DNS after API container replacement; the isolated IP-replacement test passed without restarting the proxy.
