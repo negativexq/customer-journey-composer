@@ -49,7 +49,7 @@ test-e2e:
 check: fmt-check lint typecheck test
 
 build:
-	cd apps/api && go build -o bin/server ./cmd/server && go build -o bin/migrate ./cmd/migrate
+	cd apps/api && go build -o bin/server ./cmd/server && go build -o bin/migrate ./cmd/migrate && go build -o bin/worker ./cmd/worker
 	npm run build
 
 up: setup
@@ -72,3 +72,11 @@ dev-web:
 
 commitlint:
 	npm run commitlint -- $(RANGE)
+
+.PHONY: dev-worker
+dev-worker:
+	@set -a; . ./.env; set +a; cd apps/api && go run ./cmd/worker
+
+.PHONY: test-recovery
+test-recovery:
+	node scripts/test-recovery.mjs

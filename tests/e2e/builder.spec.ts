@@ -51,7 +51,14 @@ test('builds a connected workflow, validates and publishes an immutable version'
     },
   });
   expect(event.ok()).toBeTruthy();
-  expect((await event.json()).executions).toHaveLength(1);
+  const result = await event.json();
+  expect(result.executions).toHaveLength(1);
+  await expect
+    .poll(async () => {
+      const response = await page.request.get(`/api/v1/executions/${result.executions[0]}`);
+      return (await response.json()).state;
+    })
+    .toBe('COMPLETED');
   await page.reload();
   await page.getByRole('button', { name: 'Canvas journey', exact: false }).click();
   await expect(page.locator('.vue-flow__node')).toHaveCount(2);

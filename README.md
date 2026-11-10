@@ -4,7 +4,7 @@ AI-powered customer journey orchestration: **AI-generated, human-approved, deter
 
 Vue 3 / TypeScript frontend, Go API, PostgreSQL source of truth. The product includes a visual journey builder, persistent execution, messaging, simulation and observability as specified in the [MVP requirements](docs/PRD.md).
 
-**Current scope:** phases 1–4: workspace authentication, journey management, Vue Flow editing/validation, immutable published versions, customer profiles and transactional event ingestion/enrollment. The persistent worker and delivery pipeline are next. [Implementation tracker](docs/IMPLEMENTATION.md).
+**Current scope:** phases 1–5: workspace authentication, journey management, Vue Flow editing/validation, immutable published versions, customer profiles and transactional event ingestion/enrollment. The persistent worker now executes durable timers, event waits, conditions and attribute updates with a transactional action outbox. Delivery adapters are next. [Implementation tracker](docs/IMPLEMENTATION.md).
 
 ## Quick start with Docker
 
@@ -48,7 +48,8 @@ make install
 make infra
 make migrate
 make dev-api              # Terminal 1: http://localhost:8090
-make dev-web              # Terminal 2: http://localhost:5173
+make dev-worker           # Terminal 2: durable step processing
+make dev-web              # Terminal 3: http://localhost:5173
 ```
 
 Stop a fully containerized stack with `make down` before running native services on the same ports.
@@ -65,6 +66,7 @@ make build
 make up
 npx playwright install chromium
 make test-e2e
+make test-recovery
 git diff --check
 ```
 
@@ -108,3 +110,5 @@ Supported types: `feat`, `fix`, `test`, `refactor`, `perf`, `docs`, `ci`, `build
 Validate a commit range with `make commitlint RANGE=main..HEAD`. GitHub Actions runs the same checks plus Docker/browser smoke tests. No `.env`, credentials, personal data or provider keys may be committed.
 
 See [API policies](docs/API.md) for authentication, API keys, draft revisions and event ordering/late-event rules.
+
+`make test-recovery` verifies a real worker process restart against the local Docker stack, using a new isolated workspace. It stops and restarts only this project's worker.

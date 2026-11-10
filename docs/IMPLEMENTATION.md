@@ -2,20 +2,20 @@
 
 Source of truth for product scope: [PRD.md](PRD.md).
 
-| Phase                                  | Status   | Evidence / remaining work                                                                                                  |
-| -------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------- |
-| 1. Repository & Foundation             | Complete | Vue/Go/Docker stack; PostgreSQL migrations; quality checks; integration and browser tests passed locally.                  |
-| 2. Authentication & Journey Management | Complete | Sessions, CSRF, RBAC, workspace isolation, revision-guarded drafts and management UI; database and 6 browser tests passed. |
-| 3. Visual Canvas & Validation          | Complete | Typed schema, graph/rule validator, immutable snapshots and Vue Flow editor; database and 8 browser tests passed.          |
-| 4. Customer & Event Infrastructure     | Complete | Profiles, scoped API keys, idempotent single/batch ingestion and atomic enrollment; database and 10 browser tests passed.  |
-| 5. Persistent Runtime                  | Pending  | PostgreSQL durability and concurrency invariants required.                                                                 |
-| 6. Email & SMS                         | Pending  | Mailpit and mock SMS required.                                                                                             |
-| 7. AI Journey Composer                 | Pending  | Both Claude and OpenAI; common schema, validation, human approval.                                                         |
-| 8. Preview & Test Lab                  | Pending  | Shared deterministic runtime with controlled Clock.                                                                        |
-| 9. Test Inbox                          | Pending  | Isolated persisted outputs and traces.                                                                                     |
-| 10. Live Monitor & Analytics           | Pending  | Execution-backed metrics with explicit denominators.                                                                       |
-| 11. Lifecycle & Reliability            | Pending  | Race, recovery, version, security and observability tests.                                                                 |
-| 12. Final Product & Demo               | Pending  | E2E, measured benchmark, demo and deployment verification.                                                                 |
+| Phase                                  | Status   | Evidence / remaining work                                                                                                                        |
+| -------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1. Repository & Foundation             | Complete | Vue/Go/Docker stack; PostgreSQL migrations; quality checks; integration and browser tests passed locally.                                        |
+| 2. Authentication & Journey Management | Complete | Sessions, CSRF, RBAC, workspace isolation, revision-guarded drafts and management UI; database and 6 browser tests passed.                       |
+| 3. Visual Canvas & Validation          | Complete | Typed schema, graph/rule validator, immutable snapshots and Vue Flow editor; database and 8 browser tests passed.                                |
+| 4. Customer & Event Infrastructure     | Complete | Profiles, scoped API keys, idempotent single/batch ingestion and atomic enrollment; database and 10 browser tests passed.                        |
+| 5. Persistent Runtime                  | Complete | Fenced worker, durable timers/waiters, global exit, shared pure decisions, outbox; race/recovery/version tests and actual Docker restart passed. |
+| 6. Email & SMS                         | Pending  | Mailpit and mock SMS required.                                                                                                                   |
+| 7. AI Journey Composer                 | Pending  | Both Claude and OpenAI; common schema, validation, human approval.                                                                               |
+| 8. Preview & Test Lab                  | Pending  | Shared deterministic runtime with controlled Clock.                                                                                              |
+| 9. Test Inbox                          | Pending  | Isolated persisted outputs and traces.                                                                                                           |
+| 10. Live Monitor & Analytics           | Pending  | Execution-backed metrics with explicit denominators.                                                                                             |
+| 11. Lifecycle & Reliability            | Pending  | Race, recovery, version, security and observability tests.                                                                                       |
+| 12. Final Product & Demo               | Pending  | E2E, measured benchmark, demo and deployment verification.                                                                                       |
 
 ## Accepted decisions
 
@@ -28,7 +28,7 @@ Source of truth for product scope: [PRD.md](PRD.md).
 
 ## Next slice
 
-Phase 5: persistent worker, fenced claims/leases, deterministic step decisions, durable waits, event waiters/global exits and crash/race tests.
+Phase 6: safe personalized rendering, email/SMS composition, durable deliveries/attempts, Mailpit/mock providers, retry/backoff, consent and frequency caps.
 
 ## Phase 1 delivery — 2026-11-10
 
@@ -65,3 +65,11 @@ See [verification notes](VERIFICATION.md) for reproducible checks and [architect
 - Customer/event/settings screens support profile attributes/consents, event timeline/payload inspection, manual ingestion and API key creation/revocation.
 - API policies document late/future events and best-effort per-item batch semantics.
 - Verified: `make check`, isolated PostgreSQL tests (8 concurrent identical events => exactly one execution/job, conflicting IDs, active enrollment, late/future events, scoped/revoked API keys), Docker stack and 10/10 browser tests. The builder test now publishes then starts an execution through the real event HTTP API.
+
+## Phase 5 delivery
+
+- PostgreSQL worker claims due jobs with SKIP LOCKED, bounded batches, expiring leases and regenerated fencing tokens. Old claims cannot commit effects; transaction failures retry with bounded backoff.
+- Customer locks serialize event, timer and execution transitions. Durable waiters resolve exactly once, global exit cancels jobs/waiters/pending outbox actions, and published-version references remain fixed.
+- Shared pure `Decide` function and Clock boundary cover all node types; message nodes produce a unique transactional outbox entry for phase 6 delivery. No provider calls occur in step transactions.
+- Event context references the matched event ID rather than copying payload JSON into each execution. Execution list/trace APIs are bounded and workspace-scoped.
+- Verified: quality/unit checks, real PostgreSQL claim recovery and stale-token tests, durable wait timing, 12 event/timeout races, global exit, attribute update, pause/sunset and version isolation; 10 browser tests; actual Docker worker stop/start preserving a wait and event deduplication.

@@ -43,4 +43,6 @@ Send `Authorization: Bearer <key>` from your ingestion service. Keep keys on the
 
 Event persistence, enrollment and the first scheduled job are committed atomically. Database uniqueness prevents duplicate event IDs, duplicate event-based enrollment and more than one active execution per customer/journey. Enrollment uses the current immutable version and its reentry policy; later edits do not rewrite that snapshot.
 
-The worker/runtime is phase 5 work; the phase 4 event pipeline durably schedules its first step. Delivery, simulation, monitoring and analytics follow their planned phases.
+The phase 5 worker executes persisted steps, waits, conditions, attribute updates and exits. Message steps create a transactional outbox record; phase 6 adds delivery providers. Read `/executions/{id}` for the trace and `/journeys/{id}/executions` for bounded, filterable execution records. Paused journeys do not progress; Sunset journeys drain existing executions.
+
+Event/timeout races serialize on the customer/execution state; only one branch wins. Global exit ignores events that predate the entry event. Event waiters accept matching events only if their occurrence is after waiter creation and they arrive by the deadline. After resume, overdue timers are immediately eligible; elapsed wall time is not added back.

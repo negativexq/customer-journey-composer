@@ -64,6 +64,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: make up
       - run: make test-e2e
+      - run: make test-recovery
       - name: Service diagnostics
         if: failure()
         run: docker compose ps && docker compose logs --no-color --tail 100
