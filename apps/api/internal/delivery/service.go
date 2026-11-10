@@ -61,9 +61,9 @@ func validRecipient(channel, to string) bool {
 	return err == nil && a.Address == to
 }
 
-// Keep customer locks short: one scheduler transaction owns at most eight
+// Keep customer locks short: one scheduler transaction owns at most sixteen
 // outbox actions. Run immediately drains a full batch without the idle pause.
-const scheduleBatchSize = 8
+const scheduleBatchSize = 16
 
 // ScheduleQuery keeps the ordered pending index outside the customer lock.
 // The lateral LockRows boundary prevents a bulk join/sort of the pending queue.
@@ -197,10 +197,7 @@ func (s *Service) Schedule(ctx context.Context) (int, error) {
 		}
 		body, _ := json.Marshal(message)
 		eligibility, _ := json.Marshal(decision)
-		if _, err := tx.Exec(ctx, `INSERT INTO delivery_jobs(workspace_id,execution_id,outbox_id,node_id,customer_id,channel,provider,idempotent_provider,logical_key,message,decision,status,due_at,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$13) ON CONFLICT DO NOTHING`, p.workspace, p.execution, p.id, p.node, p.customer, p.channel, name, idempotent, p.execution+":"+p.node, body, eligibility, status, now); err != nil {
-			return 0, err
-		}
-		if _, err := tx.Exec(ctx, `UPDATE action_outbox SET state='PROCESSED',payload='{}' WHERE id=$1`, p.id); err != nil {
+		if _, err := tx.Exec(ctx, `WITH delivery AS (INSERT INTO delivery_jobs(workspace_id,execution_id,outbox_id,node_id,customer_id,channel,provider,idempotent_provider,logical_key,message,decision,status,due_at,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$13) ON CONFLICT DO NOTHING) UPDATE action_outbox SET state='PROCESSED',payload='{}' WHERE id=$3`, p.workspace, p.execution, p.id, p.node, p.customer, p.channel, name, idempotent, p.execution+":"+p.node, body, eligibility, status, now); err != nil {
 			return 0, err
 		}
 	}
