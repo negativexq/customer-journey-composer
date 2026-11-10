@@ -2,20 +2,20 @@
 
 Source of truth for product scope: [PRD.md](PRD.md).
 
-| Phase                                  | Status   | Evidence / remaining work                                                                                                                        |
-| -------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1. Repository & Foundation             | Complete | Vue/Go/Docker stack; PostgreSQL migrations; quality checks; integration and browser tests passed locally.                                        |
-| 2. Authentication & Journey Management | Complete | Sessions, CSRF, RBAC, workspace isolation, revision-guarded drafts and management UI; database and 6 browser tests passed.                       |
-| 3. Visual Canvas & Validation          | Complete | Typed schema, graph/rule validator, immutable snapshots and Vue Flow editor; database and 8 browser tests passed.                                |
-| 4. Customer & Event Infrastructure     | Complete | Profiles, scoped API keys, idempotent single/batch ingestion and atomic enrollment; database and 10 browser tests passed.                        |
-| 5. Persistent Runtime                  | Complete | Fenced worker, durable timers/waiters, global exit, shared pure decisions, outbox; race/recovery/version tests and actual Docker restart passed. |
-| 6. Email & SMS                         | Complete | Safe rendering, channel studio, SMTP/Mailpit and mock SMS, durable deliveries/attempts, policy and retry tests; 14 browser tests passed.         |
-| 7. AI Journey Composer                 | Pending  | Both Claude and OpenAI; common schema, validation, human approval.                                                                               |
-| 8. Preview & Test Lab                  | Pending  | Shared deterministic runtime with controlled Clock.                                                                                              |
-| 9. Test Inbox                          | Pending  | Isolated persisted outputs and traces.                                                                                                           |
-| 10. Live Monitor & Analytics           | Pending  | Execution-backed metrics with explicit denominators.                                                                                             |
-| 11. Lifecycle & Reliability            | Pending  | Race, recovery, version, security and observability tests.                                                                                       |
-| 12. Final Product & Demo               | Pending  | E2E, measured benchmark, demo and deployment verification.                                                                                       |
+| Phase                                  | Status                         | Evidence / remaining work                                                                                                                        |
+| -------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1. Repository & Foundation             | Complete                       | Vue/Go/Docker stack; PostgreSQL migrations; quality checks; integration and browser tests passed locally.                                        |
+| 2. Authentication & Journey Management | Complete                       | Sessions, CSRF, RBAC, workspace isolation, revision-guarded drafts and management UI; database and 6 browser tests passed.                       |
+| 3. Visual Canvas & Validation          | Complete                       | Typed schema, graph/rule validator, immutable snapshots and Vue Flow editor; database and 8 browser tests passed.                                |
+| 4. Customer & Event Infrastructure     | Complete                       | Profiles, scoped API keys, idempotent single/batch ingestion and atomic enrollment; database and 10 browser tests passed.                        |
+| 5. Persistent Runtime                  | Complete                       | Fenced worker, durable timers/waiters, global exit, shared pure decisions, outbox; race/recovery/version tests and actual Docker restart passed. |
+| 6. Email & SMS                         | Complete                       | Safe rendering, channel studio, SMTP/Mailpit and mock SMS, durable deliveries/attempts, policy and retry tests; 14 browser tests passed.         |
+| 7. AI Journey Composer                 | Complete (live tests deferred) | Shared schema, Claude/OpenAI adapters, bounded repair, diff/approval; local provider contracts and 18 browser tests passed.                      |
+| 8. Preview & Test Lab                  | Pending                        | Shared deterministic runtime with controlled Clock.                                                                                              |
+| 9. Test Inbox                          | Pending                        | Isolated persisted outputs and traces.                                                                                                           |
+| 10. Live Monitor & Analytics           | Pending                        | Execution-backed metrics with explicit denominators.                                                                                             |
+| 11. Lifecycle & Reliability            | Pending                        | Race, recovery, version, security and observability tests.                                                                                       |
+| 12. Final Product & Demo               | Pending                        | E2E, measured benchmark, demo and deployment verification.                                                                                       |
 
 ## Accepted decisions
 
@@ -28,7 +28,7 @@ Source of truth for product scope: [PRD.md](PRD.md).
 
 ## Next slice
 
-Phase 7: Claude and OpenAI structured-output adapters, versioned shared schema, bounded validation/repair, draft-only diff and Apply/Discard. Live LLM requests remain deferred.
+Phase 8: isolated persisted scenarios/runs, shared deterministic node semantics and policy, virtual clock, event/attribute sequences, assertions, fault injection and replay. Phase 9 persists inbox outputs separately.
 
 ## Phase 1 delivery — 2026-11-10
 
@@ -82,3 +82,11 @@ See [verification notes](VERIFICATION.md) for reproducible checks and [architect
 - Channel Studio provides email/SMS composition, templates, customer-isolated preview overrides, missing values, mobile/desktop preview, rendered content, links and allowlisted/idempotent test sends. Customer profiles expose delivery decisions/attempts.
 - SMTP defaults to local Mailpit; SMS remains a mock. No external SMS provider or paid LLM request was used.
 - Verified: all quality/unit/integration checks; local SMTP protocol and lost-acceptance response; 429→500→success, consent revocation, caps, global exit, stale delivery leases, preview isolation and test-send idempotency; 14/14 browser tests including actual Mailpit receipt and live SMTP/mock SMS; actual worker restart recovery passed again.
+
+## Phase 7 delivery
+
+- `b053176` — versioned closed JSON Schema, typed Claude/OpenAI HTTP adapters, local schema/graph/message validation and a maximum of two provider attempts. Models are configured explicitly; there is no automatic provider/model substitution.
+- API endpoints only return proposals/explanations. They have no save/publish path and never load live customer/event data. Per-node actions minimize input; cancellation and long provider Retry-After are respected.
+- AI panel implements all requested actions, diffs, warning acknowledgement, Apply/Discard and stale-draft rejection. Apply uses ordinary revision-guarded draft saving; publication remains separate.
+- Tests caught and fixed shared-slice mutation in message proposals. Incomplete outputs, unknown node types, refusals, schema drift and unbounded repair are rejected.
+- Verified: all quality/unit checks, local HTTP provider contracts and real PostgreSQL integration tests; 18/18 browser regressions including AI review/stale behavior. No paid/live LLM request was made. Actual provider schema acceptance, model quality/latency and live prompt demo remain deferred by user instruction; see [AI.md](AI.md).

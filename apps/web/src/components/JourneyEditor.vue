@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, watch, onBeforeUnmount } from 'vue';
+import { computed, ref, watch, onBeforeUnmount, nextTick } from 'vue';
 import { api, type Journey } from '../lib/api';
 import WorkflowCanvas from './WorkflowCanvas.vue';
 import MessageStudio from './MessageStudio.vue';
+import AIPanel from './AIPanel.vue';
 import type { Workflow, Issue } from '../lib/workflow';
 const props = defineProps<{ journey: Journey; readonly?: boolean }>();
 const emit = defineEmits<{ back: []; saved: [Journey] }>();
@@ -11,10 +12,13 @@ const description = ref(props.journey.description);
 const tags = ref(props.journey.tags.join(', '));
 const draft = ref(props.journey.draft as unknown as Workflow);
 const issues = ref<Issue[]>([]);
+const canvasKey = ref(0);
+let applying = false;
 const exitEvent = ref(draft.value.global_exit?.event_name || '');
 const reentryMode = ref(draft.value.reentry?.mode || 'after_completion');
 const cooldown = ref(draft.value.reentry?.cooldown_seconds || 86400);
 watch([exitEvent, reentryMode, cooldown], () => {
+  if (applying) return;
   draft.value.global_exit = exitEvent.value ? { event_name: exitEvent.value } : undefined;
   draft.value.reentry = {
     mode: reentryMode.value,
@@ -28,6 +32,19 @@ const messageStep = computed(
     draft.value.nodes.find((n) => n.id === messageNodeID.value) ||
     draft.value.nodes.find((n) => n.type === 'email' || n.type === 'sms'),
 );
+async function applyProposal(proposal: { workflow: Workflow; name: string; description: string }) {
+  applying = true;
+  draft.value = JSON.parse(JSON.stringify(proposal.workflow));
+  name.value = proposal.name;
+  description.value = proposal.description;
+  exitEvent.value = draft.value.global_exit?.event_name || '';
+  reentryMode.value = draft.value.reentry?.mode || 'after_completion';
+  cooldown.value = draft.value.reentry?.cooldown_seconds || 86400;
+  issues.value = [];
+  canvasKey.value++;
+  await nextTick();
+  applying = false;
+}
 function previewNode(id: string) {
   messageNodeID.value = id;
   tab.value = 'Preview & Test';
@@ -198,13 +215,24 @@ function back() {
     ><button @click="tab = 'Preview & Test'">Preview &amp; Test</button
     ><button @click="showVersions">Versions</button>
   </nav>
-  <WorkflowCanvas
-    v-if="tab === 'Builder'"
-    v-model="draft"
-    :readonly="readonly || journey.status === 'Archived'"
-    :issues="issues"
-    @preview="previewNode"
-  />
+  <section v-if="tab === 'Builder'" class="composer-layout">
+    <div class="builder-column">
+      <WorkflowCanvas
+        :key="canvasKey"
+        v-model="draft"
+        :readonly="readonly || journey.status === 'Archived'"
+        :issues="issues"
+        @preview="previewNode"
+      />
+    </div>
+    <AIPanel
+      :workflow="draft"
+      :name="name"
+      :description="description"
+      :readonly="readonly || journey.status === 'Archived'"
+      @apply="applyProposal"
+    />
+  </section>
   <section v-else-if="tab === 'Preview & Test'">
     <label
       >Message node<select v-model="messageNodeID">

@@ -9,6 +9,10 @@ const limit = ref(3);
 const hours = ref(24);
 const allowlist = ref('');
 const notice = ref('');
+const ai = ref<{
+  enabled: boolean;
+  providers: Record<string, { configured: boolean; model: string }>;
+}>();
 async function load() {
   try {
     const [keyList, policy] = await Promise.all([
@@ -18,6 +22,7 @@ async function load() {
       ),
     ]);
     keys.value = keyList;
+    ai.value = await api('/settings/ai');
     limit.value = policy.frequency_limit;
     hours.value = policy.frequency_window_seconds / 3600;
     allowlist.value = policy.test_allowlist.join('\n');
@@ -97,6 +102,17 @@ onMounted(load);
         are isolated from the live cap.</small
       ><button class="primary">Save messaging policy</button>
     </form>
+  </section>
+  <section v-if="ai" class="panel">
+    <h2>AI providers</h2>
+    <p>
+      {{ ai.enabled ? 'Live generation enabled' : 'Live generation disabled' }}. Credentials and
+      model IDs are configured on the server; API keys are never sent to the browser.
+    </p>
+    <div v-for="(provider, providerName) in ai.providers" :key="providerName" class="list-row">
+      <strong>{{ providerName === 'claude' ? 'Claude' : 'OpenAI' }}</strong
+      ><span>{{ provider.configured ? provider.model : 'Not configured' }}</span>
+    </div>
   </section>
   <section class="panel">
     <h2>Event ingestion API keys</h2>

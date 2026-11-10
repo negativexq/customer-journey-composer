@@ -60,3 +60,9 @@ Admins configure `/settings/messaging`: `frequency_limit`, `frequency_window_sec
 `GET /deliveries` lists bounded metadata; `GET /deliveries/{id}` returns rendered content, eligibility and attempt history. ACCEPTED means provider acceptance, not confirmed delivery. Transient failures retry at most five attempts with 2/4/8/16-second backoff. SMTP connection failures before acceptance can retry; a lost acceptance response or expired non-idempotent dispatch becomes UNKNOWN and is not automatically resent. Mock providers support stable idempotency keys.
 
 Global exit/failure cancels SCHEDULED or CLAIMED deliveries before dispatch. A dispatch already committed as in-flight can finish; `cancel_requested` records a later exit. External acceptance cannot be revoked transactionally. Consent, execution state and recipient identity are rechecked before committing dispatch, and stale claim tokens cannot dispatch another logical send.
+
+## AI draft proposals
+
+`POST /ai/journeys/generate`, `/ai/journeys/modify` and `/ai/messages/generate` accept `provider`, `action`, `prompt`, current `name`/`description`/`workflow`, and `node_id` for node/message actions. Supported actions are generate, modify, add_step, explain_journey, explain_node, improve_message, generate_message and fix_validation.
+
+These endpoints are Editor/Admin-only and return validated proposals with a typed workflow, explanation, warnings and diff. They do not write drafts or publish. Configuration is visible without secrets at `/settings/ai`. Generation defaults to disabled; the selected provider key and compatible model must be configured on the server. Requests are bounded to two provider attempts and one active request per workspace. The browser rejects stale proposals and requires explicit Apply plus warning acknowledgement. Details and deferred live verification are in [AI.md](AI.md).

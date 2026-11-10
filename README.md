@@ -4,7 +4,7 @@ AI-powered customer journey orchestration: **AI-generated, human-approved, deter
 
 Vue 3 / TypeScript frontend, Go API, PostgreSQL source of truth. The product includes a visual journey builder, persistent execution, messaging, simulation and observability as specified in the [MVP requirements](docs/PRD.md).
 
-**Current scope:** phases 1–6: workspace authentication, journey management, Vue Flow editing/validation, immutable published versions, customer profiles and transactional event ingestion/enrollment. The persistent worker now executes durable timers, event waits, conditions and attribute updates with a transactional action outbox. SMTP/Mailpit and mock SMS deliveries now enforce consent, frequency caps, bounded retry and test-recipient allowlists. Channel Studio renders isolated, personalized previews. AI composition is next. [Implementation tracker](docs/IMPLEMENTATION.md).
+**Current scope:** phases 1–7: workspace authentication, journey management, Vue Flow editing/validation, immutable published versions, customer profiles and transactional event ingestion/enrollment. The persistent worker now executes durable timers, event waits, conditions and attribute updates with a transactional action outbox. SMTP/Mailpit and mock SMS deliveries now enforce consent, frequency caps, bounded retry and test-recipient allowlists. Channel Studio renders isolated, personalized previews. Claude/OpenAI adapters and a review-only AI proposal panel are implemented; live LLM evaluation remains deferred. Virtual-clock Test Lab is next. [Implementation tracker](docs/IMPLEMENTATION.md).
 
 ## Quick start with Docker
 
@@ -92,7 +92,7 @@ docs/                     Product plan, architecture and development status
 
 ## AI providers
 
-Both **Anthropic Claude** and **OpenAI** are required in phase 7 behind one provider interface and shared, versioned workflow schema. Keys and model IDs will be configured on the server only. The `.env.example` reserves optional configuration names; adapters are not implemented in phase 1. Keep `AI_PROVIDER=disabled` for now.
+Both **Anthropic Claude** and **OpenAI** are required in phase 7 behind one provider interface and shared, versioned workflow schema. Keys and model IDs will be configured on the server only. The `.env.example` reserves optional configuration names; adapters are implemented and covered by local contract tests. Keep `AI_PROVIDER=disabled` until live generation is requested; see [AI configuration](docs/AI.md).
 
 Live LLM tests are deferred at the user's request. Unit, integration and simulation tests must be deterministic and must not need paid model requests. AI never publishes or applies workflow changes without human approval.
 

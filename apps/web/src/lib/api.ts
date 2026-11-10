@@ -55,11 +55,15 @@ export async function api<T>(
   method = 'GET',
   body?: unknown,
   extraHeaders: Record<string, string> = {},
+  timeoutMs = 30000,
+  signal?: AbortSignal,
 ): Promise<T> {
   const response = await fetch(`/api/v1${path}`, {
     method,
     credentials: 'same-origin',
-    signal: AbortSignal.timeout(30000),
+    signal: signal
+      ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)])
+      : AbortSignal.timeout(timeoutMs),
     headers: {
       Accept: 'application/json',
       ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
