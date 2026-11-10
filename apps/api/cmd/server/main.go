@@ -13,6 +13,7 @@ import (
 
 	"github.com/ofk/customer-journey-composer/apps/api/internal/config"
 	"github.com/ofk/customer-journey-composer/apps/api/internal/database"
+	"github.com/ofk/customer-journey-composer/apps/api/internal/demo"
 	"github.com/ofk/customer-journey-composer/apps/api/internal/httpapi"
 )
 
@@ -38,6 +39,12 @@ func run() error {
 		return err
 	}
 	defer pool.Close()
+	seedCtx, seedCancel := context.WithTimeout(ctx, 10*time.Second)
+	err = demo.Ensure(seedCtx, pool)
+	seedCancel()
+	if err != nil {
+		return err
+	}
 	server := &http.Server{
 		Addr: cfg.HTTPAddr,
 		Handler: httpapi.New(log, func(ctx context.Context) error {

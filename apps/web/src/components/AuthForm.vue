@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { api, type Identity } from '../lib/api';
 import SystemStatus from './SystemStatus.vue';
 const emit = defineEmits<{ authenticated: [Identity] }>();
@@ -10,6 +10,28 @@ const name = ref('');
 const workspace = ref('');
 const error = ref('');
 const busy = ref(false);
+const demoReady = ref(false);
+onMounted(async () => {
+  try {
+    const demo = await api<{ enabled: boolean; email?: string; password?: string }>('/auth/demo');
+    if (demo.enabled && !email.value && !password.value && !register.value) {
+      email.value = demo.email || '';
+      password.value = demo.password || '';
+      demoReady.value = true;
+    }
+  } catch {
+    /* Demo login is optional outside local development. */
+  }
+});
+function toggleMode() {
+  register.value = !register.value;
+  error.value = '';
+  if (register.value && demoReady.value) {
+    email.value = '';
+    password.value = '';
+    demoReady.value = false;
+  }
+}
 async function submit() {
   busy.value = true;
   error.value = '';
@@ -42,6 +64,9 @@ async function submit() {
     </div>
     <form class="auth-form panel" @submit.prevent="submit">
       <h2>{{ register ? 'Create your workspace' : 'Welcome back' }}</h2>
+      <p v-if="demoReady && !register" class="demo-notice">
+        Local demo account is ready. Click Sign in to explore.
+      </p>
       <label v-if="register"
         >Your name<input v-model="name" autocomplete="name" required maxlength="120" /></label
       ><label v-if="register"
@@ -68,13 +93,7 @@ async function submit() {
       <p v-if="error" role="alert" class="error-message">{{ error }}</p>
       <button class="primary" :disabled="busy">
         {{ busy ? 'Please wait…' : register ? 'Create workspace' : 'Sign in' }}</button
-      ><button
-        type="button"
-        @click="
-          register = !register;
-          error = '';
-        "
-      >
+      ><button type="button" @click="toggleMode">
         {{ register ? 'Already have an account? Sign in' : 'Create a workspace' }}
       </button>
     </form>

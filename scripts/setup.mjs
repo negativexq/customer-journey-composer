@@ -3,7 +3,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 
 const password = randomBytes(24).toString('hex');
 const template = readFileSync(new URL('../.env.example', import.meta.url), 'utf8');
+const demoPassword = randomBytes(24).toString('hex');
 const env = template
+  .replace('DEMO_PASSWORD=\n', `DEMO_PASSWORD=${demoPassword}\n`)
   .replace('POSTGRES_PASSWORD=\n', `POSTGRES_PASSWORD=${password}\n`)
   .replace(
     'DATABASE_URL=\n',
@@ -14,5 +16,14 @@ try {
   console.log('Created ignored .env with a random local database password.');
 } catch (error) {
   if (error.code !== 'EEXIST') throw error;
-  console.log('Existing .env preserved.');
+  const path = new URL('../.env', import.meta.url);
+  let existing = readFileSync(path, 'utf8');
+  if (!/^APP_ENV=/m.test(existing)) existing += '\nAPP_ENV=development\n';
+  if (/^APP_ENV=development$/m.test(existing) && !/^DEMO_ENABLED=/m.test(existing)) {
+    existing += `\nDEMO_ENABLED=true\nDEMO_EMAIL=demo@example.invalid\nDEMO_PASSWORD=${demoPassword}\n`;
+    writeFileSync(path, existing, { mode: 0o600 });
+    console.log('Added local demo configuration; existing settings preserved.');
+  } else {
+    console.log('Existing .env preserved.');
+  }
 }

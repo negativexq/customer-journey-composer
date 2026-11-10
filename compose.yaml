@@ -41,6 +41,10 @@ services:
     <<: *api
     environment:
       <<: *backend-env
+      APP_ENV: ${APP_ENV:-production}
+      DEMO_ENABLED: ${DEMO_ENABLED:-false}
+      DEMO_EMAIL: ${DEMO_EMAIL:-}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-}
       AI_PROVIDER: ${AI_PROVIDER:-disabled}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}

@@ -114,3 +114,5 @@ See [API policies](docs/API.md) for authentication, API keys, draft revisions an
 `make test-recovery` verifies a real worker process restart against the local Docker stack, using a new isolated workspace. It stops and restarts only this project's worker.
 
 SMTP settings stay in server environment variables. Native development uses `SMTP_HOST`/`SMTP_PORT`; Compose uses `SMTP_DOCKER_HOST`/`SMTP_SERVER_PORT` (defaults: `mailpit:1025`). Configure `SMTP_FROM`, optional `SMTP_USER`/`SMTP_PASSWORD`, and `SMTP_REQUIRE_TLS=true` when using an authenticated external SMTP server. In-app Settings manages caps and the explicit test-recipient allowlist; secrets are never returned to the browser.
+
+Local demo login is prefilled automatically after `make up`: click **Sign in**. `make setup` generates its password into ignored `.env`; no fixed password is stored in Git. Demo provisioning and the no-store credential endpoint require both `APP_ENV=development` and `DEMO_ENABLED=true`. Set `DEMO_ENABLED=false` outside local development. Production mode refuses an enabled demo account.

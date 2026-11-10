@@ -133,7 +133,7 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 				}
 			}
 		}
-		if path == "/api/v1/auth/register" || path == "/api/v1/auth/login" {
+		if path == "/api/v1/auth/register" || path == "/api/v1/auth/login" || path == "/api/v1/auth/demo" {
 			next(ctx)
 			return
 		}
@@ -320,6 +320,7 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 	registerAI(api)
 	registerTesting(api, pool)
 	registerInbox(api, pool)
+	registerDemo(api)
 }
 
 var dummyPasswordHash, _ = bcrypt.GenerateFromPassword([]byte(randomToken()), 12)
