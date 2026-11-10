@@ -16,6 +16,7 @@ import (
 	"github.com/ofk/customer-journey-composer/apps/api/internal/database"
 	"github.com/ofk/customer-journey-composer/apps/api/internal/delivery"
 	"github.com/ofk/customer-journey-composer/apps/api/internal/httpapi"
+	"github.com/ofk/customer-journey-composer/apps/api/internal/observability"
 	engine "github.com/ofk/customer-journey-composer/apps/api/internal/runtime"
 	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
 	"golang.org/x/crypto/bcrypt"
@@ -141,7 +142,10 @@ func request(ctx context.Context, client *http.Client, base, path, method string
 	b, err := io.ReadAll(io.LimitReader(r.Body, 2<<20))
 	return b, r.StatusCode, err
 }
-func run(customers int, out string) error {
+func run(customers int, out string, rate, delayMS, delayEvery int) error {
+	if rate < 0 || rate > 10000 || delayMS < 0 || delayMS > 10000 || delayEvery < 1 {
+		return fmt.Errorf("invalid pacing/delay configuration")
+	}
 	if customers < 1 || customers > 100000 {
 		return fmt.Errorf("customers must be 1–100,000")
 	}
@@ -214,6 +218,11 @@ func run(customers int, out string) error {
 		return err
 	}
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	shutdownMetrics, err := observability.Serve(ctx, "127.0.0.1:0", workerPool, true, log)
+	if err != nil {
+		return err
+	}
+	defer shutdownMetrics()
 	server := httptest.NewServer(httpapi.New(log, func(context.Context) error { return nil }, apiPool))
 	defer server.Close()
 	client := &http.Client{Timeout: 25 * time.Second, Transport: &http.Transport{MaxIdleConns: 64, MaxIdleConnsPerHost: 32}}
@@ -238,7 +247,7 @@ func run(customers int, out string) error {
 	worker.Log = log
 	sender := delivery.New(workerPool, nil)
 	sender.Log = log
-	sender.Providers["mock_sms"] = &delivery.Mock{Codes: []int{429, 500, 200}}
+	sender.Providers["mock_sms"] = &delayedProvider{Provider: &delivery.Mock{Codes: []int{429, 500, 200}}, delay: time.Duration(delayMS) * time.Millisecond, every: int64(delayEvery)}
 	workers.Go(func() { _ = worker.Run(workerCtx) })
 	workers.Go(func() { _ = sender.Run(workerCtx) })
 	workers.Go(func() { analytics.Run(workerCtx, workerPool, log) })
@@ -264,6 +273,7 @@ func run(customers int, out string) error {
 		events[i] = engine.Event{EventID: fmt.Sprintf("event_%06d", i+1), CustomerID: fmt.Sprintf("bench_%06d", i+1), EventName: "cart_updated", OccurredAt: time.Now().UTC(), Properties: map[string]any{"amount": 2450, "currency": "TRY"}}
 	}
 	latencies := make([]float64, customers)
+	successfulLatencies := make([]float64, customers)
 	var throttled atomic.Int64
 	var accepted atomic.Int64
 	errs := make(chan error, 20)
@@ -275,6 +285,7 @@ func run(customers int, out string) error {
 			for index := range jobs {
 				begin := time.Now()
 				for {
+					attemptStarted := time.Now()
 					b, status, e := request(ctx, client, server.URL, "/events", "POST", events[index], token, "")
 					if e != nil {
 						errs <- e
@@ -299,6 +310,7 @@ func run(customers int, out string) error {
 						errs <- fmt.Errorf("logical enrollment missing")
 						return
 					}
+					successfulLatencies[index] = float64(time.Since(attemptStarted).Microseconds()) / 1000
 					latencies[index] = float64(time.Since(begin).Microseconds()) / 1000
 					accepted.Add(1)
 					break
@@ -310,7 +322,19 @@ func run(customers int, out string) error {
 	go func() {
 		defer close(dispatchDone)
 		defer close(jobs)
+		var pacing *time.Ticker
+		if rate > 0 {
+			pacing = time.NewTicker(time.Second / time.Duration(rate))
+			defer pacing.Stop()
+		}
 		for i := range events {
+			if pacing != nil {
+				select {
+				case <-pacing.C:
+				case <-ctx.Done():
+					return
+				}
+			}
 			select {
 			case jobs <- i:
 			case <-ctx.Done():
@@ -465,7 +489,7 @@ func run(customers int, out string) error {
 	if err = apiPool.QueryRow(ctx, `SELECT version()`).Scan(&postgres); err != nil {
 		return err
 	}
-	report := map[string]any{"recorded_at": time.Now().UTC(), "commit": os.Getenv("BENCH_COMMIT"), "working_tree_dirty": os.Getenv("BENCH_DIRTY") == "true", "customers": customers, "mvp_load_threshold_met": customers >= 10000, "environment": map[string]any{"go": runtime.Version(), "os": runtime.GOOS, "arch": runtime.GOARCH, "logical_cpu_count": runtime.NumCPU(), "postgres": postgres, "postgres_container_cpu_limit": 2, "postgres_container_memory_limit_bytes": 2 << 30, "http_concurrency": 20, "runtime_concurrency": 8, "delivery_concurrency": 4, "pool_max_per_process": 20}, "method": "Real loopback HTTP ingestion and actual PostgreSQL runtime/delivery/projector, warm local Docker database. Fixture creates 1,000 inactive draft journeys and synthetic customers. Stage A reaches the requested number of simultaneously WAITING durable executions (MVP threshold: 10,000). Stage B moves only isolated fixture timer deadlines to a common wall-clock time five seconds ahead, then lets real workers process. No frozen clock, SMTP or LLM requests. Completion polling interval is 1s; Go memory includes benchmark client+API+worker in one process. Two transient mock provider outcomes (429/500) are injected. Five authenticated UI reads/sec run throughout the loaded phases. pg_stat_statements records top-level statement execution (including trigger cost); client network/round-trip time is not included. Timer lateness measures step completion after due_at, not claim time. EXPLAIN probes do not modify job state.", "ingestion": map[string]any{"seconds": ingestElapsed.Seconds(), "events_per_second": float64(customers) / ingestElapsed.Seconds(), "event_to_committed_execution_upper_bound": percentiles(latencies), "http_429_retries": throttled.Load(), "duplicate_requests": min(100, customers)}, "database_queries": map[string]any{"stage_a": stageAQueries, "stage_b": stageBQueries}, "loaded_read_http_latency": loadedReads, "loaded_read_failures": readFailures, "runtime": map[string]any{"peak_confirmed_active": active, "stage_a_until_all_waiting_seconds": waitingAt.Sub(started).Seconds(), "stage_a_jobs_per_second": float64(2*customers) / waitingAt.Sub(started).Seconds(), "stage_b_due_at": due, "stage_b_until_all_completed_seconds": runtimeDone.Sub(due).Seconds(), "stage_b_jobs_per_second": float64(4*customers) / runtimeDone.Sub(due).Seconds(), "pipeline_until_all_provider_accepted_seconds": deliveryDone.Sub(due).Seconds(), "timer_step_completion_lateness_ms": map[string]any{"p50": lag[0], "p95": lag[1], "p99": lag[2], "max": lag[3]}}, "consistency": map[string]any{"events": eventCount, "executions": executionCount, "logical_deliveries": logical, "provider_attempts": attempts, "runtime_retry_attempts": jobRetries, "delivery_retry_attempts": deliveryRetries, "failed_executions": failures, "duplicate_logical_actions": duplicates}, "read_http_latency": readLatency, "memory": map[string]any{"go_peak_heap_alloc_bytes": observed.Heap, "go_peak_heap_sys_bytes": observed.HeapSys, "peak_goroutines": observed.Goroutines}, "pools": observed.Pools, "query_plans": plans}
+	report := map[string]any{"recorded_at": time.Now().UTC(), "commit": os.Getenv("BENCH_COMMIT"), "working_tree_dirty": os.Getenv("BENCH_DIRTY") == "true", "customers": customers, "mvp_load_threshold_met": customers >= 10000, "offered_events_per_second": rate, "fault_configuration": map[string]int{"provider_delay_ms": delayMS, "delay_every_attempts": delayEvery}, "telemetry": map[string]any{"metrics_enabled": true, "queue_probe_interval_seconds": 5, "trace_export_enabled": false}, "environment": map[string]any{"go": runtime.Version(), "os": runtime.GOOS, "arch": runtime.GOARCH, "logical_cpu_count": runtime.NumCPU(), "postgres": postgres, "postgres_container_cpu_limit": 2, "postgres_container_memory_limit_bytes": 2 << 30, "http_concurrency": 20, "runtime_concurrency": 8, "delivery_concurrency": 4, "pool_max_per_process": 20}, "method": "Real loopback HTTP ingestion and actual PostgreSQL runtime/delivery/projector, warm local Docker database. Fixture creates 1,000 inactive draft journeys and synthetic customers. Stage A reaches the requested number of simultaneously WAITING durable executions (MVP threshold: 10,000). Stage B moves only isolated fixture timer deadlines to a common wall-clock time five seconds ahead, then lets real workers process. No frozen clock, SMTP or LLM requests. Completion polling interval is 1s; Go memory includes benchmark client+API+worker in one process. Two transient mock provider outcomes (429/500) are injected. Five authenticated UI reads/sec run throughout the loaded phases. pg_stat_statements records top-level statement execution (including trigger cost); client network/round-trip time is not included. Timer lateness measures step completion after due_at, not claim time. EXPLAIN probes do not modify job state. Metrics/SQL timing and bounded queue sampling are enabled; no trace exporter is started. Optional pacing and provider delay are declared in the report. Successful-attempt latency excludes earlier 429 waits; logical latency includes them.", "ingestion": map[string]any{"seconds": ingestElapsed.Seconds(), "events_per_second": float64(customers) / ingestElapsed.Seconds(), "event_to_committed_execution_upper_bound": percentiles(latencies), "successful_http_attempt_latency": percentiles(successfulLatencies), "http_429_retries": throttled.Load(), "duplicate_requests": min(100, customers)}, "database_queries": map[string]any{"stage_a": stageAQueries, "stage_b": stageBQueries}, "loaded_read_http_latency": loadedReads, "loaded_read_failures": readFailures, "runtime": map[string]any{"peak_confirmed_active": active, "stage_a_until_all_waiting_seconds": waitingAt.Sub(started).Seconds(), "stage_a_jobs_per_second": float64(2*customers) / waitingAt.Sub(started).Seconds(), "stage_b_due_at": due, "stage_b_until_all_completed_seconds": runtimeDone.Sub(due).Seconds(), "stage_b_jobs_per_second": float64(4*customers) / runtimeDone.Sub(due).Seconds(), "pipeline_until_all_provider_accepted_seconds": deliveryDone.Sub(due).Seconds(), "timer_step_completion_lateness_ms": map[string]any{"p50": lag[0], "p95": lag[1], "p99": lag[2], "max": lag[3]}}, "consistency": map[string]any{"events": eventCount, "executions": executionCount, "logical_deliveries": logical, "provider_attempts": attempts, "runtime_retry_attempts": jobRetries, "delivery_retry_attempts": deliveryRetries, "failed_executions": failures, "duplicate_logical_actions": duplicates}, "read_http_latency": readLatency, "memory": map[string]any{"go_peak_heap_alloc_bytes": observed.Heap, "go_peak_heap_sys_bytes": observed.HeapSys, "peak_goroutines": observed.Goroutines}, "pools": observed.Pools, "query_plans": plans}
 	data, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
 		return err
@@ -476,14 +500,22 @@ func run(customers int, out string) error {
 	if err = os.WriteFile(out, append(data, '\n'), 0644); err != nil {
 		return err
 	}
+	recorder := httptest.NewRecorder()
+	observability.Handler().ServeHTTP(recorder, httptest.NewRequest("GET", "/metrics", nil))
+	if err = os.WriteFile(out+".prom", recorder.Body.Bytes(), 0644); err != nil {
+		return err
+	}
 	fmt.Printf("PASS: %d active executions; %d logical mock sends; %d duplicate actions. Report: %s\n", active, logical, duplicates, out)
 	return nil
 }
 func main() {
 	customers := flag.Int("customers", 10000, "Synthetic customers (10,000 for MVP acceptance)")
 	out := flag.String("out", "benchmark.json", "Report output")
+	rate := flag.Int("ingest-rate", 0, "Offered single events/sec; zero is unpaced")
+	delay := flag.Int("provider-delay-ms", 0, "Delay injected into every Nth mock provider attempt")
+	every := flag.Int("provider-delay-every", 4, "Mock attempts per injected delay")
 	flag.Parse()
-	if err := run(*customers, *out); err != nil {
+	if err := run(*customers, *out, *rate, *delay, *every); err != nil {
 		fmt.Fprintln(os.Stderr, "Benchmark failed:", err)
 		os.Exit(1)
 	}

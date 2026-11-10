@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/ofk/customer-journey-composer/apps/api/internal/delivery"
+	"github.com/ofk/customer-journey-composer/apps/api/internal/messaging"
 	"net/http"
 	"sync"
 	"sync/atomic"
@@ -90,4 +92,24 @@ func (p *readProbe) finish() (map[string]distribution, map[string]int) {
 		result[key] = percentiles(samples)
 	}
 	return result, p.failures
+}
+
+type delayedProvider struct {
+	delivery.Provider
+	delay time.Duration
+	every int64
+	calls atomic.Int64
+}
+
+func (p *delayedProvider) Send(ctx context.Context, message messaging.Message, key string) delivery.Outcome {
+	if p.delay > 0 && p.calls.Add(1)%p.every == 0 {
+		timer := time.NewTimer(p.delay)
+		defer timer.Stop()
+		select {
+		case <-ctx.Done():
+			return delivery.Outcome{Status: "RETRY", Code: 408}
+		case <-timer.C:
+		}
+	}
+	return p.Provider.Send(ctx, message, key)
 }
