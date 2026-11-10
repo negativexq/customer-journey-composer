@@ -96,6 +96,9 @@ test('builds a connected workflow, validates and publishes an immutable version'
     page.getByRole('heading', { name: 'Channel performance · logical sends' }),
   ).toBeVisible();
   await page.reload();
-  await page.locator('.journey-name-button').filter({ hasText: 'Canvas journey' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Channel performance · logical sends' }),
+  ).toBeVisible();
+  await page.locator('.journey-tabs').getByRole('button', { name: 'Builder', exact: true }).click();
   await expect(page.locator('.vue-flow__node')).toHaveCount(2);
 });

@@ -4,10 +4,17 @@ import { api, type Journey } from '../lib/api';
 import AppIcon from './ui/AppIcon.vue';
 import StatusBadge from './ui/StatusBadge.vue';
 const props = defineProps<{ readonly?: boolean; admin?: boolean; initialStatus?: string }>();
-const emit = defineEmits<{ open: [Journey]; create: []; templates: [] }>();
+const emit = defineEmits<{ open: [Journey]; create: []; templates: []; filter: [string] }>();
 const journeys = ref<Journey[]>([]);
 const search = ref('');
 const status = ref(props.initialStatus || '');
+watch(
+  () => props.initialStatus,
+  (value) => {
+    status.value = value || '';
+  },
+);
+watch(status, (value) => emit('filter', value));
 const sort = ref('updated');
 const loading = ref(true);
 const error = ref('');
@@ -86,6 +93,7 @@ onMounted(() => void load());
             v-for="s in ['', 'Active', 'Draft', 'Paused', 'Sunset', 'Archived']"
             :key="s"
             :class="{ active: status === s }"
+            :aria-pressed="status === s"
             @click="status = s"
           >
             {{ s || 'All journeys' }}

@@ -10,8 +10,18 @@ import AnalyticsView from './AnalyticsView.vue';
 import AppIcon from './ui/AppIcon.vue';
 import StatusBadge from './ui/StatusBadge.vue';
 import type { Workflow, Issue } from '../lib/workflow';
-const props = defineProps<{ journey: Journey; readonly?: boolean; admin?: boolean }>();
-const emit = defineEmits<{ back: []; saved: [Journey] }>();
+const props = defineProps<{
+  journey: Journey;
+  readonly?: boolean;
+  admin?: boolean;
+  activeTab?: string;
+  previewSection?: string;
+}>();
+const emit = defineEmits<{
+  back: [];
+  saved: [Journey];
+  navigate: [{ tab: string; preview: string }];
+}>();
 const name = ref(props.journey.name);
 const description = ref(props.journey.description);
 const tags = ref(props.journey.tags.join(', '));
@@ -30,10 +40,19 @@ watch([exitEvent, reentryMode, cooldown], () => {
     ...(reentryMode.value === 'cooldown' ? { cooldown_seconds: cooldown.value } : {}),
   };
 });
-const tab = ref('Builder');
+const tab = ref(props.activeTab || 'Builder');
 const showAI = ref(draft.value.nodes.length === 0);
 const metadata = ref<HTMLDetailsElement>();
-const previewTab = ref('Messages');
+const previewTab = ref(props.previewSection || 'Messages');
+watch(
+  () => [props.activeTab, props.previewSection],
+  ([nextTab, nextPreview]) => {
+    tab.value = nextTab || 'Builder';
+    previewTab.value = nextPreview || 'Messages';
+  },
+);
+watch([tab, previewTab], () => emit('navigate', { tab: tab.value, preview: previewTab.value }));
+
 const messageNodeID = ref('');
 const messageStep = computed(
   () =>
@@ -240,7 +259,6 @@ async function compareVersions() {
   }
 }
 async function showVersions() {
-  tab.value = 'Versions';
   try {
     versions.value = await api(`/journeys/${props.journey.id}/versions`);
     afterVersion.value = versions.value[0]?.version || 1;
@@ -249,6 +267,13 @@ async function showVersions() {
     error.value = String(cause);
   }
 }
+watch(
+  tab,
+  (value) => {
+    if (value === 'Versions') void showVersions();
+  },
+  { immediate: true },
+);
 function back() {
   if (dirty.value && !window.confirm('Discard unsaved changes?')) return;
   emit('back');
@@ -381,7 +406,7 @@ function back() {
       ]"
       :key="label"
       :class="{ selected: tab === label }"
-      @click="label === 'Versions' ? showVersions() : (tab = label)"
+      @click="tab = label"
     >
       <AppIcon :name="icon" :size="16" />{{ label }}</button
     ><button

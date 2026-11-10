@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, onErrorCaptured, ref, watch } from 'vue';
+import { pageRoute, readRoute, routeURL, type WorkspaceRoute } from './lib/navigation';
 import { api, setIdentity, type Identity, type Journey } from './lib/api';
 import AuthForm from './components/AuthForm.vue';
 import JourneyList from './components/JourneyList.vue';
@@ -16,10 +17,13 @@ import AppIcon from './components/ui/AppIcon.vue';
 import CreateJourneyDialog from './components/ui/CreateJourneyDialog.vue';
 const identity = ref<Identity>();
 const loading = ref(true);
-const page = ref('Overview');
+const route = ref<WorkspaceRoute>(readRoute(new URL(window.location.href)));
+const page = computed(() => route.value.page);
+const routeLoading = ref(false);
+let navigationSequence = 0;
 const selected = ref<Journey>();
 const journeys = ref<Journey[]>([]);
-const journeyFilter = ref('');
+const journeyFilter = computed(() => route.value.status || '');
 const error = ref('');
 const showCreate = ref(false);
 const readOnly = computed(() => identity.value?.role === 'Viewer');
@@ -87,10 +91,56 @@ function keyboard(e: KeyboardEvent) {
     void showSearch();
   }
 }
-function authenticated(user: Identity) {
+async function authenticated(user: Identity) {
   identity.value = user;
   setIdentity(user);
   void refresh();
+  await applyRoute(readRoute(new URL(window.location.href)));
+}
+async function applyRoute(next: WorkspaceRoute) {
+  const request = ++navigationSequence;
+  if (next.page === 'Settings' && identity.value?.role !== 'Admin') {
+    next = pageRoute('Overview');
+  }
+  route.value = next;
+  const canonical = routeURL(next);
+  if (window.location.pathname + window.location.search !== canonical) {
+    window.history.replaceState(null, '', canonical);
+  }
+  error.value = '';
+  if (!next.journeyID) {
+    selected.value = undefined;
+    routeLoading.value = false;
+    return;
+  }
+  if (selected.value?.id === next.journeyID) return;
+  selected.value = undefined;
+  routeLoading.value = true;
+  try {
+    const journey = await api<Journey>('/journeys/' + next.journeyID);
+    if (request === navigationSequence) selected.value = journey;
+  } catch (cause) {
+    if (request === navigationSequence) {
+      error.value = String(cause);
+      route.value = pageRoute('Journeys');
+      window.history.replaceState(null, '', '/journeys');
+    }
+  } finally {
+    if (request === navigationSequence) routeLoading.value = false;
+  }
+}
+function go(next: WorkspaceRoute) {
+  const target = routeURL(next);
+  if (window.location.pathname + window.location.search !== target) {
+    window.history.pushState(null, '', target);
+  }
+  return applyRoute(next);
+}
+function restoreLocation() {
+  if (identity.value) void applyRoute(readRoute(new URL(window.location.href)));
+}
+function editorNavigation(value: { tab: string; preview: string }) {
+  if (route.value.journeyID) void go({ ...route.value, ...value });
 }
 async function refresh() {
   try {
@@ -103,29 +153,20 @@ async function open(j: Journey) {
   await openID(j.id);
 }
 async function openID(id: string) {
-  try {
-    selected.value = await api<Journey>('/journeys/' + id);
-    page.value = 'Journeys';
-    searchDialog.value?.close();
-  } catch (cause) {
-    error.value = String(cause);
-  }
+  searchDialog.value?.close();
+  await go({ page: 'Journeys', journeyID: id, tab: 'Builder' });
 }
 function created(j: Journey) {
   selected.value = j;
-  page.value = 'Journeys';
+  void go({ page: 'Journeys', journeyID: j.id, tab: 'Builder' });
   void refresh();
 }
 function browseJourneys(status: string) {
-  page.value = 'Journeys';
-  selected.value = undefined;
-  journeyFilter.value = status;
+  void go({ ...pageRoute('Journeys'), status });
   void refresh();
 }
 function navigate(name: string) {
-  journeyFilter.value = '';
-  page.value = name;
-  selected.value = undefined;
+  void go(pageRoute(name));
   void refresh();
 }
 async function logout() {
@@ -134,14 +175,18 @@ async function logout() {
     identity.value = undefined;
     setIdentity();
     selected.value = undefined;
+    navigationSequence++;
+    route.value = pageRoute('Overview');
+    window.history.replaceState(null, '', '/');
   } catch (cause) {
     error.value = String(cause);
   }
 }
 onMounted(async () => {
   window.addEventListener('keydown', keyboard);
+  window.addEventListener('popstate', restoreLocation);
   try {
-    authenticated(await api<Identity>('/auth/me'));
+    await authenticated(await api<Identity>('/auth/me'));
   } catch {
     /* Sign-in is displayed for anonymous visitors. */
   } finally {
@@ -150,6 +195,7 @@ onMounted(async () => {
 });
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', keyboard);
+  window.removeEventListener('popstate', restoreLocation);
   clearTimeout(searchTimer);
 });
 onErrorCaptured((cause) => {
@@ -184,6 +230,8 @@ onErrorCaptured((cause) => {
             v-for="item in group.items"
             :key="item.name"
             class="nav-item"
+            :aria-label="item.name"
+            :aria-current="page === item.name ? 'page' : undefined"
             :class="{ selected: page === item.name }"
             @click="navigate(item.name)"
           >
@@ -256,18 +304,19 @@ onErrorCaptured((cause) => {
             <AppIcon name="close" />
           </button>
         </div>
+        <div v-if="routeLoading" class="panel" role="status" aria-busy="true">Opening journey…</div>
         <JourneyEditor
-          v-if="selected"
+          v-else-if="selected"
           :key="selected.id"
           :journey="selected"
+          :active-tab="route.tab"
+          :preview-section="route.preview"
           :admin="identity.role === 'Admin'"
           :readonly="readOnly"
-          @back="
-            selected = undefined;
-            refresh();
-          "
+          @navigate="editorNavigation"
+          @back="navigate('Journeys')"
           @saved="
-            selected = $event;
+            if (route.journeyID === $event.id) selected = $event;
             refresh();
           "
         /><JourneyList
@@ -276,6 +325,7 @@ onErrorCaptured((cause) => {
           :initial-status="journeyFilter"
           :readonly="readOnly"
           @open="open"
+          @filter="go({ page: 'Journeys', status: $event })"
           @create="showCreate = true"
           @templates="navigate('Templates')"
         /><TemplatesView
