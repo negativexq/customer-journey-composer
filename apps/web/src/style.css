@@ -4483,3 +4483,36 @@ td {
   background: var(--accent);
   border-radius: 4px;
 }
+
+.insert-step-dialog {
+  width: min(440px, calc(100vw - 32px));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 22px;
+  box-shadow: 0 24px 70px #17213b30;
+}
+.insert-step-dialog::backdrop {
+  background: #17213b55;
+}
+.insert-step-dialog form {
+  display: grid;
+  gap: 18px;
+}
+.insert-step-dialog h2 {
+  font-size: 18px;
+  margin: 0;
+}
+.insert-step-dialog p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted);
+  margin: 0;
+}
+.insert-step-dialog label {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+}
+.insert-step-dialog .surface-heading {
+  padding: 0;
+}

@@ -16,6 +16,7 @@ import {
   type Issue,
 } from '../lib/workflow';
 import WorkflowNode from './WorkflowNode.vue';
+import InsertableEdge from './InsertableEdge.vue';
 import RuleEditor from './RuleEditor.vue';
 import AppIcon from './ui/AppIcon.vue';
 import '@vue-flow/core/dist/style.css';
@@ -78,6 +79,60 @@ const edges = ref<CanvasEdge[]>(
     label: branchLabel(e.port),
   })),
 );
+const insertionDialog = ref<HTMLDialogElement>();
+const insertionEdge = ref('');
+const insertionPort = ref('');
+const insertKind = ref<Kind>('wait');
+const insertKinds = kinds.filter((kind) => kind !== 'event_trigger' && kind !== 'exit');
+function chooseEdge(id: string) {
+  if (props.readonly) return;
+  insertionEdge.value = id;
+  insertKind.value = 'wait';
+  insertionPort.value = ports(insertKind.value)[0]!;
+  insertionDialog.value?.showModal();
+}
+watch(insertKind, (kind) => {
+  insertionPort.value = ports(kind)[0]!;
+});
+function insertStep() {
+  if (props.readonly) return;
+  const edge = edges.value.find((candidate) => candidate.id === insertionEdge.value);
+  const source = nodes.value.find((node) => node.id === edge?.source);
+  const target = nodes.value.find((node) => node.id === edge?.target);
+  if (!edge || !source || !target || !ports(insertKind.value).includes(insertionPort.value)) return;
+  if (nodes.value.length >= 100 || edges.value.length >= 200) {
+    configError.value = 'Workflow limit: 100 nodes and 200 connections';
+    insertionDialog.value?.close();
+    return;
+  }
+  const id = crypto.randomUUID();
+  nodes.value.push({
+    id,
+    type: 'step',
+    position: {
+      x: (source.position.x + target.position.x) / 2,
+      y: (source.position.y + target.position.y) / 2,
+    },
+    data: {
+      kind: insertKind.value,
+      label: labels[insertKind.value],
+      config: defaults(insertKind.value),
+    },
+  });
+  edges.value = edges.value.filter((candidate) => candidate.id !== edge.id);
+  edges.value.push(
+    { ...edge, target: id },
+    {
+      id: crypto.randomUUID(),
+      source: id,
+      target: target.id,
+      sourceHandle: insertionPort.value,
+      label: branchLabel(insertionPort.value),
+    },
+  );
+  selectedID.value = id;
+  insertionDialog.value?.close();
+}
 const selectedID = ref('');
 const libraryOpen = ref(true);
 const inspectorOpen = ref(true);
@@ -387,6 +442,44 @@ function setAttribute(value: string) {
 }
 </script>
 <template>
+  <dialog ref="insertionDialog" class="insert-step-dialog" aria-labelledby="insert-step-title">
+    <form @submit.prevent="insertStep">
+      <div class="surface-heading">
+        <h2 id="insert-step-title">Insert a step</h2>
+        <button
+          type="button"
+          class="icon-button"
+          aria-label="Close insertion"
+          @click="insertionDialog?.close()"
+        >
+          <AppIcon name="close" />
+        </button>
+      </div>
+      <p>
+        The original branch stays connected to the new step. Choose which output continues to the
+        existing next step.
+      </p>
+      <label
+        >Step type<select v-model="insertKind">
+          <option v-for="kind in insertKinds" :key="kind" :value="kind">{{ labels[kind] }}</option>
+        </select></label
+      >
+      <label
+        >Continue through<select v-model="insertionPort">
+          <option v-for="port in ports(insertKind)" :key="port" :value="port">
+            {{ branchLabel(port) || port }}
+          </option>
+        </select></label
+      >
+      <p v-if="ports(insertKind).length > 1" class="inline-alert">
+        Connect the other output before publishing. It is left open for your decision.
+      </p>
+      <div class="toolbar">
+        <button type="button" @click="insertionDialog?.close()">Cancel</button
+        ><button class="primary">Insert step</button>
+      </div>
+    </form>
+  </dialog>
   <div class="builder-toolbar">
     <div class="canvas-title">
       <button
@@ -483,6 +576,7 @@ function setAttribute(value: string) {
         id="builder"
         :nodes="nodes"
         :edges="edges"
+        :default-edge-options="{ type: 'insertable' }"
         :nodes-draggable="!readonly"
         :nodes-connectable="!readonly"
         :elements-selectable="true"
@@ -505,8 +599,15 @@ function setAttribute(value: string) {
             :data="{
               ...nodeProps.data,
               invalid: issues.some((i) => i.node_id === nodeProps.id),
-            }" /></template
-      ></VueFlow>
+            }"
+        /></template>
+        <template #edge-insertable="edgeProps"
+          ><InsertableEdge
+            v-bind="edgeProps"
+            :readonly="readonly"
+            @insert="chooseEdge(edgeProps.id)"
+        /></template>
+      </VueFlow>
       <p v-if="!nodes.length" class="canvas-empty">Add an Event Trigger to start your journey.</p>
     </div>
     <aside
