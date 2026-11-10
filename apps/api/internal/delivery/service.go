@@ -61,9 +61,10 @@ func validRecipient(channel, to string) bool {
 	return err == nil && a.Address == to
 }
 
-// Keep customer locks short: one scheduler transaction owns at most thirty-two
-// outbox actions. Run immediately drains a full batch without the idle pause.
-const scheduleBatchSize = 32
+// Each action commits before another customer is locked. A bounded drain keeps
+// the public scheduler work budget without holding an entire batch of customers.
+const scheduleBatchSize = 1
+const scheduleDrainBudget = 32
 
 // ScheduleQuery keeps the ordered pending index outside the customer lock.
 // The lateral LockRows boundary prevents a bulk join/sort of the pending queue.
@@ -80,6 +81,17 @@ const ScheduleQuery = `SELECT o.id::text,o.workspace_id::text,o.execution_id::te
  ORDER BY o.created_at,o.id LIMIT $1`
 
 func (s *Service) Schedule(ctx context.Context) (int, error) {
+	total := 0
+	for total < scheduleDrainBudget {
+		n, err := s.scheduleOne(ctx)
+		total += n
+		if err != nil || n == 0 {
+			return total, err
+		}
+	}
+	return total, nil
+}
+func (s *Service) scheduleOne(ctx context.Context) (int, error) {
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return 0, err
@@ -453,7 +465,7 @@ func (s *Service) Run(ctx context.Context) error {
 					}
 				}
 			}
-			if n < scheduleBatchSize && !deliveryPause(ctx, nil, 250*time.Millisecond) {
+			if n < scheduleDrainBudget && !deliveryPause(ctx, nil, 250*time.Millisecond) {
 				return
 			}
 		}
