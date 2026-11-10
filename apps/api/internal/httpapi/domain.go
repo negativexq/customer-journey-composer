@@ -259,7 +259,7 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 		Limit  int    `query:"limit" default:"50" minimum:"1" maximum:"200"`
 		Offset int    `query:"offset" minimum:"0"`
 	}) (*Result[[]Journey], error) {
-		return jsonRow[[]Journey](pool.QueryRow(ctx, `SELECT COALESCE(jsonb_agg(to_jsonb(j)-'workspace_id'),'[]'::jsonb) FROM (SELECT * FROM journeys WHERE workspace_id=$1 AND ($2='' OR name ILIKE '%'||$2||'%') AND ($3='' OR status=$3) ORDER BY updated_at DESC,id LIMIT $4 OFFSET $5) j`, who(ctx).WorkspaceID, in.Search, in.Status, in.Limit, in.Offset))
+		return jsonRow[[]Journey](pool.QueryRow(ctx, `SELECT COALESCE(jsonb_agg(to_jsonb(j)-'workspace_id'),'[]'::jsonb) FROM (SELECT id,name,description,tags,status,revision,updated_at FROM journeys WHERE workspace_id=$1 AND ($2='' OR name ILIKE '%'||$2||'%') AND ($3='' OR status=$3) ORDER BY updated_at DESC,id LIMIT $4 OFFSET $5) j`, who(ctx).WorkspaceID, in.Search, in.Status, in.Limit, in.Offset))
 	})
 	huma.Get(api, "/api/v1/journeys/{id}", func(ctx context.Context, in *journeyID) (*Result[Journey], error) {
 		return jsonRow[Journey](pool.QueryRow(ctx, `SELECT to_jsonb(j)-'workspace_id' FROM journeys j WHERE workspace_id=$1 AND id=$2`, who(ctx).WorkspaceID, in.ID))
@@ -296,6 +296,7 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 		}
 		return jsonRow[Journey](pool.QueryRow(ctx, `UPDATE journeys SET status='Archived',revision=revision+1,updated_at=now() WHERE workspace_id=$1 AND id=$2 AND status='Draft' RETURNING to_jsonb(journeys)-'workspace_id'`, who(ctx).WorkspaceID, in.ID))
 	})
+	registerWorkflows(api, pool)
 }
 
 var dummyPasswordHash, _ = bcrypt.GenerateFromPassword([]byte(randomToken()), 12)

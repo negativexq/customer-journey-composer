@@ -1,0 +1,58 @@
+package workflow
+
+import (
+	"strings"
+	"testing"
+)
+
+func valid() Workflow {
+	return Workflow{SchemaVersion: 1, Nodes: []Node{{ID: "start", Type: "event_trigger", Label: "Cart updated", Config: Config{EventName: "cart_updated"}}, {ID: "exit", Type: "exit", Label: "Complete", Config: Config{Reason: "completed"}}}, Edges: []Edge{{ID: "edge", Source: "start", Target: "exit", Port: "started"}}}
+}
+func TestGraphValidation(t *testing.T) {
+	if issues := Validate(valid()); len(issues) != 0 {
+		t.Fatal(issues)
+	}
+	for _, tc := range []struct {
+		name    string
+		change  func(*Workflow)
+		message string
+	}{
+		{"missing trigger", func(w *Workflow) { w.Nodes[0].Type = "exit" }, "Exactly one"},
+		{"missing port", func(w *Workflow) { w.Edges = nil }, "Connect"},
+		{"cycle", func(w *Workflow) {
+			w.Nodes[1].Type = "wait"
+			w.Nodes[1].Config.DurationSeconds = 1
+			w.Edges = append(w.Edges, Edge{ID: "back", Source: "exit", Target: "start", Port: "completed"})
+		}, "Cycles"},
+		{"unknown node", func(w *Workflow) { w.Edges[0].Target = "missing" }, "unknown node"},
+		{"unreachable", func(w *Workflow) {
+			w.Nodes = append(w.Nodes, Node{ID: "extra", Type: "exit", Label: "Extra", Config: Config{Reason: "completed"}})
+		}, "unreachable"},
+		{"invalid email", func(w *Workflow) { w.Nodes[1].Type = "email" }, "Subject required"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := valid()
+			tc.change(&w)
+			found := false
+			for _, issue := range Validate(w) {
+				found = found || strings.Contains(issue.Message, tc.message)
+			}
+			if !found {
+				t.Fatalf("missing %s in %v", tc.message, Validate(w))
+			}
+		})
+	}
+}
+func TestConditions(t *testing.T) {
+	data := map[string]any{"customer": map[string]any{"amount": 42.0, "name": "Ada", "date": "2026-11-10T00:00:00Z"}}
+	for _, tc := range []struct {
+		rule Rule
+		want bool
+	}{
+		{Rule{Path: "customer.amount", Operator: "equals", Value: 42}, true}, {Rule{Path: "customer.amount", Operator: "greater_than", Value: 40}, true}, {Rule{Path: "customer.missing", Operator: "exists"}, false}, {Rule{Path: "customer.name", Operator: "contains", Value: "Ad"}, true}, {Rule{Path: "customer.date", Operator: "before", Value: "2026-11-11T00:00:00Z"}, true}, {Rule{Logic: "and", Rules: []Rule{{Path: "customer.name", Operator: "equals", Value: "Ada"}, {Path: "customer.amount", Operator: "less_than", Value: 2}}}, false},
+	} {
+		if got := Evaluate(tc.rule, data); got != tc.want {
+			t.Fatalf("%+v: got %v", tc.rule, got)
+		}
+	}
+}
