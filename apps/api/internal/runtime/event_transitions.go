@@ -55,6 +55,9 @@ func applyEvent(ctx context.Context, tx pgx.Tx, workspace string, event Event, d
 		if _, err := tx.Exec(ctx, `UPDATE event_waiters SET state='CANCELLED' WHERE execution_id=$1 AND state='WAITING'`, x.id); err != nil {
 			return err
 		}
+		if err := cancelDeliveries(ctx, tx, x.id, "global_exit", now); err != nil {
+			return err
+		}
 		if _, err := tx.Exec(ctx, `UPDATE action_outbox SET state='CANCELLED' WHERE execution_id=$1 AND state='PENDING'`, x.id); err != nil {
 			return err
 		}

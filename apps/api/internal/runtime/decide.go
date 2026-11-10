@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ofk/customer-journey-composer/apps/api/internal/messaging"
 	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
 )
 
@@ -13,15 +14,15 @@ type RealClock struct{}
 func (RealClock) Now() time.Time { return time.Now().UTC() }
 
 type Decision struct {
-	Port       string           `json:"port,omitempty"`
-	WaitUntil  *time.Time       `json:"wait_until,omitempty"`
-	EventName  string           `json:"event_name,omitempty"`
-	ExitReason string           `json:"exit_reason,omitempty"`
-	Condition  *bool            `json:"condition,omitempty"`
-	Message    *workflow.Config `json:"-"`
-	Attribute  string           `json:"attribute,omitempty"`
-	Operation  string           `json:"operation,omitempty"`
-	Value      any              `json:"value,omitempty"`
+	Port       string             `json:"port,omitempty"`
+	WaitUntil  *time.Time         `json:"wait_until,omitempty"`
+	EventName  string             `json:"event_name,omitempty"`
+	ExitReason string             `json:"exit_reason,omitempty"`
+	Condition  *bool              `json:"condition,omitempty"`
+	Message    *messaging.Message `json:"-"`
+	Attribute  string             `json:"attribute,omitempty"`
+	Operation  string             `json:"operation,omitempty"`
+	Value      any                `json:"value,omitempty"`
 }
 
 // Decide is pure: production and the virtual-clock simulator share these node
@@ -55,7 +56,14 @@ func Decide(node workflow.Node, data map[string]any, now time.Time, resumePort s
 		d.Port = workflow.BoolPort(v)
 	case "email", "sms":
 		d.Port = "next"
-		d.Message = &c
+		rendered, err := messaging.Render(node.Type, c, data)
+		if err != nil {
+			return d, err
+		}
+		if len(rendered.Missing) > 0 {
+			return d, fmt.Errorf("missing personalization attributes: %v", rendered.Missing)
+		}
+		d.Message = &rendered
 	case "update_attribute":
 		d.Port = "next"
 		d.Attribute = c.Attribute
@@ -71,7 +79,7 @@ func Decide(node workflow.Node, data map[string]any, now time.Time, resumePort s
 	}
 	return d, nil
 }
-func dataContext(profile map[string]any, event map[string]any, state map[string]any) map[string]any {
+func ContextData(profile map[string]any, event map[string]any, state map[string]any) map[string]any {
 	if attrs, ok := profile["attributes"].(map[string]any); ok {
 		for k, v := range attrs {
 			if _, exists := profile[k]; !exists {

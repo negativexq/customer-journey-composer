@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/ofk/customer-journey-composer/apps/api/internal/messaging"
 	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
 )
 
@@ -44,11 +45,11 @@ func registerWorkflows(api huma.API, pool *pgxpool.Pool) {
 		if err != nil {
 			return nil, err
 		}
-		issues := workflow.Validate(w)
+		issues := messaging.ValidateWorkflow(w)
 		return &Result[Validation]{Body: Validation{len(issues) == 0, issues}}, nil
 	})
 	huma.Post(api, "/api/v1/workflows/validate", func(ctx context.Context, in *struct{ Body workflow.Workflow }) (*Result[Validation], error) {
-		issues := workflow.Validate(in.Body)
+		issues := messaging.ValidateWorkflow(in.Body)
 		return &Result[Validation]{Body: Validation{len(issues) == 0, issues}}, nil
 	})
 	huma.Post(api, "/api/v1/journeys/{id}/publish", func(ctx context.Context, in *struct {
@@ -79,7 +80,7 @@ func registerWorkflows(api huma.API, pool *pgxpool.Pool) {
 		if err := json.Unmarshal(data, &w); err != nil {
 			return nil, huma.Error422UnprocessableEntity("Invalid workflow")
 		}
-		if issues := workflow.Validate(w); len(issues) > 0 {
+		if issues := messaging.ValidateWorkflow(w); len(issues) > 0 {
 			return nil, huma.Error422UnprocessableEntity("Fix workflow validation errors before publishing")
 		}
 		out, err := jsonRow[Version](tx.QueryRow(ctx, `INSERT INTO journey_versions(workspace_id,journey_id,version,workflow,published_by) SELECT $1,$2,COALESCE(max(version),0)+1,$3,$4 FROM journey_versions WHERE workspace_id=$1 AND journey_id=$2 RETURNING jsonb_build_object('id',id,'version',version,'workflow',workflow,'created_at',created_at)`, who(ctx).WorkspaceID, in.ID, data, who(ctx).ID))

@@ -104,7 +104,7 @@ func Ingest(ctx context.Context, pool *pgxpool.Pool, workspace string, event Eve
 	}
 	var profile map[string]any
 	_ = json.Unmarshal(profileJSON, &profile)
-	data := dataContext(profile, map[string]any{"event_id": event.EventID, "event_name": event.EventName, "occurred_at": event.OccurredAt.Format(time.RFC3339Nano), "properties": event.Properties}, map[string]any{})
+	data := ContextData(profile, map[string]any{"event_id": event.EventID, "event_name": event.EventName, "occurred_at": event.OccurredAt.Format(time.RFC3339Nano), "properties": event.Properties}, map[string]any{})
 	if err := applyEvent(ctx, tx, workspace, event, data, now); err != nil {
 		return result, err
 	}

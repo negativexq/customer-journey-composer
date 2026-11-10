@@ -176,7 +176,7 @@ func (w *Worker) Process(ctx context.Context, job Job) error {
 			resume = "completed"
 		}
 	}
-	decision, err := Decide(node, dataContext(profile, event, executionContext), now, resume)
+	decision, err := Decide(node, ContextData(profile, event, executionContext), now, resume)
 	if err != nil {
 		return w.fail(ctx, tx, job, now, err.Error())
 	}
@@ -210,7 +210,7 @@ func (w *Worker) Process(ctx context.Context, job Job) error {
 			}
 		}
 		if decision.Message != nil {
-			payload, _ := json.Marshal(map[string]any{"config": decision.Message, "data": dataContext(profile, event, executionContext)})
+			payload, _ := json.Marshal(decision.Message)
 			if _, err := tx.Exec(ctx, `INSERT INTO action_outbox(workspace_id,execution_id,node_id,channel,payload,created_at) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING`, job.WorkspaceID, job.ExecutionID, node.ID, node.Type, payload, now); err != nil {
 				return err
 			}
@@ -292,6 +292,9 @@ func (w *Worker) fail(ctx context.Context, tx pgx.Tx, job Job, now time.Time, me
 		return err
 	}
 	if _, err := tx.Exec(ctx, `UPDATE action_outbox SET state='CANCELLED' WHERE execution_id=$1 AND state='PENDING'`, job.ExecutionID); err != nil {
+		return err
+	}
+	if err := cancelDeliveries(ctx, tx, job.ExecutionID, "step_failed", now); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
