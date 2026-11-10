@@ -53,6 +53,13 @@ type Journey struct {
 	Draft       json.RawMessage `json:"draft"`
 	Revision    int             `json:"revision"`
 	UpdatedAt   time.Time       `json:"updated_at"`
+	Version     *int            `json:"version,omitempty"`
+	Stats       *struct {
+		Entries   int64 `json:"entries"`
+		Active    int64 `json:"active"`
+		Completed int64 `json:"completed"`
+		Converted int64 `json:"converted"`
+	} `json:"stats,omitempty"`
 }
 type journeyID struct {
 	ID string `path:"id" format:"uuid"`
@@ -278,13 +285,8 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 		}
 		return jsonRow[Journey](pool.QueryRow(ctx, `INSERT INTO journeys(workspace_id,name,description,tags) VALUES($1,$2,$3,$4) RETURNING to_jsonb(journeys)-'workspace_id'`, who(ctx).WorkspaceID, strings.TrimSpace(in.Body.Name), in.Body.Description, in.Body.Tags))
 	})
-	huma.Get(api, "/api/v1/journeys", func(ctx context.Context, in *struct {
-		Search string `query:"search" maxLength:"160"`
-		Status string `query:"status"`
-		Limit  int    `query:"limit" default:"50" minimum:"1" maximum:"200"`
-		Offset int    `query:"offset" minimum:"0"`
-	}) (*Result[[]Journey], error) {
-		return jsonRow[[]Journey](pool.QueryRow(ctx, `SELECT COALESCE(jsonb_agg(to_jsonb(j)-'workspace_id'),'[]'::jsonb) FROM (SELECT id,name,description,tags,status,revision,updated_at FROM journeys WHERE workspace_id=$1 AND ($2='' OR name ILIKE '%'||$2||'%') AND ($3='' OR status=$3) ORDER BY updated_at DESC,id LIMIT $4 OFFSET $5) j`, who(ctx).WorkspaceID, in.Search, in.Status, in.Limit, in.Offset))
+	huma.Get(api, "/api/v1/journeys", func(ctx context.Context, in *journeyListInput) (*Result[[]Journey], error) {
+		return listJourneys(ctx, pool, in)
 	})
 	huma.Get(api, "/api/v1/journeys/{id}", func(ctx context.Context, in *journeyID) (*Result[Journey], error) {
 		return jsonRow[Journey](pool.QueryRow(ctx, `SELECT to_jsonb(j)-'workspace_id' FROM journeys j WHERE workspace_id=$1 AND id=$2`, who(ctx).WorkspaceID, in.ID))
@@ -338,6 +340,7 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 	registerPublishChecks(api, pool)
 	registerUsers(api, pool)
 	registerSystem(api, pool)
+	registerTemplates(api, pool)
 }
 
 var dummyPasswordHash, _ = bcrypt.GenerateFromPassword([]byte(randomToken()), 12)

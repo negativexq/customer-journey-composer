@@ -57,6 +57,9 @@ func Ensure(ctx context.Context, pool *pgxpool.Pool) error {
 		return fmt.Errorf("demo email is already assigned to a different workspace")
 	}
 	if err == nil && bcrypt.CompareHashAndPassword([]byte(hash), []byte(c.Password)) == nil {
+		if err = seed(ctx, tx, workspace, id); err != nil {
+			return err
+		}
 		return tx.Commit(ctx)
 	}
 	next, err := bcrypt.GenerateFromPassword([]byte(c.Password), 12)
@@ -67,7 +70,7 @@ func Ensure(ctx context.Context, pool *pgxpool.Pool) error {
 		if err = tx.QueryRow(ctx, `INSERT INTO workspaces(name,slug) VALUES('Demo workspace','local-demo') ON CONFLICT(slug) DO UPDATE SET name=workspaces.name RETURNING id::text`).Scan(&workspace); err != nil {
 			return err
 		}
-		if _, err = tx.Exec(ctx, `INSERT INTO users(workspace_id,email,name,password_hash,role) VALUES($1,$2,'Demo User',$3,'Admin')`, workspace, c.Email, string(next)); err != nil {
+		if err = tx.QueryRow(ctx, `INSERT INTO users(workspace_id,email,name,password_hash,role) VALUES($1,$2,'Demo User',$3,'Admin') RETURNING id::text`, workspace, c.Email, string(next)).Scan(&id); err != nil {
 			return err
 		}
 	} else {
@@ -77,6 +80,9 @@ func Ensure(ctx context.Context, pool *pgxpool.Pool) error {
 		if _, err = tx.Exec(ctx, `DELETE FROM sessions WHERE user_id=$1`, id); err != nil {
 			return err
 		}
+	}
+	if err = seed(ctx, tx, workspace, id); err != nil {
+		return err
 	}
 	return tx.Commit(ctx)
 }
