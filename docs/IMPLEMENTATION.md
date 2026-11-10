@@ -14,7 +14,7 @@ Source of truth for product scope: [PRD.md](PRD.md).
 | 8. Preview & Test Lab                  | Complete                       | Virtual clock, snapshots, replay, event/attribute sequences, assertions and fault injection; 20 browser tests passed.                            |
 | 9. Test Inbox                          | Complete                       | Three-panel inbox, scoped filters, payload/trace/attempts, replay comparison and actual test-send distinction; 20 browser tests.                 |
 | 10. Live Monitor & Analytics           | Complete                       | Transactional delta projections, indexed summaries, version-aware monitor and inspector; 22 browser tests passed.                                |
-| 11. Lifecycle & Reliability            | Pending                        | Race, recovery, version, security and observability tests.                                                                                       |
+| 11. Lifecycle & Reliability            | Complete                       | Audited lifecycle/publish gates, recovery, roles, bounded requests, OTel propagation and dependency/image checks; 24 browser tests.              |
 | 12. Final Product & Demo               | Pending                        | E2E, measured benchmark, demo and deployment verification.                                                                                       |
 
 ## Accepted decisions
@@ -28,7 +28,7 @@ Source of truth for product scope: [PRD.md](PRD.md).
 
 ## Next slice
 
-Phase 11: lifecycle/publishing gates, security, audit, failure recovery and observability. Phase 12 measures the 10,000-execution workload and query plans.
+Phase 12: templates/demo dataset and events, product polish, 10,000-execution benchmark/query plans, clean deployment verification and final documentation.
 
 ## Phase 1 delivery — 2026-11-10
 
@@ -110,3 +110,11 @@ See [verification notes](VERIFICATION.md) for reproducible checks and [architect
 - Last-24-hour entries use hourly summaries plus two indexed one-hour boundary ranges; raw history is not scanned on refresh. Rendered content does not enter projections. See [ANALYTICS.md](ANALYTICS.md).
 - Verified: `make check`, package-isolated real PostgreSQL integration tests, concurrent projector/no-op/recovery rollback tests, distinct counts and retry-vs-logical-send counts; 22/22 browser tests including monitor/analytics and local demo login. Benchmark and EXPLAIN measurements remain phase 12 work.
 - Additional user request: `e887409` adds generated local demo credentials prefilled at login, gated to development; desktop/mobile login and production gating tests passed.
+
+## Phase 11 delivery
+
+- `d141b4d` — row-locked lifecycle, matching full-test publish gate, atomic audit, cancellation/fenced recovery, Admin/Editor/Viewer management, production signup guard/bootstrap, bounded request/work budgets and durable OpenTelemetry parent propagation.
+- `5f0df44` — lifecycle/publish UI, execution cancel/recovery, user roles, audit and system status. Pause/resume preserves deadlines; sunset drains without enrolling; completion/archive rejects active or pending work.
+- Go 1.26.6 produced 12 reachable standard-library findings. Updated to 1.26.10 and x/net v0.62.0, then reran scans: govulncheck reports 0 reachable vulnerabilities; npm audit reports 0. Initial web container scan found HIGH/CRITICAL OS issues; updated API Alpine and stable NGINX base images. Both final application images report 0 HIGH/CRITICAL findings with Trivy v0.76.2.
+- CI now runs dependency and image scans. Local actionlint passed; no remote is configured, so hosted CI has not run. Retention/erasure operating policy and trace/secret boundaries are documented in [SECURITY.md](SECURITY.md).
+- Verified: all quality/unit and package-isolated PostgreSQL integration tests; cancellation against a stale claim, recoverable attribute failure without duplicate increment, last-Admin protection, publish gates and atomic audit; 24/24 desktop/mobile browser tests; actual Docker worker restart recovery passed.

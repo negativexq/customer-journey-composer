@@ -49,7 +49,7 @@ test-e2e:
 check: fmt-check lint typecheck test
 
 build:
-	cd apps/api && go build -o bin/server ./cmd/server && go build -o bin/migrate ./cmd/migrate && go build -o bin/worker ./cmd/worker
+	cd apps/api && go build -o bin/server ./cmd/server && go build -o bin/migrate ./cmd/migrate && go build -o bin/worker ./cmd/worker && go build -o bin/admin ./cmd/admin
 	npm run build
 
 up: setup
@@ -80,3 +80,11 @@ dev-worker:
 .PHONY: test-recovery
 test-recovery:
 	node scripts/test-recovery.mjs
+
+.PHONY: audit scan-images
+audit:
+	cd apps/api && go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+	npm audit --audit-level=high
+
+scan-images:
+	./scripts/scan-images.sh

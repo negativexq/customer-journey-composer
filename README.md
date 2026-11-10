@@ -40,7 +40,7 @@ Create a workspace from the sign-in screen; no default credentials are seeded. T
 
 ## Native development
 
-Requires Go 1.26, Node.js 24 LTS, npm and Docker Compose.
+Requires Go 1.26.10 or newer in the supported 1.26 series, Node.js 24 LTS, npm and Docker Compose.
 
 ```sh
 make setup

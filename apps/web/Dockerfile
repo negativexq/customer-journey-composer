@@ -6,7 +6,7 @@ RUN npm ci --workspace apps/web --include-workspace-root=false
 COPY apps/web apps/web
 RUN npm run build --workspace apps/web
 
-FROM nginxinc/nginx-unprivileged:1.29-alpine
+FROM nginx/nginx-unprivileged:1.30.6-alpine
 COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /src/apps/web/dist /usr/share/nginx/html
 EXPOSE 8080
