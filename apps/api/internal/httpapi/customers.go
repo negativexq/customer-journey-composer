@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/mail"
 	"strings"
 	"time"
@@ -97,12 +98,27 @@ func registerCustomers(api huma.API, pool *pgxpool.Pool) {
 		in.Body.CustomerID = in.ID
 		return save(ctx, in.Body, true)
 	})
+
 	huma.Get(api, "/api/v1/customers", func(ctx context.Context, in *struct {
-		Search string    `query:"search" maxLength:"128"`
-		Limit  int       `query:"limit" default:"50" minimum:"1" maximum:"200"`
-		Before time.Time `query:"before"`
+		Search   string    `query:"search" maxLength:"128"`
+		Limit    int       `query:"limit" default:"50" minimum:"1" maximum:"200"`
+		Before   time.Time `query:"before"`
+		BeforeID string    `query:"before_id" maxLength:"128"`
 	}) (*Result[[]Customer], error) {
-		return jsonRow[[]Customer](pool.QueryRow(ctx, `SELECT COALESCE(jsonb_agg(to_jsonb(c)),'[]'::jsonb) FROM (SELECT customer_id,external_id,email,phone,locale,timezone,created_at,updated_at FROM customers WHERE workspace_id=$1 AND ($2='' OR customer_id=$2 OR email ILIKE $2||'%' OR external_id=$2) AND ($3::timestamptz='0001-01-01T00:00:00Z' OR created_at<$3) ORDER BY created_at DESC,customer_id LIMIT $4) c`, who(ctx).WorkspaceID, strings.TrimSpace(in.Search), in.Before, in.Limit))
+		args := []any{who(ctx).WorkspaceID}
+		query := `SELECT customer_id,external_id,email,phone,locale,timezone,created_at,updated_at FROM customers WHERE workspace_id=$1`
+		if search := strings.TrimSpace(in.Search); search != "" {
+			prefix := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(search))
+			args = append(args, search, prefix)
+			query += ` AND (customer_id=$2 OR lower(email) LIKE $3||'%' OR external_id=$2)`
+		}
+		if !in.Before.IsZero() {
+			args = append(args, in.Before, in.BeforeID)
+			query += fmt.Sprintf(` AND (created_at,customer_id)<($%d,$%d)`, len(args)-1, len(args))
+		}
+		args = append(args, in.Limit)
+		query += fmt.Sprintf(` ORDER BY created_at DESC,customer_id DESC LIMIT $%d`, len(args))
+		return jsonRow[[]Customer](pool.QueryRow(ctx, `SELECT COALESCE(jsonb_agg(to_jsonb(c)),'[]'::jsonb) FROM (`+query+`) c`, args...))
 	})
 	huma.Get(api, "/api/v1/customers/{id}", func(ctx context.Context, in *customerID) (*Result[Customer], error) {
 		return jsonRow[Customer](pool.QueryRow(ctx, `SELECT to_jsonb(c)-'workspace_id' FROM customers c WHERE workspace_id=$1 AND customer_id=$2`, who(ctx).WorkspaceID, in.ID))

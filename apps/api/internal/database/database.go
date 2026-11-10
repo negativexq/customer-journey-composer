@@ -95,11 +95,25 @@ func Ready(ctx context.Context, pool *pgxpool.Pool) error {
 	if err != nil {
 		return err
 	}
-	var count int
-	if err := pool.QueryRow(ctx, "SELECT count(*) FROM schema_migrations").Scan(&count); err != nil {
+	rows, err := pool.Query(ctx, "SELECT version,checksum FROM schema_migrations")
+	if err != nil {
 		return fmt.Errorf("schema is not ready")
 	}
-	if count != len(files) {
+	applied := map[string]string{}
+	for rows.Next() {
+		var name, checksum string
+		if err := rows.Scan(&name, &checksum); err != nil {
+			rows.Close()
+			return fmt.Errorf("schema is not ready")
+		}
+		applied[name] = checksum
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return fmt.Errorf("schema is not ready")
+	}
+	if len(applied) != len(files) {
 		return fmt.Errorf("schema version does not match this API")
 	}
 	for _, file := range files {
@@ -107,8 +121,8 @@ func Ready(ctx context.Context, pool *pgxpool.Pool) error {
 		if err != nil {
 			return err
 		}
-		var checksum string
-		if err := pool.QueryRow(ctx, "SELECT checksum FROM schema_migrations WHERE version = $1", file).Scan(&checksum); err != nil {
+		checksum, ok := applied[file]
+		if !ok {
 			return fmt.Errorf("schema migration is missing")
 		}
 		if checksum != fmt.Sprintf("%x", sha256.Sum256(contents)) {
