@@ -88,3 +88,7 @@ audit:
 
 scan-images:
 	./scripts/scan-images.sh
+
+.PHONY: benchmark
+benchmark:
+	./scripts/benchmark.sh --customers 10000 --out ../../docs/benchmarks/local-10000.json
