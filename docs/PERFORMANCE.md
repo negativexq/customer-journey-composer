@@ -1,5 +1,7 @@
 # Measured performance and optimization — 2026-11-10
 
+This report covers the original SQL access-path changes. See the [operational follow-up](OPERATIONS-PERFORMANCE.md) for telemetry-enabled, paced comparisons addressing admission and worker barriers, including regressions. Its methodology and baseline are separate from those below.
+
 The main bottleneck was queue SQL access order, not the analytics summary model. The same 10,000-customer workload now drains all mock sends in **87.5–89.5 seconds**, down from **176.7 seconds** from the common timer deadline. Timer-step p95 lateness fell from **15.75 seconds** to **9.25–9.41 seconds**. No pool/concurrency increase, new production index, cache or Redis service was introduced.
 
 Ingestion p95/p99 did **not** improve: the faster producer hits the unchanged request limiter and retries. Those end-to-end latencies are included below rather than hidden by reporting successful requests alone.

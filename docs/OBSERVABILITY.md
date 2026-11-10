@@ -46,6 +46,8 @@ Histogram percentiles in Grafana are bucket estimates over the selected window; 
 
 ## Trace and log correlation
 
+Event admission adds `journey_ingestion_admission_wait_seconds` and `journey_ingestion_admission_rejected_total`. These measure waiting outside the database pool and admission saturation; rate-limiter rejections are a separate cause of HTTP 429. Single and batch endpoints share the same transaction budget.
+
 HTTP tracing starts before authentication. Huma supplies a route template; unmatched requests use one bounded `unmatched` label. Request logs include request ID, route template, method, status, duration, trace ID and span ID. A shared slog handler correlates logs whenever a trace context is present. Plain process/lifecycle logs have no fabricated trace ID. Logs remain structured stdout; no centralized log store is included in this overlay.
 
 `events.ingest`, `runtime.step`, `delivery.dispatch`, provider calls and pgx query/exec spans carry the same trace across durable jobs. Enrollment persists W3C traceparent; workers restore it after restart. Runtime/SQL/provider failures use sanitized error categories. Once trace export is enabled, roots default to 10% head sampling and honor upstream sampling. Metrics count all instrumented attempts; head sampling does not guarantee a trace for every failure. Tail sampling and a durable centralized log pipeline are not implemented.

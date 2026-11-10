@@ -28,7 +28,17 @@ Source of truth for product scope: [PRD.md](PRD.md).
 
 ## Next slice
 
-Phase 12: templates/demo dataset and events, product polish, 10,000-execution benchmark/query plans, clean deployment verification and final documentation.
+Phase 12: address the prioritized [UI/UX findings](UX-RESEARCH.md), profile the remaining runtime claim/round-trip cost and timer fairness identified in the [operational benchmark](OPERATIONS-PERFORMANCE.md), then complete final demo/deployment artifacts. Templates, demo data/events and measured 10,000-execution scenarios are already present. Live LLM tests remain deferred.
+
+## Operational review delivery — 2026-11-10
+
+- `2c034f6` fixes Nginx upstream DNS after API container replacement; the isolated IP-replacement test passed without restarting the proxy.
+- `d0d9ab6` adds private Prometheus metrics, bounded queue sampling, sanitized pgx spans, correlated request/worker logs, collector/Tempo/Grafana provisioning and seven tested alert rules. Local external notification routing and centralized log storage remain unimplemented.
+- `5a65541` adds paced ingestion, separate successful-attempt latency and delayed-provider benchmark scenarios.
+- `709b2d0` removes runtime/delivery group barriers with bounded independent processors; `0064f44` adds shared event admission outside the API connection pool and correct transient authentication failure status; `1322154` coalesces nearby free slots for 2ms to reduce claim-query churn without waiting for slow customers.
+- Six measured artifacts preserve baseline, intermediate and final normal/delayed runs. Final 10,000-message mock provider drain is 66.464s versus matched baseline 88.519s; delayed 1,000-message drain is 11.060s versus 35.118s. Zero duplicate logical actions or failed executions in all six runs. Timer p95 regresses from 8.984s to 10.761s; Analytics tail samples are inconsistent. These are documented open performance issues, not hidden by the end-to-end gain.
+- Verified final code: `make check`, complete package-isolated PostgreSQL integration suite, 32/32 desktop/mobile browser tests, Docker rebuild/readiness, actual worker restart recovery and `make test-telemetry` (durable trace, both Prometheus targets, alert syntax/firing fixture). Dependency audit at the telemetry slice found zero reachable Go vulnerabilities and zero npm findings. Hosted CI and live LLM tests were not run.
+- [Competitor research](UX-RESEARCH.md) covers official Customer.io, Braze, Iterable, Knock and Loops docs/screens. New publish review, version clarity, readable timeline/decisions and transient-auth UI are a prioritized backlog; those components are not claimed as implemented.
 
 ## Phase 1 delivery — 2026-11-10
 

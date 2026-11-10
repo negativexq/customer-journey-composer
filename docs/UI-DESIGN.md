@@ -1,5 +1,7 @@
 # Interface design
 
+See the [current competitor review and prioritized component backlog](UX-RESEARCH.md) for the next interface changes; that research distinguishes proposed components from implemented behavior below.
+
 The interface uses one native system UI font family, readable body text, restrained heading weights, and a violet/slate palette, a grouped workspace navigation, compact journey actions and a canvas-first builder. Metrics come from persisted workspace records; empty states do not invent activity, uplift or conversion results.
 
 Workflow interaction references were reviewed from the official [Customer.io builder guide](https://docs.customer.io/messaging/send/workflows/builder/), [Braze Canvas components](https://www.braze.com/docs/user_guide/messaging/canvas/canvas_components) and [Loops builder](https://loops.so/docs/loop-builder). Their product images were used for visual research only; no product screenshots, marks or assets are shipped in the application.
