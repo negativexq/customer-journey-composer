@@ -16,6 +16,9 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
+const maxTurnNodes = 8
+const maxTurnDuration = 10 * time.Millisecond
+
 type Worker struct {
 	Pool  *pgxpool.Pool
 	Clock Clock
@@ -240,10 +243,6 @@ func (w *Worker) Process(ctx context.Context, job Job) (err error) {
 	if err := json.Unmarshal(raw, &spec); err != nil {
 		return err
 	}
-	node, ok := spec.Node(current)
-	if !ok {
-		return w.fail(ctx, tx, job, now, "Node missing from immutable version")
-	}
 	if job.Attempts > 8 {
 		return w.fail(ctx, tx, job, now, "Retry limit exhausted")
 	}
@@ -251,85 +250,109 @@ func (w *Worker) Process(ctx context.Context, job Job) (err error) {
 	_ = json.Unmarshal(profileJSON, &profile)
 	_ = json.Unmarshal(eventJSON, &event)
 	_ = json.Unmarshal(stateJSON, &executionContext)
-	resume := ""
-	if job.Kind == "timer" {
-		if node.Type == "wait_event" {
-			resume = "timeout"
+	// The customer/journey/execution/job fences stay locked for this bounded
+	// turn. Pure short nodes do not need another durable job or fresh profile
+	// read; every node still writes its own transition history atomically.
+	began := time.Now()
+	for step := 0; step < maxTurnNodes; step++ {
+		now = w.Clock.Now()
+		node, ok := spec.Node(current)
+		if !ok {
+			return w.failAt(ctx, tx, job, current, now, "Node missing from immutable version")
+		}
+		resume := ""
+		if step == 0 && job.Kind == "timer" {
+			if node.Type == "wait_event" {
+				resume = "timeout"
+			} else {
+				resume = "completed"
+			}
+		}
+		decision, err := Decide(node, ContextData(profile, event, executionContext), now, resume)
+		if err != nil {
+			return w.failAt(ctx, tx, job, current, now, err.Error())
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO step_executions(workspace_id,execution_id,node_id,node_type,state,started_at) VALUES($1,$2,$3,$4,'RUNNING',$5) ON CONFLICT(execution_id,node_id) DO UPDATE SET node_type=excluded.node_type`, job.WorkspaceID, job.ExecutionID, node.ID, node.Type, now); err != nil {
+			return err
+		}
+		output, _ := json.Marshal(decision)
+		if decision.WaitUntil != nil {
+			if _, err := tx.Exec(ctx, `UPDATE step_executions SET state='WAITING',output=$3 WHERE execution_id=$1 AND node_id=$2`, job.ExecutionID, node.ID, output); err != nil {
+				return err
+			}
+			if _, err := tx.Exec(ctx, `UPDATE journey_executions SET state='WAITING',updated_at=$2,current_node_id=$3 WHERE id=$1`, job.ExecutionID, now, node.ID); err != nil {
+				return err
+			}
+			if _, err := tx.Exec(ctx, `INSERT INTO scheduled_jobs(workspace_id,execution_id,node_id,kind,due_at) VALUES($1,$2,$3,'timer',$4) ON CONFLICT DO NOTHING`, job.WorkspaceID, job.ExecutionID, node.ID, *decision.WaitUntil); err != nil {
+				return err
+			}
+			if decision.EventName != "" {
+				if _, err := tx.Exec(ctx, `INSERT INTO event_waiters(workspace_id,execution_id,node_id,customer_id,event_name,deadline,created_at) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING`, job.WorkspaceID, job.ExecutionID, node.ID, job.CustomerID, decision.EventName, *decision.WaitUntil, now); err != nil {
+					return err
+				}
+			}
 		} else {
-			resume = "completed"
-		}
-	}
-	decision, err := Decide(node, ContextData(profile, event, executionContext), now, resume)
-	if err != nil {
-		return w.fail(ctx, tx, job, now, err.Error())
-	}
-	if _, err := tx.Exec(ctx, `INSERT INTO step_executions(workspace_id,execution_id,node_id,node_type,state,started_at) VALUES($1,$2,$3,$4,'RUNNING',$5) ON CONFLICT(execution_id,node_id) DO UPDATE SET node_type=excluded.node_type`, job.WorkspaceID, job.ExecutionID, node.ID, node.Type, now); err != nil {
-		return err
-	}
-	output, _ := json.Marshal(decision)
-	if decision.WaitUntil != nil {
-		if _, err := tx.Exec(ctx, `UPDATE step_executions SET state='WAITING',output=$3 WHERE execution_id=$1 AND node_id=$2`, job.ExecutionID, node.ID, output); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `UPDATE journey_executions SET state='WAITING',updated_at=$2 WHERE id=$1`, job.ExecutionID, now); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `INSERT INTO scheduled_jobs(workspace_id,execution_id,node_id,kind,due_at) VALUES($1,$2,$3,'timer',$4) ON CONFLICT DO NOTHING`, job.WorkspaceID, job.ExecutionID, node.ID, *decision.WaitUntil); err != nil {
-			return err
-		}
-		if decision.EventName != "" {
-			if _, err := tx.Exec(ctx, `INSERT INTO event_waiters(workspace_id,execution_id,node_id,customer_id,event_name,deadline,created_at) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING`, job.WorkspaceID, job.ExecutionID, node.ID, job.CustomerID, decision.EventName, *decision.WaitUntil, now); err != nil {
-				return err
+			if node.Type == "wait_event" {
+				tag, err := tx.Exec(ctx, `UPDATE event_waiters SET state='TIMED_OUT' WHERE execution_id=$1 AND node_id=$2 AND state='WAITING'`, job.ExecutionID, node.ID)
+				if err != nil {
+					return err
+				}
+				if tag.RowsAffected() != 1 {
+					return w.failAt(ctx, tx, job, current, now, "Event waiter already resolved")
+				}
 			}
-		}
-	} else {
-		if node.Type == "wait_event" {
-			tag, err := tx.Exec(ctx, `UPDATE event_waiters SET state='TIMED_OUT' WHERE execution_id=$1 AND node_id=$2 AND state='WAITING'`, job.ExecutionID, node.ID)
-			if err != nil {
-				return err
+			if decision.Message != nil {
+				payload, _ := json.Marshal(decision.Message)
+				if _, err := tx.Exec(ctx, `INSERT INTO action_outbox(workspace_id,execution_id,node_id,channel,payload,created_at) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING`, job.WorkspaceID, job.ExecutionID, node.ID, node.Type, payload, now); err != nil {
+					return err
+				}
 			}
-			if tag.RowsAffected() != 1 {
-				return w.fail(ctx, tx, job, now, "Event waiter already resolved")
-			}
-		}
-		if decision.Message != nil {
-			payload, _ := json.Marshal(decision.Message)
-			if _, err := tx.Exec(ctx, `INSERT INTO action_outbox(workspace_id,execution_id,node_id,channel,payload,created_at) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING`, job.WorkspaceID, job.ExecutionID, node.ID, node.Type, payload, now); err != nil {
-				return err
-			}
-		}
-		if decision.Attribute != "" {
-			attrs, _ := profile["attributes"].(map[string]any)
-			if attrs == nil {
-				attrs = map[string]any{}
-			}
-			next, err := ApplyAttribute(attrs, decision)
-			if err != nil {
-				return w.fail(ctx, tx, job, now, err.Error())
-			}
-			attrs = next
+			if decision.Attribute != "" {
+				attrs, _ := profile["attributes"].(map[string]any)
+				if attrs == nil {
+					attrs = map[string]any{}
+				}
+				next, err := ApplyAttribute(attrs, decision)
+				if err != nil {
+					return w.failAt(ctx, tx, job, current, now, err.Error())
+				}
+				attrs = next
 
-			if _, err := tx.Exec(ctx, `UPDATE customers SET attributes=$3,updated_at=$4 WHERE workspace_id=$1 AND customer_id=$2`, job.WorkspaceID, job.CustomerID, attrs, now); err != nil {
+				if _, err := tx.Exec(ctx, `UPDATE customers SET attributes=$3,updated_at=$4 WHERE workspace_id=$1 AND customer_id=$2`, job.WorkspaceID, job.CustomerID, attrs, now); err != nil {
+					return err
+				}
+			}
+			if _, err := tx.Exec(ctx, `UPDATE step_executions SET state='SUCCEEDED',completed_at=$3,output=$4 WHERE execution_id=$1 AND node_id=$2`, job.ExecutionID, node.ID, now, output); err != nil {
 				return err
 			}
-		}
-		if _, err := tx.Exec(ctx, `UPDATE step_executions SET state='SUCCEEDED',completed_at=$3,output=$4 WHERE execution_id=$1 AND node_id=$2`, job.ExecutionID, node.ID, now, output); err != nil {
-			return err
-		}
-		if decision.ExitReason != "" {
-			state := "EXITED"
-			if decision.ExitReason == "completed" {
-				state = "COMPLETED"
+			if decision.ExitReason != "" {
+				state := "EXITED"
+				if decision.ExitReason == "completed" {
+					state = "COMPLETED"
+				}
+				if _, err := tx.Exec(ctx, `UPDATE journey_executions SET state=$2,exit_reason=$3,completed_at=$4,updated_at=$4,current_node_id=$5 WHERE id=$1`, job.ExecutionID, state, decision.ExitReason, now, node.ID); err != nil {
+					return err
+				}
+			} else {
+				next := spec.Next(node.ID, decision.Port)
+				if next == "" {
+					return fmt.Errorf("workflow has no next node")
+				}
+				// Persist a boundary after externally visible intent/profile mutation,
+				// or yield a durable continuation when this turn exhausts its budget.
+				if decision.Message != nil || decision.Attribute != "" || step+1 >= maxTurnNodes || time.Since(began) >= maxTurnDuration {
+					if err := scheduleNext(ctx, tx, job.WorkspaceID, job.ExecutionID, next, now); err != nil {
+						return err
+					}
+				} else {
+					current = next
+					continue
+				}
 			}
-			if _, err := tx.Exec(ctx, `UPDATE journey_executions SET state=$2,exit_reason=$3,completed_at=$4,updated_at=$4 WHERE id=$1`, job.ExecutionID, state, decision.ExitReason, now); err != nil {
-				return err
-			}
-		} else {
-			if err := scheduleNext(ctx, tx, job.WorkspaceID, job.ExecutionID, spec.Next(node.ID, decision.Port), now); err != nil {
-				return err
-			}
 		}
+		break
 	}
+
 	if _, err := tx.Exec(ctx, `UPDATE scheduled_jobs SET state='SUCCEEDED',lease_until=NULL WHERE id=$1 AND claim_token=$2`, job.ID, job.Token); err != nil {
 		return err
 	}
@@ -345,12 +368,30 @@ func scheduleNext(ctx context.Context, tx pgx.Tx, workspace, execution, next str
 	_, err := tx.Exec(ctx, `INSERT INTO scheduled_jobs(workspace_id,execution_id,node_id,due_at) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING`, workspace, execution, next, now)
 	return err
 }
+
+// An inline node has no separate queued job. Materialize its failure so
+// manual recovery starts at the failed node, without replaying committed
+// preceding mutations or losing the original claim's completion.
+func (w *Worker) failAt(ctx context.Context, tx pgx.Tx, job Job, node string, now time.Time, message string) error {
+	if node == job.NodeID {
+		return w.fail(ctx, tx, job, now, message)
+	}
+	if _, err := tx.Exec(ctx, `UPDATE scheduled_jobs SET state='SUCCEEDED',lease_until=NULL WHERE id=$1 AND claim_token=$2`, job.ID, job.Token); err != nil {
+		return err
+	}
+	failed := job
+	failed.NodeID = node
+	if err := tx.QueryRow(ctx, `INSERT INTO scheduled_jobs(workspace_id,execution_id,node_id,due_at,state,attempts,last_error) VALUES($1,$2,$3,$4,'FAILED',1,$5) RETURNING id::text`, job.WorkspaceID, job.ExecutionID, node, now, message).Scan(&failed.ID); err != nil {
+		return err
+	}
+	return w.fail(ctx, tx, failed, now, message)
+}
 func (w *Worker) fail(ctx context.Context, tx pgx.Tx, job Job, now time.Time, message string) error {
 	observability.SetOutcome(ctx, "failed")
 	if _, err := tx.Exec(ctx, `INSERT INTO step_executions(workspace_id,execution_id,node_id,node_type,state,started_at,completed_at,output) VALUES($1,$2,$3,'unknown','FAILED',$4,$4,jsonb_build_object('error',$5::text)) ON CONFLICT(execution_id,node_id) DO UPDATE SET state='FAILED',completed_at=$4,output=jsonb_build_object('error',$5::text)`, job.WorkspaceID, job.ExecutionID, job.NodeID, now, message); err != nil {
 		return err
 	}
-	if _, err := tx.Exec(ctx, `UPDATE journey_executions SET state='FAILED',exit_reason='step_failed',updated_at=$2,completed_at=$2 WHERE id=$1`, job.ExecutionID, now); err != nil {
+	if _, err := tx.Exec(ctx, `UPDATE journey_executions SET state='FAILED',exit_reason='step_failed',updated_at=$2,completed_at=$2,current_node_id=$3 WHERE id=$1`, job.ExecutionID, now, job.NodeID); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(ctx, `UPDATE scheduled_jobs SET state=CASE WHEN id=$2 THEN 'FAILED' ELSE 'CANCELLED' END,lease_until=NULL,last_error=$3 WHERE execution_id=$1 AND state IN ('SCHEDULED','CLAIMED')`, job.ExecutionID, job.ID, message); err != nil {
