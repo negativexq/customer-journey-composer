@@ -8,6 +8,8 @@ Workflow interaction references were reviewed from the official [Customer.io bui
 
 ## Components and behavior
 
+The user-provided [UX handoff](design/ux-handoff.md) and [four-screen overview](design/design-overview.png) guide the current implementation. Builder now has grouped elements, independently collapsible panels, a stable empty inspector on desktop and explicit draft/published-version context. Delay and event timeout fields use seconds/minutes/hours/days while persisting the existing seconds schema. Journey settings are opened from More actions to preserve canvas space. Published-version metadata is obtained through an indexed join on the existing detail query, with no per-node API requests.
+
 - Interface text uses a 12px minimum, 13–14px controls/body text, and clear secondary-text contrast. Code and payloads retain monospace. There are no downloaded font assets or decorative letter spacing.
 - Shared icons, status badges, metric cards and an actual-data trend chart establish a common visual language.
 - Journey creation uses a focused dialog; journey lists use bounded server pagination and search.

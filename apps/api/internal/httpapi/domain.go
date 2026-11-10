@@ -297,7 +297,7 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 		return listJourneys(ctx, pool, in)
 	})
 	huma.Get(api, "/api/v1/journeys/{id}", func(ctx context.Context, in *journeyID) (*Result[Journey], error) {
-		return jsonRow[Journey](pool.QueryRow(ctx, `SELECT to_jsonb(j)-'workspace_id' FROM journeys j WHERE workspace_id=$1 AND id=$2`, who(ctx).WorkspaceID, in.ID))
+		return jsonRow[Journey](pool.QueryRow(ctx, `SELECT (to_jsonb(j)-'workspace_id')||jsonb_build_object('version',v.version) FROM journeys j LEFT JOIN journey_versions v ON v.id=j.current_version_id WHERE j.workspace_id=$1 AND j.id=$2`, who(ctx).WorkspaceID, in.ID))
 	})
 	huma.Put(api, "/api/v1/journeys/{id}/draft", func(ctx context.Context, in *draftWrite) (*Result[Journey], error) {
 		if err := canEdit(ctx); err != nil {

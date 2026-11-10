@@ -46,6 +46,8 @@ type CanvasEdge = {
   sourceHandle?: string | null;
   label?: string;
 };
+const branchLabel = (port: string) =>
+  ({ true: 'Yes', false: 'No', matched: 'Matched', timeout: 'Timeout' })[port] || '';
 const nodes = ref<CanvasNode[]>(
   props.modelValue.nodes.map((n) => ({
     id: n.id,
@@ -60,10 +62,13 @@ const edges = ref<CanvasEdge[]>(
     source: e.source,
     target: e.target,
     sourceHandle: e.port,
-    label: e.port,
+    label: branchLabel(e.port),
   })),
 );
 const selectedID = ref('');
+const libraryOpen = ref(true);
+const inspectorOpen = ref(true);
+
 const nodeSearch = ref('');
 const iconFor: Record<string, string> = {
   event_trigger: 'zap',
@@ -88,7 +93,41 @@ const descriptions: Record<string, string> = {
 const visibleKinds = computed(() =>
   kinds.filter((k) => labels[k].toLowerCase().includes(nodeSearch.value.toLowerCase())),
 );
+const paletteGroups = computed(() =>
+  [
+    { label: 'Entry', kinds: ['event_trigger'] },
+    { label: 'Logic & timing', kinds: ['condition', 'wait', 'wait_event'] },
+    { label: 'Messages', kinds: ['email', 'sms'] },
+    { label: 'Customer & outcomes', kinds: ['update_attribute', 'exit'] },
+  ]
+    .map((group) => ({
+      ...group,
+      kinds: group.kinds.filter((kind) => visibleKinds.value.includes(kind as Kind)) as Kind[],
+    }))
+    .filter((group) => group.kinds.length),
+);
 const selected = computed(() => nodes.value.find((n) => n.id === selectedID.value));
+const delayUnit = ref(3600);
+const delayKey = computed(() =>
+  selected.value?.data.kind === 'wait_event' ? 'timeout_seconds' : 'duration_seconds',
+);
+const delayAmount = computed({
+  get: () => (selected.value?.data.config[delayKey.value] || 0) / delayUnit.value,
+  set: (value: number) => {
+    if (selected.value)
+      selected.value.data.config[delayKey.value] = Math.round(Number(value) * delayUnit.value);
+  },
+});
+watch(selectedID, () => {
+  inspectorOpen.value = true;
+  const seconds = selected.value?.data.config[delayKey.value] || 0;
+  delayUnit.value = [86400, 3600, 60].find((unit) => seconds > 0 && seconds % unit === 0) || 1;
+});
+function changeDelayUnit(value: number) {
+  const amount = delayAmount.value;
+  delayUnit.value = value;
+  delayAmount.value = amount;
+}
 const history: string[] = [];
 const future: string[] = [];
 let restoring = false;
@@ -148,7 +187,7 @@ async function restore(data: string) {
     source: e.source,
     target: e.target,
     sourceHandle: e.port,
-    label: e.port,
+    label: branchLabel(e.port),
   }));
   await nextTick();
   restoring = false;
@@ -284,12 +323,12 @@ function layout() {
   const graph = new dagre.graphlib.Graph();
   graph.setGraph({ rankdir: 'TB', nodesep: 80, ranksep: 70 });
   graph.setDefaultEdgeLabel(() => ({}));
-  for (const n of nodes.value) graph.setNode(n.id, { width: 190, height: 100 });
+  for (const n of nodes.value) graph.setNode(n.id, { width: 224, height: 112 });
   for (const e of edges.value) graph.setEdge(e.source, e.target);
   dagre.layout(graph);
   for (const n of nodes.value) {
     const p = graph.node(n.id);
-    n.position = { x: p.x - 95, y: p.y - 50 };
+    n.position = { x: p.x - 112, y: p.y - 56 };
   }
   void nextTick(() => fitView());
 }
@@ -337,10 +376,26 @@ function setAttribute(value: string) {
 <template>
   <div class="builder-toolbar">
     <div class="canvas-title">
+      <button
+        class="icon-button"
+        aria-label="Toggle step library"
+        :aria-expanded="libraryOpen"
+        @click="libraryOpen = !libraryOpen"
+      >
+        <AppIcon name="templates" :size="16" />
+      </button>
       <AppIcon name="workflow" :size="17" /><strong>Workflow</strong
       ><span>{{ nodes.length }} steps</span>
     </div>
     <div class="canvas-tools">
+      <button
+        class="icon-button"
+        aria-label="Toggle step settings"
+        :aria-expanded="inspectorOpen && !hideInspector"
+        @click="inspectorOpen = !inspectorOpen"
+      >
+        <AppIcon name="settings" :size="16" />
+      </button>
       <button
         v-for="[title, icon, handler] in [
           ['Undo', 'undo', undo],
@@ -370,10 +425,10 @@ function setAttribute(value: string) {
     </div>
   </div>
   <div class="builder-layout">
-    <aside class="step-library">
+    <aside v-show="libraryOpen" class="step-library" aria-label="Step library">
       <div class="step-library-heading">
-        <h3>Add a step</h3>
-        <span>Drag or click</span>
+        <h3>Elements</h3>
+        <span>{{ kinds.length }} types</span>
       </div>
       <label class="step-search"
         ><AppIcon name="search" :size="14" /><input
@@ -382,23 +437,28 @@ function setAttribute(value: string) {
           placeholder="Find a step..."
       /></label>
       <div class="node-library">
-        <button
-          v-for="kind in visibleKinds"
-          :key="kind"
-          :draggable="!readonly"
-          :disabled="readonly"
-          :aria-label="'+ ' + labels[kind]"
-          :class="'palette-' + kind"
-          @dragstart="drag($event, kind)"
-          @click="add(kind)"
-        >
-          <span class="step-type-icon" :class="kind"
-            ><AppIcon :name="iconFor[kind]" :size="17" /></span
-          ><span
-            ><strong>{{ labels[kind] }}</strong
-            ><small>{{ descriptions[kind] }}</small></span
-          ><AppIcon name="plus" :size="13" />
-        </button>
+        <section v-for="group in paletteGroups" :key="group.label" class="palette-group">
+          <h4>{{ group.label }}</h4>
+          <button
+            v-for="kind in group.kinds"
+            :key="kind"
+            :draggable="!readonly"
+            :disabled="readonly"
+            :aria-label="'+ ' + labels[kind]"
+            :class="'palette-' + kind"
+            :title="descriptions[kind]"
+            @dragstart="drag($event, kind)"
+            @click="add(kind)"
+          >
+            <span class="step-type-icon" :class="kind"
+              ><AppIcon :name="iconFor[kind]" :size="17" /></span
+            ><span
+              ><strong>{{ labels[kind] }}</strong
+              ><small>{{ descriptions[kind] }}</small></span
+            ><AppIcon name="plus" :size="13" />
+          </button>
+        </section>
+        <p v-if="!paletteGroups.length" class="muted">No matching steps.</p>
       </div>
       <div class="library-tip">
         <AppIcon name="sparkles" :size="16" />
@@ -421,9 +481,10 @@ function setAttribute(value: string) {
         @connect="connect"
         @node-click="
           selectedID = $event.node.id;
+          inspectorOpen = true;
           emit('inspect');
         "
-        ><Background :gap="20" pattern-color="#cbd3df" /><Controls /><MiniMap /><template
+        ><Background :gap="20" pattern-color="#dde1ec" /><Controls /><MiniMap /><template
           #node-step="nodeProps"
           ><WorkflowNode
             v-bind="nodeProps"
@@ -434,7 +495,11 @@ function setAttribute(value: string) {
       ></VueFlow>
       <p v-if="!nodes.length" class="canvas-empty">Add an Event Trigger to start your journey.</p>
     </div>
-    <aside v-if="selected && !hideInspector" class="node-config">
+    <aside
+      v-if="selected && !hideInspector && inspectorOpen"
+      class="node-config"
+      aria-label="Step settings"
+    >
       <div class="inspector-heading">
         <div>
           <span class="inspector-eyebrow">STEP SETTINGS</span>
@@ -444,23 +509,31 @@ function setAttribute(value: string) {
           <AppIcon name="close" :size="17" />
         </button>
       </div>
-      <label>Node label<input v-model="selected.data.label" :disabled="readonly" /></label
+      <label>Step name<input v-model="selected.data.label" :disabled="readonly" /></label
       ><label v-if="['event_trigger', 'wait_event'].includes(selected.data.kind)"
-        >Event name<input v-model="selected.data.config.event_name" :disabled="readonly" /></label
-      ><label v-if="selected.data.kind === 'wait'"
-        >Delay (seconds)<input
-          v-model.number="selected.data.config.duration_seconds"
-          type="number"
-          min="1"
-          :disabled="readonly" /></label
-      ><label v-if="selected.data.kind === 'wait'"
+        >Event name<input v-model="selected.data.config.event_name" :disabled="readonly"
+      /></label>
+      <div v-if="['wait', 'wait_event'].includes(selected.data.kind)" class="duration-field">
+        <label
+          >{{ selected.data.kind === 'wait_event' ? 'Timeout' : 'Wait for'
+          }}<input v-model.number="delayAmount" type="number" min="1" :disabled="readonly"
+        /></label>
+        <label
+          >Unit<select
+            :value="delayUnit"
+            aria-label="Delay unit"
+            :disabled="readonly"
+            @change="changeDelayUnit(Number(($event.target as HTMLSelectElement).value))"
+          >
+            <option :value="1">Seconds</option>
+            <option :value="60">Minutes</option>
+            <option :value="3600">Hours</option>
+            <option :value="86400">Days</option>
+          </select></label
+        >
+      </div>
+      <label v-if="selected.data.kind === 'wait'"
         >Timezone<input v-model="selected.data.config.timezone" :disabled="readonly" /></label
-      ><label v-if="selected.data.kind === 'wait_event'"
-        >Timeout (seconds)<input
-          v-model.number="selected.data.config.timeout_seconds"
-          type="number"
-          min="1"
-          :disabled="readonly" /></label
       ><RuleEditor
         v-if="selected.data.kind === 'condition'"
         v-model="selected.data.config.rule"
@@ -535,6 +608,24 @@ function setAttribute(value: string) {
         Preview / Test node</button
       ><button :disabled="readonly" @click="remove">Delete node</button
       ><small>Outputs: {{ ports(selected.data.kind).join(', ') || 'Completed' }}</small>
+    </aside>
+    <aside
+      v-else-if="!hideInspector && inspectorOpen"
+      class="node-config inspector-empty"
+      aria-label="Journey inspector"
+    >
+      <span class="inspector-eyebrow">JOURNEY INSPECTOR</span>
+      <span class="empty-inspector-icon"><AppIcon name="select" :size="26" /></span>
+      <h3>Select a step</h3>
+      <p>Choose a step on the canvas to edit its settings, conditions or message.</p>
+      <div class="inspector-summary">
+        <span><AppIcon name="workflow" :size="15" />{{ nodes.length }} steps</span
+        ><span><AppIcon name="branch" :size="15" />{{ edges.length }} connections</span>
+      </div>
+      <p class="inspector-safety">
+        <AppIcon name="shield" :size="16" />Edits stay in your draft until you review and publish a
+        version.
+      </p>
     </aside>
   </div>
 </template>

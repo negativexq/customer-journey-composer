@@ -4,10 +4,19 @@ import vue from 'eslint-plugin-vue';
 import globals from 'globals';
 
 export default tseslint.config(
-  { ignores: ['**/dist/**', '**/node_modules/**', 'playwright-report/**', 'test-results/**'] },
+  {
+    ignores: [
+      '.tmp/**',
+      '**/dist/**',
+      '**/node_modules/**',
+      'playwright-report/**',
+      'test-results/**',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...vue.configs['flat/recommended'],
+  { languageOptions: { parserOptions: { tsconfigRootDir: import.meta.dirname } } },
   {
     files: ['**/*.vue'],
     languageOptions: { parserOptions: { parser: tseslint.parser } },

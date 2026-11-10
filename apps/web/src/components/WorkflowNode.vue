@@ -18,10 +18,15 @@ const icons: Record<string, string> = {
   exit: 'exit',
 };
 function duration(seconds: number) {
-  if (seconds >= 86400) return seconds / 86400 + ' days';
-  if (seconds >= 3600) return seconds / 3600 + ' hours';
-  if (seconds >= 60) return seconds / 60 + ' minutes';
-  return seconds + ' seconds';
+  const [amount, unit] =
+    seconds >= 86400
+      ? [seconds / 86400, 'day']
+      : seconds >= 3600
+        ? [seconds / 3600, 'hour']
+        : seconds >= 60
+          ? [seconds / 60, 'minute']
+          : [seconds, 'second'];
+  return `${amount} ${unit}${amount === 1 ? '' : 's'}`;
 }
 const detail = computed(() => {
   const c = props.data.config;
@@ -67,7 +72,7 @@ const label = (p: string) =>
       /></span>
       <div>
         <small>{{ labels[data.kind] }}</small
-        ><strong>{{ data.label }}</strong>
+        ><strong class="node-title">{{ data.label }}</strong>
       </div>
       <span v-if="data.invalid" class="node-warning" title="Needs attention">!</span>
     </div>

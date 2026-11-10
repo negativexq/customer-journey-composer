@@ -22,7 +22,8 @@ test('creates a workspace and persists a journey across login sessions', async (
   await page.getByLabel('Journey name').fill('Customer onboarding');
   await page.getByRole('button', { name: 'Create journey', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Customer onboarding' })).toBeVisible();
-  await page.locator('.journey-settings > summary').click();
+  await page.getByLabel('More journey actions').click();
+  await page.getByRole('button', { name: 'Journey settings', exact: true }).click();
   await page.getByLabel('Description', { exact: true }).fill('Saved across sessions');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'All changes saved' })).toBeVisible();
@@ -32,7 +33,8 @@ test('creates a workspace and persists a journey across login sessions', async (
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await page.getByRole('button', { name: 'Customer onboarding', exact: false }).click();
-  await page.locator('.journey-settings > summary').click();
+  await page.getByLabel('More journey actions').click();
+  await page.getByRole('button', { name: 'Journey settings', exact: true }).click();
   await expect(page.getByLabel('Description', { exact: true })).toHaveValue(
     'Saved across sessions',
   );

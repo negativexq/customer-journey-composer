@@ -28,6 +28,13 @@ const tags = ref(props.journey.tags.join(', '));
 const draft = ref(props.journey.draft as unknown as Workflow);
 const issues = ref<Issue[]>([]);
 const canvasKey = ref(0);
+const publishedVersion = ref(props.journey.version);
+watch(
+  () => props.journey.version,
+  (value) => {
+    if (value != null) publishedVersion.value = value;
+  },
+);
 let applying = false;
 const exitEvent = ref(draft.value.global_exit?.event_name || '');
 const reentryMode = ref(draft.value.reentry?.mode || 'after_completion');
@@ -287,7 +294,17 @@ function back() {
         <h1>{{ name }}</h1>
         <StatusBadge :status="journey.status" />
       </div>
-      <p class="journey-subtitle">{{ description || 'Build a connected customer experience.' }}</p>
+      <p v-if="tab !== 'Builder'" class="journey-subtitle">
+        {{ description || 'Build a connected customer experience.' }}
+      </p>
+      <div class="draft-context">
+        <strong>{{ readonly ? 'Viewing draft' : 'Editing draft' }}</strong
+        ><span class="version-context"
+          ><AppIcon name="history" :size="13" />{{
+            publishedVersion ? 'Published v' + publishedVersion : 'Not published yet'
+          }}</span
+        >
+      </div>
     </div>
     <div class="journey-heading-actions">
       <span class="save-feedback" role="status"
