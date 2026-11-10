@@ -143,23 +143,29 @@ func Ingest(ctx context.Context, pool *pgxpool.Pool, workspace string, event Eve
 		if start.Config.Filters != nil && !workflow.Evaluate(*start.Config.Filters, data) {
 			continue
 		}
-		var active bool
-		var previous bool
-		var last *time.Time
-		err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM journey_executions WHERE workspace_id=$1 AND journey_id=$2 AND customer_id=$3 AND state IN ('RUNNING','WAITING')),EXISTS(SELECT 1 FROM journey_executions WHERE workspace_id=$1 AND journey_id=$2 AND customer_id=$3),(SELECT started_at FROM journey_executions WHERE workspace_id=$1 AND journey_id=$2 AND customer_id=$3 ORDER BY started_at DESC LIMIT 1)`, workspace, m.journey, event.CustomerID).Scan(&active, &previous, &last)
-		if err != nil {
-			return result, err
-		}
-		if active {
-			continue
-		}
-		if m.spec.Reentry != nil {
-			r := m.spec.Reentry
-			if r.Mode == "once" && previous {
-				continue
-			}
-			if r.Mode == "cooldown" && last != nil && now.Before(last.Add(time.Duration(r.CooldownSeconds)*time.Second)) {
-				continue
+		// The customer row lock serializes policy checks. INSERT's partial
+		// unique active-enrollment index is the final guard for every mode,
+		// including an active execution whose cooldown has already elapsed.
+		// Default/after_completion needs no historical reads; once/cooldown
+		// only fetch the one fact required by that policy.
+		if r := m.spec.Reentry; r != nil {
+			switch r.Mode {
+			case "once":
+				var previous bool
+				if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM journey_executions WHERE workspace_id=$1 AND journey_id=$2 AND customer_id=$3)`, workspace, m.journey, event.CustomerID).Scan(&previous); err != nil {
+					return result, err
+				}
+				if previous {
+					continue
+				}
+			case "cooldown":
+				var last *time.Time
+				if err := tx.QueryRow(ctx, `SELECT (SELECT started_at FROM journey_executions WHERE workspace_id=$1 AND journey_id=$2 AND customer_id=$3 ORDER BY started_at DESC LIMIT 1)`, workspace, m.journey, event.CustomerID).Scan(&last); err != nil {
+					return result, err
+				}
+				if last != nil && now.Before(last.Add(time.Duration(r.CooldownSeconds)*time.Second)) {
+					continue
+				}
 			}
 		}
 		var id string

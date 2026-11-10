@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"sync"
 	"testing"
@@ -119,5 +120,69 @@ func TestConcurrentEventDeduplicationAndEnrollment(t *testing.T) {
 	event.CustomerID = "outside-workspace"
 	if _, err := Ingest(ctx, pool, workspace, event, now); err == nil {
 		t.Fatal("unknown customer must be rejected")
+	}
+}
+
+func TestReentryPoliciesKeepActiveEnrollmentUniqueAndRespectHistory(t *testing.T) {
+	for _, mode := range []string{"default", "after_completion", "once", "cooldown"} {
+		t.Run(mode, func(t *testing.T) {
+			ctx, pool, workspace, journey, _, spec := fixture(t)
+			if mode != "default" {
+				spec.Reentry = &workflow.Reentry{Mode: mode, CooldownSeconds: 3600}
+			}
+			publishTest(t, ctx, pool, workspace, journey, spec)
+			now := time.Now().UTC().Truncate(time.Microsecond)
+			send := func(at time.Time) Ingestion {
+				t.Helper()
+				out, err := Ingest(ctx, pool, workspace, Event{EventID: testID(), CustomerID: "cust_test", EventName: "cart_updated", OccurredAt: at}, at)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return out
+			}
+			first := send(now)
+			if len(first.Executions) != 1 {
+				t.Fatal(first)
+			}
+			var group sync.WaitGroup
+			errs := make(chan error, 8)
+			for range 8 {
+				group.Go(func() {
+					out, err := Ingest(ctx, pool, workspace, Event{EventID: testID(), CustomerID: "cust_test", EventName: "cart_updated", OccurredAt: now.Add(2 * time.Hour)}, now.Add(2*time.Hour))
+					if err == nil && len(out.Executions) != 0 {
+						err = fmt.Errorf("active enrollment duplicated after cooldown: %v", out)
+					}
+					errs <- err
+				})
+			}
+			group.Wait()
+			close(errs)
+			for err := range errs {
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			// Completion permits default/after_completion, but not once or an unexpired cooldown.
+			clock := &testClock{now: now.Add(10 * time.Minute)}
+			drain(t, ctx, NewWorker(pool, clock))
+			within := send(now.Add(20 * time.Minute))
+			if mode == "once" || mode == "cooldown" {
+				if len(within.Executions) != 0 {
+					t.Fatal("history policy ignored", within)
+				}
+			} else if len(within.Executions) != 1 {
+				t.Fatal("completed execution prevented reentry", within)
+			}
+			if mode == "once" || mode == "cooldown" {
+				later := send(now.Add(2 * time.Hour))
+				want := 0
+				if mode == "cooldown" {
+					want = 1
+				}
+				if len(later.Executions) != want {
+					t.Fatal("history policy at later time", later)
+				}
+			}
+		})
 	}
 }

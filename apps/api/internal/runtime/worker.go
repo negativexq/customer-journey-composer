@@ -141,8 +141,11 @@ func (w *Worker) Process(ctx context.Context, job Job) error {
 	if err != nil {
 		return err
 	}
+	// Lock by identity before checking the fence. Otherwise the planner can
+	// choose the small CLAIMED lease index and scan every in-flight job on
+	// every step; the workspace predicate and all fence checks are retained.
 	var claimed bool
-	err = tx.QueryRow(ctx, `SELECT true FROM scheduled_jobs WHERE id=$1 AND workspace_id=$2 AND state='CLAIMED' AND claim_token=$3 AND lease_until>$4 FOR UPDATE`, job.ID, job.WorkspaceID, job.Token, w.Clock.Now()).Scan(&claimed)
+	err = tx.QueryRow(ctx, `WITH locked AS MATERIALIZED (SELECT state,claim_token,lease_until FROM scheduled_jobs WHERE id=$1 AND workspace_id=$2 FOR UPDATE) SELECT true FROM locked WHERE state='CLAIMED' AND claim_token=$3 AND lease_until>$4`, job.ID, job.WorkspaceID, job.Token, w.Clock.Now()).Scan(&claimed)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil
 	}
