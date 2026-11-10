@@ -43,6 +43,20 @@ Send `Authorization: Bearer <key>` from your ingestion service. Keep keys on the
 
 Event persistence, enrollment and the first scheduled job are committed atomically. Database uniqueness prevents duplicate event IDs, duplicate event-based enrollment and more than one active execution per customer/journey. Enrollment uses the current immutable version and its reentry policy; later edits do not rewrite that snapshot.
 
-The phase 5 worker executes persisted steps, waits, conditions, attribute updates and exits. Message steps create a transactional outbox record; phase 6 adds delivery providers. Read `/executions/{id}` for the trace and `/journeys/{id}/executions` for bounded, filterable execution records. Paused journeys do not progress; Sunset journeys drain existing executions.
+The phase 5 worker executes persisted steps, waits, conditions, attribute updates and exits. Message steps render content and create a unique transactional outbox entry. The phase 6 sender enforces policy, creates durable delivery jobs and records provider attempts. Read `/executions/{id}` for the trace and `/journeys/{id}/executions` for bounded, filterable execution records. Paused journeys do not progress; Sunset journeys drain existing executions.
 
 Event/timeout races serialize on the customer/execution state; only one branch wins. Global exit ignores events that predate the entry event. Event waiters accept matching events only if their occurrence is after waiter creation and they arrive by the deadline. After resume, overdue timers are immediately eligible; elapsed wall time is not added back.
+
+## Messages, providers and preview
+
+`POST /messages/preview` renders a typed channel configuration against an existing customer and/or isolated overrides. It never changes the live profile or calls a provider. HTML values are escaped and sanitized, unknown expressions are rejected, and missing attributes, used values, links and SMS encoding/segment counts are returned. UI HTML previews use a sandboxed iframe with a restrictive CSP.
+
+Manage message templates under `/message-templates` (metadata list, individual detail, creation). Applying a template copies its content into the draft; later template edits cannot change an already published workflow snapshot.
+
+Admins configure `/settings/messaging`: `frequency_limit`, `frequency_window_seconds`, and explicit `test_allowlist`. Live sends need current channel consent and a valid address/phone. Pending and unknown outcomes reserve a frequency-cap slot; accepted sends are counted by actual acceptance time. Blocked/failed records and retry attempts do not inflate send totals. Frequency lookups are customer-scoped, indexed and stop at the configured limit.
+
+`POST /messages/test-send` needs a 16–128-character `Idempotency-Key`, `{preview, recipient}` and an allowlisted recipient. The same key/payload returns the same job; a different payload returns 409. These jobs have mode TEST and do not enroll or modify customers or reserve live cap slots. SMTP test email reaches Mailpit by default; test SMS uses the mock provider. Consent is a live-send gate; explicit, allowlisted test recipients are a separate decision.
+
+`GET /deliveries` lists bounded metadata; `GET /deliveries/{id}` returns rendered content, eligibility and attempt history. ACCEPTED means provider acceptance, not confirmed delivery. Transient failures retry at most five attempts with 2/4/8/16-second backoff. SMTP connection failures before acceptance can retry; a lost acceptance response or expired non-idempotent dispatch becomes UNKNOWN and is not automatically resent. Mock providers support stable idempotency keys.
+
+Global exit/failure cancels SCHEDULED or CLAIMED deliveries before dispatch. A dispatch already committed as in-flight can finish; `cancel_requested` records a later exit. External acceptance cannot be revoked transactionally. Consent, execution state and recipient identity are rechecked before committing dispatch, and stale claim tokens cannot dispatch another logical send.

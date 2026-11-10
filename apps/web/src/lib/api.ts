@@ -50,7 +50,12 @@ export class APIError extends Error {
     super(message);
   }
 }
-export async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
+export async function api<T>(
+  path: string,
+  method = 'GET',
+  body?: unknown,
+  extraHeaders: Record<string, string> = {},
+): Promise<T> {
   const response = await fetch(`/api/v1${path}`, {
     method,
     credentials: 'same-origin',
@@ -59,6 +64,7 @@ export async function api<T>(path: string, method = 'GET', body?: unknown): Prom
       Accept: 'application/json',
       ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
       ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
+      ...extraHeaders,
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });

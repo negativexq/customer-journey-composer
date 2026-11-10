@@ -22,6 +22,8 @@ const busy = ref(false);
 const attributes = ref('{}');
 const events = ref<Record<string, unknown>[]>([]);
 const payload = ref<Record<string, unknown>>();
+const deliveries = ref<Record<string, unknown>[]>([]);
+const delivery = ref<Record<string, unknown>>();
 const form = ref({
   customer_id: '',
   external_id: '',
@@ -43,6 +45,8 @@ async function load() {
   }
 }
 async function open(customer: Customer) {
+  payload.value = undefined;
+  delivery.value = undefined;
   try {
     const c = await api<Customer>(`/customers/${encodeURIComponent(customer.customer_id)}`);
     selected.value = c;
@@ -57,7 +61,14 @@ async function open(customer: Customer) {
       smsConsent: !!c.consents.sms,
     };
     attributes.value = JSON.stringify(c.attributes, null, 2);
-    events.value = await api(`/customers/${encodeURIComponent(c.customer_id)}/events`);
+    const [timeline, history] = await Promise.all([
+      api<Record<string, unknown>[]>(`/customers/${encodeURIComponent(c.customer_id)}/events`),
+      api<Record<string, unknown>[]>(
+        `/deliveries?customer_id=${encodeURIComponent(c.customer_id)}`,
+      ),
+    ]);
+    events.value = timeline;
+    deliveries.value = history;
   } catch (cause) {
     error.value = String(cause);
   }
@@ -106,6 +117,13 @@ async function save() {
 async function inspect(event: Record<string, unknown>) {
   try {
     payload.value = await api(`/events/${encodeURIComponent(String(event.event_id))}`);
+  } catch (cause) {
+    error.value = String(cause);
+  }
+}
+async function inspectDelivery(id: unknown) {
+  try {
+    delivery.value = await api(`/deliveries/${id}`);
   } catch (cause) {
     error.value = String(cause);
   }
@@ -186,7 +204,22 @@ onMounted(load);
         </button>
       </form>
       <template v-if="selected"
-        ><h3>Event timeline</h3>
+        ><h3>Message history</h3>
+        <p v-if="!deliveries.length">No message actions yet.</p>
+        <button
+          v-for="item in deliveries"
+          :key="String(item.id)"
+          class="list-row"
+          @click="inspectDelivery(item.id)"
+        >
+          <span>{{ item.channel }} · {{ item.mode }}</span
+          ><span>{{ item.status }}</span>
+        </button>
+        <details v-if="delivery" open>
+          <summary>Delivery decision &amp; attempts</summary>
+          <pre>{{ JSON.stringify(delivery, null, 2) }}</pre>
+        </details>
+        <h3>Event timeline</h3>
         <p v-if="!events.length">No events received yet.</p>
         <button
           v-for="event in events"

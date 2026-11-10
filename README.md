@@ -4,7 +4,7 @@ AI-powered customer journey orchestration: **AI-generated, human-approved, deter
 
 Vue 3 / TypeScript frontend, Go API, PostgreSQL source of truth. The product includes a visual journey builder, persistent execution, messaging, simulation and observability as specified in the [MVP requirements](docs/PRD.md).
 
-**Current scope:** phases 1–5: workspace authentication, journey management, Vue Flow editing/validation, immutable published versions, customer profiles and transactional event ingestion/enrollment. The persistent worker now executes durable timers, event waits, conditions and attribute updates with a transactional action outbox. Delivery adapters are next. [Implementation tracker](docs/IMPLEMENTATION.md).
+**Current scope:** phases 1–6: workspace authentication, journey management, Vue Flow editing/validation, immutable published versions, customer profiles and transactional event ingestion/enrollment. The persistent worker now executes durable timers, event waits, conditions and attribute updates with a transactional action outbox. SMTP/Mailpit and mock SMS deliveries now enforce consent, frequency caps, bounded retry and test-recipient allowlists. Channel Studio renders isolated, personalized previews. AI composition is next. [Implementation tracker](docs/IMPLEMENTATION.md).
 
 ## Quick start with Docker
 
@@ -112,3 +112,5 @@ Validate a commit range with `make commitlint RANGE=main..HEAD`. GitHub Actions 
 See [API policies](docs/API.md) for authentication, API keys, draft revisions and event ordering/late-event rules.
 
 `make test-recovery` verifies a real worker process restart against the local Docker stack, using a new isolated workspace. It stops and restarts only this project's worker.
+
+SMTP settings stay in server environment variables. Native development uses `SMTP_HOST`/`SMTP_PORT`; Compose uses `SMTP_DOCKER_HOST`/`SMTP_SERVER_PORT` (defaults: `mailpit:1025`). Configure `SMTP_FROM`, optional `SMTP_USER`/`SMTP_PASSWORD`, and `SMTP_REQUIRE_TLS=true` when using an authenticated external SMTP server. In-app Settings manages caps and the explicit test-recipient allowlist; secrets are never returned to the browser.

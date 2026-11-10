@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, watch, onBeforeUnmount } from 'vue';
+import { computed, ref, watch, onBeforeUnmount } from 'vue';
 import { api, type Journey } from '../lib/api';
 import WorkflowCanvas from './WorkflowCanvas.vue';
+import MessageStudio from './MessageStudio.vue';
 import type { Workflow, Issue } from '../lib/workflow';
 const props = defineProps<{ journey: Journey; readonly?: boolean }>();
 const emit = defineEmits<{ back: []; saved: [Journey] }>();
@@ -21,6 +22,16 @@ watch([exitEvent, reentryMode, cooldown], () => {
   };
 });
 const tab = ref('Builder');
+const messageNodeID = ref('');
+const messageStep = computed(
+  () =>
+    draft.value.nodes.find((n) => n.id === messageNodeID.value) ||
+    draft.value.nodes.find((n) => n.type === 'email' || n.type === 'sms'),
+);
+function previewNode(id: string) {
+  messageNodeID.value = id;
+  tab.value = 'Preview & Test';
+}
 const versions = ref<{ id: string; version: number; workflow?: Workflow; created_at: string }[]>(
   [],
 );
@@ -184,6 +195,7 @@ function back() {
   </section>
   <nav class="detail-tabs">
     <button :class="{ selected: tab === 'Builder' }" @click="tab = 'Builder'">Builder</button
+    ><button @click="tab = 'Preview & Test'">Preview &amp; Test</button
     ><button @click="showVersions">Versions</button>
   </nav>
   <WorkflowCanvas
@@ -191,7 +203,29 @@ function back() {
     v-model="draft"
     :readonly="readonly || journey.status === 'Archived'"
     :issues="issues"
+    @preview="previewNode"
   />
+  <section v-else-if="tab === 'Preview & Test'">
+    <label
+      >Message node<select v-model="messageNodeID">
+        <option value="">First message</option>
+        <option
+          v-for="step in draft.nodes.filter((n) => n.type === 'email' || n.type === 'sms')"
+          :key="step.id"
+          :value="step.id"
+        >
+          {{ step.label }}
+        </option>
+      </select></label
+    ><MessageStudio
+      v-if="messageStep"
+      :key="messageStep.id"
+      v-model="messageStep.config"
+      :channel="messageStep.type === 'email' ? 'email' : 'sms'"
+      :readonly="readonly"
+    />
+    <p v-else class="panel">Add an email or SMS node in Builder to preview a message.</p>
+  </section>
   <div v-else class="panel">
     <h2>Published versions</h2>
     <p v-if="!versions.length">No published versions yet.</p>

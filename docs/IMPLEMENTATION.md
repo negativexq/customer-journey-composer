@@ -9,7 +9,7 @@ Source of truth for product scope: [PRD.md](PRD.md).
 | 3. Visual Canvas & Validation          | Complete | Typed schema, graph/rule validator, immutable snapshots and Vue Flow editor; database and 8 browser tests passed.                                |
 | 4. Customer & Event Infrastructure     | Complete | Profiles, scoped API keys, idempotent single/batch ingestion and atomic enrollment; database and 10 browser tests passed.                        |
 | 5. Persistent Runtime                  | Complete | Fenced worker, durable timers/waiters, global exit, shared pure decisions, outbox; race/recovery/version tests and actual Docker restart passed. |
-| 6. Email & SMS                         | Pending  | Mailpit and mock SMS required.                                                                                                                   |
+| 6. Email & SMS                         | Complete | Safe rendering, channel studio, SMTP/Mailpit and mock SMS, durable deliveries/attempts, policy and retry tests; 14 browser tests passed.         |
 | 7. AI Journey Composer                 | Pending  | Both Claude and OpenAI; common schema, validation, human approval.                                                                               |
 | 8. Preview & Test Lab                  | Pending  | Shared deterministic runtime with controlled Clock.                                                                                              |
 | 9. Test Inbox                          | Pending  | Isolated persisted outputs and traces.                                                                                                           |
@@ -28,7 +28,7 @@ Source of truth for product scope: [PRD.md](PRD.md).
 
 ## Next slice
 
-Phase 6: safe personalized rendering, email/SMS composition, durable deliveries/attempts, Mailpit/mock providers, retry/backoff, consent and frequency caps.
+Phase 7: Claude and OpenAI structured-output adapters, versioned shared schema, bounded validation/repair, draft-only diff and Apply/Discard. Live LLM requests remain deferred.
 
 ## Phase 1 delivery — 2026-11-10
 
@@ -73,3 +73,12 @@ See [verification notes](VERIFICATION.md) for reproducible checks and [architect
 - Shared pure `Decide` function and Clock boundary cover all node types; message nodes produce a unique transactional outbox entry for phase 6 delivery. No provider calls occur in step transactions.
 - Event context references the matched event ID rather than copying payload JSON into each execution. Execution list/trace APIs are bounded and workspace-scoped.
 - Verified: quality/unit checks, real PostgreSQL claim recovery and stale-token tests, durable wait timing, 12 event/timeout races, global exit, attribute update, pause/sunset and version isolation; 10 browser tests; actual Docker worker stop/start preserving a wait and event deduplication.
+
+## Phase 6 delivery
+
+- `c33d2e7` — bounded, code-free personalization; HTML sanitization/escaping; link checks; GSM-7/UTF-16 SMS segment accounting; SMTP and fault-injectable mock adapters.
+- `ee358d9` — transactional outbox scheduling, durable logical delivery jobs/attempts, 5-attempt backoff, fenced dispatch and explicit UNKNOWN outcomes. Consent is rechecked before dispatch; global exit cancels pending jobs.
+- Workspace frequency caps count reservations and accepted logical sends, not retry attempts. Indexed acceptance-time lookups and bounded counts avoid history scans; old pending/unknown jobs retain reservations.
+- Channel Studio provides email/SMS composition, templates, customer-isolated preview overrides, missing values, mobile/desktop preview, rendered content, links and allowlisted/idempotent test sends. Customer profiles expose delivery decisions/attempts.
+- SMTP defaults to local Mailpit; SMS remains a mock. No external SMS provider or paid LLM request was used.
+- Verified: all quality/unit/integration checks; local SMTP protocol and lost-acceptance response; 429→500→success, consent revocation, caps, global exit, stale delivery leases, preview isolation and test-send idempotency; 14/14 browser tests including actual Mailpit receipt and live SMTP/mock SMS; actual worker restart recovery passed again.

@@ -5,9 +5,22 @@ const keys = ref<Record<string, unknown>[]>([]);
 const name = ref('');
 const token = ref('');
 const error = ref('');
+const limit = ref(3);
+const hours = ref(24);
+const allowlist = ref('');
+const notice = ref('');
 async function load() {
   try {
-    keys.value = await api('/settings/api-keys');
+    const [keyList, policy] = await Promise.all([
+      api<Record<string, unknown>[]>('/settings/api-keys'),
+      api<{ frequency_limit: number; frequency_window_seconds: number; test_allowlist: string[] }>(
+        '/settings/messaging',
+      ),
+    ]);
+    keys.value = keyList;
+    limit.value = policy.frequency_limit;
+    hours.value = policy.frequency_window_seconds / 3600;
+    allowlist.value = policy.test_allowlist.join('\n');
   } catch (cause) {
     error.value = String(cause);
   }
@@ -30,11 +43,61 @@ async function revoke(id: unknown) {
     error.value = String(cause);
   }
 }
+async function savePolicy() {
+  error.value = '';
+  try {
+    await api('/settings/messaging', 'PUT', {
+      frequency_limit: limit.value,
+      frequency_window_seconds: Math.round(hours.value * 3600),
+      test_allowlist: allowlist.value
+        .split(/[\n,]/)
+        .map((v) => v.trim())
+        .filter(Boolean),
+    });
+    notice.value = 'Messaging policy saved';
+  } catch (cause) {
+    error.value = String(cause);
+  }
+}
 onMounted(load);
 </script>
 <template>
   <div class="page-heading"><h1>Settings</h1></div>
   <p v-if="error" role="alert" class="error-message">{{ error }}</p>
+  <p role="status">{{ notice }}</p>
+  <section class="panel">
+    <h2>Messaging policy</h2>
+    <p>Email uses your server's SMTP configuration. SMS uses the mock provider.</p>
+    <form class="editor-form" @submit.prevent="savePolicy">
+      <div class="toolbar">
+        <label
+          >Maximum messages per customer<input
+            v-model.number="limit"
+            type="number"
+            min="1"
+            max="1000"
+            required /></label
+        ><label
+          >Frequency window (hours)<input
+            v-model.number="hours"
+            type="number"
+            min="1"
+            max="720"
+            required
+        /></label>
+      </div>
+      <label
+        >Test recipient allowlist<textarea
+          v-model="allowlist"
+          rows="5"
+          placeholder="One authorized email address or E.164 phone number per line"
+        /></label
+      ><small
+        >Pending messages reserve a slot. Failed/blocked messages do not count as sends. Test sends
+        are isolated from the live cap.</small
+      ><button class="primary">Save messaging policy</button>
+    </form>
+  </section>
   <section class="panel">
     <h2>Event ingestion API keys</h2>
     <p>

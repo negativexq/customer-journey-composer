@@ -1,0 +1,375 @@
+<script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { api } from '../lib/api';
+import type { Config } from '../lib/workflow';
+const props = defineProps<{ modelValue: Config; channel: 'email' | 'sms'; readonly?: boolean }>();
+const emit = defineEmits<{ 'update:modelValue': [Config] }>();
+type Message = {
+  channel: string;
+  to: string;
+  subject: string;
+  preheader: string;
+  html: string;
+  text: string;
+  personalization_values: Record<string, string>;
+  missing_attributes: string[];
+  links: string[];
+  warnings: string[];
+  encoding: string;
+  units: number;
+  segments: number;
+};
+const templates = ref<{ id: string; name: string; channel: string }[]>([]);
+const templateID = ref('');
+const templateName = ref('');
+const profile = ref('Custom Test Customer');
+const customerID = ref('');
+const customer = ref(
+  JSON.stringify(
+    {
+      email: 'preview@example.invalid',
+      phone: '+905551234567',
+      locale: 'en',
+      timezone: 'UTC',
+      attributes: { first_name: 'Ada', total_orders: 0, cart_amount: 2450 },
+      consents: { email: true, sms: true },
+    },
+    null,
+    2,
+  ),
+);
+const event = ref('{"properties":{"cart_id":"cart_demo","amount":2450,"currency":"TRY"}}');
+const preview = ref<Message>();
+const error = ref('');
+const notice = ref('');
+const loading = ref(false);
+const device = ref('desktop');
+const recipient = ref('');
+const testKey = ref(crypto.randomUUID());
+const sending = ref(false);
+let timer: ReturnType<typeof setTimeout> | undefined;
+let poll: ReturnType<typeof setTimeout> | undefined;
+let sequence = 0;
+let disposed = false;
+const escapeText = (text: string) =>
+  text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+const document = computed(
+  () =>
+    `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; form-action 'none'; base-uri 'none'"><meta name="viewport" content="width=device-width"><style>body{font-family:Arial,sans-serif;padding:24px;color:#29362a;line-height:1.7}a{color:#365b35}img{max-width:100%}</style></head><body>${preview.value?.html || '<pre>' + escapeText(preview.value?.text || '') + '</pre>'}</body></html>`,
+);
+function patch(values: Partial<Config>) {
+  emit('update:modelValue', { ...props.modelValue, ...values });
+}
+function payload() {
+  return {
+    channel: props.channel,
+    config: props.modelValue,
+    customer_id: customerID.value || undefined,
+    customer: JSON.parse(customer.value),
+    event: JSON.parse(event.value),
+  };
+}
+async function render() {
+  const request = ++sequence;
+  error.value = '';
+  loading.value = true;
+  try {
+    const result = await api<Message>('/messages/preview', 'POST', payload());
+    if (request === sequence && !disposed) preview.value = result;
+  } catch (cause) {
+    if (request === sequence) error.value = String(cause);
+  } finally {
+    if (request === sequence) loading.value = false;
+  }
+}
+watch(
+  [() => props.modelValue, customer, event, customerID, () => props.channel],
+  () => {
+    clearTimeout(timer);
+    testKey.value = crypto.randomUUID();
+    timer = setTimeout(() => void render(), 450);
+  },
+  { deep: true },
+);
+watch(recipient, () => (testKey.value = crypto.randomUUID()));
+function chooseProfile() {
+  if (profile.value === 'Existing Customer') {
+    customer.value = '{}';
+    return;
+  }
+  customerID.value = '';
+  const orders = profile.value === 'Returning Customer' ? 4 : 0;
+  customer.value = JSON.stringify(
+    {
+      email: 'preview@example.invalid',
+      phone: '+905551234567',
+      locale: 'en',
+      timezone: 'UTC',
+      attributes: {
+        first_name: 'Ada',
+        total_orders: orders,
+        cart_amount: 2450,
+        ...(profile.value === 'Inactive Customer'
+          ? { last_seen_at: new Date(Date.now() - 90 * 86400000).toISOString() }
+          : {}),
+      },
+      consents: { email: true, sms: true },
+    },
+    null,
+    2,
+  );
+}
+async function loadTemplates() {
+  try {
+    templates.value = await api('/message-templates');
+  } catch (cause) {
+    error.value = String(cause);
+  }
+}
+async function useTemplate() {
+  if (!templateID.value) return;
+  try {
+    const result = await api<{ config: Config }>(`/message-templates/${templateID.value}`);
+    patch({ ...result.config, template_id: templateID.value });
+  } catch (cause) {
+    error.value = String(cause);
+  }
+}
+function setFallbacks(value: string) {
+  try {
+    patch({ fallbacks: JSON.parse(value) });
+    error.value = '';
+  } catch {
+    error.value = 'Fallbacks must be valid JSON';
+  }
+}
+async function saveTemplate() {
+  try {
+    await api('/message-templates', 'POST', {
+      name: templateName.value,
+      channel: props.channel,
+      config: props.modelValue,
+    });
+    notice.value = 'Template saved';
+    templateName.value = '';
+    await loadTemplates();
+  } catch (cause) {
+    error.value = String(cause);
+  }
+}
+async function pollDelivery(id: string) {
+  if (disposed) return;
+  try {
+    const job = await api<{ status: string; last_error?: string }>(`/deliveries/${id}`);
+    notice.value = `Test ${job.status.toLowerCase()}${job.last_error ? `: ${job.last_error}` : ''}`;
+    if (['SCHEDULED', 'CLAIMED', 'DISPATCHING'].includes(job.status))
+      poll = setTimeout(() => void pollDelivery(id), 1000);
+    else sending.value = false;
+  } catch (cause) {
+    error.value = String(cause);
+    sending.value = false;
+  }
+}
+async function sendTest() {
+  sending.value = true;
+  error.value = '';
+  try {
+    const job = await api<{ id: string }>(
+      '/messages/test-send',
+      'POST',
+      { preview: payload(), recipient: recipient.value },
+      { 'Idempotency-Key': testKey.value },
+    );
+    notice.value = 'Test scheduled';
+    await pollDelivery(job.id);
+  } catch (cause) {
+    error.value = String(cause);
+    sending.value = false;
+  }
+}
+async function copy() {
+  try {
+    await navigator.clipboard.writeText(preview.value?.html || preview.value?.text || '');
+    notice.value = 'Rendered content copied';
+  } catch {
+    error.value = 'Clipboard is unavailable in this browser.';
+  }
+}
+onMounted(() => {
+  void render();
+  void loadTemplates();
+});
+onBeforeUnmount(() => {
+  disposed = true;
+  clearTimeout(timer);
+  clearTimeout(poll);
+});
+</script>
+<template>
+  <div class="channel-studio">
+    <section class="panel editor-form">
+      <div class="card-top">
+        <h2>{{ channel === 'email' ? 'Email studio' : 'SMS studio' }}</h2>
+        <span class="pill">{{ channel.toUpperCase() }}</span>
+      </div>
+      <label
+        >Message template<select v-model="templateID" :disabled="readonly" @change="useTemplate">
+          <option value="">Custom content</option>
+          <option
+            v-for="template in templates.filter((t) => t.channel === channel)"
+            :key="template.id"
+            :value="template.id"
+          >
+            {{ template.name }}
+          </option>
+        </select></label
+      ><template v-if="channel === 'email'"
+        ><label
+          >Subject<input
+            :value="modelValue.subject"
+            :disabled="readonly"
+            maxlength="998"
+            @input="patch({ subject: ($event.target as HTMLInputElement).value })" /></label
+        ><label
+          >Preheader<input
+            :value="modelValue.preheader"
+            :disabled="readonly"
+            maxlength="300"
+            @input="patch({ preheader: ($event.target as HTMLInputElement).value })" /></label
+        ><label
+          >HTML body<textarea
+            :value="modelValue.html"
+            :disabled="readonly"
+            rows="9"
+            class="code-input"
+            @input="patch({ html: ($event.target as HTMLTextAreaElement).value })"
+          /></label></template
+      ><label
+        >{{ channel === 'email' ? 'Text fallback' : 'SMS message'
+        }}<textarea
+          :value="modelValue.text"
+          :disabled="readonly"
+          rows="5"
+          @input="patch({ text: ($event.target as HTMLTextAreaElement).value })"
+        /></label
+      ><small
+        >Use variables such as &#123;&#123; customer.attributes.first_name &#125;&#125;. Values are
+        rendered safely; no code or expressions run.</small
+      >
+      <details>
+        <summary>Missing-value fallbacks</summary>
+        <label
+          >Fallback values (JSON)<textarea
+            :value="JSON.stringify(modelValue.fallbacks || {}, null, 2)"
+            rows="4"
+            @change="setFallbacks(($event.target as HTMLTextAreaElement).value)"
+          />
+        </label>
+      </details>
+      <form v-if="!readonly" class="inline-form" @submit.prevent="saveTemplate">
+        <label>Save as template<input v-model="templateName" required maxlength="160" /></label
+        ><button>Save template</button>
+      </form>
+    </section>
+    <section class="preview-studio">
+      <div class="panel editor-form">
+        <h2>Preview as customer</h2>
+        <label
+          >Profile<select v-model="profile" @change="chooseProfile">
+            <option
+              v-for="name in [
+                'Existing Customer',
+                'New Customer',
+                'Returning Customer',
+                'Inactive Customer',
+                'Custom Test Customer',
+              ]"
+              :key="name"
+            >
+              {{ name }}
+            </option>
+          </select></label
+        ><label v-if="profile === 'Existing Customer'"
+          >Existing customer ID<input
+            v-model="customerID"
+            placeholder="Customer ID from this workspace"
+        /></label>
+        <details>
+          <summary>Customize preview data</summary>
+          <label
+            >Customer overrides (JSON)<textarea
+              v-model="customer"
+              rows="10"
+              class="code-input"
+            /></label
+          ><label
+            >Event context (JSON)<textarea v-model="event" rows="5" class="code-input" /></label
+          ><small>Overrides are isolated. The saved customer profile is never modified.</small>
+        </details>
+        <div class="toolbar">
+          <button :disabled="loading" @click="render">Refresh preview</button
+          ><button
+            v-if="channel === 'email'"
+            @click="device = device === 'desktop' ? 'mobile' : 'desktop'"
+          >
+            {{ device === 'desktop' ? 'Mobile preview' : 'Desktop preview' }}</button
+          ><button :disabled="!preview" @click="copy">Copy rendered content</button>
+        </div>
+      </div>
+      <p v-if="error" role="alert" class="error-message">{{ error }}</p>
+      <p role="status">{{ notice || (loading ? 'Rendering preview…' : '') }}</p>
+      <div v-if="preview" class="panel rendered-message">
+        <template v-if="channel === 'email'"
+          ><h3>{{ preview.subject }}</h3>
+          <p>{{ preview.preheader }}</p>
+          <div class="email-frame" :class="device">
+            <iframe
+              title="Isolated email preview"
+              :srcdoc="document"
+              sandbox=""
+              referrerpolicy="no-referrer"
+            /></div></template
+        ><template v-else
+          ><div class="phone-preview">
+            <small>MESSAGES · NOW</small>
+            <div class="sms-bubble">{{ preview.text }}</div>
+          </div>
+          <p>
+            {{ preview.encoding }} · {{ preview.units }} units · {{ preview.segments }} estimated
+            segment(s)
+          </p></template
+        >
+        <p v-if="preview.missing_attributes.length" class="error-message">
+          Missing attributes: {{ preview.missing_attributes.join(', ') }}
+        </p>
+        <p v-for="warning in preview.warnings" :key="warning" class="warning-message">
+          {{ warning }}
+        </p>
+        <details>
+          <summary>Personalization values & CTA links</summary>
+          <pre>{{ JSON.stringify(preview.personalization_values, null, 2) }}</pre>
+          <p v-for="link in preview.links" :key="link">{{ link }}</p>
+        </details>
+      </div>
+      <div v-if="!readonly" class="panel editor-form">
+        <h3>Send a test {{ channel === 'email' ? 'email' : 'SMS' }}</h3>
+        <p>
+          Use an allowlisted test recipient. Email uses SMTP; SMS uses the mock provider. This is
+          separate from live journey execution.
+        </p>
+        <label
+          >Test recipient<input
+            v-model="recipient"
+            :type="channel === 'email' ? 'email' : 'tel'"
+            required /></label
+        ><button
+          class="primary"
+          :disabled="sending || !recipient || !!preview?.missing_attributes.length"
+          @click="sendTest"
+        >
+          {{ sending ? 'Sending test…' : `Send test ${channel === 'email' ? 'email' : 'SMS'}` }}
+        </button>
+      </div>
+    </section>
+  </div>
+</template>
