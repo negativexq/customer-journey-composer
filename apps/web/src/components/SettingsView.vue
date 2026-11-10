@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WorkspaceAdmin from './WorkspaceAdmin.vue';
 import { onMounted, ref } from 'vue';
 import { api } from '../lib/api';
 const keys = ref<Record<string, unknown>[]>([]);
@@ -134,4 +135,5 @@ onMounted(load);
       ><button v-if="!key.revoked_at" @click="revoke(key.id)">Revoke</button>
     </div>
   </section>
+  <WorkspaceAdmin />
 </template>

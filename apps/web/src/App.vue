@@ -141,6 +141,7 @@ onErrorCaptured((cause) => {
           v-if="selected"
           :key="selected.id"
           :journey="selected"
+          :admin="identity.role === 'Admin'"
           :readonly="readOnly"
           @back="
             selected = undefined;

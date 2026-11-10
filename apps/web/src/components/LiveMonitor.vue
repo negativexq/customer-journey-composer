@@ -6,7 +6,7 @@ import { Controls } from '@vue-flow/controls';
 import { MiniMap } from '@vue-flow/minimap';
 import { api } from '../lib/api';
 import type { Workflow } from '../lib/workflow';
-const props = defineProps<{ journeyId: string }>();
+const props = defineProps<{ journeyId: string; readonly?: boolean; admin?: boolean }>();
 type Execution = {
   id: string;
   version_id: string;
@@ -167,6 +167,15 @@ async function track(id: string) {
     error.value = String(cause);
   }
 }
+async function control(action: string) {
+  if (!selected.value) return;
+  try {
+    await api(`/executions/${selected.value.id}/${action}`, 'POST');
+    await refresh();
+  } catch (cause) {
+    error.value = String(cause);
+  }
+}
 async function inspect(id: string) {
   try {
     delivery.value = await api('/deliveries/' + id);
@@ -243,6 +252,14 @@ onBeforeUnmount(() => {
     </section>
     <section v-if="selected" class="panel">
       <h3>Execution inspector</h3>
+      <button
+        v-if="!readonly && ['RUNNING', 'WAITING'].includes(selected.state)"
+        @click="control('cancel')"
+      >
+        Cancel execution</button
+      ><button v-if="admin && selected.state === 'FAILED'" @click="control('retry')">
+        Recover failed job
+      </button>
       <p>
         {{ selected.id }} · {{ selected.state }} · version {{ version }} ·
         {{ selected.exit_reason || '' }}

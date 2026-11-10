@@ -165,6 +165,32 @@ test('live nodes send through SMTP and mock SMS with visible attempts', async ({
       data: { name: journey.name, draft: { schema_version: 1, nodes, edges }, revision: 1 },
     })
   ).json();
+  const gate = await (
+    await page.request.post('/api/v1/test-runs', {
+      headers,
+      data: {
+        journey_id: journey.id,
+        scenario: {
+          name: 'Send gate',
+          entry_event: { event_name: 'cart_updated' },
+          customer: {
+            email: 'gate@example.invalid',
+            phone: '+905551234567',
+            attributes: { first_name: 'Ada' },
+            consents: { email: true, sms: true },
+          },
+        },
+      },
+    })
+  ).json();
+  expect(
+    (
+      await page.request.post(`/api/v1/test-runs/${gate.id}/advance`, {
+        headers,
+        data: { operation: 'complete', revision: gate.revision },
+      })
+    ).ok(),
+  ).toBeTruthy();
   const published = await page.request.post(`/api/v1/journeys/${journey.id}/publish`, {
     headers,
     data: { revision: draft.revision },
@@ -205,7 +231,9 @@ test('live nodes send through SMTP and mock SMS with visible attempts', async ({
     await page.request.get('/api/v1/deliveries?customer_id=delivery_customer')
   ).json();
   expect(jobs.map((j: { provider: string }) => j.provider).sort()).toEqual(['mock_sms', 'smtp']);
-  expect(await (await page.request.get('/api/v1/test-inbox')).json()).toEqual([]);
+  const sandboxInbox = await (await page.request.get('/api/v1/test-inbox')).json();
+  expect(sandboxInbox).toHaveLength(2);
+  expect(sandboxInbox.every((m: { mode: string }) => m.mode === 'SIMULATED')).toBeTruthy();
   for (const job of jobs) {
     const detail = await (await page.request.get(`/api/v1/deliveries/${job.id}`)).json();
     expect(detail.attempt_history).toHaveLength(1);

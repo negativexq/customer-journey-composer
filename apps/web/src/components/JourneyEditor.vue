@@ -8,7 +8,7 @@ import TestLab from './TestLab.vue';
 import LiveMonitor from './LiveMonitor.vue';
 import AnalyticsView from './AnalyticsView.vue';
 import type { Workflow, Issue } from '../lib/workflow';
-const props = defineProps<{ journey: Journey; readonly?: boolean }>();
+const props = defineProps<{ journey: Journey; readonly?: boolean; admin?: boolean }>();
 const emit = defineEmits<{ back: []; saved: [Journey] }>();
 const name = ref(props.journey.name);
 const description = ref(props.journey.description);
@@ -150,13 +150,39 @@ async function validate() {
 async function publish() {
   await validate();
   if (issues.value.length || error.value) return;
-  if (!window.confirm('Publish this version and allow new customers to enter?')) return;
+  try {
+    const gates = await api<{ ready: boolean; issues: { message: string }[]; policy: string }>(
+      `/journeys/${props.journey.id}/publish-check`,
+    );
+    if (!gates.ready) {
+      error.value = gates.issues.map((i) => i.message).join(' · ');
+      return;
+    }
+    if (!window.confirm(gates.policy + ' Publish this version and allow new customers to enter?'))
+      return;
+  } catch (cause) {
+    error.value = String(cause);
+    return;
+  }
   try {
     await api(`/journeys/${props.journey.id}/publish`, 'POST', { revision: revision.value });
     const updated = await api<Journey>(`/journeys/${props.journey.id}`);
     revision.value = updated.revision;
     emit('saved', updated);
     notice.value = 'Journey published';
+  } catch (cause) {
+    error.value = String(cause);
+  }
+}
+async function lifecycle(action: string) {
+  try {
+    await flushDraft();
+    const updated = await api<Journey>(`/journeys/${props.journey.id}/${action}`, 'POST', {
+      revision: revision.value,
+    });
+    revision.value = updated.revision;
+    emit('saved', updated);
+    notice.value = 'Journey ' + updated.status.toLowerCase();
   } catch (cause) {
     error.value = String(cause);
   }
@@ -201,7 +227,43 @@ function back() {
         Save
       </button>
       <button :disabled="busy" @click="validate">Validate</button
-      ><button :disabled="busy || readonly" @click="publish">Publish</button>
+      ><button
+        :disabled="busy || readonly || !admin || journey.status === 'Archived'"
+        @click="publish"
+      >
+        Publish
+      </button>
+      <button
+        v-if="admin && ['Active', 'Sunset'].includes(journey.status)"
+        :disabled="busy"
+        @click="lifecycle('pause')"
+      >
+        Pause</button
+      ><button
+        v-if="admin && journey.status === 'Paused'"
+        :disabled="busy"
+        @click="lifecycle('resume')"
+      >
+        Resume</button
+      ><button
+        v-if="admin && ['Active', 'Paused'].includes(journey.status)"
+        :disabled="busy"
+        @click="lifecycle('sunset')"
+      >
+        Sunset</button
+      ><button
+        v-if="admin && ['Sunset', 'Paused'].includes(journey.status)"
+        :disabled="busy"
+        @click="lifecycle('complete')"
+      >
+        Complete after draining</button
+      ><button
+        v-if="admin && ['Draft', 'Completed'].includes(journey.status)"
+        :disabled="busy"
+        @click="lifecycle('archive')"
+      >
+        Archive
+      </button>
       <p role="status">{{ notice }}</p>
     </div>
   </div>
@@ -292,10 +354,12 @@ function back() {
       <p v-else class="panel">Add an email or SMS node in Builder to preview a message.</p>
     </template>
   </section>
-  <LiveMonitor v-else-if="tab === 'Live Monitor'" :journey-id="journey.id" /><AnalyticsView
-    v-else-if="tab === 'Analytics'"
+  <LiveMonitor
+    v-else-if="tab === 'Live Monitor'"
     :journey-id="journey.id"
-  />
+    :readonly="readonly"
+    :admin="admin"
+  /><AnalyticsView v-else-if="tab === 'Analytics'" :journey-id="journey.id" />
   <div v-else class="panel">
     <h2>Published versions</h2>
     <p v-if="!versions.length">No published versions yet.</p>

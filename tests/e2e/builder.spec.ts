@@ -26,6 +26,23 @@ test('builds a connected workflow, validates and publishes an immutable version'
   await expect(page.locator('.vue-flow__edge')).toHaveCount(1);
   await page.getByRole('button', { name: 'Validate', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Workflow is valid');
+  const gate = await (
+    await page.request.post('/api/v1/test-runs', {
+      headers: { 'X-CSRF-Token': identity.csrf_token },
+      data: {
+        journey_id: journey.id,
+        scenario: { name: 'Publish gate', entry_event: { event_name: 'cart_updated' } },
+      },
+    })
+  ).json();
+  expect(
+    (
+      await page.request.post(`/api/v1/test-runs/${gate.id}/advance`, {
+        headers: { 'X-CSRF-Token': identity.csrf_token },
+        data: { operation: 'complete', revision: gate.revision },
+      })
+    ).ok(),
+  ).toBeTruthy();
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Publish', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Journey published');

@@ -11,6 +11,13 @@ const workspace = ref('');
 const error = ref('');
 const busy = ref(false);
 const demoReady = ref(false);
+const signup = ref(false);
+onMounted(
+  () =>
+    void api<{ signup_enabled: boolean }>('/auth/config')
+      .then((c) => (signup.value = c.signup_enabled))
+      .catch(() => {}),
+);
 onMounted(async () => {
   try {
     const demo = await api<{ enabled: boolean; email?: string; password?: string }>('/auth/demo');
@@ -93,7 +100,7 @@ async function submit() {
       <p v-if="error" role="alert" class="error-message">{{ error }}</p>
       <button class="primary" :disabled="busy">
         {{ busy ? 'Please wait…' : register ? 'Create workspace' : 'Sign in' }}</button
-      ><button type="button" @click="toggleMode">
+      ><button v-if="signup" type="button" @click="toggleMode">
         {{ register ? 'Already have an account? Sign in' : 'Create a workspace' }}
       </button>
     </form>
