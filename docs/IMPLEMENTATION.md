@@ -15,7 +15,7 @@ Source of truth for product scope: [PRD.md](PRD.md).
 | 9. Test Inbox                          | Complete                       | Three-panel inbox, scoped filters, payload/trace/attempts, replay comparison and actual test-send distinction; 20 browser tests.                 |
 | 10. Live Monitor & Analytics           | Complete                       | Transactional delta projections, indexed summaries, version-aware monitor and inspector; 22 browser tests passed.                                |
 | 11. Lifecycle & Reliability            | Complete                       | Audited lifecycle/publish gates, recovery, roles, bounded requests, OTel propagation and dependency/image checks; 24 browser tests.              |
-| 12. Final Product & Demo               | Pending                        | E2E, measured benchmark, demo and deployment verification.                                                                                       |
+| 12. Final Product & Demo               | In progress                    | Templates/demo dataset, UI polish, 10,000-execution benchmarks and 32 browser tests; final demo/deployment artifacts remain.                     |
 
 ## Accepted decisions
 
@@ -118,3 +118,11 @@ See [verification notes](VERIFICATION.md) for reproducible checks and [architect
 - Go 1.26.6 produced 12 reachable standard-library findings. Updated to 1.26.10 and x/net v0.62.0, then reran scans: govulncheck reports 0 reachable vulnerabilities; npm audit reports 0. Initial web container scan found HIGH/CRITICAL OS issues; updated API Alpine and stable NGINX base images. Both final application images report 0 HIGH/CRITICAL findings with Trivy v0.76.2.
 - CI now runs dependency and image scans. Local actionlint passed; no remote is configured, so hosted CI has not run. Retention/erasure operating policy and trace/secret boundaries are documented in [SECURITY.md](SECURITY.md).
 - Verified: all quality/unit and package-isolated PostgreSQL integration tests; cancellation against a stale claim, recoverable attribute failure without duplicate increment, last-Admin protection, publish gates and atomic audit; 24/24 desktop/mobile browser tests; actual Docker worker restart recovery passed.
+
+## Performance and UX follow-up
+
+- `5c3b57d` records loaded API probes and PostgreSQL statement statistics; `9db724e` fixes due/outbox claim access order; `41d2152` removes redundant enrollment history probes and narrows lease-fence lookup to job identity.
+- The [performance report](PERFORMANCE.md) compares a clean-tree instrumented baseline, an intermediate queue-only run and two optimized 10,000-customer repetitions, with raw artifacts and explicit sampling/environment limits. Mock-send drain from the common timer deadline fell from 176.7s to 87.5–89.5s; timer-step p95 lateness from 15.75s to 9.25–9.41s. Rate-limited ingestion p95 did not improve and is reported separately.
+- `a2843c9` redesigns the builder/dashboard/reporting controls; `a27503b` preserves URL pages and journey tabs on refresh/back/forward; `e883610` simplifies typography; `262ac48` compacts sidebar navigation to 16px icons, 13px text and 34px rows.
+- Verified after runtime changes: `make check`, all package-isolated PostgreSQL integration tests (including active/once/cooldown reentry, paused/locked queue selection, races and lease fencing), 32/32 desktop/mobile browser tests, Docker API/worker/web rebuild/readiness and actual worker restart recovery. Every benchmark run retained 10,000 logical sends, zero duplicate actions and zero failed executions.
+- No production indexes, extra connection capacity, Redis dependency or paid/live LLM calls were added. The final demo/deployment/documentation phase remains in progress; benchmark completion alone does not close it.

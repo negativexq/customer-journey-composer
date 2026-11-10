@@ -4,7 +4,9 @@ AI-powered customer journey orchestration: **AI-generated, human-approved, deter
 
 Vue 3 / TypeScript frontend, Go API, PostgreSQL source of truth. The product includes a visual journey builder, persistent execution, messaging, simulation and observability as specified in the [MVP requirements](docs/PRD.md).
 
-**Current scope:** phases 1–7: workspace authentication, journey management, Vue Flow editing/validation, immutable published versions, customer profiles and transactional event ingestion/enrollment. The persistent worker now executes durable timers, event waits, conditions and attribute updates with a transactional action outbox. SMTP/Mailpit and mock SMS deliveries now enforce consent, frequency caps, bounded retry and test-recipient allowlists. Channel Studio renders isolated, personalized previews. Claude/OpenAI adapters and a review-only AI proposal panel are implemented; live LLM evaluation remains deferred. Virtual-clock Test Lab is next. [Implementation tracker](docs/IMPLEMENTATION.md).
+**Implemented:** workspace authentication/RBAC, Vue Flow editing and immutable journey versions, idempotent event ingestion, durable runtime/timers/event waits/global exits, SMTP/Mailpit and mock SMS with consent/caps/retries, Claude/OpenAI proposals with human approval, isolated virtual-clock Test Lab/Test Inbox, live monitoring, projected analytics and audited lifecycle/recovery. Templates and generated local demo data are included. Live LLM evaluation remains deferred. Final demo/deployment artifacts are tracked in the [implementation tracker](docs/IMPLEMENTATION.md).
+
+**Measured performance:** 10,000 active executions; queue/runtime optimizations reduce mock-send drain from 176.7s to 87.5–89.5s from a shared timer deadline. The [performance report](docs/PERFORMANCE.md) includes loaded API latency, PostgreSQL plans/costs, rate-limit effects, raw results and remaining opportunities.
 
 ## Quick start with Docker
 
@@ -36,7 +38,7 @@ make down                 # Stop containers; preserve the PostgreSQL volume.
 docker compose logs api   # Inspect structured API logs.
 ```
 
-Create a workspace from the sign-in screen; no default credentials are seeded. The local stack is for development. Production TLS and the remaining reliability/security gates must be completed before public deployment.
+The local development login comes prefilled with a generated demo account: click **Sign in**. Demo seeding is disabled in production; production signup is closed by default and the `admin` command bootstraps an owner using environment inputs. See [security and deployment policy](docs/SECURITY.md). This Compose stack binds to loopback and does not configure public TLS.
 
 ## Native development
 
@@ -67,6 +69,7 @@ make up
 npx playwright install chromium
 make test-e2e
 make test-recovery
+make benchmark
 git diff --check
 ```
 
@@ -92,7 +95,7 @@ docs/                     Product plan, architecture and development status
 
 ## AI providers
 
-Both **Anthropic Claude** and **OpenAI** are required in phase 7 behind one provider interface and shared, versioned workflow schema. Keys and model IDs will be configured on the server only. The `.env.example` reserves optional configuration names; adapters are implemented and covered by local contract tests. Keep `AI_PROVIDER=disabled` until live generation is requested; see [AI configuration](docs/AI.md).
+Both **Anthropic Claude** and **OpenAI** are implemented behind one provider interface and shared, versioned workflow schema. Keys and model IDs are configured on the server only. The `.env.example` reserves optional configuration names; adapters are implemented and covered by local contract tests. Keep `AI_PROVIDER=disabled` until live generation is requested; see [AI configuration](docs/AI.md).
 
 Live LLM tests are deferred at the user's request. Unit, integration and simulation tests must be deterministic and must not need paid model requests. AI never publishes or applies workflow changes without human approval.
 

@@ -1,23 +1,19 @@
-# Foundation verification — 2026-11-10
+# Local verification — 2026-11-10
 
-All results below were observed locally against this checkout. They do not assert that later MVP phases are complete.
+These results were executed locally. They do not claim hosted CI, live LLM evaluation or completion of the remaining final demo/deployment artifacts.
 
-| Check                   | Result              | Coverage                                                                                                                 |
-| ----------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `make fmt-check`        | Passed              | gofmt and Prettier                                                                                                       |
-| `make lint`             | Passed, no warnings | go vet, ESLint and commit-check self-test                                                                                |
-| `make typecheck`        | Passed              | Go build and Vue TypeScript                                                                                              |
-| `make test`             | Passed              | Go race-enabled config/HTTP/OpenAPI tests and 2 script tests                                                             |
-| `make build`            | Passed              | Go server/migrate binaries and production Vue bundle                                                                     |
-| `make test-integration` | Passed              | Isolated real PostgreSQL; 4 concurrent migrators, reapply, checksum rejection, constraints, schema rebuild and reconnect |
-| `make up`               | Passed              | Fresh Docker images/volume, migration success, healthy API/web/PostgreSQL/Mailpit                                        |
-| `make test-e2e`         | 4 passed            | Desktop/mobile readiness, OpenAPI, retry recovery, JS errors, horizontal overflow                                        |
-| actionlint v1.7.12      | Passed              | GitHub workflow syntax and supported action inputs                                                                       |
-| `npm audit`             | 0 vulnerabilities   | Installed npm lockfile at the time of verification                                                                       |
-| `git diff --check`      | Passed              | Whitespace checks                                                                                                        |
+| Check                                     | Observed result                               | Coverage                                                                                                                                                                                                                            |
+| ----------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `make check`                              | Passed                                        | gofmt/Prettier, go vet/ESLint, Go/Vue build/typecheck, Go race-enabled unit tests and script tests                                                                                                                                  |
+| `make test-integration`                   | All packages passed                           | Fresh ephemeral PostgreSQL per package; migrations, permissions, immutable versions, concurrent ingestion, reentry, event/timer/global-exit races, lease fencing, delivery policies/retries, simulator isolation, metric projection |
+| Docker API/worker/web build and readiness | Passed                                        | Updated application images, unchanged checksummed migrations, healthy services                                                                                                                                                      |
+| `npm run test:e2e`                        | 32/32 passed                                  | Desktop/mobile canvas, AI proposal approval, customer/events, templates, messaging/Mailpit, sandbox/inbox, lifecycle, reporting filters and refresh/back/forward/deep links                                                         |
+| `make test-recovery`                      | Passed                                        | Actual Docker worker stop/start preserves a durable wait; duplicate event creates no second execution                                                                                                                               |
+| Instrumented 10,000-customer benchmarks   | Baseline + intermediate + 2 final runs passed | 10,000 simultaneous active executions, 10,000 logical mock sends, zero duplicate actions or failed executions; loaded reads and PostgreSQL diagnostics                                                                              |
+| `git diff --check`                        | Passed before commits                         | Whitespace validation                                                                                                                                                                                                               |
 
-Additional observations: API `/readyz` returned `ready`; Mailpit info endpoint responded successfully. The desktop rendering was visually inspected at 1440 × 1050. All host ports are on loopback. The generated local database password remains in ignored `.env`; test PostgreSQL was removed by the integration runner.
+See [PERFORMANCE.md](PERFORMANCE.md) for measured results and reproducible commands, [IMPLEMENTATION.md](IMPLEMENTATION.md) for phase evidence, and [SECURITY.md](SECURITY.md) for environment/retention policy. Benchmark containers use fresh isolated databases and remove themselves; they never modify the developer workspace database.
 
-The foundation ships a workspace schema, service connection UI and development infrastructure. Authentication, persisted journeys, Vue Flow, customer events, runtime, messaging adapters, AI adapters, Test Lab, Inbox and analytics remain future phases. The illustrated journey on the overview is decorative, not an executable workflow.
+UI screenshots were inspected against the running Docker build on desktop/mobile: reporting menus remain wide, typography uses system fonts, and compact sidebar navigation uses 16px icons, 13px labels and 34px rows. Main pages and journey tabs remain open across refresh and browser history navigation.
 
-GitHub-hosted CI has not been executed because this checkout has no remote configured. No LLM evaluation, paid provider call, external message, runtime recovery benchmark or 10,000-execution load test was performed. Those results must be added only when the corresponding systems exist and actual tests run.
+The phase-11 dependency/image security scan results and local actionlint evidence are recorded in the tracker. Those earlier scan results are not presented as a new scan of this performance change. No remote is configured, so GitHub-hosted CI has not run. No paid model/provider call was used in the performance work.

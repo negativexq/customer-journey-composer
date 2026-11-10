@@ -21,9 +21,9 @@ Migrations are embedded in the migration binary, sorted, and executed inside one
 
 The Docker setup persists PostgreSQL on a named volume, runs the Go service as a non-root user, uses unprivileged Nginx, and binds host ports to loopback. Random local credentials live only in the ignored `.env`. This development configuration is not a production deployment.
 
-## Planned domain boundaries
+## Implemented domain boundaries
 
-These are design constraints, not implemented features:
+The implemented services enforce the following boundaries:
 
 - **Identity and workspace:** password/session authentication, role checks and workspace-scoped repositories. Workspace IDs come from authenticated identity, never blindly from a payload.
 - **Workflow:** versioned typed node configuration, graph/business validation, editable drafts, immutable published snapshots. Executions reference their starting version.
@@ -37,15 +37,15 @@ These are design constraints, not implemented features:
 
 ## Testing strategy
 
-Each phase adds tests for its acceptance criteria. The foundation currently covers HTTP health/readiness and generated OpenAPI, configuration, Conventional Commit validation, real PostgreSQL migration concurrency/constraints/checksums/reconnection, and desktop/mobile browser success/error states.
+Each phase adds tests for its acceptance criteria. Coverage includes HTTP health/readiness/OpenAPI, configuration, commit validation, migration concurrency/constraints/checksums, graph rules, workspace isolation, execution/delivery races and recovery, sandbox isolation, metric projections and desktop/mobile flows.
 
-Later phases must cover all scenarios A–H from the PRD, including races and restarts on a real PostgreSQL instance. Mocked LLM outputs test invalid/incomplete proposals; live LLM evaluation is postponed. Load testing must actually create 10,000 active executions and report measured p50/p95/p99 rather than assumed performance.
+Real PostgreSQL tests cover races and recovery; the Docker restart check exercises an actual process restart. Local provider contracts and mocked browser proposals cover invalid/incomplete LLM outputs; live LLM evaluation is postponed. The [performance report](PERFORMANCE.md) records actual 10,000-active-execution runs and p50/p95/p99 with sampling limits.
 
 ## Security and data handling
 
-The foundation has no customer data or identity endpoints. API auth, RBAC, hashed workspace API keys, consent policies, HTML sanitization, recipient allowlists, rate limits, audit logs and OpenTelemetry arrive in their planned phases and remain required before production use.
+Authentication/RBAC, workspace isolation, hashed ingestion API keys, consent policies, HTML sanitization, recipient allowlists, request limits, atomic audit and OpenTelemetry propagation are implemented. Provider secrets stay on the server. Development-only generated demo credentials are refused in production.
 
-Before customer ingestion is released, define configurable retention for event payloads, delivery content and test runs, workspace-authorized customer deletion/anonymization, PII-masked audit/trace fields, and deletion of related test snapshots. Document backup retention and deletion timing before production deployment. These policies are pending implementation; the initial workspace schema is not a substitute.
+Retention, authorized erasure, PII masking, test snapshots and backup deletion timing are documented in [SECURITY.md](SECURITY.md). They are operating policies; the application does not claim to provide an automatic retention/deletion scheduler.
 
 ## Sources for foundation tooling
 
@@ -65,3 +65,7 @@ At the performance phase, seed at least 10,000 active executions and record EXPL
 ### Isolated deterministic testing (phase 8)
 
 The sandbox has no database/provider handle. It shares the production pure node decision, attribute mutation and eligibility functions. A virtual task queue drives time; production workers retain PostgreSQL timers. HTTP orchestration snapshots workflow/customer/policy inputs and stores sandbox state in separate tables. Workflow definitions are content-addressed per workspace; message bodies are inserted once outside frequently updated state. Run mutations lock one sandbox row and require an optimistic revision, without touching live customer/event/execution/delivery tables. A replay preserves original inputs, while regression explicitly selects a newer workflow.
+
+### Measured queue access paths
+
+Runtime/delivery claims retain ordered pending/due indexes as their outer access path and apply one-to-one lifecycle eligibility before LIMIT. Process/dispatch still recheck state under the established customer/journey/execution/job lock order. Fence validation materializes the exact scoped job lookup before state/token/deadline filtering, preventing a scan of the small claimed-lease partial index on every step. Enrollment uses the existing partial unique active-execution constraint; only once/cooldown modes need history queries. [Measured plans and costs](PERFORMANCE.md) explain the changes; no migration/index was added for this optimization.

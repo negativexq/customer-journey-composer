@@ -21,6 +21,6 @@ Query rules:
 - Lists project metadata before joins and never fetch workflow or rendered HTML bodies. Large definitions/bodies are loaded by ID.
 - Inbox pagination uses `(created_at,id)`; no OFFSET. Channel/status filters use indexed columns, not JSON expressions.
 - Indexes are added for actual paths, not arbitrary custom attributes. The superseded inbox run index is removed. No broad JSON GIN indexes or Redis cache is required.
-- Performance acceptance includes a measured 10,000-execution workload and EXPLAIN (ANALYZE, BUFFERS); measurements are recorded only after they run in phase 12.
+- The [measured performance report](PERFORMANCE.md) records a 10,000-execution workload, concurrent reporting reads, PostgreSQL statement costs and EXPLAIN (ANALYZE, BUFFERS). Queue access order was the major bottleneck; summary reads remained small, so no reporting cache or additional production index was introduced.
 
 Retention must preserve aggregate counters independently of raw execution retention. Removing customer-linked records must also erase `metric_customers` identities and queued customer identifiers without decrementing anonymous historical aggregates. See the security/retention policy delivered in phase 11.
