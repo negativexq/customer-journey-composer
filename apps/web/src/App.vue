@@ -24,6 +24,14 @@ async function refresh() {
     error.value = String(cause);
   }
 }
+async function open(journey: Journey) {
+  try {
+    selected.value = await api<Journey>(`/journeys/${journey.id}`);
+    page.value = 'Journeys';
+  } catch (cause) {
+    error.value = String(cause);
+  }
+}
 async function logout() {
   try {
     await api('/auth/logout', 'POST');
@@ -113,11 +121,9 @@ onErrorCaptured((cause) => {
             selected = $event;
             refresh();
           "
-        /><JourneyList
-          v-else-if="page === 'Journeys'"
-          :readonly="readOnly"
-          @open="selected = $event"
-        /><template v-else>
+        /><JourneyList v-else-if="page === 'Journeys'" :readonly="readOnly" @open="open" /><template
+          v-else
+        >
           <div class="page-heading">
             <div>
               <p class="eyebrow">YOUR ORCHESTRATION WORKSPACE</p>
@@ -150,10 +156,7 @@ onErrorCaptured((cause) => {
               v-for="journey in journeys.slice(0, 5)"
               :key="journey.id"
               class="list-row"
-              @click="
-                page = 'Journeys';
-                selected = journey;
-              "
+              @click="open(journey)"
             >
               <span>{{ journey.name }}</span
               ><span class="pill">{{ journey.status }}</span>

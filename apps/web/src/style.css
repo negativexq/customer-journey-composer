@@ -760,3 +760,131 @@ nav .nav-item {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+.detail-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.builder-toolbar {
+  background: white;
+  padding: 16px;
+  border: 1px solid #e1e7df;
+  border-radius: 10px 10px 0 0;
+}
+.node-library {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.builder-toolbar .toolbar {
+  margin-bottom: 0;
+}
+.builder-layout {
+  display: flex;
+  min-height: 640px;
+  border: 1px solid #dfe6dc;
+  border-top: 0;
+  margin-bottom: 24px;
+}
+.canvas {
+  flex: 1;
+  min-width: 0;
+  height: 640px;
+  position: relative;
+  background: #f8faf6;
+}
+.canvas-empty {
+  position: absolute;
+  top: 45%;
+  left: 10%;
+  color: #7c8c72;
+  pointer-events: none;
+  font-size: 13px;
+}
+.workflow-node {
+  background: white;
+  border: 1px solid #cbd8c3;
+  border-radius: 10px;
+  min-width: 190px;
+  padding: 14px;
+  box-shadow: 0 4px 14px #2c4c3210;
+  display: grid;
+  gap: 8px;
+}
+.workflow-node.chosen {
+  outline: 2px solid #6b9062;
+}
+.workflow-node.invalid,
+.invalid-node .workflow-node {
+  border-color: #c96550;
+}
+.workflow-node small {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #819276;
+}
+.workflow-node strong {
+  font-size: 12px;
+}
+.workflow-node.email,
+.workflow-node.sms {
+  border-top: 3px solid #c6a36b;
+}
+.workflow-node.condition {
+  border-top: 3px solid #8b80b4;
+}
+.workflow-node.event_trigger {
+  border-top: 3px solid #6f9861;
+}
+.node-ports {
+  display: flex;
+  justify-content: space-around;
+  color: #8a9780;
+  font-size: 8px;
+}
+.node-config {
+  background: white;
+  padding: 18px;
+  width: 280px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 640px;
+}
+.node-config h3 {
+  margin: 0;
+  font-size: 14px;
+}
+.node-config small {
+  font-size: 10px;
+  color: #839178;
+}
+pre {
+  overflow: auto;
+  max-width: 100%;
+  font-size: 11px;
+  line-height: 1.6;
+}
+@media (max-width: 1000px) {
+  .builder-layout {
+    flex-direction: column;
+  }
+  .node-config {
+    width: 100%;
+    max-height: none;
+  }
+  .canvas {
+    flex: none;
+    height: 500px;
+  }
+}
+.rule-editor {
+  display: grid;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid #e1e7dd;
+  border-radius: 7px;
+  margin: 8px 0;
+}

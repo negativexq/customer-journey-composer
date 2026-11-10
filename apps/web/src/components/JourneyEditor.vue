@@ -1,32 +1,65 @@
 <script setup lang="ts">
 import { ref, watch, onBeforeUnmount } from 'vue';
 import { api, type Journey } from '../lib/api';
+import WorkflowCanvas from './WorkflowCanvas.vue';
+import type { Workflow, Issue } from '../lib/workflow';
 const props = defineProps<{ journey: Journey; readonly?: boolean }>();
 const emit = defineEmits<{ back: []; saved: [Journey] }>();
 const name = ref(props.journey.name);
 const description = ref(props.journey.description);
 const tags = ref(props.journey.tags.join(', '));
-const draft = ref(JSON.stringify(props.journey.draft, null, 2));
+const draft = ref(props.journey.draft as unknown as Workflow);
+const issues = ref<Issue[]>([]);
+const exitEvent = ref(draft.value.global_exit?.event_name || '');
+const reentryMode = ref(draft.value.reentry?.mode || 'after_completion');
+const cooldown = ref(draft.value.reentry?.cooldown_seconds || 86400);
+watch([exitEvent, reentryMode, cooldown], () => {
+  draft.value.global_exit = exitEvent.value ? { event_name: exitEvent.value } : undefined;
+  draft.value.reentry = {
+    mode: reentryMode.value,
+    ...(reentryMode.value === 'cooldown' ? { cooldown_seconds: cooldown.value } : {}),
+  };
+});
+const tab = ref('Builder');
+const versions = ref<{ id: string; version: number; workflow?: Workflow; created_at: string }[]>(
+  [],
+);
+let autosave: ReturnType<typeof setTimeout> | undefined;
 const revision = ref(props.journey.revision);
 const dirty = ref(false);
 const busy = ref(false);
 const notice = ref('');
 const error = ref('');
-watch([name, description, tags, draft], () => {
-  dirty.value = true;
-  notice.value = 'Unsaved changes';
-});
+watch(
+  [name, description, tags, draft],
+  () => {
+    dirty.value = true;
+    notice.value = 'Unsaved changes';
+    clearTimeout(autosave);
+    if (!props.readonly && props.journey.status !== 'Archived')
+      autosave = setTimeout(() => {
+        if (!busy.value) void save();
+      }, 1500);
+  },
+  { deep: true },
+);
 function warn(event: BeforeUnloadEvent) {
   if (dirty.value) {
     event.preventDefault();
   }
 }
 window.addEventListener('beforeunload', warn);
-onBeforeUnmount(() => window.removeEventListener('beforeunload', warn));
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', warn);
+  clearTimeout(autosave);
+});
 async function save() {
+  if (busy.value) return;
+  clearTimeout(autosave);
   busy.value = true;
   error.value = '';
   try {
+    const snapshot = JSON.stringify([name.value, description.value, tags.value, draft.value]);
     const journey = await api<Journey>(`/journeys/${props.journey.id}/draft`, 'PUT', {
       name: name.value,
       description: description.value,
@@ -34,17 +67,66 @@ async function save() {
         .split(',')
         .map((t) => t.trim())
         .filter(Boolean),
-      draft: JSON.parse(draft.value),
+      draft: draft.value,
       revision: revision.value,
     });
     revision.value = journey.revision;
-    dirty.value = false;
-    notice.value = 'All changes saved';
+    dirty.value =
+      snapshot !== JSON.stringify([name.value, description.value, tags.value, draft.value]);
+    notice.value = dirty.value ? 'Unsaved changes' : 'All changes saved';
+    if (dirty.value) autosave = setTimeout(() => void save(), 500);
     emit('saved', journey);
   } catch (cause) {
     error.value = String(cause);
   } finally {
     busy.value = false;
+  }
+}
+async function validate() {
+  error.value = '';
+  try {
+    if (dirty.value) await save();
+    const result = await api<{ valid: boolean; issues: Issue[] }>(
+      `/journeys/${props.journey.id}/validate`,
+      'POST',
+    );
+    issues.value = result.issues;
+    notice.value = result.valid ? 'Workflow is valid' : `${result.issues.length} validation issues`;
+  } catch (cause) {
+    error.value = String(cause);
+  }
+}
+async function publish() {
+  await validate();
+  if (issues.value.length || error.value) return;
+  if (!window.confirm('Publish this version and allow new customers to enter?')) return;
+  try {
+    await api(`/journeys/${props.journey.id}/publish`, 'POST', { revision: revision.value });
+    const updated = await api<Journey>(`/journeys/${props.journey.id}`);
+    revision.value = updated.revision;
+    emit('saved', updated);
+    notice.value = 'Journey published';
+  } catch (cause) {
+    error.value = String(cause);
+  }
+}
+async function loadVersion(version: number) {
+  try {
+    const result = await api<{ workflow: Workflow }>(
+      `/journeys/${props.journey.id}/versions/${version}`,
+    );
+    const target = versions.value.find((v) => v.version === version);
+    if (target) target.workflow = result.workflow;
+  } catch (cause) {
+    error.value = String(cause);
+  }
+}
+async function showVersions() {
+  tab.value = 'Versions';
+  try {
+    versions.value = await api(`/journeys/${props.journey.id}/versions`);
+  } catch (cause) {
+    error.value = String(cause);
   }
 }
 function back() {
@@ -67,6 +149,8 @@ function back() {
       >
         Save
       </button>
+      <button :disabled="busy" @click="validate">Validate</button
+      ><button :disabled="busy || readonly" @click="publish">Publish</button>
       <p role="status">{{ notice }}</p>
     </div>
   </div>
@@ -76,15 +160,53 @@ function back() {
     ><label
       >Description<textarea v-model="description" :disabled="readonly" maxlength="4000" /></label
     ><label
-      >Tags<input v-model="tags" :disabled="readonly" placeholder="Comma-separated tags" /></label
-    ><label
-      >Workflow draft<textarea
-        v-model="draft"
+      >Tags<input v-model="tags" :disabled="readonly" placeholder="Comma-separated tags"
+    /></label>
+    <label
+      >Global exit event<input
+        v-model="exitEvent"
         :disabled="readonly"
-        class="code-input"
-        rows="18"
-        spellcheck="false"
-      />
-    </label>
+        placeholder="e.g. purchase_completed"
+    /></label>
+    <label
+      >Re-entry policy<select v-model="reentryMode" :disabled="readonly">
+        <option value="once">Only once</option>
+        <option value="after_completion">After previous execution ends</option>
+        <option value="cooldown">After cooldown</option>
+      </select></label
+    ><label v-if="reentryMode === 'cooldown'"
+      >Cooldown (seconds)<input
+        v-model.number="cooldown"
+        type="number"
+        min="1"
+        :disabled="readonly"
+    /></label>
+  </section>
+  <nav class="detail-tabs">
+    <button :class="{ selected: tab === 'Builder' }" @click="tab = 'Builder'">Builder</button
+    ><button @click="showVersions">Versions</button>
+  </nav>
+  <WorkflowCanvas
+    v-if="tab === 'Builder'"
+    v-model="draft"
+    :readonly="readonly || journey.status === 'Archived'"
+    :issues="issues"
+  />
+  <div v-else class="panel">
+    <h2>Published versions</h2>
+    <p v-if="!versions.length">No published versions yet.</p>
+    <details v-for="version in versions" :key="version.id">
+      <summary>
+        Version {{ version.version }} · {{ new Date(version.created_at).toLocaleString() }}
+      </summary>
+      <button v-if="!version.workflow" @click="loadVersion(version.version)">Load workflow</button>
+      <pre v-else>{{ JSON.stringify(version.workflow, null, 2) }}</pre>
+    </details>
+  </div>
+  <section v-if="issues.length" class="panel">
+    <h3>Validation</h3>
+    <p v-for="(issue, index) in issues" :key="index" class="error-message">
+      {{ issue.node_id || 'Workflow' }}: {{ issue.message }}
+    </p>
   </section>
 </template>

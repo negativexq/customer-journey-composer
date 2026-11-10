@@ -6,7 +6,7 @@ Source of truth for product scope: [PRD.md](PRD.md).
 | -------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------- |
 | 1. Repository & Foundation             | Complete | Vue/Go/Docker stack; PostgreSQL migrations; quality checks; integration and browser tests passed locally.                  |
 | 2. Authentication & Journey Management | Complete | Sessions, CSRF, RBAC, workspace isolation, revision-guarded drafts and management UI; database and 6 browser tests passed. |
-| 3. Visual Canvas & Validation          | Pending  | Vue Flow required.                                                                                                         |
+| 3. Visual Canvas & Validation          | Complete | Typed schema, graph/rule validator, immutable snapshots and Vue Flow editor; database and 8 browser tests passed.          |
 | 4. Customer & Event Infrastructure     | Pending  | Deduplication and workspace isolation required.                                                                            |
 | 5. Persistent Runtime                  | Pending  | PostgreSQL durability and concurrency invariants required.                                                                 |
 | 6. Email & SMS                         | Pending  | Mailpit and mock SMS required.                                                                                             |
@@ -28,7 +28,7 @@ Source of truth for product scope: [PRD.md](PRD.md).
 
 ## Next slice
 
-Phase 3: typed workflow specification, Vue Flow canvas, node configuration, graph validation and immutable published versions.
+Phase 4: customer profiles, workspace API keys, validated single/batch event ingestion, deduplication, timelines and transactional enrollment.
 
 ## Phase 1 delivery — 2026-11-10
 
@@ -48,3 +48,11 @@ See [verification notes](VERIFICATION.md) for reproducible checks and [architect
 - Management UI provides workspace registration/login/logout, dashboard, searchable/filterable/sortable journeys, creation, duplication, archive and reopenable drafts.
 - Verified: `make check`, isolated real-PostgreSQL tests (including concurrent revision updates and cross-workspace access), Docker rebuild and 6/6 desktop/mobile browser tests.
 - User steering: optimize PostgreSQL schema, indexes and analytics queries for low read latency and bounded database load. Validate plans with EXPLAIN; avoid speculative indexes and unbounded scans on dashboard requests.
+
+## Phase 3 delivery
+
+- Typed workflow vocabulary for all eight node types; required ports, cycles, reachability, configuration, bounded conditions, reentry and global exit validation.
+- Row-locked publishing produces immutable numbered snapshots; database triggers reject mutation. Draft revision and publish revision guard concurrent edits.
+- Vue Flow canvas: drag/drop, connection editing, node panels, AND/OR condition groups, global exit/reentry settings, zoom/pan/fit/minimap, multi-selection, undo/redo, copy/paste, duplicate, auto layout, autosave and validation markers.
+- List queries fetch metadata instead of large workflow JSON; versions fetch definitions individually. This avoids TOAST reads and large dashboard/list responses.
+- Verified: `make check`, real PostgreSQL graph/version tests, and 8/8 desktop/mobile browser tests including connecting nodes, validation, publication and reopening the canvas.
