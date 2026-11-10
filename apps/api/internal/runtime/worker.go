@@ -272,14 +272,20 @@ func (w *Worker) Process(ctx context.Context, job Job) (err error) {
 		if err != nil {
 			return w.failAt(ctx, tx, job, current, now, err.Error())
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO step_executions(workspace_id,execution_id,node_id,node_type,state,started_at) VALUES($1,$2,$3,$4,'RUNNING',$5) ON CONFLICT(execution_id,node_id) DO UPDATE SET node_type=excluded.node_type`, job.WorkspaceID, job.ExecutionID, node.ID, node.Type, now); err != nil {
+		output, _ := json.Marshal(decision)
+		stepState := "SUCCEEDED"
+		var completedAt *time.Time = &now
+		if decision.WaitUntil != nil {
+			stepState = "WAITING"
+			completedAt = nil
+		}
+		// RUNNING was previously inserted then overwritten inside this same
+		// transaction, so readers never observed it. Write the final node state
+		// once, preserving the original wait start and one entered metric.
+		if _, err := tx.Exec(ctx, `INSERT INTO step_executions(workspace_id,execution_id,node_id,node_type,state,started_at,completed_at,output) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(execution_id,node_id) DO UPDATE SET node_type=excluded.node_type,state=excluded.state,completed_at=excluded.completed_at,output=excluded.output`, job.WorkspaceID, job.ExecutionID, node.ID, node.Type, stepState, now, completedAt, output); err != nil {
 			return err
 		}
-		output, _ := json.Marshal(decision)
 		if decision.WaitUntil != nil {
-			if _, err := tx.Exec(ctx, `UPDATE step_executions SET state='WAITING',output=$3 WHERE execution_id=$1 AND node_id=$2`, job.ExecutionID, node.ID, output); err != nil {
-				return err
-			}
 			if _, err := tx.Exec(ctx, `UPDATE journey_executions SET state='WAITING',updated_at=$2,current_node_id=$3 WHERE id=$1`, job.ExecutionID, now, node.ID); err != nil {
 				return err
 			}
@@ -322,9 +328,6 @@ func (w *Worker) Process(ctx context.Context, job Job) (err error) {
 					return err
 				}
 			}
-			if _, err := tx.Exec(ctx, `UPDATE step_executions SET state='SUCCEEDED',completed_at=$3,output=$4 WHERE execution_id=$1 AND node_id=$2`, job.ExecutionID, node.ID, now, output); err != nil {
-				return err
-			}
 			if decision.ExitReason != "" {
 				state := "EXITED"
 				if decision.ExitReason == "completed" {
@@ -340,7 +343,10 @@ func (w *Worker) Process(ctx context.Context, job Job) (err error) {
 				}
 				// Persist a boundary after externally visible intent/profile mutation,
 				// or yield a durable continuation when this turn exhausts its budget.
-				if decision.Message != nil || decision.Attribute != "" || step+1 >= maxTurnNodes || time.Since(began) >= maxTurnDuration {
+				// A due timer acknowledges its deadline before dependent work is
+				// queued. Otherwise rendering/conditions inside every timer turn
+				// starve other due timers behind this one during a synchronized burst.
+				if job.Kind == "timer" || decision.Message != nil || decision.Attribute != "" || step+1 >= maxTurnNodes || time.Since(began) >= maxTurnDuration {
 					if err := scheduleNext(ctx, tx, job.WorkspaceID, job.ExecutionID, next, now); err != nil {
 						return err
 					}

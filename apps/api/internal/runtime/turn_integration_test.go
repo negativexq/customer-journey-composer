@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/ofk/customer-journey-composer/apps/api/internal/analytics"
 	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
 )
 
@@ -74,6 +75,22 @@ func TestShortTurnPreservesNodeHistoryAndActionBoundary(t *testing.T) {
 	}
 	if n := turnCount(t, ctx, pool, `SELECT count(*) FROM action_outbox WHERE execution_id=$1`, id); n != 1 {
 		t.Fatal("duplicate intent", n)
+	}
+	for {
+		n, err := analytics.Drain(ctx, pool)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n == 0 {
+			break
+		}
+	}
+	var entered, succeeded, running float64
+	if err := pool.QueryRow(ctx, `SELECT COALESCE(sum(value) FILTER(WHERE metric='entered'),0),COALESCE(sum(value) FILTER(WHERE metric='SUCCEEDED'),0),COALESCE(sum(value) FILTER(WHERE metric='RUNNING'),0) FROM metric_totals WHERE workspace_id=$1 AND journey_id=$2 AND version_id=(SELECT version_id FROM journey_executions WHERE id=$3) AND dimension='node'`, ws, journey, id).Scan(&entered, &succeeded, &running); err != nil {
+		t.Fatal(err)
+	}
+	if entered != 4 || succeeded != 4 || running != 0 {
+		t.Fatalf("node projection diverged: entered=%v succeeded=%v running=%v", entered, succeeded, running)
 	}
 }
 func TestLongPurePathYieldsDurablyBeforeNodeBudget(t *testing.T) {
@@ -196,5 +213,42 @@ func TestSQLFailureRollsBackWholeTurnAndSameClaimCanRetry(t *testing.T) {
 	drain(t, ctx, w)
 	if n := turnCount(t, ctx, pool, `SELECT count(*) FROM action_outbox WHERE execution_id=$1`, id); n != 1 || executionState(t, ctx, pool, id) != "COMPLETED" {
 		t.Fatal("retry duplicated or lost intent", n)
+	}
+}
+
+func TestTimerAcknowledgesDeadlineBeforeDependentWork(t *testing.T) {
+	ctx, pool, ws, journey, _, spec := fixture(t)
+	clock := &testClock{now: time.Now().UTC().Truncate(time.Microsecond)}
+	spec.Nodes = append(spec.Nodes, workflow.Node{ID: "delay", Type: "wait", Label: "Delay", Config: workflow.Config{DurationSeconds: 60}}, turnCondition("check"))
+	spec.Edges = []workflow.Edge{{ID: "a", Source: "start", Target: "delay", Port: "started"}, {ID: "b", Source: "delay", Target: "check", Port: "completed"}, {ID: "c", Source: "check", Target: "done", Port: "true"}, {ID: "d", Source: "check", Target: "done", Port: "false"}}
+	publishTest(t, ctx, pool, ws, journey, spec)
+	w := NewWorker(pool, clock)
+	id := entry(t, ctx, pool, ws, "cust_test", clock.Now())
+	drain(t, ctx, w)
+	var began time.Time
+	if err := pool.QueryRow(ctx, `SELECT started_at FROM step_executions WHERE execution_id=$1 AND node_id='delay'`, id).Scan(&began); err != nil {
+		t.Fatal(err)
+	}
+	clock.Advance(time.Minute)
+	timer := singleClaim(t, ctx, w, id)
+	if timer.Kind != "timer" {
+		t.Fatal("expected timer")
+	}
+	if err := w.Process(ctx, timer); err != nil {
+		t.Fatal(err)
+	}
+	if n := turnCount(t, ctx, pool, `SELECT count(*) FROM step_executions WHERE execution_id=$1 AND node_id='check'`, id); n != 0 {
+		t.Fatal("timer turn ran dependent work")
+	}
+	var start, finished time.Time
+	if err := pool.QueryRow(ctx, `SELECT started_at,completed_at FROM step_executions WHERE execution_id=$1 AND node_id='delay' AND state='SUCCEEDED'`, id).Scan(&start, &finished); err != nil {
+		t.Fatal(err)
+	}
+	if !start.Equal(began) || !finished.Equal(clock.Now()) {
+		t.Fatal("wait duration changed", start, finished)
+	}
+	drain(t, ctx, w)
+	if executionState(t, ctx, pool, id) != "COMPLETED" {
+		t.Fatal("durable timer continuation missing")
 	}
 }
