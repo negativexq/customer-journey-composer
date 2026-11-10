@@ -19,6 +19,7 @@ test('creates a consent-aware customer and inspects a deduplicated event', async
     .click();
   await page.getByLabel('Customer ID', { exact: true }).fill('browser_customer');
   await page.getByLabel('Email', { exact: true }).fill('browser@example.invalid');
+  await page.getByLabel('Timezone', { exact: true }).fill('Europe/Istanbul');
   await page.getByLabel('Email consent', { exact: true }).check();
   await page.getByLabel('Custom attributes (JSON)', { exact: true }).fill('{"first_name":"Ada"}');
   await page.getByRole('button', { name: 'Create customer', exact: true }).click();

@@ -4,6 +4,7 @@ import { api, type Journey } from '../lib/api';
 import WorkflowCanvas from './WorkflowCanvas.vue';
 import MessageStudio from './MessageStudio.vue';
 import AIPanel from './AIPanel.vue';
+import TestLab from './TestLab.vue';
 import type { Workflow, Issue } from '../lib/workflow';
 const props = defineProps<{ journey: Journey; readonly?: boolean }>();
 const emit = defineEmits<{ back: []; saved: [Journey] }>();
@@ -26,6 +27,7 @@ watch([exitEvent, reentryMode, cooldown], () => {
   };
 });
 const tab = ref('Builder');
+const previewTab = ref('Messages');
 const messageNodeID = ref('');
 const messageStep = computed(
   () =>
@@ -47,6 +49,9 @@ async function applyProposal(proposal: { workflow: Workflow; name: string; descr
 }
 function previewNode(id: string) {
   messageNodeID.value = id;
+  const selected = draft.value.nodes.find((n) => n.id === id);
+  previewTab.value =
+    selected?.type === 'email' || selected?.type === 'sms' ? 'Messages' : 'Test Lab';
   tab.value = 'Preview & Test';
 }
 const versions = ref<{ id: string; version: number; workflow?: Workflow; created_at: string }[]>(
@@ -81,8 +86,24 @@ onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', warn);
   clearTimeout(autosave);
 });
+let saving: Promise<void> | undefined;
+async function flushDraft() {
+  if (saving) await saving;
+  while (dirty.value) {
+    await save();
+    if (error.value) throw new Error(error.value);
+  }
+}
 async function save() {
-  if (busy.value) return;
+  if (saving) return saving;
+  saving = saveDraft();
+  try {
+    await saving;
+  } finally {
+    saving = undefined;
+  }
+}
+async function saveDraft() {
   clearTimeout(autosave);
   busy.value = true;
   error.value = '';
@@ -113,7 +134,7 @@ async function save() {
 async function validate() {
   error.value = '';
   try {
-    if (dirty.value) await save();
+    await flushDraft();
     const result = await api<{ valid: boolean; issues: Issue[] }>(
       `/journeys/${props.journey.id}/validate`,
       'POST',
@@ -234,25 +255,38 @@ function back() {
     />
   </section>
   <section v-else-if="tab === 'Preview & Test'">
-    <label
-      >Message node<select v-model="messageNodeID">
-        <option value="">First message</option>
-        <option
-          v-for="step in draft.nodes.filter((n) => n.type === 'email' || n.type === 'sms')"
-          :key="step.id"
-          :value="step.id"
-        >
-          {{ step.label }}
-        </option>
-      </select></label
-    ><MessageStudio
-      v-if="messageStep"
-      :key="messageStep.id"
-      v-model="messageStep.config"
-      :channel="messageStep.type === 'email' ? 'email' : 'sms'"
+    <nav class="detail-tabs">
+      <button @click="previewTab = 'Messages'">Message preview</button
+      ><button @click="previewTab = 'Test Lab'">Journey path &amp; Test Lab</button>
+    </nav>
+    <TestLab
+      v-if="previewTab === 'Test Lab'"
+      :journey-id="journey.id"
+      :before-run="flushDraft"
       :readonly="readonly"
+      :node-id="messageNodeID"
     />
-    <p v-else class="panel">Add an email or SMS node in Builder to preview a message.</p>
+    <template v-else>
+      <label
+        >Message node<select v-model="messageNodeID">
+          <option value="">First message</option>
+          <option
+            v-for="step in draft.nodes.filter((n) => n.type === 'email' || n.type === 'sms')"
+            :key="step.id"
+            :value="step.id"
+          >
+            {{ step.label }}
+          </option>
+        </select></label
+      ><MessageStudio
+        v-if="messageStep"
+        :key="messageStep.id"
+        v-model="messageStep.config"
+        :channel="messageStep.type === 'email' ? 'email' : 'sms'"
+        :readonly="readonly"
+      />
+      <p v-else class="panel">Add an email or SMS node in Builder to preview a message.</p>
+    </template>
   </section>
   <div v-else class="panel">
     <h2>Published versions</h2>

@@ -11,7 +11,7 @@ Source of truth for product scope: [PRD.md](PRD.md).
 | 5. Persistent Runtime                  | Complete                       | Fenced worker, durable timers/waiters, global exit, shared pure decisions, outbox; race/recovery/version tests and actual Docker restart passed. |
 | 6. Email & SMS                         | Complete                       | Safe rendering, channel studio, SMTP/Mailpit and mock SMS, durable deliveries/attempts, policy and retry tests; 14 browser tests passed.         |
 | 7. AI Journey Composer                 | Complete (live tests deferred) | Shared schema, Claude/OpenAI adapters, bounded repair, diff/approval; local provider contracts and 18 browser tests passed.                      |
-| 8. Preview & Test Lab                  | Pending                        | Shared deterministic runtime with controlled Clock.                                                                                              |
+| 8. Preview & Test Lab                  | Complete                       | Virtual clock, snapshots, replay, event/attribute sequences, assertions and fault injection; 20 browser tests passed.                            |
 | 9. Test Inbox                          | Pending                        | Isolated persisted outputs and traces.                                                                                                           |
 | 10. Live Monitor & Analytics           | Pending                        | Execution-backed metrics with explicit denominators.                                                                                             |
 | 11. Lifecycle & Reliability            | Pending                        | Race, recovery, version, security and observability tests.                                                                                       |
@@ -28,7 +28,7 @@ Source of truth for product scope: [PRD.md](PRD.md).
 
 ## Next slice
 
-Phase 8: isolated persisted scenarios/runs, shared deterministic node semantics and policy, virtual clock, event/attribute sequences, assertions, fault injection and replay. Phase 9 persists inbox outputs separately.
+Phase 9: first-class Test Inbox with bounded metadata lists, message detail/trace, filters and actual test-send distinction.
 
 ## Phase 1 delivery — 2026-11-10
 
@@ -90,3 +90,9 @@ See [verification notes](VERIFICATION.md) for reproducible checks and [architect
 - AI panel implements all requested actions, diffs, warning acknowledgement, Apply/Discard and stale-draft rejection. Apply uses ordinary revision-guarded draft saving; publication remains separate.
 - Tests caught and fixed shared-slice mutation in message proposals. Incomplete outputs, unknown node types, refusals, schema drift and unbounded repair are rejected.
 - Verified: all quality/unit checks, local HTTP provider contracts and real PostgreSQL integration tests; 18/18 browser regressions including AI review/stale behavior. No paid/live LLM request was made. Actual provider schema acceptance, model quality/latency and live prompt demo remain deferred by user instruction; see [AI.md](AI.md).
+
+## Phase 8 delivery
+
+- `3a67d8c` — isolated deterministic scenario runtime with shared production decisions/eligibility, snapshot deduplication, revision-guarded persistence and separate rendered message storage.
+- Test Lab and journey path preview expose virtual time, run/pause/step/advance, scenarios, fault injection, assertions, replay and customer overrides. Draft saving is flushed before snapshot capture. Named timezones are embedded for minimal production containers.
+- Verified: `make check`, real PostgreSQL integration tests, and 20/20 desktop/mobile browser tests. Scenarios cover 26-hour flow, exact-deadline purchase, duplicates, retry/caps, deterministic replay and 1,000 pure sandbox customers; live records remain unchanged. No provider or live LLM calls occur in simulations.
