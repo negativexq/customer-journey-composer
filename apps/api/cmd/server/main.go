@@ -42,7 +42,7 @@ func run() error {
 		Addr: cfg.HTTPAddr,
 		Handler: httpapi.New(log, func(ctx context.Context) error {
 			return database.Ready(ctx, pool)
-		}),
+		}, pool),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      30 * time.Second,

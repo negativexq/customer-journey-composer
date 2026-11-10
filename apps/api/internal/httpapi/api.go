@@ -10,6 +10,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Readiness func(context.Context) error
@@ -23,7 +24,7 @@ type HealthResponse struct {
 	Body HealthBody
 }
 
-func New(log *slog.Logger, ready Readiness) http.Handler {
+func New(log *slog.Logger, ready Readiness, pools ...*pgxpool.Pool) http.Handler {
 	mux := http.NewServeMux()
 	cfg := huma.DefaultConfig("Customer Journey Composer API", "0.1.0")
 	cfg.OpenAPIPath = "/api/openapi"
@@ -41,6 +42,9 @@ func New(log *slog.Logger, ready Readiness) http.Handler {
 		}
 		return &HealthResponse{Body: HealthBody{Status: "ready", Service: "journey-api"}}, nil
 	}, operation("readiness", "Database and schema readiness"))
+	if len(pools) > 0 {
+		registerDomain(api, pools[0])
+	}
 	return middleware(log, mux)
 }
 
