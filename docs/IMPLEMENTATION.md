@@ -153,3 +153,8 @@ See [verification notes](VERIFICATION.md) for reproducible checks and [architect
 - `a347f99` adds the €50+ EUR recovery template, editable AI brief (no automatic model call), five synthetic A–E sandbox scenarios, personalized email/SMS and run-scoped inline Test Inbox. See [the example contract](design/abandoned-cart-eur.md) for seven-day reentry semantics, formatted amounts, current-cart purchase state and sample discount code. Existing demo workspaces are not reset.
 - Publish review uses existing server gates and revision protection. Monitor and inbox replace primary raw payload views with transition, eligibility and attempt summaries; advanced payloads remain available. Builder, Test Lab, publish and monitor keep explicit draft/live context. Analytics labels branched node reach without suggesting a linear funnel.
 - Verified: `make check`, all package-isolated PostgreSQL integration tests, and 38/38 desktop/mobile browser tests, including A–E simulation, consent paths, sandbox isolation, publish acknowledgement, tab state retention and deliberately delayed monitor responses. Live Claude/OpenAI calls remain deferred. No runtime scheduling or analytics projection changes, new indexes or new polling endpoints were introduced for this UI work.
+
+## Reliability and navigation follow-up
+
+- Session restoration distinguishes an anonymous 401 from temporary server/network errors. Temporary failure preserves the URL and offers an explicit retry without clearing cookies or showing sign-in. Verified with `make check` and six desktop/mobile navigation checks, including consecutive 503/network failures followed by recovery into the original version tab.
+- Production deployment and live LLM calls remain outside this user-authorized slice.

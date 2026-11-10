@@ -121,3 +121,53 @@ test('a protected deep link resumes after login and unavailable journeys fall ba
   await expect(page).toHaveURL(/\/journeys$/);
   await expect(page.getByRole('alert')).toBeVisible();
 });
+
+test('temporary session failures preserve the deep link and retry without signing in', async ({
+  page,
+}) => {
+  const user = await (
+    await page.request.post('/api/v1/auth/register', {
+      data: {
+        name: 'Retry editor',
+        workspace: 'Session retry',
+        email: randomBytes(12).toString('hex') + '@example.invalid',
+        password: randomBytes(24).toString('hex'),
+      },
+    })
+  ).json();
+  const journey = await (
+    await page.request.post('/api/v1/journeys', {
+      headers: { 'X-CSRF-Token': user.csrf_token },
+      data: { name: 'Preserved route' },
+    })
+  ).json();
+  let mode = '503';
+  await page.route('**/api/v1/auth/me', async (route) => {
+    if (mode === '503')
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: 'Temporarily unavailable' }),
+      });
+    else if (mode === 'network') await route.abort('failed');
+    else await route.continue();
+  });
+  const url = `/journeys/${journey.id}?tab=versions`;
+  await page.goto(url);
+  await expect(
+    page.getByRole('heading', { name: 'Workspace temporarily unavailable' }),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeHidden();
+  await expect(page).toHaveURL(new RegExp(url.replace('?', '\\?') + '$'));
+  mode = 'network';
+  await page.getByRole('button', { name: 'Try again', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Workspace temporarily unavailable' }),
+  ).toBeVisible();
+  mode = 'success';
+  await page.getByRole('button', { name: 'Try again', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Published versions', exact: true }),
+  ).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/journeys/${journey.id}\\?tab=versions$`));
+});

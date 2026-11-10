@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, onErrorCaptured, ref, watch } from 'vue';
 import { pageRoute, readRoute, routeURL, type WorkspaceRoute } from './lib/navigation';
-import { api, setIdentity, type Identity, type Journey } from './lib/api';
+import { api, APIError, setIdentity, type Identity, type Journey } from './lib/api';
 import AuthForm from './components/AuthForm.vue';
 import JourneyList from './components/JourneyList.vue';
 import JourneyEditor from './components/JourneyEditor.vue';
@@ -17,6 +17,20 @@ import AppIcon from './components/ui/AppIcon.vue';
 import CreateJourneyDialog from './components/ui/CreateJourneyDialog.vue';
 const identity = ref<Identity>();
 const loading = ref(true);
+const accessUnavailable = ref(false);
+async function restoreSession() {
+  if (loading.value && accessUnavailable.value) return;
+  loading.value = true;
+  accessUnavailable.value = false;
+  try {
+    const user = await api<Identity>('/auth/me');
+    await authenticated(user);
+  } catch (cause) {
+    accessUnavailable.value = !(cause instanceof APIError && cause.status === 401);
+  } finally {
+    loading.value = false;
+  }
+}
 const route = ref<WorkspaceRoute>(readRoute(new URL(window.location.href)));
 const page = computed(() => route.value.page);
 const routeLoading = ref(false);
@@ -185,13 +199,7 @@ async function logout() {
 onMounted(async () => {
   window.addEventListener('keydown', keyboard);
   window.addEventListener('popstate', restoreLocation);
-  try {
-    await authenticated(await api<Identity>('/auth/me'));
-  } catch {
-    /* Sign-in is displayed for anonymous visitors. */
-  } finally {
-    loading.value = false;
-  }
+  await restoreSession();
 });
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', keyboard);
@@ -208,6 +216,12 @@ onErrorCaptured((cause) => {
     <span class="brand-mark"><AppIcon name="workflow" :size="25" /></span>
     <p>Opening your workspace…</p>
   </div>
+  <main v-else-if="accessUnavailable" class="app-loading" aria-labelledby="access-title">
+    <span class="brand-mark"><AppIcon name="workflow" :size="25" /></span>
+    <h1 id="access-title">Workspace temporarily unavailable</h1>
+    <p role="alert">We couldn't check your session. Your current page has been kept.</p>
+    <button class="primary" @click="restoreSession">Try again</button>
+  </main>
   <AuthForm v-else-if="!identity" @authenticated="authenticated" />
   <div v-else class="app-shell">
     <aside class="sidebar" aria-label="Application navigation">
