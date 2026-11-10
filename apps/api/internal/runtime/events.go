@@ -104,8 +104,10 @@ func Ingest(ctx context.Context, pool *pgxpool.Pool, workspace string, event Eve
 	}
 	var profile map[string]any
 	_ = json.Unmarshal(profileJSON, &profile)
-	data := map[string]any{"customer": profile, "event": map[string]any{"event_id": event.EventID, "event_name": event.EventName, "properties": event.Properties}, "context": map[string]any{}}
-	// Phase 5 adds event waiter/global-exit transitions here, under the same lock.
+	data := dataContext(profile, map[string]any{"event_id": event.EventID, "event_name": event.EventName, "occurred_at": event.OccurredAt.Format(time.RFC3339Nano), "properties": event.Properties}, map[string]any{})
+	if err := applyEvent(ctx, tx, workspace, event, data, now); err != nil {
+		return result, err
+	}
 	rows, err := tx.Query(ctx, `SELECT j.id::text,j.current_version_id::text,v.workflow FROM journeys j JOIN journey_versions v ON v.id=j.current_version_id WHERE j.workspace_id=$1 AND j.status='Active' AND j.entry_event_name=$2 ORDER BY j.id FOR SHARE OF j`, workspace, event.EventName)
 	if err != nil {
 		return result, err
@@ -158,7 +160,7 @@ func Ingest(ctx context.Context, pool *pgxpool.Pool, workspace string, event Eve
 			}
 		}
 		var id string
-		err = tx.QueryRow(ctx, `INSERT INTO journey_executions(workspace_id,journey_id,version_id,customer_id,entry_event_id,current_node_id,started_at,updated_at) VALUES($1,$2,$3,$4,$5,$6,$7,$7) ON CONFLICT DO NOTHING RETURNING id::text`, workspace, m.journey, m.version, event.CustomerID, event.EventID, start.ID, now).Scan(&id)
+		err = tx.QueryRow(ctx, `INSERT INTO journey_executions(workspace_id,journey_id,version_id,customer_id,entry_event_id,current_node_id,started_at,updated_at,exit_event_name) VALUES($1,$2,$3,$4,$5,$6,$7,$7,$8) ON CONFLICT DO NOTHING RETURNING id::text`, workspace, m.journey, m.version, event.CustomerID, event.EventID, start.ID, now, exitName(m.spec)).Scan(&id)
 		if errors.Is(err, pgx.ErrNoRows) {
 			continue
 		}
@@ -174,4 +176,11 @@ func Ingest(ctx context.Context, pool *pgxpool.Pool, workspace string, event Eve
 		return result, fmt.Errorf("commit event: %w", err)
 	}
 	return result, nil
+}
+
+func exitName(w workflow.Workflow) any {
+	if w.GlobalExit == nil {
+		return nil
+	}
+	return w.GlobalExit.EventName
 }

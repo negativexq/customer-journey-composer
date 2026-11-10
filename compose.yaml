@@ -51,6 +51,15 @@ services:
     stop_grace_period: 15s
     restart: unless-stopped
 
+  worker:
+    <<: *api
+    command: ['worker']
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    stop_grace_period: 15s
+    restart: unless-stopped
+
   web:
     image: customer-journey-composer-web:dev
     build:
