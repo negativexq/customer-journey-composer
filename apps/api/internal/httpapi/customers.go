@@ -188,7 +188,7 @@ func registerCustomers(api huma.API, pool *pgxpool.Pool) {
 		}
 		token := "cjc_" + randomToken()
 		var id string
-		err := pool.QueryRow(ctx, `INSERT INTO api_keys(workspace_id,created_by,name,token_hash,prefix) VALUES($1,$2,$3,$4,$5) RETURNING id::text`, who(ctx).WorkspaceID, who(ctx).ID, in.Body.Name, digest(token), token[:12]).Scan(&id)
+		err := pool.QueryRow(ctx, `WITH created AS (INSERT INTO api_keys(workspace_id,created_by,name,token_hash,prefix) VALUES($1,$2,$3,$4,$5) RETURNING id), logged AS (INSERT INTO audit_logs(workspace_id,actor_id,action,resource_id) SELECT $1,$2,'api_key.create',id FROM created) SELECT id::text FROM created`, who(ctx).WorkspaceID, who(ctx).ID, in.Body.Name, digest(token), token[:12]).Scan(&id)
 		if err != nil {
 			return nil, dbError(err)
 		}
@@ -205,7 +205,7 @@ func registerCustomers(api huma.API, pool *pgxpool.Pool) {
 			return nil, huma.Error403Forbidden("Admin role required")
 		}
 		var id string
-		err := pool.QueryRow(ctx, `UPDATE api_keys SET revoked_at=now() WHERE workspace_id=$1 AND id=$2 RETURNING id::text`, who(ctx).WorkspaceID, in.ID).Scan(&id)
+		err := pool.QueryRow(ctx, `WITH revoked AS (UPDATE api_keys SET revoked_at=COALESCE(revoked_at,now()) WHERE workspace_id=$1 AND id=$2 RETURNING id), logged AS (INSERT INTO audit_logs(workspace_id,actor_id,action,resource_id) SELECT $1,$3,'api_key.revoke',id FROM revoked) SELECT id::text FROM revoked`, who(ctx).WorkspaceID, in.ID, who(ctx).ID).Scan(&id)
 		if err != nil {
 			return nil, dbError(err)
 		}

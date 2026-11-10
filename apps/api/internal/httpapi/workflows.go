@@ -83,12 +83,22 @@ func registerWorkflows(api huma.API, pool *pgxpool.Pool) {
 		if issues := messaging.ValidateWorkflow(w); len(issues) > 0 {
 			return nil, huma.Error422UnprocessableEntity("Fix workflow validation errors before publishing")
 		}
+		gates, err := publishIssues(ctx, tx, in.ID, w)
+		if err != nil {
+			return nil, err
+		}
+		if len(gates) > 0 {
+			return nil, huma.Error422UnprocessableEntity(gates[0].Message)
+		}
 		out, err := jsonRow[Version](tx.QueryRow(ctx, `INSERT INTO journey_versions(workspace_id,journey_id,version,workflow,published_by) SELECT $1,$2,COALESCE(max(version),0)+1,$3,$4 FROM journey_versions WHERE workspace_id=$1 AND journey_id=$2 RETURNING jsonb_build_object('id',id,'version',version,'workflow',workflow,'created_at',created_at)`, who(ctx).WorkspaceID, in.ID, data, who(ctx).ID))
 		if err != nil {
 			return nil, err
 		}
 		_, err = tx.Exec(ctx, `UPDATE journeys SET current_version_id=$3,entry_event_name=$4,status='Active',revision=revision+1,updated_at=now() WHERE workspace_id=$1 AND id=$2`, who(ctx).WorkspaceID, in.ID, out.Body.ID, w.Start().Config.EventName)
 		if err != nil {
+			return nil, dbError(err)
+		}
+		if err := audit(ctx, tx, "journey.publish", &in.ID, map[string]any{"version": out.Body.Version, "version_id": out.Body.ID}); err != nil {
 			return nil, dbError(err)
 		}
 		if err := tx.Commit(ctx); err != nil {

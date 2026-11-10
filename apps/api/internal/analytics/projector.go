@@ -19,6 +19,8 @@ const expanded = `SELECT b.workspace_id,b.journey_id,b.version_id,date_trunc('ho
 // producers never acquire this advisory lock. Bounded JSON batches avoid repeated
 // temporary-table DDL/catalog churn and require no persistent staging indexes.
 func Drain(ctx context.Context, pool *pgxpool.Pool) (int, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return 0, err

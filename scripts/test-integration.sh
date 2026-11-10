@@ -22,5 +22,5 @@ for test_package in $packages; do
   index=$((index + 1))
   test_db="package_$index"
   docker exec "$container" createdb -U postgres "$test_db"
-  TEST_DATABASE_URL="postgres://postgres:$password@127.0.0.1:$port/$test_db?sslmode=disable" go test -race -count=1 -tags integration "$test_package"
+  APP_ENV=development TEST_DATABASE_URL="postgres://postgres:$password@127.0.0.1:$port/$test_db?sslmode=disable" go test -race -count=1 -tags integration "$test_package"
 done

@@ -14,8 +14,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/ofk/customer-journey-composer/apps/api/internal/messaging"
+	"github.com/ofk/customer-journey-composer/apps/api/internal/observability"
 	engine "github.com/ofk/customer-journey-composer/apps/api/internal/runtime"
 	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type Service struct {
@@ -31,9 +33,9 @@ type Eligibility struct {
 	Reason       string `json:"reason"`
 }
 type Job struct {
-	ID, WorkspaceID, CustomerID, ExecutionID, Token, Provider, LogicalKey, Mode string
-	Attempt                                                                     int
-	Message                                                                     messaging.Message
+	ID, WorkspaceID, CustomerID, ExecutionID, Token, Provider, LogicalKey, Mode, TraceParent string
+	Attempt                                                                                  int
+	Message                                                                                  messaging.Message
 }
 
 var e164 = regexp.MustCompile(`^\+[1-9][0-9]{6,14}$`)
@@ -238,7 +240,7 @@ func (s *Service) Claim(ctx context.Context) (*Job, error) {
 	}
 	var job Job
 	var raw []byte
-	err = tx.QueryRow(ctx, `UPDATE delivery_jobs SET status='CLAIMED',claim_token=gen_random_uuid(),lease_until=$2::timestamptz+interval '30 seconds',attempts=attempts+1 WHERE id=$1 AND status='SCHEDULED' RETURNING id::text,workspace_id::text,COALESCE(customer_id,''),COALESCE(execution_id::text,''),claim_token::text,provider,logical_key,mode,attempts,message`, id, now).Scan(&job.ID, &job.WorkspaceID, &job.CustomerID, &job.ExecutionID, &job.Token, &job.Provider, &job.LogicalKey, &job.Mode, &job.Attempt, &raw)
+	err = tx.QueryRow(ctx, `UPDATE delivery_jobs SET status='CLAIMED',claim_token=gen_random_uuid(),lease_until=$2::timestamptz+interval '30 seconds',attempts=attempts+1 WHERE id=$1 AND status='SCHEDULED' RETURNING id::text,workspace_id::text,COALESCE(customer_id,''),COALESCE(execution_id::text,''),claim_token::text,provider,logical_key,mode,attempts,message,COALESCE((SELECT trace_parent FROM journey_executions e WHERE e.id=delivery_jobs.execution_id),'')`, id, now).Scan(&job.ID, &job.WorkspaceID, &job.CustomerID, &job.ExecutionID, &job.Token, &job.Provider, &job.LogicalKey, &job.Mode, &job.Attempt, &raw, &job.TraceParent)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -257,6 +259,8 @@ func (s *Service) Claim(ctx context.Context) (*Job, error) {
 	return &job, nil
 }
 func (s *Service) Dispatch(ctx context.Context, job Job) error {
+	ctx, span := observability.Start(observability.Parent(ctx, job.TraceParent), "delivery.dispatch", attribute.String("delivery.id", job.ID), attribute.Int("delivery.attempt", job.Attempt))
+	defer span.End()
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return err

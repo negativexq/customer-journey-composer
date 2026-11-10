@@ -11,7 +11,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/ofk/customer-journey-composer/apps/api/internal/observability"
 	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type Worker struct {
@@ -20,8 +22,8 @@ type Worker struct {
 	Log   *slog.Logger
 }
 type Job struct {
-	ID, WorkspaceID, ExecutionID, CustomerID, JourneyID, NodeID, Kind, Token string
-	Attempts                                                                 int
+	ID, WorkspaceID, ExecutionID, CustomerID, JourneyID, NodeID, Kind, Token, TraceParent string
+	Attempts                                                                              int
 }
 
 func NewWorker(pool *pgxpool.Pool, clock Clock) *Worker {
@@ -45,7 +47,7 @@ func (w *Worker) Claim(ctx context.Context, limit int) ([]Job, error) {
  WHERE j.state='SCHEDULED' AND j.due_at<=$1 AND e.state IN ('RUNNING','WAITING') AND f.status IN ('Active','Sunset')
  ORDER BY j.due_at,j.id LIMIT $2 FOR UPDATE OF j SKIP LOCKED
  ), claimed AS (UPDATE scheduled_jobs j SET state='CLAIMED',claim_token=gen_random_uuid(),lease_until=$1+interval '30 seconds',attempts=j.attempts+1 FROM due WHERE j.id=due.id RETURNING j.*)
- SELECT c.id::text,c.workspace_id::text,c.execution_id::text,e.customer_id,e.journey_id::text,c.node_id,c.kind,c.claim_token::text,c.attempts FROM claimed c JOIN journey_executions e ON e.id=c.execution_id`, now, limit)
+ SELECT c.id::text,c.workspace_id::text,c.execution_id::text,e.customer_id,e.journey_id::text,c.node_id,c.kind,c.claim_token::text,c.attempts,e.trace_parent FROM claimed c JOIN journey_executions e ON e.id=c.execution_id`, now, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +55,7 @@ func (w *Worker) Claim(ctx context.Context, limit int) ([]Job, error) {
 	jobs := []Job{}
 	for rows.Next() {
 		var j Job
-		if err := rows.Scan(&j.ID, &j.WorkspaceID, &j.ExecutionID, &j.CustomerID, &j.JourneyID, &j.NodeID, &j.Kind, &j.Token, &j.Attempts); err != nil {
+		if err := rows.Scan(&j.ID, &j.WorkspaceID, &j.ExecutionID, &j.CustomerID, &j.JourneyID, &j.NodeID, &j.Kind, &j.Token, &j.Attempts, &j.TraceParent); err != nil {
 			return nil, err
 		}
 		jobs = append(jobs, j)
@@ -110,6 +112,10 @@ func (w *Worker) retry(ctx context.Context, job Job) {
 	_, _ = w.Pool.Exec(ctx, `UPDATE scheduled_jobs SET state='SCHEDULED',due_at=$3,lease_until=NULL,claim_token=NULL,last_error='Step transaction failed; retry scheduled' WHERE id=$1 AND state='CLAIMED' AND claim_token=$2`, job.ID, job.Token, w.Clock.Now().Add(delay))
 }
 func (w *Worker) Process(ctx context.Context, job Job) error {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	ctx, span := observability.Start(observability.Parent(ctx, job.TraceParent), "runtime.step", attribute.String("execution.id", job.ExecutionID), attribute.String("node.id", job.NodeID))
+	defer span.End()
 	tx, err := w.Pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -180,7 +186,7 @@ func (w *Worker) Process(ctx context.Context, job Job) error {
 	if err != nil {
 		return w.fail(ctx, tx, job, now, err.Error())
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO step_executions(workspace_id,execution_id,node_id,node_type,state,started_at) VALUES($1,$2,$3,$4,'RUNNING',$5) ON CONFLICT(execution_id,node_id) DO NOTHING`, job.WorkspaceID, job.ExecutionID, node.ID, node.Type, now); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO step_executions(workspace_id,execution_id,node_id,node_type,state,started_at) VALUES($1,$2,$3,$4,'RUNNING',$5) ON CONFLICT(execution_id,node_id) DO UPDATE SET node_type=excluded.node_type`, job.WorkspaceID, job.ExecutionID, node.ID, node.Type, now); err != nil {
 		return err
 	}
 	output, _ := json.Marshal(decision)

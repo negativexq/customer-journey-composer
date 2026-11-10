@@ -216,6 +216,10 @@ func TestWorkflowValidationAndImmutablePublishing(t *testing.T) {
 	if !validation.Valid {
 		t.Fatal(validation.Issues)
 	}
+	call("POST", "/journeys/"+j.ID+"/publish", map[string]int{"revision": 2}, 422)
+	var gateRun TestRun
+	json.Unmarshal(call("POST", "/test-runs", map[string]any{"journey_id": j.ID, "scenario": map[string]any{"name": "Publish check", "entry_event": map[string]any{"event_name": "cart_updated"}}}, 200), &gateRun)
+	call("POST", "/test-runs/"+gateRun.ID+"/advance", map[string]any{"operation": "complete", "revision": gateRun.Revision}, 200)
 	var version Version
 	json.Unmarshal(call("POST", "/journeys/"+j.ID+"/publish", map[string]int{"revision": 2}, 200), &version)
 	if version.Version != 1 || version.ID == "" {
@@ -233,6 +237,26 @@ func TestWorkflowValidationAndImmutablePublishing(t *testing.T) {
 	if len(versions) != 2 || versions[0].Version != 2 || versions[1].Version != 1 {
 		t.Fatalf("version history: %+v", versions)
 	}
+	var current Journey
+	json.Unmarshal(call("GET", "/journeys/"+j.ID, nil, 200), &current)
+	for _, action := range []string{"pause", "resume", "sunset", "pause", "resume", "complete", "archive"} {
+		json.Unmarshal(call("POST", "/journeys/"+j.ID+"/"+action, map[string]int{"revision": current.Revision}, 200), &current)
+		if action == "pause" {
+			call("POST", "/journeys/"+j.ID+"/pause", map[string]int{"revision": 1}, 200)
+		}
+	}
+	if current.Status != "Archived" {
+		t.Fatal(current.Status)
+	}
+	var audits []map[string]any
+	json.Unmarshal(call("GET", "/audit-logs", nil, 200), &audits)
+	if len(audits) < 9 {
+		t.Fatal("missing atomic lifecycle audit", len(audits))
+	}
+	call("PUT", "/users/"+user.ID+"/role", map[string]string{"role": "Viewer"}, 409)
+	call("POST", "/users", map[string]string{"name": "Viewer", "email": randomToken()[:12] + "@example.invalid", "password": randomToken(), "role": "Viewer"}, 200)
+	call("GET", "/users", nil, 200)
+
 }
 
 func TestScopedEventAPIKeys(t *testing.T) {

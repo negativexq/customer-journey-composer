@@ -133,7 +133,7 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 				}
 			}
 		}
-		if path == "/api/v1/auth/register" || path == "/api/v1/auth/login" || path == "/api/v1/auth/demo" {
+		if path == "/api/v1/auth/register" || path == "/api/v1/auth/login" || path == "/api/v1/auth/demo" || path == "/api/v1/auth/config" {
 			next(ctx)
 			return
 		}
@@ -168,8 +168,19 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 		}
 		next(huma.WithContext(ctx, context.WithValue(ctx.Context(), principalKey{}, p)))
 	})
+	registerSecurityMiddleware(api)
+	authSlots := make(chan struct{}, 8)
 	auth := func(register bool) func(context.Context, *credentials) (*authResponse, error) {
 		return func(ctx context.Context, in *credentials) (*authResponse, error) {
+			select {
+			case authSlots <- struct{}{}:
+				defer func() { <-authSlots }()
+			default:
+				return nil, huma.Error429TooManyRequests("Authentication is busy; retry shortly")
+			}
+			if register && !signupEnabled() {
+				return nil, huma.Error403Forbidden("Public workspace registration is disabled")
+			}
 			email := strings.ToLower(strings.TrimSpace(in.Body.Email))
 			addr, err := mail.ParseAddress(email)
 			if err != nil || addr.Address != email {
@@ -322,6 +333,11 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 	registerInbox(api, pool)
 	registerAnalytics(api, pool)
 	registerDemo(api)
+	registerLifecycle(api, pool)
+	registerExecutionControls(api, pool)
+	registerPublishChecks(api, pool)
+	registerUsers(api, pool)
+	registerSystem(api, pool)
 }
 
 var dummyPasswordHash, _ = bcrypt.GenerateFromPassword([]byte(randomToken()), 12)

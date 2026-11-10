@@ -70,6 +70,14 @@ try {
     draft: workflow,
     revision: journey.revision,
   });
+  const gate = await call('/test-runs', 'POST', {
+    journey_id: journey.id,
+    scenario: { name: 'Recovery gate', entry_event: { event_name: 'cart_updated' } },
+  });
+  await call(`/test-runs/${gate.id}/advance`, 'POST', {
+    operation: 'complete',
+    revision: gate.revision,
+  });
   await call(`/journeys/${journey.id}/publish`, 'POST', { revision: saved.revision });
   await call('/customers', 'POST', { customer_id: 'recovery_customer' });
   const event = {

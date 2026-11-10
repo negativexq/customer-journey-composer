@@ -97,9 +97,22 @@ func registerMessages(api huma.API, pool *pgxpool.Pool) {
 				return nil, huma.Error422UnprocessableEntity("Invalid test email")
 			}
 		}
-		if _, err := pool.Exec(ctx, `INSERT INTO workspace_settings(workspace_id,frequency_limit,frequency_window_seconds,test_allowlist) VALUES($1,$2,$3,$4) ON CONFLICT(workspace_id) DO UPDATE SET frequency_limit=$2,frequency_window_seconds=$3,test_allowlist=$4,updated_at=now()`, who(ctx).WorkspaceID, in.Body.FrequencyLimit, in.Body.FrequencyWindowSeconds, in.Body.TestAllowlist); err != nil {
+		tx, err := pool.Begin(ctx)
+		if err != nil {
 			return nil, dbError(err)
 		}
+		defer func() { _ = tx.Rollback(context.Background()) }()
+		if _, err = tx.Exec(ctx, `INSERT INTO workspace_settings(workspace_id,frequency_limit,frequency_window_seconds,test_allowlist) VALUES($1,$2,$3,$4) ON CONFLICT(workspace_id) DO UPDATE SET frequency_limit=$2,frequency_window_seconds=$3,test_allowlist=$4,updated_at=now()`, who(ctx).WorkspaceID, in.Body.FrequencyLimit, in.Body.FrequencyWindowSeconds, in.Body.TestAllowlist); err != nil {
+			return nil, dbError(err)
+		}
+		workspace := who(ctx).WorkspaceID
+		if err = audit(ctx, tx, "workspace.messaging_policy", &workspace, map[string]any{"frequency_limit": in.Body.FrequencyLimit, "frequency_window_seconds": in.Body.FrequencyWindowSeconds, "allowlist_size": len(in.Body.TestAllowlist)}); err != nil {
+			return nil, dbError(err)
+		}
+		if err = tx.Commit(ctx); err != nil {
+			return nil, dbError(err)
+		}
+
 		return &Result[messagePolicy]{Body: in.Body}, nil
 	})
 	huma.Post(api, "/api/v1/messages/test-send", func(ctx context.Context, in *struct {

@@ -12,6 +12,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/ofk/customer-journey-composer/apps/api/internal/observability"
 	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
 )
 
@@ -51,6 +52,8 @@ func ValidateEvent(event Event, now time.Time) error {
 	return nil
 }
 func Ingest(ctx context.Context, pool *pgxpool.Pool, workspace string, event Event, now time.Time) (Ingestion, error) {
+	ctx, span := observability.Start(ctx, "events.ingest")
+	defer span.End()
 	result := Ingestion{EventID: event.EventID, Status: "ACCEPTED", Executions: []string{}}
 	if err := ValidateEvent(event, now); err != nil {
 		return result, err
@@ -160,7 +163,7 @@ func Ingest(ctx context.Context, pool *pgxpool.Pool, workspace string, event Eve
 			}
 		}
 		var id string
-		err = tx.QueryRow(ctx, `INSERT INTO journey_executions(workspace_id,journey_id,version_id,customer_id,entry_event_id,current_node_id,started_at,updated_at,exit_event_name) VALUES($1,$2,$3,$4,$5,$6,$7,$7,$8) ON CONFLICT DO NOTHING RETURNING id::text`, workspace, m.journey, m.version, event.CustomerID, event.EventID, start.ID, now, exitName(m.spec)).Scan(&id)
+		err = tx.QueryRow(ctx, `INSERT INTO journey_executions(workspace_id,journey_id,version_id,customer_id,entry_event_id,current_node_id,started_at,updated_at,exit_event_name,trace_parent) VALUES($1,$2,$3,$4,$5,$6,$7,$7,$8,$9) ON CONFLICT DO NOTHING RETURNING id::text`, workspace, m.journey, m.version, event.CustomerID, event.EventID, start.ID, now, exitName(m.spec), observability.TraceParent(ctx)).Scan(&id)
 		if errors.Is(err, pgx.ErrNoRows) {
 			continue
 		}

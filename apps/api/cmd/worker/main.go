@@ -13,6 +13,7 @@ import (
 
 	"github.com/ofk/customer-journey-composer/apps/api/internal/config"
 	"github.com/ofk/customer-journey-composer/apps/api/internal/database"
+	"github.com/ofk/customer-journey-composer/apps/api/internal/observability"
 	engine "github.com/ofk/customer-journey-composer/apps/api/internal/runtime"
 )
 
@@ -30,6 +31,15 @@ func run() error {
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: cfg.LogLevel}))
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	shutdownTrace, err := observability.Init(ctx, "journey-worker", os.Getenv)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		ending, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = shutdownTrace(ending)
+	}()
 	startup, cancel := context.WithTimeout(ctx, 10*time.Second)
 	pool, err := database.Open(startup, cfg.DatabaseURL)
 	if err == nil {
