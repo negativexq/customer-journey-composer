@@ -37,6 +37,8 @@ export type Journey = {
   draft: Record<string, unknown>;
   revision: number;
   updated_at: string;
+  version?: number;
+  stats?: { entries: number; active: number; completed: number; converted: number };
 };
 let csrf = '';
 export function setIdentity(identity?: Identity) {

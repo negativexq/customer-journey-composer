@@ -174,6 +174,17 @@ async function publish() {
     error.value = String(cause);
   }
 }
+async function saveTemplate() {
+  const templateName = window.prompt('Template name', name.value);
+  if (!templateName) return;
+  try {
+    await flushDraft();
+    await api('/templates', 'POST', { journey_id: props.journey.id, name: templateName });
+    notice.value = 'Workspace template saved';
+  } catch (cause) {
+    error.value = String(cause);
+  }
+}
 async function lifecycle(action: string) {
   try {
     await flushDraft();
@@ -188,6 +199,7 @@ async function lifecycle(action: string) {
   }
 }
 async function loadVersion(version: number) {
+  if (versions.value.find((v) => v.version === version)?.workflow) return;
   try {
     const result = await api<{ workflow: Workflow }>(
       `/journeys/${props.journey.id}/versions/${version}`,
@@ -198,10 +210,37 @@ async function loadVersion(version: number) {
     error.value = String(cause);
   }
 }
+const beforeVersion = ref(1);
+const afterVersion = ref(1);
+const versionDiff = ref<unknown>();
+async function compareVersions() {
+  try {
+    await Promise.all([...new Set([beforeVersion.value, afterVersion.value])].map(loadVersion));
+    const before = versions.value.find((v) => v.version === beforeVersion.value)?.workflow;
+    const after = versions.value.find((v) => v.version === afterVersion.value)?.workflow;
+    if (!before || !after) return;
+    const old = new Map(before.nodes.map((n) => [n.id, n]));
+    const current = new Map(after.nodes.map((n) => [n.id, n]));
+    versionDiff.value = {
+      added_nodes: after.nodes.filter((n) => !old.has(n.id)).map((n) => n.label),
+      removed_nodes: before.nodes.filter((n) => !current.has(n.id)).map((n) => n.label),
+      updated_nodes: after.nodes
+        .filter((n) => old.has(n.id) && JSON.stringify(old.get(n.id)) !== JSON.stringify(n))
+        .map((n) => ({ node: n.label, before: old.get(n.id), after: n })),
+      edges_changed: JSON.stringify(before.edges) !== JSON.stringify(after.edges),
+      exit_changed: JSON.stringify(before.global_exit) !== JSON.stringify(after.global_exit),
+      reentry_changed: JSON.stringify(before.reentry) !== JSON.stringify(after.reentry),
+    };
+  } catch (cause) {
+    error.value = String(cause);
+  }
+}
 async function showVersions() {
   tab.value = 'Versions';
   try {
     versions.value = await api(`/journeys/${props.journey.id}/versions`);
+    afterVersion.value = versions.value[0]?.version || 1;
+    beforeVersion.value = versions.value.at(-1)?.version || 1;
   } catch (cause) {
     error.value = String(cause);
   }
@@ -264,6 +303,7 @@ function back() {
       >
         Archive
       </button>
+      <button :disabled="readonly || busy" @click="saveTemplate">Save as template</button>
       <p role="status">{{ notice }}</p>
     </div>
   </div>
@@ -362,6 +402,18 @@ function back() {
   /><AnalyticsView v-else-if="tab === 'Analytics'" :journey-id="journey.id" />
   <div v-else class="panel">
     <h2>Published versions</h2>
+    <div v-if="versions.length > 1" class="editor-form">
+      <label
+        >Compare from<select v-model.number="beforeVersion">
+          <option v-for="v in versions" :key="v.id" :value="v.version">v{{ v.version }}</option>
+        </select></label
+      ><label
+        >Compare to<select v-model.number="afterVersion">
+          <option v-for="v in versions" :key="v.id" :value="v.version">v{{ v.version }}</option>
+        </select></label
+      ><button @click="compareVersions">Compare versions</button>
+    </div>
+    <pre v-if="versionDiff">{{ JSON.stringify(versionDiff, null, 2) }}</pre>
     <p v-if="!versions.length">No published versions yet.</p>
     <details v-for="version in versions" :key="version.id">
       <summary>

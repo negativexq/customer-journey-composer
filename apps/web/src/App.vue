@@ -11,9 +11,17 @@ import SettingsView from './components/SettingsView.vue';
 import TestLab from './components/TestLab.vue';
 import TestInbox from './components/TestInbox.vue';
 import AnalyticsView from './components/AnalyticsView.vue';
+import TemplatesView from './components/TemplatesView.vue';
 const identity = ref<Identity>();
 const loading = ref(true);
 const page = ref('Overview');
+const journeyFilter = ref('');
+function browseJourneys(status: string) {
+  page.value = 'Journeys';
+  selected.value = undefined;
+  journeyFilter.value = status;
+  void refresh();
+}
 const selected = ref<Journey>();
 const journeys = ref<Journey[]>([]);
 const error = ref('');
@@ -57,6 +65,7 @@ async function logout() {
   }
 }
 function navigate(name: string) {
+  journeyFilter.value = '';
   page.value = name;
   selected.value = undefined;
   void refresh();
@@ -96,6 +105,7 @@ onErrorCaptured((cause) => {
           v-for="item in [
             'Overview',
             'Journeys',
+            'Templates',
             'Customers',
             'Events',
             'Test Lab',
@@ -128,6 +138,7 @@ onErrorCaptured((cause) => {
         <div class="mobile-nav">
           <button @click="navigate('Overview')">Overview</button
           ><button @click="navigate('Journeys')">Journeys</button
+          ><button @click="navigate('Templates')">Templates</button
           ><button @click="navigate('Customers')">Customers</button
           ><button @click="navigate('Events')">Events</button
           ><button @click="navigate('Analytics')">Analytics</button
@@ -153,6 +164,12 @@ onErrorCaptured((cause) => {
           "
         /><JourneyList
           v-else-if="page === 'Journeys'"
+          :admin="identity.role === 'Admin'"
+          :initial-status="journeyFilter"
+          :readonly="readOnly"
+          @open="open"
+        /><TemplatesView
+          v-else-if="page === 'Templates'"
           :readonly="readOnly"
           @open="open"
         /><CustomersView v-else-if="page === 'Customers'" :readonly="readOnly" /><EventsView
@@ -161,9 +178,12 @@ onErrorCaptured((cause) => {
         /><TestLab v-else-if="page === 'Test Lab'" :readonly="readOnly" /><TestInbox
           v-else-if="page === 'Test Inbox'"
           :readonly="readOnly"
-        /><AnalyticsView v-else-if="page === 'Analytics'" @open-journey="openID" /><SettingsView
-          v-else-if="page === 'Settings'"
-        /><template v-else>
+        /><AnalyticsView
+          v-else-if="page === 'Analytics'"
+          @open-journey="openID"
+          @browse-journeys="browseJourneys"
+          @navigate="navigate"
+        /><SettingsView v-else-if="page === 'Settings'" /><template v-else>
           <div class="page-heading">
             <div>
               <p class="eyebrow">YOUR ORCHESTRATION WORKSPACE</p>
@@ -174,7 +194,12 @@ onErrorCaptured((cause) => {
             </div>
             <button class="primary" @click="navigate('Journeys')">Explore journeys →</button>
           </div>
-          <AnalyticsView overview @open-journey="openID" />
+          <AnalyticsView
+            overview
+            @open-journey="openID"
+            @browse-journeys="browseJourneys"
+            @navigate="navigate"
+          />
           <section class="panel">
             <h2>Recent journeys</h2>
             <p v-if="!journeys.length">

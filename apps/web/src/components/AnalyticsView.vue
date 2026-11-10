@@ -24,7 +24,7 @@ const selected = ref(props.journeyId || '');
 const days = ref(30);
 const error = ref('');
 const busy = ref(false);
-const emit = defineEmits<{ openJourney: [string] }>();
+const emit = defineEmits<{ openJourney: [string]; browseJourneys: [string]; navigate: [string] }>();
 const value = (dimension: string, metric: string, key = '') =>
   summary.value?.metrics.find(
     (m) => m.dimension === dimension && m.metric === metric && m.key === key,
@@ -128,23 +128,24 @@ onMounted(() => {
         <div v-if="!selected" class="panel stat-card">
           <span>Entries · last 24h</span><strong>{{ recentEntries }}</strong>
         </div>
-        <div v-if="!selected" class="panel stat-card">
+        <button v-if="!selected" class="panel stat-card" @click="emit('browseJourneys', '')">
           <span>Total journeys</span><strong>{{ value('journey', 'total') }}</strong>
-        </div>
-        <div
+        </button>
+        <button
           v-for="s in !selected
             ? ['Active', 'Draft', 'Paused', 'Sunset', 'Completed', 'Archived']
             : []"
           :key="s"
           class="panel stat-card"
+          @click="emit('browseJourneys', s)"
         >
           <span>{{ s }} journeys</span><strong>{{ value('journey', s) }}</strong>
-        </div>
+        </button>
         <div class="panel stat-card">
           <span>Logical entries · lifetime</span><strong>{{ entries }}</strong>
         </div>
         <div class="panel stat-card">
-          <span>Unique customers · lifetime</span
+          <span>Unique enrolled customers · lifetime</span
           ><strong>{{ value('execution', 'unique_customers') }}</strong>
         </div>
         <div class="panel stat-card">

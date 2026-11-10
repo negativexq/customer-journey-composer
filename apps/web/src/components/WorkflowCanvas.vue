@@ -194,29 +194,60 @@ function drop(event: DragEvent) {
 function drag(event: DragEvent, kind: Kind) {
   event.dataTransfer?.setData('application/journey-node', kind);
 }
+function chosenNodes() {
+  const selected = nodes.value.filter((n) => n.selected);
+  return selected.length ? selected : nodes.value.filter((n) => n.id === selectedID.value);
+}
+function selectAll() {
+  if (props.readonly) return;
+  for (const n of nodes.value) n.selected = true;
+  selectedID.value = nodes.value[0]?.id || '';
+}
 function copy() {
-  const chosen = nodes.value.filter((n) => n.selected || n.id === selectedID.value);
-  clipboard = JSON.stringify(chosen);
+  const chosen = chosenNodes();
+  const ids = new Set(chosen.map((n) => n.id));
+  clipboard = JSON.stringify({
+    nodes: chosen,
+    edges: edges.value.filter((e) => ids.has(e.source) && ids.has(e.target)),
+  });
 }
 function paste() {
   if (!clipboard || props.readonly) return;
-  const copied: CanvasNode[] = JSON.parse(clipboard);
-  for (const n of copied) {
-    n.id = crypto.randomUUID();
+  const copied = JSON.parse(clipboard) as { nodes: CanvasNode[]; edges: CanvasEdge[] };
+  if (
+    nodes.value.length + copied.nodes.length > 100 ||
+    edges.value.length + copied.edges.length > 200
+  ) {
+    configError.value = 'Workflow limit: 100 nodes and 200 connections';
+    return;
+  }
+  const ids = new Map<string, string>();
+  for (const n of copied.nodes) ids.set(n.id, crypto.randomUUID());
+  for (const n of nodes.value) n.selected = false;
+  for (const n of copied.nodes) {
+    n.id = ids.get(n.id)!;
     n.position = { x: n.position.x + 40, y: n.position.y + 40 };
-    n.selected = false;
+    n.selected = true;
     nodes.value.push(n);
   }
+  for (const e of copied.edges)
+    edges.value.push({
+      ...e,
+      id: crypto.randomUUID(),
+      source: ids.get(e.source)!,
+      target: ids.get(e.target)!,
+    });
+  selectedID.value = copied.nodes[0]?.id || '';
 }
 function duplicate() {
   copy();
   paste();
 }
 function remove() {
-  if (props.readonly || !selectedID.value) return;
-  const id = selectedID.value;
-  nodes.value = nodes.value.filter((n) => n.id !== id);
-  edges.value = edges.value.filter((e) => e.source !== id && e.target !== id);
+  if (props.readonly) return;
+  const ids = new Set(chosenNodes().map((n) => n.id));
+  nodes.value = nodes.value.filter((n) => !ids.has(n.id));
+  edges.value = edges.value.filter((e) => !ids.has(e.source) && !ids.has(e.target));
   selectedID.value = '';
 }
 function layout() {
@@ -239,6 +270,10 @@ function keyboard(event: KeyboardEvent) {
   )
     return;
   if (event.metaKey || event.ctrlKey) {
+    if (event.key === 'a') {
+      event.preventDefault();
+      selectAll();
+    }
     if (event.key === 'z') {
       event.preventDefault();
       if (event.shiftKey) redo();
@@ -286,6 +321,9 @@ function setAttribute(value: string) {
     <div class="toolbar">
       <button :disabled="readonly" @click="undo">Undo</button
       ><button :disabled="readonly" @click="redo">Redo</button
+      ><button :disabled="readonly" @click="selectAll">Select all nodes</button
+      ><button :disabled="readonly" @click="copy">Copy selection</button
+      ><button :disabled="readonly" @click="paste">Paste selection</button
       ><button :disabled="readonly" @click="duplicate">Duplicate node</button
       ><button :disabled="readonly" @click="layout">Auto layout</button
       ><button @click="fitView()">Fit view</button>
