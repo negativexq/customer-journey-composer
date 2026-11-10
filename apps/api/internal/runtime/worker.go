@@ -105,6 +105,15 @@ func (w *Worker) Run(ctx context.Context) error {
 				continue
 			}
 		}
+		// Coalesce nearby completions into one bounded claim. Waiting for the
+		// entire group would block behind a slow customer; claiming each freed
+		// slot immediately instead multiplies database round trips under load.
+		if available < cap(slots) {
+			if !sleep(ctx, 2*time.Millisecond) {
+				break
+			}
+			available = cap(slots) - len(slots)
+		}
 		jobs, err := w.claimReady(ctx, available)
 		if err != nil {
 			if ctx.Err() == nil {
