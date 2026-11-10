@@ -1,0 +1,10 @@
+node_modules
+**/dist
+package-lock.json
+apps/api/go.sum
+apps/api/go.mod
+**/*.go
+**/*.sql
+.env*
+playwright-report
+test-results

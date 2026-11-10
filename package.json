@@ -1,0 +1,36 @@
+{
+  "name": "customer-journey-composer",
+  "private": true,
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=24 <27"
+  },
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace apps/web",
+    "build": "npm run build --workspace apps/web",
+    "typecheck": "npm run typecheck --workspace apps/web",
+    "lint": "eslint . --max-warnings 0 && node scripts/check-commits.mjs --self-test",
+    "fmt": "prettier --write .",
+    "fmt:check": "prettier --check .",
+    "test": "node --test scripts/*.test.mjs",
+    "test:e2e": "playwright test",
+    "commitlint": "node scripts/check-commits.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.65.0",
+    "eslint": "^10.14.0",
+    "eslint-plugin-vue": "^10.12.1",
+    "globals": "^17.14.0",
+    "prettier": "^3.9.10",
+    "typescript-eslint": "^8.72.2"
+  },
+  "overrides": {
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.1"
+    }
+  }
+}
