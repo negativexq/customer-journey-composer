@@ -220,28 +220,12 @@ func (w *Worker) Process(ctx context.Context, job Job) error {
 			if attrs == nil {
 				attrs = map[string]any{}
 			}
-			switch decision.Operation {
-			case "set":
-				attrs[decision.Attribute] = decision.Value
-			case "unset":
-				delete(attrs, decision.Attribute)
-			case "increment":
-				by, ok := decision.Value.(float64)
-				if !ok {
-					return w.fail(ctx, tx, job, now, "Increment requires a number")
-				}
-				previous := 0.0
-				if value, exists := attrs[decision.Attribute]; exists {
-					var ok bool
-					previous, ok = value.(float64)
-					if !ok {
-						return w.fail(ctx, tx, job, now, "Existing attribute is not numeric")
-					}
-				}
-				attrs[decision.Attribute] = previous + by
-			default:
-				return w.fail(ctx, tx, job, now, "Invalid attribute operation")
+			next, err := ApplyAttribute(attrs, decision)
+			if err != nil {
+				return w.fail(ctx, tx, job, now, err.Error())
 			}
+			attrs = next
+
 			if _, err := tx.Exec(ctx, `UPDATE customers SET attributes=$3,updated_at=$4 WHERE workspace_id=$1 AND customer_id=$2`, job.WorkspaceID, job.CustomerID, attrs, now); err != nil {
 				return err
 			}

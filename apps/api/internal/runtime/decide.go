@@ -80,6 +80,11 @@ func Decide(node workflow.Node, data map[string]any, now time.Time, resumePort s
 	return d, nil
 }
 func ContextData(profile map[string]any, event map[string]any, state map[string]any) map[string]any {
+	copyProfile := map[string]any{}
+	for key, value := range profile {
+		copyProfile[key] = value
+	}
+	profile = copyProfile
 	if attrs, ok := profile["attributes"].(map[string]any); ok {
 		for k, v := range attrs {
 			if _, exists := profile[k]; !exists {

@@ -134,30 +134,23 @@ func (s *Service) Schedule(ctx context.Context) (int, error) {
 		if p.channel == "sms" && p.phone != nil {
 			message.To = *p.phone
 		}
-		decision := Eligibility{Eligible: true, Consent: consent[p.channel], FrequencyCap: true, Reason: "eligible"}
+		decision := EvaluateEligibility(message, consent, 0, p.limit, p.state)
 		status := "SCHEDULED"
-		switch {
-		case p.state == "EXITED" || p.state == "CANCELLED" || p.state == "FAILED":
-			decision.Eligible = false
-			decision.Reason = "execution_terminated"
-			status = "SKIPPED"
-		case renderError != "":
+		if !decision.Eligible {
+			status = "BLOCKED"
+			if decision.Reason == "execution_terminated" {
+				status = "SKIPPED"
+			}
+			if decision.Reason == "missing_personalization" {
+				status = "FAILED"
+			}
+		}
+		if renderError != "" {
 			decision.Eligible = false
 			decision.Reason = renderError
 			status = "FAILED"
-		case len(message.Missing) > 0:
-			decision.Eligible = false
-			decision.Reason = "missing_personalization"
-			status = "FAILED"
-		case !decision.Consent:
-			decision.Eligible = false
-			decision.Reason = "consent_denied"
-			status = "BLOCKED"
-		case !validRecipient(p.channel, message.To):
-			decision.Eligible = false
-			decision.Reason = "invalid_recipient"
-			status = "BLOCKED"
 		}
+
 		if decision.Eligible {
 			var reservations int
 			err := tx.QueryRow(ctx, `SELECT count(*) FROM (SELECT 1 FROM ((SELECT 1 FROM delivery_jobs WHERE workspace_id=$1 AND customer_id=$2 AND mode='LIVE' AND status IN ('SCHEDULED','CLAIMED','DISPATCHING','UNKNOWN') LIMIT $4) UNION ALL (SELECT 1 FROM delivery_jobs WHERE workspace_id=$1 AND customer_id=$2 AND mode='LIVE' AND status='ACCEPTED' AND accepted_at>=$3 LIMIT $4)) slots LIMIT $4) reservations`, p.workspace, p.customer, now.Add(-time.Duration(p.window)*time.Second), p.limit).Scan(&reservations)
@@ -165,9 +158,7 @@ func (s *Service) Schedule(ctx context.Context) (int, error) {
 				return 0, err
 			}
 			if reservations >= p.limit {
-				decision.Eligible = false
-				decision.FrequencyCap = false
-				decision.Reason = "frequency_cap"
+				decision = EvaluateEligibility(message, consent, reservations, p.limit, p.state)
 				status = "BLOCKED"
 			}
 		}
@@ -365,7 +356,7 @@ func (s *Service) Dispatch(ctx context.Context, job Job) error {
 	}
 	defer func() { _ = tx2.Rollback(context.Background()) }()
 	finished := s.Clock.Now()
-	delay := time.Duration(1<<min(job.Attempt, 8)) * time.Second
+	delay := time.Duration(RetryDelay(job.Attempt)) * time.Second
 	tag, err = tx2.Exec(completed, `UPDATE delivery_jobs SET status=$3,due_at=$4,accepted_at=CASE WHEN $3='ACCEPTED' THEN $5::timestamptz ELSE NULL END,lease_until=NULL,claim_token=NULL,last_error=CASE WHEN $3='ACCEPTED' THEN NULL ELSE $6 END WHERE id=$1 AND claim_token=$2 AND status='DISPATCHING'`, job.ID, job.Token, status, finished.Add(delay), finished, out.Response)
 	if err != nil {
 		return err
