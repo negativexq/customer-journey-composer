@@ -165,7 +165,8 @@ test('customer, event, execution and message inspections survive reload and brow
   await expect(page.getByRole('region', { name: 'Execution details' })).toContainText(executionID);
   await page.getByRole('button', { name: 'Open activity inspector', exact: true }).click();
   await expect(drawer).toBeVisible();
-  await drawer.getByRole('button', { name: 'Close activity inspector', exact: true }).click();
+  await page.keyboard.press('Escape');
+  await expect(drawer).toBeHidden();
   await page.goto('/events');
   await page.locator('.event-row').filter({ hasText: customer }).click();
   await expect(eventDrawer).toContainText('linked_cart');

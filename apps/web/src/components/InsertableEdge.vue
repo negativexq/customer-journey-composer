@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from '@vue-flow/core';
 import AppIcon from './ui/AppIcon.vue';
-const props = defineProps<EdgeProps & { readonly?: boolean }>();
+const props = defineProps<EdgeProps & { readonly?: boolean; connectionLabel?: string }>();
 const emit = defineEmits<{ insert: [] }>();
 const path = computed(() => getBezierPath(props));
 </script>
@@ -19,7 +19,7 @@ const path = computed(() => getBezierPath(props));
     <button
       class="edge-insert nodrag nopan"
       :style="{ transform: `translate(-50%, -50%) translate(${path[1]}px, ${path[2]}px)` }"
-      :aria-label="`Insert step on ${id}${label ? ' · ' + label : ''}`"
+      :aria-label="`Insert step · ${connectionLabel || label || 'Connection'}`"
       title="Insert a step on this connection"
       @click.stop="emit('insert')"
     >

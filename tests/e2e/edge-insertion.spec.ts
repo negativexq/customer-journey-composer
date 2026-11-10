@@ -53,7 +53,7 @@ test('edge insertion preserves the original branch, requires an explicit new bra
   });
   await page.goto(`/journeys/${journey.id}`);
   await page.getByRole('button', { name: 'Fit view', exact: true }).click();
-  await page.getByRole('button', { name: 'Insert step on no_branch · No', exact: true }).click();
+  await page.getByRole('button', { name: 'Insert step · check → no · No', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Insert a step', exact: true });
   await expect(dialog.getByLabel('Step type')).toHaveValue('wait');
   await dialog.getByRole('button', { name: 'Insert step', exact: true }).click();
@@ -74,8 +74,9 @@ test('edge insertion preserves the original branch, requires an explicit new bra
   const restored = await (await page.request.get(`/api/v1/journeys/${journey.id}`)).json();
   expect(restored.draft.edges).toEqual(workflow.edges);
   await page.getByRole('button', { name: 'Fit view', exact: true }).click();
-  await page.getByRole('button', { name: 'Insert step on no_branch · No', exact: true }).click();
+  await page.getByRole('button', { name: 'Insert step · check → no · No', exact: true }).click();
   await dialog.getByLabel('Step type').selectOption('condition');
+  await expect(dialog.getByRole('button', { name: 'Insert step', exact: true })).toBeDisabled();
   await dialog.getByLabel('Continue through').selectOption('false');
   await expect(
     dialog.getByText('Connect the other output before publishing.', { exact: false }),

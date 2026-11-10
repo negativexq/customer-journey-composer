@@ -79,6 +79,7 @@ const edges = ref<CanvasEdge[]>(
     label: branchLabel(e.port),
   })),
 );
+const nodeLabels = computed(() => new Map(nodes.value.map((node) => [node.id, node.data.label])));
 const insertionDialog = ref<HTMLDialogElement>();
 const insertionEdge = ref('');
 const insertionPort = ref('');
@@ -92,7 +93,7 @@ function chooseEdge(id: string) {
   insertionDialog.value?.showModal();
 }
 watch(insertKind, (kind) => {
-  insertionPort.value = ports(kind)[0]!;
+  insertionPort.value = ports(kind).length > 1 ? '' : ports(kind)[0]!;
 });
 function insertStep() {
   if (props.readonly) return;
@@ -465,7 +466,8 @@ function setAttribute(value: string) {
         </select></label
       >
       <label
-        >Continue through<select v-model="insertionPort">
+        >Continue through<select v-model="insertionPort" required>
+          <option v-if="ports(insertKind).length > 1" value="" disabled>Select an output</option>
           <option v-for="port in ports(insertKind)" :key="port" :value="port">
             {{ branchLabel(port) || port }}
           </option>
@@ -476,7 +478,7 @@ function setAttribute(value: string) {
       </p>
       <div class="toolbar">
         <button type="button" @click="insertionDialog?.close()">Cancel</button
-        ><button class="primary">Insert step</button>
+        ><button class="primary" :disabled="!insertionPort">Insert step</button>
       </div>
     </form>
   </dialog>
@@ -604,6 +606,7 @@ function setAttribute(value: string) {
         <template #edge-insertable="edgeProps"
           ><InsertableEdge
             v-bind="edgeProps"
+            :connection-label="`${nodeLabels.get(edgeProps.source)} → ${nodeLabels.get(edgeProps.target)}${edgeProps.label ? ' · ' + edgeProps.label : ''}`"
             :readonly="readonly"
             @insert="chooseEdge(edgeProps.id)"
         /></template>
