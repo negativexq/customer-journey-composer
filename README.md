@@ -40,6 +40,10 @@ docker compose logs api   # Inspect structured API logs.
 
 The local development login comes prefilled with a generated demo account: click **Sign in**. Demo seeding is disabled in production; production signup is closed by default and the `admin` command bootstraps an owner using environment inputs. See [security and deployment policy](docs/SECURITY.md). This Compose stack binds to loopback and does not configure public TLS.
 
+## Operational telemetry
+
+`make observe-up` adds a local Prometheus/Grafana/Tempo/Collector stack. Open [Journey operations](http://localhost:3005/d/journey-operations). `make test-telemetry` validates metrics, alert rules and a durable API-to-provider trace. See [telemetry setup and signal semantics](docs/OBSERVABILITY.md).
+
 ## Native development
 
 Requires Go 1.26.10 or newer in the supported 1.26 series, Node.js 24 LTS, npm and Docker Compose.

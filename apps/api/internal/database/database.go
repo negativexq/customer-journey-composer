@@ -11,6 +11,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/ofk/customer-journey-composer/apps/api/internal/observability"
 )
 
 //go:embed migrations/*.sql
@@ -27,6 +28,7 @@ func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
 	cfg.MaxConnLifetime = time.Hour
 	cfg.MaxConnIdleTime = 5 * time.Minute
 	cfg.ConnConfig.ConnectTimeout = 5 * time.Second
+	cfg.ConnConfig.Tracer = observability.PGXTracer{}
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("create database pool: %w", err)

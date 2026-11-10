@@ -30,7 +30,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: cfg.LogLevel}))
+	log := slog.New(observability.Correlate(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: cfg.LogLevel})))
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	shutdownTrace, err := observability.Init(ctx, "journey-api", os.Getenv)
@@ -49,6 +49,11 @@ func run() error {
 		return err
 	}
 	defer pool.Close()
+	shutdownMetrics, err := observability.Serve(ctx, os.Getenv("METRICS_ADDR"), pool, false, log)
+	if err != nil {
+		return err
+	}
+	defer shutdownMetrics()
 	seedCtx, seedCancel := context.WithTimeout(ctx, 10*time.Second)
 	err = demo.Ensure(seedCtx, pool)
 	seedCancel()

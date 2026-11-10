@@ -1,0 +1,45 @@
+groups:
+  - name: journey-operations
+    rules:
+      - alert: JourneyTelemetryTargetDown
+        expr: up{job=~"journey-api|journey-worker"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: 'Journey telemetry target is unavailable'
+      - alert: JourneyAPIHighErrorRate
+        expr: sum(rate(journey_http_requests_total{status=~"5..",route!~"/healthz|/readyz"}[5m])) / clamp_min(sum(rate(journey_http_requests_total{route!~"/healthz|/readyz"}[5m])), 0.01) > 0.02
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: 'More than 2% of requests return 5xx'
+      - alert: JourneyAPISlow
+        expr: histogram_quantile(0.95, sum by(le) (rate(journey_http_duration_seconds_bucket{route!~"/healthz|/readyz"}[5m]))) > 0.5
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: 'API p95 exceeds 500ms'
+      - alert: JourneyPoolSaturated
+        expr: journey_db_pool_acquired / journey_db_pool_max > 0.9
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: 'Database pool remains over 90% acquired'
+      - alert: JourneyAnalyticsBehind
+        expr: journey_queue_oldest_age_seconds{queue="analytics"} > 30
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: 'Oldest analytics delta is more than 30 seconds old'
+      - alert: JourneyQueueSamplerStale
+        expr: time() - journey_queue_sample_timestamp_seconds{job="journey-worker"} > 30
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: 'Worker queue sampler has not refreshed for 30 seconds'
+      - alert: JourneyProviderUnknownOutcome
+        expr: (sum(increase(journey_provider_attempts_total{result="UNKNOWN"}[5m])) or vector(0)) + (sum(increase(journey_lease_recoveries_total{queue="delivery",result="unknown"}[5m])) or vector(0)) > 0
+        for: 0m
+        labels: { severity: warning }
+        annotations:
+          summary: 'A provider returned an ambiguous outcome; reconcile before retry'

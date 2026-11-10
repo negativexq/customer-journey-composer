@@ -28,7 +28,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: cfg.LogLevel}))
+	log := slog.New(observability.Correlate(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: cfg.LogLevel})))
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	shutdownTrace, err := observability.Init(ctx, "journey-worker", os.Getenv)
@@ -53,6 +53,11 @@ func run() error {
 		return err
 	}
 	defer pool.Close()
+	shutdownMetrics, err := observability.Serve(ctx, os.Getenv("METRICS_ADDR"), pool, true, log)
+	if err != nil {
+		return err
+	}
+	defer shutdownMetrics()
 	worker := engine.NewWorker(pool, nil)
 	worker.Log = log
 	log.Info("durable worker started")

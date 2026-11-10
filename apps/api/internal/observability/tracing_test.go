@@ -6,6 +6,9 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -40,5 +43,43 @@ func TestInvalidExporterConfigurationRejectedWithoutNetwork(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("credential-bearing collector URL accepted")
+	}
+}
+
+func TestConfiguredCollectorReceivesBoundedExportWithoutExternalNetwork(t *testing.T) {
+	paths := make(chan string, 2)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.Copy(io.Discard, r.Body)
+		paths <- r.URL.Path
+		w.Header().Set("Content-Type", "application/x-protobuf")
+		w.WriteHeader(200)
+	}))
+	defer server.Close()
+	old := otel.GetTracerProvider()
+	defer otel.SetTracerProvider(old)
+	shutdown, err := Init(context.Background(), "export-contract", func(k string) string {
+		switch k {
+		case "OTEL_EXPORTER_OTLP_ENDPOINT":
+			return server.URL
+		case "OTEL_TRACES_SAMPLER_ARG":
+			return "1"
+		}
+		return ""
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, span := Start(context.Background(), "export.test")
+	span.End()
+	if err = shutdown(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case path := <-paths:
+		if path != "/v1/traces" {
+			t.Fatal(path)
+		}
+	default:
+		t.Fatal("configured collector received no spans")
 	}
 }

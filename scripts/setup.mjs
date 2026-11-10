@@ -27,3 +27,12 @@ try {
     console.log('Existing .env preserved.');
   }
 }
+
+// Local observability admin secret. Anonymous Grafana access is read-only.
+const observabilityEnvPath = new URL('../.env', import.meta.url);
+let observabilityEnv = readFileSync(observabilityEnvPath, 'utf8');
+if (!/^GRAFANA_ADMIN_PASSWORD=.+$/m.test(observabilityEnv)) {
+  observabilityEnv = observabilityEnv.replace(/^GRAFANA_ADMIN_PASSWORD=.*$/m, '');
+  observabilityEnv += `\nGRAFANA_ADMIN_PASSWORD=${randomBytes(24).toString('hex')}\n`;
+  writeFileSync(observabilityEnvPath, observabilityEnv, { mode: 0o600 });
+}

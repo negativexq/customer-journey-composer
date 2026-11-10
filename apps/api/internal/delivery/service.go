@@ -193,18 +193,19 @@ func (s *Service) Recover(ctx context.Context) error {
 		return err
 	}
 	defer func() { _ = tx.Rollback(context.Background()) }()
-	rows, err := tx.Query(ctx, `UPDATE delivery_jobs SET status=CASE WHEN status='CLAIMED' OR idempotent_provider THEN 'SCHEDULED' ELSE 'UNKNOWN' END,claim_token=NULL,lease_until=NULL,last_error='Delivery lease expired; previous provider outcome may be unknown' WHERE id IN (SELECT id FROM delivery_jobs WHERE status IN ('CLAIMED','DISPATCHING') AND lease_until<=$1 ORDER BY lease_until,id LIMIT 100 FOR UPDATE SKIP LOCKED) RETURNING id::text,attempts`, s.Clock.Now())
+	rows, err := tx.Query(ctx, `UPDATE delivery_jobs SET status=CASE WHEN status='CLAIMED' OR idempotent_provider THEN 'SCHEDULED' ELSE 'UNKNOWN' END,claim_token=NULL,lease_until=NULL,last_error='Delivery lease expired; previous provider outcome may be unknown' WHERE id IN (SELECT id FROM delivery_jobs WHERE status IN ('CLAIMED','DISPATCHING') AND lease_until<=$1 ORDER BY lease_until,id LIMIT 100 FOR UPDATE SKIP LOCKED) RETURNING id::text,attempts,status`, s.Clock.Now())
 	if err != nil {
 		return err
 	}
 	type lost struct {
+		status  string
 		id      string
 		attempt int
 	}
 	items := []lost{}
 	for rows.Next() {
 		var p lost
-		if err := rows.Scan(&p.id, &p.attempt); err != nil {
+		if err := rows.Scan(&p.id, &p.attempt, &p.status); err != nil {
 			rows.Close()
 			return err
 		}
@@ -220,7 +221,17 @@ func (s *Service) Recover(ctx context.Context) error {
 			return err
 		}
 	}
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+	for _, item := range items {
+		result := "scheduled"
+		if item.status == "UNKNOWN" {
+			result = "unknown"
+		}
+		observability.ObserveLeaseRecovery("delivery", result, 1)
+	}
+	return nil
 }
 func (s *Service) Claim(ctx context.Context) (*Job, error) {
 	tx, err := s.Pool.Begin(ctx)
@@ -261,9 +272,10 @@ func (s *Service) Claim(ctx context.Context) (*Job, error) {
 	}
 	return &job, nil
 }
-func (s *Service) Dispatch(ctx context.Context, job Job) error {
+func (s *Service) Dispatch(ctx context.Context, job Job) (err error) {
 	ctx, span := observability.Start(observability.Parent(ctx, job.TraceParent), "delivery.dispatch", attribute.String("delivery.id", job.ID), attribute.Int("delivery.attempt", job.Attempt))
-	defer span.End()
+	ctx, finish := observability.TrackOperation(ctx, "delivery_dispatch")
+	defer func() { finish(err); span.End() }()
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -339,8 +351,24 @@ func (s *Service) Dispatch(ctx context.Context, job Job) error {
 		out = Outcome{Status: "FAILED", Response: "Retry limit exhausted"}
 	} else if provider != nil {
 		request, cancel := context.WithTimeout(ctx, 10*time.Second)
-		out = provider.Send(request, job.Message, job.WorkspaceID+":"+job.LogicalKey)
+		providerCtx, providerSpan := observability.Start(request, "messaging.provider.send", attribute.String("provider.name", job.Provider), attribute.String("messaging.channel", job.Message.Channel))
+		began := time.Now()
+		out = provider.Send(providerCtx, job.Message, job.WorkspaceID+":"+job.LogicalKey)
+		observability.ObserveProvider(job.Provider, job.Message.Channel, out.Status, time.Since(began))
+		providerSpan.SetAttributes(attribute.String("provider.outcome", out.Status), attribute.Int("provider.response.code", out.Code))
+		if out.Status != "ACCEPTED" {
+			observability.Fail(providerSpan, "provider_"+strings.ToLower(out.Status))
+		}
+		providerSpan.End()
 		cancel()
+	}
+	switch out.Status {
+	case "RETRY":
+		observability.SetOutcome(ctx, "retry")
+	case "FAILED":
+		observability.SetOutcome(ctx, "failed")
+	case "UNKNOWN":
+		observability.SetOutcome(ctx, "unknown")
 	}
 	status := out.Status
 	if status == "RETRY" {

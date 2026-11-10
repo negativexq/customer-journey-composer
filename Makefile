@@ -92,3 +92,13 @@ scan-images:
 .PHONY: benchmark
 benchmark:
 	./scripts/benchmark.sh --customers 10000 --out ../../docs/benchmarks/local-10000.json
+
+.PHONY: observe-up
+observe-up: setup
+	docker compose -f compose.yaml -f compose.observability.yaml up -d --wait
+
+.PHONY: test-telemetry
+test-telemetry:
+	node scripts/test-telemetry.mjs
+	docker compose -f compose.yaml -f compose.observability.yaml run --rm --no-deps --entrypoint /bin/promtool prometheus check rules /etc/prometheus/alerts.yaml
+	docker compose -f compose.yaml -f compose.observability.yaml run --rm --no-deps -v ./ops/observability/alerts.test.yaml:/etc/prometheus/alerts.test.yaml:ro --entrypoint /bin/promtool prometheus test rules /etc/prometheus/alerts.test.yaml

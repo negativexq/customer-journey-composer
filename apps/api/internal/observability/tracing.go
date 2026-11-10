@@ -12,6 +12,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"math"
 	"net/url"
+	"path"
 	"strconv"
 	"time"
 )
@@ -20,6 +21,7 @@ func Init(ctx context.Context, service string, getenv func(string) string) (func
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 	options := []sdktrace.TracerProviderOption{sdktrace.WithResource(resource.NewSchemaless(attribute.String("service.name", service), attribute.String("service.version", "0.1.0"))), sdktrace.WithSampler(sdktrace.NeverSample())}
 	endpoint := getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
+	genericEndpoint := endpoint == ""
 	if endpoint == "" {
 		endpoint = getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	}
@@ -35,7 +37,10 @@ func Init(ctx context.Context, service string, getenv func(string) string) (func
 				return nil, fmt.Errorf("trace sampling ratio must be 0–1")
 			}
 		}
-		exporter, err := otlptracehttp.New(ctx, otlptracehttp.WithTimeout(5*time.Second))
+		if genericEndpoint {
+			u.Path = path.Join(u.Path, "v1/traces")
+		}
+		exporter, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(u.String()), otlptracehttp.WithTimeout(5*time.Second))
 		if err != nil {
 			return nil, fmt.Errorf("trace exporter initialization failed")
 		}

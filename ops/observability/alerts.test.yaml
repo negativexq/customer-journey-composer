@@ -1,0 +1,13 @@
+rule_files: [/etc/prometheus/alerts.yaml]
+evaluation_interval: 15s
+tests:
+  - interval: 15s
+    input_series:
+      - series: 'up{job="journey-api"}'
+        values: '0x12'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: JourneyTelemetryTargetDown
+        exp_alerts:
+          - exp_labels: { job: journey-api, severity: critical }
+            exp_annotations: { summary: 'Journey telemetry target is unavailable' }

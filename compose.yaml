@@ -7,6 +7,7 @@ x-api: &api
   environment: &backend-env
     DATABASE_URL: postgres://${POSTGRES_USER:-journey}:${POSTGRES_PASSWORD:?Run make setup first}@postgres:5432/${POSTGRES_DB:-journeys}?sslmode=disable
     HTTP_ADDR: ':8080'
+    METRICS_ADDR: ':9464'
     LOG_LEVEL: ${LOG_LEVEL:-info}
     COOKIE_SECURE: ${COOKIE_SECURE:-false}
     OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}

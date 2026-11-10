@@ -1,0 +1,80 @@
+# Local-only observability overlay; application ports and data remain unchanged.
+services:
+  api:
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}
+  worker:
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}
+  tempo-ready:
+    image: customer-journey-composer-api:dev
+    entrypoint: ['sh', '-c']
+    command:
+      - |
+        attempt=0
+        until wget -q -O /dev/null http://tempo:3200/ready; do
+          attempt=$$((attempt + 1))
+          if [ "$$attempt" -ge 60 ]; then exit 1; fi
+          sleep 1
+        done
+    depends_on:
+      tempo:
+        condition: service_started
+    restart: 'no'
+  otel-collector:
+    depends_on:
+      tempo-ready:
+        condition: service_completed_successfully
+    image: otel/opentelemetry-collector:0.165.0
+    command: ['--config=/etc/otelcol/config.yaml']
+    volumes:
+      - ./ops/observability/collector.yaml:/etc/otelcol/config.yaml:ro
+    mem_limit: 128m
+    restart: unless-stopped
+  prometheus:
+    image: prom/prometheus:v3.16.0
+    command:
+      [
+        '--config.file=/etc/prometheus/prometheus.yaml',
+        '--storage.tsdb.retention.time=7d',
+        '--storage.tsdb.retention.size=512MB',
+      ]
+    ports:
+      - '127.0.0.1:${PROMETHEUS_PORT:-9095}:9090'
+    volumes:
+      - ./ops/observability/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+      - ./ops/observability/alerts.yaml:/etc/prometheus/alerts.yaml:ro
+      - prometheus-data:/prometheus
+    mem_limit: 512m
+    restart: unless-stopped
+  tempo:
+    image: grafana/tempo:3.1.1
+    command: ['-target=all', '-config.file=/etc/tempo.yaml']
+    ports:
+      - '127.0.0.1:${TEMPO_PORT:-3205}:3200'
+    volumes:
+      - ./ops/observability/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    mem_limit: 512m
+    restart: unless-stopped
+  grafana:
+    image: grafana/grafana:13.3.0
+    ports:
+      - '127.0.0.1:${GRAFANA_PORT:-3005}:3000'
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Run make setup}
+      GF_AUTH_ANONYMOUS_ENABLED: 'true'
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
+    volumes:
+      - ./ops/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./ops/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    mem_limit: 512m
+    restart: unless-stopped
+volumes:
+  prometheus-data:
+  tempo-data:
+  grafana-data:

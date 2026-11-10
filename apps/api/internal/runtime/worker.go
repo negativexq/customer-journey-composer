@@ -24,6 +24,7 @@ type Worker struct {
 type Job struct {
 	ID, WorkspaceID, ExecutionID, CustomerID, JourneyID, NodeID, Kind, Token, TraceParent string
 	Attempts                                                                              int
+	DueAt                                                                                 time.Time
 }
 
 func NewWorker(pool *pgxpool.Pool, clock Clock) *Worker {
@@ -38,10 +39,11 @@ func (w *Worker) Claim(ctx context.Context, limit int) ([]Job, error) {
 	}
 	now := w.Clock.Now()
 	// Bounded stale-lease recovery; the fencing token is replaced on every claim.
-	_, err := w.Pool.Exec(ctx, `UPDATE scheduled_jobs SET state='SCHEDULED',claim_token=NULL,lease_until=NULL,last_error='Lease expired; recovered' WHERE id IN (SELECT id FROM scheduled_jobs WHERE state='CLAIMED' AND lease_until<=$1 ORDER BY lease_until,id LIMIT 100 FOR UPDATE SKIP LOCKED)`, now)
+	tag, err := w.Pool.Exec(ctx, `UPDATE scheduled_jobs SET state='SCHEDULED',claim_token=NULL,lease_until=NULL,last_error='Lease expired; recovered' WHERE id IN (SELECT id FROM scheduled_jobs WHERE state='CLAIMED' AND lease_until<=$1 ORDER BY lease_until,id LIMIT 100 FOR UPDATE SKIP LOCKED)`, now)
 	if err != nil {
 		return nil, err
 	}
+	observability.ObserveLeaseRecovery("runtime", "scheduled", tag.RowsAffected())
 	// Keep the ordered jobs_due scan outside the one-to-one eligibility lookup.
 	// Joining from a selective Active journey made LIMIT 32 sort/probe every
 	// execution first. The guard is applied before LIMIT, so paused or locked
@@ -53,7 +55,7 @@ func (w *Worker) Claim(ctx context.Context, limit int) ([]Job, error) {
       FROM journey_executions e JOIN journeys f ON f.id=e.journey_id WHERE e.id=j.execution_id)
  ORDER BY j.due_at,j.id LIMIT $2 FOR UPDATE OF j SKIP LOCKED
  ), claimed AS (UPDATE scheduled_jobs j SET state='CLAIMED',claim_token=gen_random_uuid(),lease_until=$1+interval '30 seconds',attempts=j.attempts+1 FROM due WHERE j.id=due.id RETURNING j.*)
- SELECT c.id::text,c.workspace_id::text,c.execution_id::text,e.customer_id,e.journey_id::text,c.node_id,c.kind,c.claim_token::text,c.attempts,e.trace_parent FROM claimed c JOIN journey_executions e ON e.id=c.execution_id`, now, limit)
+ SELECT c.id::text,c.workspace_id::text,c.execution_id::text,e.customer_id,e.journey_id::text,c.node_id,c.kind,c.claim_token::text,c.attempts,e.trace_parent,c.due_at FROM claimed c JOIN journey_executions e ON e.id=c.execution_id`, now, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +63,7 @@ func (w *Worker) Claim(ctx context.Context, limit int) ([]Job, error) {
 	jobs := []Job{}
 	for rows.Next() {
 		var j Job
-		if err := rows.Scan(&j.ID, &j.WorkspaceID, &j.ExecutionID, &j.CustomerID, &j.JourneyID, &j.NodeID, &j.Kind, &j.Token, &j.Attempts, &j.TraceParent); err != nil {
+		if err := rows.Scan(&j.ID, &j.WorkspaceID, &j.ExecutionID, &j.CustomerID, &j.JourneyID, &j.NodeID, &j.Kind, &j.Token, &j.Attempts, &j.TraceParent, &j.DueAt); err != nil {
 			return nil, err
 		}
 		jobs = append(jobs, j)
@@ -115,13 +117,20 @@ func sleep(ctx context.Context, d time.Duration) bool {
 }
 func (w *Worker) retry(ctx context.Context, job Job) {
 	delay := time.Duration(1<<min(job.Attempts, 8)) * time.Second
-	_, _ = w.Pool.Exec(ctx, `UPDATE scheduled_jobs SET state='SCHEDULED',due_at=$3,lease_until=NULL,claim_token=NULL,last_error='Step transaction failed; retry scheduled' WHERE id=$1 AND state='CLAIMED' AND claim_token=$2`, job.ID, job.Token, w.Clock.Now().Add(delay))
+	tag, err := w.Pool.Exec(ctx, `UPDATE scheduled_jobs SET state='SCHEDULED',due_at=$3,lease_until=NULL,claim_token=NULL,last_error='Step transaction failed; retry scheduled' WHERE id=$1 AND state='CLAIMED' AND claim_token=$2`, job.ID, job.Token, w.Clock.Now().Add(delay))
+	if err == nil && tag.RowsAffected() > 0 {
+		observability.ObserveRuntimeRetry()
+	}
 }
-func (w *Worker) Process(ctx context.Context, job Job) error {
+func (w *Worker) Process(ctx context.Context, job Job) (err error) {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	ctx, span := observability.Start(observability.Parent(ctx, job.TraceParent), "runtime.step", attribute.String("execution.id", job.ExecutionID), attribute.String("node.id", job.NodeID))
-	defer span.End()
+	ctx, finish := observability.TrackOperation(ctx, "runtime_step")
+	defer func() { finish(err); span.End() }()
+	if !job.DueAt.IsZero() {
+		observability.ObserveJobLag(job.Kind, w.Clock.Now().Sub(job.DueAt))
+	}
 	tx, err := w.Pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -278,6 +287,7 @@ func scheduleNext(ctx context.Context, tx pgx.Tx, workspace, execution, next str
 	return err
 }
 func (w *Worker) fail(ctx context.Context, tx pgx.Tx, job Job, now time.Time, message string) error {
+	observability.SetOutcome(ctx, "failed")
 	if _, err := tx.Exec(ctx, `INSERT INTO step_executions(workspace_id,execution_id,node_id,node_type,state,started_at,completed_at,output) VALUES($1,$2,$3,'unknown','FAILED',$4,$4,jsonb_build_object('error',$5::text)) ON CONFLICT(execution_id,node_id) DO UPDATE SET state='FAILED',completed_at=$4,output=jsonb_build_object('error',$5::text)`, job.WorkspaceID, job.ExecutionID, job.NodeID, now, message); err != nil {
 		return err
 	}

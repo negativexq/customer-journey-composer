@@ -3,9 +3,6 @@ package httpapi
 import (
 	"context"
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/observability"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
 	"net"
 	"os"
 	"strings"
@@ -59,19 +56,6 @@ func signupEnabled() bool {
 func registerSecurityMiddleware(api huma.API) {
 	limiter := &requestLimiter{}
 	api.UseMiddleware(func(ctx huma.Context, next func(huma.Context)) {
-		parent := observability.Parent(ctx.Context(), ctx.Header("traceparent"))
-		traced, span := observability.HTTP(parent, ctx.Method()+" "+ctx.Operation().Path, attribute.String("http.route", ctx.Operation().Path), attribute.String("http.request.method", ctx.Method()))
-		defer func() {
-			span.SetAttributes(attribute.Int("http.response.status_code", ctx.Status()))
-			if ctx.Status() >= 500 {
-				span.SetStatus(codes.Error, "request_failed")
-			}
-			span.End()
-		}()
-		if span.SpanContext().IsValid() {
-			ctx.SetHeader("X-Trace-ID", span.SpanContext().TraceID().String())
-		}
-		ctx = huma.WithContext(ctx, traced)
 		path := ctx.URL().Path
 		timeout := 20 * time.Second
 		if strings.HasPrefix(path, "/api/v1/ai/") {
