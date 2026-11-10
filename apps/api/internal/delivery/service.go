@@ -60,6 +60,11 @@ func validRecipient(channel, to string) bool {
 	a, err := mail.ParseAddress(to)
 	return err == nil && a.Address == to
 }
+
+// Keep customer locks short: one scheduler transaction owns at most eight
+// outbox actions. Run immediately drains a full batch without the idle pause.
+const scheduleBatchSize = 8
+
 func (s *Service) Schedule(ctx context.Context) (int, error) {
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
@@ -70,7 +75,7 @@ func (s *Service) Schedule(ctx context.Context) (int, error) {
 	// Drive from outbox_pending; joining Active journeys first made even an
 	// empty queue repeatedly probe completed execution/outbox history. Customer
 	// locks and the per-item lifecycle/pending rechecks remain unchanged.
-	rows, err := tx.Query(ctx, `SELECT o.id::text,o.workspace_id::text,o.execution_id::text,o.node_id,o.channel,o.payload,e.customer_id,e.state,c.email,c.phone,c.consents,COALESCE(p.frequency_limit,3),COALESCE(p.frequency_window_seconds,86400) FROM action_outbox o JOIN journey_executions e ON e.id=o.execution_id JOIN customers c ON c.workspace_id=e.workspace_id AND c.customer_id=e.customer_id LEFT JOIN workspace_settings p ON p.workspace_id=o.workspace_id WHERE o.state='PENDING' AND (SELECT j.status IN ('Active','Sunset') FROM journeys j WHERE j.id=e.journey_id) ORDER BY o.created_at,o.id LIMIT 32 FOR UPDATE OF c SKIP LOCKED`)
+	rows, err := tx.Query(ctx, `SELECT o.id::text,o.workspace_id::text,o.execution_id::text,o.node_id,o.channel,o.payload,e.customer_id,e.state,c.email,c.phone,c.consents,COALESCE(p.frequency_limit,3),COALESCE(p.frequency_window_seconds,86400) FROM action_outbox o JOIN journey_executions e ON e.id=o.execution_id JOIN customers c ON c.workspace_id=e.workspace_id AND c.customer_id=e.customer_id LEFT JOIN workspace_settings p ON p.workspace_id=o.workspace_id WHERE o.state='PENDING' AND (SELECT j.status IN ('Active','Sunset') FROM journeys j WHERE j.id=e.journey_id) ORDER BY o.created_at,o.id LIMIT $1 FOR UPDATE OF c SKIP LOCKED`, scheduleBatchSize)
 	if err != nil {
 		return 0, err
 	}
@@ -437,7 +442,7 @@ func (s *Service) Run(ctx context.Context) error {
 					}
 				}
 			}
-			if n < 32 && !deliveryPause(ctx, nil, 250*time.Millisecond) {
+			if n < scheduleBatchSize && !deliveryPause(ctx, nil, 250*time.Millisecond) {
 				return
 			}
 		}
