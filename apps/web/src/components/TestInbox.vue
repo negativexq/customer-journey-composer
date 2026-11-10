@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import AppIcon from './ui/AppIcon.vue';
 import StatusBadge from './ui/StatusBadge.vue';
 import DecisionSummary from './ui/DecisionSummary.vue';
+import AttemptHistory from './ui/AttemptHistory.vue';
 import { api, type Journey } from '../lib/api';
 type Row = {
   id: string;
@@ -331,9 +332,12 @@ onMounted(
             JSON.stringify(selected.execution_trace, null, 2)
           }}</pre>
           <DecisionSummary v-else-if="tab === 'Decision'" :decision="selected.decision" />
-          <pre v-else-if="tab === 'Attempts'"
-            >{{ JSON.stringify(selected.attempt_history, null, 2) }}
-Provider: {{ selected.provider }} {{ selected.provider_response }}</pre>
+          <AttemptHistory
+            v-else-if="tab === 'Attempts'"
+            :attempts="selected.attempt_history"
+            :provider="selected.provider"
+            :response="selected.provider_response"
+          />
           <pre v-else>{{ JSON.stringify(previous, null, 2) }}</pre>
         </template>
         <div v-else class="inbox-empty">

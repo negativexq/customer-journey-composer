@@ -63,6 +63,14 @@ test('EUR recovery scenarios run in the sandbox with a run-scoped inline inbox',
   await expect(inbox.locator('.sms-phone')).toContainText('€89.90');
   await inbox.getByRole('button', { name: 'Decision', exact: true }).click();
   await expect(inbox.getByText('Eligible to send', { exact: true })).toBeVisible();
+  await page.locator('.journey-tabs').getByRole('button', { name: 'Builder', exact: true }).click();
+  await page
+    .locator('.journey-tabs')
+    .getByRole('button', { name: 'Preview & Test', exact: true })
+    .click();
+  await expect(page.getByTestId('test-result')).toHaveText('PASS');
+  await expect(inbox.locator('.inbox-row')).toHaveCount(2);
+  await expect(page.getByLabel('Recovery scenario', { exact: true })).toHaveValue('2');
   await page.getByLabel('Recovery scenario', { exact: true }).selectOption('3');
   await expect(inbox).toBeHidden();
   await page.getByRole('button', { name: 'Create test run', exact: true }).click();

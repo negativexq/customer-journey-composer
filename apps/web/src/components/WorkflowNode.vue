@@ -4,7 +4,22 @@ import { Handle, Position } from '@vue-flow/core';
 import { ports, labels, type Kind, type Config } from '../lib/workflow';
 import AppIcon from './ui/AppIcon.vue';
 const props = defineProps<{
-  data: { kind: Kind; label: string; config?: Config; invalid?: boolean };
+  data: {
+    kind: Kind;
+    label: string;
+    config?: Config;
+    invalid?: boolean;
+    active?: boolean;
+    visited?: boolean;
+    metrics?: {
+      entered: number;
+      waiting: number;
+      completed: number;
+      failed: number;
+      skipped: number;
+      average: string;
+    };
+  };
   selected?: boolean;
 }>();
 const icons: Record<string, string> = {
@@ -64,7 +79,18 @@ const label = (p: string) =>
           : '';
 </script>
 <template>
-  <div class="workflow-node" :class="[data.kind, { chosen: selected, invalid: data.invalid }]">
+  <div
+    class="workflow-node"
+    :class="[
+      data.kind,
+      {
+        chosen: selected,
+        invalid: data.invalid,
+        'is-current': data.active,
+        'was-visited': data.visited,
+      },
+    ]"
+  >
     <Handle v-if="data.kind !== 'event_trigger'" type="target" :position="Position.Top" />
     <div class="workflow-node-heading">
       <span class="step-type-icon" :class="data.kind"
@@ -79,6 +105,17 @@ const label = (p: string) =>
     <p class="workflow-node-detail">{{ detail }}</p>
     <div v-if="ports(data.kind).length > 1" class="node-ports">
       <span v-for="p in ports(data.kind)" :key="p" :class="p">{{ label(p) }}</span>
+    </div>
+    <div v-if="data.metrics" class="node-metrics">
+      <span
+        >Entered <strong>{{ data.metrics.entered }}</strong></span
+      ><span
+        >Waiting <strong>{{ data.metrics.waiting }}</strong></span
+      ><span
+        >Completed <strong>{{ data.metrics.completed }}</strong></span
+      ><span
+        >Failed <strong>{{ data.metrics.failed }}</strong></span
+      ><small>Skipped {{ data.metrics.skipped }} · Avg {{ data.metrics.average }}</small>
     </div>
     <Handle
       v-for="(p, i) in ports(data.kind)"

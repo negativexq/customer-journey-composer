@@ -14,9 +14,11 @@ The user-provided [UX handoff](design/ux-handoff.md) and [four-screen overview](
 - Shared icons, status badges, metric cards and an actual-data trend chart establish a common visual language.
 - Journey creation uses a focused dialog; journey lists use bounded server pagination and search.
 - The builder keeps metadata collapsed, the step library on the left and contextual node settings on the right. AI remains a proposal drawer with Apply/Discard and separate publication.
-- Test Lab exposes customer fields, event rows and expected outcomes before advanced JSON. Virtual clock controls and execution results share one workspace.
-- Test Inbox separates filtering, message selection and isolated rendering. Provider acceptance and simulated output remain distinct.
-- Analytics journey selection is searchable. Period presets show actual UTC date ranges and support keyboard selection, Escape and focus restoration. Date selection controls the trend only; summary cards explicitly show all-time totals.
+- Test Lab exposes customer fields, event rows and expected outcomes before advanced JSON. Virtual clock controls, execution results and a run-scoped inline Test Inbox share one workspace. The €50+ recovery template includes five editable scenario presets; switching journey tabs preserves the current run.
+- Test Inbox separates filtering, message selection and isolated rendering. Eligibility decisions and attempt history use readable summaries with advanced payload inspection. Provider acceptance and simulated output remain distinct.
+- Publishing opens a review dialog with server-derived graph, matching full-test and email configuration gates. Acknowledgement is required before the version is published. Consent, frequency caps and customer personalization are explicitly runtime decisions.
+- Live Monitor reuses builder node cards, displays actual node metrics and highlights the selected customer path. The inspector presents transitions, condition outcomes, pending work and delivery attempts. Tab changes preserve the selected customer while hidden monitors stop polling; late responses cannot replace a newer customer selection.
+- Analytics node reach bars use version entries as their denominator; alternative branches are labeled “Not reached” rather than implying linear funnel drop-off. Analytics journey selection is searchable. Period presets show actual UTC date ranges and support keyboard selection, Escape and focus restoration. Date selection controls the trend only; summary cards explicitly show all-time totals.
 - Selection controls have generous value space, padding and a distinct disclosure target. Reporting selectors are at least 290px wide on desktop and fill available width on mobile. Native form selects retain platform behavior with a consistent minimum 44px height.
 
 ## Navigation

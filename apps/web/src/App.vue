@@ -315,6 +315,7 @@ onErrorCaptured((cause) => {
           :readonly="readOnly"
           @navigate="editorNavigation"
           @back="navigate('Journeys')"
+          @settings="navigate('Settings')"
           @saved="
             if (route.journeyID === $event.id) selected = $event;
             refresh();

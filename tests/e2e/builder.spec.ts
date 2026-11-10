@@ -26,6 +26,13 @@ test('builds a connected workflow, validates and publishes an immutable version'
   await expect(page.locator('.vue-flow__edge')).toHaveCount(1);
   await page.getByRole('button', { name: 'Validate', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Workflow is valid');
+  await page.getByRole('button', { name: 'Publish', exact: true }).click();
+  const review = page.getByRole('dialog', { name: 'Review before publishing' });
+  await expect(
+    review.getByText('Complete a passing full Test Lab run', { exact: false }),
+  ).toBeVisible();
+  await expect(review.getByRole('button', { name: 'Publish version', exact: true })).toBeDisabled();
+  await review.getByRole('button', { name: 'Cancel', exact: true }).click();
   const gate = await (
     await page.request.post('/api/v1/test-runs', {
       headers: { 'X-CSRF-Token': identity.csrf_token },
@@ -43,8 +50,9 @@ test('builds a connected workflow, validates and publishes an immutable version'
       })
     ).ok(),
   ).toBeTruthy();
-  page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Publish', exact: true }).click();
+  await review.getByRole('checkbox', { name: 'I reviewed this version', exact: false }).check();
+  await review.getByRole('button', { name: 'Publish version', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Journey published');
   const response = await page.request.get(`/api/v1/journeys/${journey.id}/versions`);
   const versions = await response.json();

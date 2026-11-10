@@ -104,6 +104,17 @@ const name = ref('Customer journey scenario');
 const start = ref(new Date().toISOString().slice(0, 19));
 const mode = ref(props.nodeId ? 'single_node' : 'full');
 const node = ref(props.nodeId || '');
+watch(
+  () => props.nodeId,
+  (id, previous) => {
+    if (id === previous) return;
+    mode.value = id ? 'single_node' : 'full';
+    node.value = id || '';
+    run.value = undefined;
+    path.value = undefined;
+    selectedExample.value = '';
+  },
+);
 const customerID = ref('');
 const profile = ref('Custom Test Customer');
 const customer = ref(

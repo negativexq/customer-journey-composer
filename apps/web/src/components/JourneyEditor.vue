@@ -4,6 +4,7 @@ import { api, type Journey } from '../lib/api';
 import WorkflowCanvas from './WorkflowCanvas.vue';
 import MessageStudio from './MessageStudio.vue';
 import AIPanel from './AIPanel.vue';
+import PublishReview from './PublishReview.vue';
 import TestLab from './TestLab.vue';
 import LiveMonitor from './LiveMonitor.vue';
 import AnalyticsView from './AnalyticsView.vue';
@@ -19,6 +20,7 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{
   back: [];
+  settings: [];
   saved: [Journey];
   navigate: [{ tab: string; preview: string }];
 }>();
@@ -61,6 +63,7 @@ watch(
 watch([tab, previewTab], () => emit('navigate', { tab: tab.value, preview: previewTab.value }));
 
 const messageNodeID = ref('');
+const testNodeID = ref('');
 const messageStep = computed(
   () =>
     draft.value.nodes.find((n) => n.id === messageNodeID.value) ||
@@ -84,6 +87,7 @@ function previewNode(id: string) {
   const selected = draft.value.nodes.find((n) => n.id === id);
   previewTab.value =
     selected?.type === 'email' || selected?.type === 'sms' ? 'Messages' : 'Test Lab';
+  if (previewTab.value === 'Test Lab') testNodeID.value = id;
   tab.value = 'Preview & Test';
 }
 const versions = ref<{ id: string; version: number; workflow?: Workflow; created_at: string }[]>(
@@ -177,31 +181,45 @@ async function validate() {
     error.value = String(cause);
   }
 }
+const publishOpen = ref(false);
+const publishRevision = ref(revision.value);
+const publishError = ref('');
 async function publish() {
-  await validate();
-  if (issues.value.length || error.value) return;
+  error.value = '';
+  publishError.value = '';
   try {
-    const gates = await api<{ ready: boolean; issues: { message: string }[]; policy: string }>(
-      `/journeys/${props.journey.id}/publish-check`,
-    );
-    if (!gates.ready) {
-      error.value = gates.issues.map((i) => i.message).join(' · ');
-      return;
-    }
-    if (!window.confirm(gates.policy + ' Publish this version and allow new customers to enter?'))
-      return;
+    await flushDraft();
+    publishRevision.value = revision.value;
+    publishOpen.value = true;
   } catch (cause) {
     error.value = String(cause);
-    return;
   }
+}
+async function confirmPublish() {
+  if (busy.value) return;
+  busy.value = true;
+  publishError.value = '';
   try {
-    await api(`/journeys/${props.journey.id}/publish`, 'POST', { revision: revision.value });
+    await api(`/journeys/${props.journey.id}/publish`, 'POST', { revision: publishRevision.value });
     const updated = await api<Journey>(`/journeys/${props.journey.id}`);
     revision.value = updated.revision;
     emit('saved', updated);
+    publishOpen.value = false;
     notice.value = 'Journey published';
   } catch (cause) {
-    error.value = String(cause);
+    publishError.value = String(cause);
+  } finally {
+    busy.value = false;
+  }
+}
+function fixPublishIssue(code: string) {
+  if (code === 'test_required') {
+    tab.value = 'Preview & Test';
+    previewTab.value = 'Test Lab';
+  } else if (code === 'email_provider') emit('settings');
+  else {
+    tab.value = 'Builder';
+    void validate();
   }
 }
 async function saveTemplate() {
@@ -321,6 +339,7 @@ function back() {
           @click="
             tab = 'Preview & Test';
             previewTab = 'Test Lab';
+            testNodeID = '';
           "
         >
           <AppIcon name="flask" :size="15" />Test</button
@@ -459,16 +478,16 @@ function back() {
   <section v-else-if="tab === 'Preview & Test'">
     <nav class="detail-tabs">
       <button @click="previewTab = 'Messages'">Message preview</button
-      ><button @click="previewTab = 'Test Lab'">Journey path &amp; Test Lab</button>
+      ><button
+        @click="
+          previewTab = 'Test Lab';
+          testNodeID = '';
+        "
+      >
+        Journey path &amp; Test Lab
+      </button>
     </nav>
-    <TestLab
-      v-if="previewTab === 'Test Lab'"
-      :journey-id="journey.id"
-      :before-run="flushDraft"
-      :readonly="readonly"
-      :node-id="messageNodeID"
-    />
-    <template v-else>
+    <template v-if="previewTab !== 'Test Lab'">
       <label
         >Message node<select v-model="messageNodeID">
           <option value="">First message</option>
@@ -490,13 +509,8 @@ function back() {
       <p v-else class="panel">Add an email or SMS node in Builder to preview a message.</p>
     </template>
   </section>
-  <LiveMonitor
-    v-else-if="tab === 'Live Monitor'"
-    :journey-id="journey.id"
-    :readonly="readonly"
-    :admin="admin"
-  /><AnalyticsView v-else-if="tab === 'Analytics'" :journey-id="journey.id" />
-  <div v-else class="panel">
+  <AnalyticsView v-else-if="tab === 'Analytics'" :journey-id="journey.id" />
+  <div v-else-if="tab === 'Versions'" class="panel">
     <h2>Published versions</h2>
     <div v-if="versions.length > 1" class="editor-form">
       <label
@@ -519,6 +533,33 @@ function back() {
       <pre v-else>{{ JSON.stringify(version.workflow, null, 2) }}</pre>
     </details>
   </div>
+  <KeepAlive
+    ><TestLab
+      v-if="tab === 'Preview & Test' && previewTab === 'Test Lab'"
+      :journey-id="journey.id"
+      :before-run="flushDraft"
+      :readonly="readonly"
+      :node-id="testNodeID"
+  /></KeepAlive>
+  <KeepAlive
+    ><LiveMonitor
+      v-if="tab === 'Live Monitor'"
+      :journey-id="journey.id"
+      :readonly="readonly"
+      :admin="admin"
+  /></KeepAlive>
+  <PublishReview
+    v-model="publishOpen"
+    :journey-id="journey.id"
+    :name="name"
+    :workflow="draft"
+    :revision="publishRevision"
+    :published-version="publishedVersion"
+    :publishing="busy"
+    :publish-error="publishError"
+    @confirm="confirmPublish"
+    @fix="fixPublishIssue"
+  />
   <section v-if="issues.length" class="panel">
     <h3>Validation</h3>
     <p v-for="(issue, index) in issues" :key="index" class="error-message">

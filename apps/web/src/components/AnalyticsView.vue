@@ -251,12 +251,17 @@ onMounted(() => {
             <p>
               {{
                 selected
-                  ? 'Published v' + funnelVersion + ' · ' + funnelEntries + ' entries'
+                  ? funnelVersion
+                    ? 'Published v' + funnelVersion + ' · ' + funnelEntries + ' entries'
+                    : 'No published version · sandbox runs are excluded'
                   : 'Choose a journey to inspect its path'
               }}
             </p>
           </div>
         </div>
+        <p v-if="selected && funnel.length" class="table-caption">
+          Reach uses this version's total entries. Alternative branches are not sequential drop-off.
+        </p>
         <div v-if="selected && funnel.length" class="table-scroll">
           <table>
             <thead>
@@ -265,12 +270,23 @@ onMounted(() => {
                 <th>Entered</th>
                 <th>Completed</th>
                 <th>Skipped</th>
-                <th>Drop-off</th>
+                <th>Not reached</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="n in funnel" :key="n.node_id">
-                <td>{{ nodeLabels[n.node_id] || n.node_id }}</td>
+                <td class="node-funnel-label">
+                  <span>{{ nodeLabels[n.node_id] || n.node_id }}</span>
+                  <div class="node-reach-bar" aria-hidden="true">
+                    <span
+                      :style="{
+                        width:
+                          (funnelEntries ? Math.min(100, (100 * n.value) / funnelEntries) : 0) +
+                          '%',
+                      }"
+                    />
+                  </div>
+                </td>
                 <td>{{ n.value }}</td>
                 <td>{{ nodeValue(n.node_id, 'SUCCEEDED') }}</td>
                 <td>{{ nodeValue(n.node_id, 'SKIPPED') }}</td>
