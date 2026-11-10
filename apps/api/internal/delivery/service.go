@@ -67,7 +67,10 @@ func (s *Service) Schedule(ctx context.Context) (int, error) {
 	}
 	defer func() { _ = tx.Rollback(context.Background()) }()
 	now := s.Clock.Now()
-	rows, err := tx.Query(ctx, `SELECT o.id::text,o.workspace_id::text,o.execution_id::text,o.node_id,o.channel,o.payload,e.customer_id,e.state,c.email,c.phone,c.consents,COALESCE(p.frequency_limit,3),COALESCE(p.frequency_window_seconds,86400) FROM action_outbox o JOIN journey_executions e ON e.id=o.execution_id JOIN customers c ON c.workspace_id=e.workspace_id AND c.customer_id=e.customer_id JOIN journeys j ON j.id=e.journey_id LEFT JOIN workspace_settings p ON p.workspace_id=o.workspace_id WHERE o.state='PENDING' AND j.status IN ('Active','Sunset') ORDER BY o.created_at,o.id LIMIT 32 FOR UPDATE OF c SKIP LOCKED`)
+	// Drive from outbox_pending; joining Active journeys first made even an
+	// empty queue repeatedly probe completed execution/outbox history. Customer
+	// locks and the per-item lifecycle/pending rechecks remain unchanged.
+	rows, err := tx.Query(ctx, `SELECT o.id::text,o.workspace_id::text,o.execution_id::text,o.node_id,o.channel,o.payload,e.customer_id,e.state,c.email,c.phone,c.consents,COALESCE(p.frequency_limit,3),COALESCE(p.frequency_window_seconds,86400) FROM action_outbox o JOIN journey_executions e ON e.id=o.execution_id JOIN customers c ON c.workspace_id=e.workspace_id AND c.customer_id=e.customer_id LEFT JOIN workspace_settings p ON p.workspace_id=o.workspace_id WHERE o.state='PENDING' AND (SELECT j.status IN ('Active','Sunset') FROM journeys j WHERE j.id=e.journey_id) ORDER BY o.created_at,o.id LIMIT 32 FOR UPDATE OF c SKIP LOCKED`)
 	if err != nil {
 		return 0, err
 	}
@@ -228,7 +231,7 @@ func (s *Service) Claim(ctx context.Context) (*Job, error) {
 	now := s.Clock.Now()
 	var id string
 	// Lock the customer before the delivery row, matching runtime/global-exit order.
-	err = tx.QueryRow(ctx, `SELECT d.id::text FROM delivery_jobs d JOIN customers c ON c.workspace_id=d.workspace_id AND c.customer_id=d.customer_id JOIN journey_executions e ON e.id=d.execution_id JOIN journeys j ON j.id=e.journey_id WHERE d.status='SCHEDULED' AND d.mode='LIVE' AND d.due_at<=$1 AND j.status IN ('Active','Sunset') ORDER BY d.due_at,d.id LIMIT 1 FOR UPDATE OF c SKIP LOCKED`, now).Scan(&id)
+	err = tx.QueryRow(ctx, `SELECT d.id::text FROM delivery_jobs d JOIN customers c ON c.workspace_id=d.workspace_id AND c.customer_id=d.customer_id WHERE d.status='SCHEDULED' AND d.mode='LIVE' AND d.due_at<=$1 AND (SELECT j.status IN ('Active','Sunset') FROM journey_executions e JOIN journeys j ON j.id=e.journey_id WHERE e.id=d.execution_id) ORDER BY d.due_at,d.id LIMIT 1 FOR UPDATE OF c SKIP LOCKED`, now).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		err = tx.QueryRow(ctx, `SELECT id::text FROM delivery_jobs WHERE status='SCHEDULED' AND mode='TEST' AND due_at<=$1 ORDER BY due_at,id LIMIT 1 FOR UPDATE SKIP LOCKED`, now).Scan(&id)
 	}

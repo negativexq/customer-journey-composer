@@ -42,9 +42,15 @@ func (w *Worker) Claim(ctx context.Context, limit int) ([]Job, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Keep the ordered jobs_due scan outside the one-to-one eligibility lookup.
+	// Joining from a selective Active journey made LIMIT 32 sort/probe every
+	// execution first. The guard is applied before LIMIT, so paused or locked
+	// old jobs cannot starve eligible work behind them. Process still rechecks.
 	rows, err := w.Pool.Query(ctx, `WITH due AS (
- SELECT j.id FROM scheduled_jobs j JOIN journey_executions e ON e.id=j.execution_id JOIN journeys f ON f.id=e.journey_id
- WHERE j.state='SCHEDULED' AND j.due_at<=$1 AND e.state IN ('RUNNING','WAITING') AND f.status IN ('Active','Sunset')
+ SELECT j.id FROM scheduled_jobs j
+ WHERE j.state='SCHEDULED' AND j.due_at<=$1
+ AND (SELECT e.state IN ('RUNNING','WAITING') AND f.status IN ('Active','Sunset')
+      FROM journey_executions e JOIN journeys f ON f.id=e.journey_id WHERE e.id=j.execution_id)
  ORDER BY j.due_at,j.id LIMIT $2 FOR UPDATE OF j SKIP LOCKED
  ), claimed AS (UPDATE scheduled_jobs j SET state='CLAIMED',claim_token=gen_random_uuid(),lease_until=$1+interval '30 seconds',attempts=j.attempts+1 FROM due WHERE j.id=due.id RETURNING j.*)
  SELECT c.id::text,c.workspace_id::text,c.execution_id::text,e.customer_id,e.journey_id::text,c.node_id,c.kind,c.claim_token::text,c.attempts,e.trace_parent FROM claimed c JOIN journey_executions e ON e.id=c.execution_id`, now, limit)

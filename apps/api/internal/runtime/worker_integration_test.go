@@ -255,3 +255,46 @@ func TestVersionIsolationAndPauseSunset(t *testing.T) {
 		t.Fatal("sunset accepted entry", out, err)
 	}
 }
+
+func TestClaimSkipsOlderPausedAndLockedJobsBeforeApplyingLimit(t *testing.T) {
+	ctx, pool, pausedWorkspace, pausedJourney, _, _ := fixture(t)
+	_, _, lockedWorkspace, _, _, _ := fixture(t)
+	_, _, readyWorkspace, _, _, _ := fixture(t)
+	now := time.Now().UTC()
+	paused := entry(t, ctx, pool, pausedWorkspace, "cust_test", now)
+	locked := entry(t, ctx, pool, lockedWorkspace, "cust_test", now)
+	ready := entry(t, ctx, pool, readyWorkspace, "cust_test", now)
+	t.Cleanup(func() {
+		for _, workspace := range []string{pausedWorkspace, lockedWorkspace, readyWorkspace} {
+			_, _ = pool.Exec(context.Background(), `UPDATE scheduled_jobs SET state='CANCELLED',claim_token=NULL,lease_until=NULL WHERE workspace_id=$1 AND state IN ('SCHEDULED','CLAIMED')`, workspace)
+			_, _ = pool.Exec(context.Background(), `UPDATE journey_executions SET state='CANCELLED',completed_at=now(),updated_at=now() WHERE workspace_id=$1 AND state IN ('RUNNING','WAITING')`, workspace)
+		}
+	})
+	for i, id := range []string{paused, locked, ready} {
+		if _, err := pool.Exec(ctx, `UPDATE scheduled_jobs SET due_at=$2 WHERE execution_id=$1`, id, time.Date(2000, 1, 1, 0, 0, i, 0, time.UTC)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := pool.Exec(ctx, `UPDATE journeys SET status='Paused' WHERE id=$1`, pausedJourney); err != nil {
+		t.Fatal(err)
+	}
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback(context.Background()) }()
+	var id string
+	if err = tx.QueryRow(ctx, `SELECT id::text FROM scheduled_jobs WHERE execution_id=$1 FOR UPDATE`, locked).Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	claimCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	jobs, err := NewWorker(pool, nil).Claim(claimCtx, 1)
+	if err != nil || len(jobs) != 1 || jobs[0].ExecutionID != ready {
+		t.Fatalf("eligible work behind paused/locked rows was not claimed: %v %v", jobs, err)
+	}
+	var state string
+	if err = pool.QueryRow(ctx, `SELECT state FROM scheduled_jobs WHERE execution_id=$1`, paused).Scan(&state); err != nil || state != "SCHEDULED" {
+		t.Fatal("paused work changed", state, err)
+	}
+}

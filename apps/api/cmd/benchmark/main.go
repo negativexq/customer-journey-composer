@@ -378,10 +378,10 @@ func run(customers int, out string) error {
 		plans[name] = raw
 		return nil
 	}
-	if err = explain("loaded_due_job_claim", `SELECT j.id FROM scheduled_jobs j JOIN journey_executions e ON e.id=j.execution_id JOIN journeys f ON f.id=e.journey_id WHERE j.state='SCHEDULED' AND j.due_at<=$1 AND e.state IN ('RUNNING','WAITING') AND f.status IN ('Active','Sunset') ORDER BY j.due_at,j.id LIMIT 32 FOR UPDATE OF j SKIP LOCKED`, due.Add(time.Second)); err != nil {
+	if err = explain("joined_due_job_reference", `SELECT j.id FROM scheduled_jobs j JOIN journey_executions e ON e.id=j.execution_id JOIN journeys f ON f.id=e.journey_id WHERE j.state='SCHEDULED' AND j.due_at<=$1 AND e.state IN ('RUNNING','WAITING') AND f.status IN ('Active','Sunset') ORDER BY j.due_at,j.id LIMIT 32 FOR UPDATE OF j SKIP LOCKED`, due.Add(time.Second)); err != nil {
 		return err
 	}
-	if err = explain("ordered_due_job_candidate", orderedClaimCandidate, due.Add(time.Second)); err != nil {
+	if err = explain("loaded_due_job_claim", orderedClaimCandidate, due.Add(time.Second)); err != nil {
 		return err
 	}
 	if err = explain("active_entry_matching", `SELECT id,current_version_id FROM journeys WHERE workspace_id=$1 AND status='Active' AND entry_event_name='cart_updated'`, workspace); err != nil {
@@ -395,7 +395,7 @@ func run(customers int, out string) error {
 	}
 	runtimeDone := time.Now()
 	probe.phase.Store("delivery_drain")
-	if err = explain("loaded_delivery_claim", `SELECT d.id FROM delivery_jobs d JOIN customers c ON c.workspace_id=d.workspace_id AND c.customer_id=d.customer_id JOIN journey_executions e ON e.id=d.execution_id JOIN journeys j ON j.id=e.journey_id WHERE d.status='SCHEDULED' AND d.mode='LIVE' AND d.due_at<=$1 AND j.status IN ('Active','Sunset') ORDER BY d.due_at,d.id LIMIT 1 FOR UPDATE OF c SKIP LOCKED`, time.Now().UTC()); err != nil {
+	if err = explain("loaded_delivery_claim", `SELECT d.id FROM delivery_jobs d JOIN customers c ON c.workspace_id=d.workspace_id AND c.customer_id=d.customer_id WHERE d.status='SCHEDULED' AND d.mode='LIVE' AND d.due_at<=$1 AND (SELECT j.status IN ('Active','Sunset') FROM journey_executions e JOIN journeys j ON j.id=e.journey_id WHERE e.id=d.execution_id) ORDER BY d.due_at,d.id LIMIT 1 FOR UPDATE OF c SKIP LOCKED`, time.Now().UTC()); err != nil {
 		return err
 	}
 	if err = waitFor(ctx, "Accepted mock deliveries", customers, apiPool, `SELECT count(*) FROM delivery_jobs WHERE workspace_id=$1 AND status='ACCEPTED'`, workspace); err != nil {

@@ -228,3 +228,40 @@ func TestAmbiguousSMTPLeaseIsNeverAutomaticallyRetried(t *testing.T) {
 		t.Fatal(status)
 	}
 }
+
+func TestDeliveryClaimSkipsPausedAndLockedCustomers(t *testing.T) {
+	ctx, pool, now, pausedWorkspace, pausedExecution := seeded(t, true)
+	_, _, _, lockedWorkspace, lockedExecution := seeded(t, true)
+	_, _, _, readyWorkspace, readyExecution := seeded(t, true)
+	sender := New(pool, now)
+	if _, err := sender.Schedule(ctx); err != nil {
+		t.Fatal(err)
+	}
+	for i, execution := range []string{pausedExecution, lockedExecution, readyExecution} {
+		if _, err := pool.Exec(ctx, `UPDATE delivery_jobs SET due_at=$2 WHERE execution_id=$1`, execution, time.Date(2000, 1, 1, 0, 0, i, 0, time.UTC)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := pool.Exec(ctx, `UPDATE journeys SET status='Paused' WHERE workspace_id=$1`, pausedWorkspace); err != nil {
+		t.Fatal(err)
+	}
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback(context.Background()) }()
+	var customer string
+	if err = tx.QueryRow(ctx, `SELECT customer_id FROM customers WHERE workspace_id=$1 FOR UPDATE`, lockedWorkspace).Scan(&customer); err != nil {
+		t.Fatal(err)
+	}
+	claimCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	job, err := sender.Claim(claimCtx)
+	if err != nil || job == nil || job.WorkspaceID != readyWorkspace {
+		t.Fatalf("eligible delivery behind paused/locked customers was not claimed: %v %v", job, err)
+	}
+	var changed int
+	if err = pool.QueryRow(ctx, `SELECT count(*) FROM delivery_jobs WHERE workspace_id=$1 AND status<>'SCHEDULED'`, pausedWorkspace).Scan(&changed); err != nil || changed != 0 {
+		t.Fatal("paused deliveries changed", changed, err)
+	}
+}

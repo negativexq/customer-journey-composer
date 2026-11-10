@@ -13,7 +13,7 @@ import (
 )
 
 // The candidate keeps the ordered due-job index as the outer access path.
-// This is an EXPLAIN-only probe until production behavior is validated.
+// It matches the production guard and does not update or claim any rows.
 const orderedClaimCandidate = `SELECT j.id FROM scheduled_jobs j
  WHERE j.state='SCHEDULED' AND j.due_at<=$1
  AND (SELECT e.state IN ('RUNNING','WAITING') AND f.status IN ('Active','Sunset')
