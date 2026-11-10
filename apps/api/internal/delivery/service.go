@@ -61,9 +61,9 @@ func validRecipient(channel, to string) bool {
 	return err == nil && a.Address == to
 }
 
-// Keep customer locks short: one scheduler transaction owns at most sixteen
+// Keep customer locks short: one scheduler transaction owns at most thirty-two
 // outbox actions. Run immediately drains a full batch without the idle pause.
-const scheduleBatchSize = 16
+const scheduleBatchSize = 32
 
 // ScheduleQuery keeps the ordered pending index outside the customer lock.
 // The lateral LockRows boundary prevents a bulk join/sort of the pending queue.

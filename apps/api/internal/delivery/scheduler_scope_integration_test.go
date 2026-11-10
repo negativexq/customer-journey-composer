@@ -14,7 +14,7 @@ import (
 func TestSchedulingDoesNotLockCustomersBeyondItsTransactionBudget(t *testing.T) {
 	ctx, pool, now, first, _ := seeded(t, true)
 	workspaces := []string{first}
-	for range 8 {
+	for range scheduleBatchSize / 2 {
 		_, _, _, workspace, _ := seeded(t, true)
 		workspaces = append(workspaces, workspace)
 	}
@@ -82,7 +82,7 @@ func TestSchedulingDoesNotLockCustomersBeyondItsTransactionBudget(t *testing.T) 
 	if err = pool.QueryRow(ctx, `SELECT count(*),count(DISTINCT logical_key) FROM delivery_jobs WHERE workspace_id=ANY($1::uuid[])`, workspaces).Scan(&logical, &unique); err != nil {
 		t.Fatal(err)
 	}
-	if logical != 18 || unique != logical {
+	if logical != 2*len(workspaces) || unique != logical {
 		t.Fatalf("lost or duplicated actions: %d logical, %d unique", logical, unique)
 	}
 }
