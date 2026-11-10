@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/catalog"
 	"github.com/negativexq/customer-journey-composer/apps/api/internal/database"
 	"io"
 	"log/slog"
@@ -64,8 +65,13 @@ func TestTemplateIsolationAndIndexedJourneyPagination(t *testing.T) {
 	call("POST", "/templates/"+templateID+"/create-journey", map[string]string{"name": "Saved copy"}, 200)
 	var templates []map[string]any
 	json.Unmarshal(call("GET", "/templates", nil, 200), &templates)
-	if len(templates) != 3 || templates[2]["workflow"] != nil {
+	if len(templates) != len(catalog.Builtins())+1 {
 		t.Fatal("template list contains bodies or wrong scope")
+	}
+	for _, row := range templates {
+		if row["workflow"] != nil || row["scenarios"] != nil || row["brief"] != nil {
+			t.Fatal("template list contains heavy detail bodies")
+		}
 	}
 	for _, name := range []string{"Prefix A", "Prefix C", "Prefix B", "Prefix_% literal"} {
 		call("POST", "/journeys", map[string]string{"name": name}, 200)

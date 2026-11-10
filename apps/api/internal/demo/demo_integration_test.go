@@ -89,7 +89,7 @@ func TestSeededScenariosAreExecutableAndNeverCreateLiveRecords(t *testing.T) {
 	if err = rows.Err(); err != nil {
 		t.Fatal(err)
 	}
-	if n != 3 {
+	if n != 8 {
 		t.Fatal("wrong demo scenario count", n)
 	}
 	var live int

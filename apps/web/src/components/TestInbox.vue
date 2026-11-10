@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import AppIcon from './ui/AppIcon.vue';
 import StatusBadge from './ui/StatusBadge.vue';
+import DecisionSummary from './ui/DecisionSummary.vue';
 import { api, type Journey } from '../lib/api';
 type Row = {
   id: string;
@@ -40,13 +41,20 @@ type Detail = Row & {
   trace_id: string;
   workflow_hash?: string;
 };
-defineProps<{ readonly?: boolean }>();
+const props = defineProps<{
+  readonly?: boolean;
+  embedded?: boolean;
+  testRunId?: string;
+  runRevision?: number;
+}>();
 const rows = ref<Row[]>([]);
 const selected = ref<Detail>();
 const previous = ref<unknown>();
 const runs = ref<{ id: string; result: string; execution_state: string }[]>([]);
 const journeys = ref<Journey[]>([]);
-const run = ref('');
+const run = ref(props.testRunId || '');
+let detailSequence = 0;
+let loadSequence = 0;
 const customer = ref('');
 const journey = ref('');
 const channel = ref('');
@@ -77,6 +85,7 @@ async function perform(action: () => Promise<void>) {
   }
 }
 async function load(more = false) {
+  const request = ++loadSequence;
   await perform(async () => {
     const params = new URLSearchParams();
     if (run.value) params.set('test_run_id', run.value);
@@ -90,12 +99,21 @@ async function load(more = false) {
       params.set('before_id', last.id);
     }
     const result = await api<Row[]>('/test-inbox?' + params);
+    if (request !== loadSequence) return;
     rows.value = more ? [...rows.value, ...result] : result;
+    if (props.embedded) {
+      const row = rows.value.find((row) => row.id === selected.value?.id) || rows.value[0];
+      if (row) await open(row);
+      else selected.value = undefined;
+    }
   });
 }
 async function open(row: Row) {
+  const request = ++detailSequence;
   await perform(async () => {
-    selected.value = await api<Detail>('/test-messages/' + row.id);
+    const detail = await api<Detail>('/test-messages/' + row.id);
+    if (request !== detailSequence) return;
+    selected.value = detail;
     previous.value = undefined;
     tab.value = 'Preview';
   });
@@ -135,172 +153,248 @@ async function filterCustomer(value: string) {
   customer.value = value;
   await load();
 }
+watch(
+  () => [props.testRunId, props.runRevision] as const,
+  ([id]) => {
+    if (!props.embedded || !id) return;
+    if (run.value !== id) {
+      detailSequence++;
+      selected.value = undefined;
+      rows.value = [];
+    }
+    run.value = id;
+    void load();
+  },
+);
 onMounted(
   () =>
     void perform(async () => {
-      [runs.value, journeys.value] = await Promise.all([
-        api<typeof runs.value>('/test-runs'),
-        api<Journey[]>('/journeys?limit=200'),
-      ]);
+      if (!props.embedded)
+        [runs.value, journeys.value] = await Promise.all([
+          api<typeof runs.value>('/test-runs'),
+          api<Journey[]>('/journeys?limit=200'),
+        ]);
       await load();
     }),
 );
 </script>
 <template>
-  <div class="page-heading">
-    <div>
-      <div class="eyebrow">Testing workspace</div>
-      <h1>Test Inbox</h1>
-      <p class="page-description">
-        Review every message before it reaches your customers. Simulations stay in the sandbox.
-      </p>
-    </div>
-    <button :disabled="busy" @click="load()">
-      <AppIcon name="refresh" :size="15" />Refresh inbox
-    </button>
-  </div>
-  <p v-if="error" role="alert" class="error-message">{{ error }}</p>
-  <p role="status">{{ notice }}</p>
-  <div class="inbox-layout">
-    <aside class="panel inbox-filters">
-      <h2>Recipients &amp; runs</h2>
-      <label
-        >Test run<select v-model="run" @change="load()">
-          <option value="">All runs and explicit sends</option>
-          <option v-for="r in runs" :key="r.id" :value="r.id">
-            {{ r.id.slice(0, 8) }} · {{ r.result }}
-          </option>
-        </select></label
-      ><label>Customer ID<input v-model="customer" @keyup.enter="load()" /></label
-      ><button @click="load()">Filter customer</button
-      ><button v-for="c in customers" :key="c" class="list-row" @click="filterCustomer(c)">
-        {{ c }}</button
-      ><label
-        >Journey<select v-model="journey" @change="load()">
-          <option value="">All journeys</option>
-          <option v-for="j in journeys" :key="j.id" :value="j.id">{{ j.name }}</option>
-        </select></label
-      ><label
-        >Channel<select v-model="channel" @change="load()">
-          <option value="">All channels</option>
-          <option>email</option>
-          <option>sms</option>
-        </select></label
-      ><label
-        >Status<select v-model="status" aria-label="Status" @change="load()">
-          <option value="">All statuses</option>
-          <option
-            v-for="s in [
-              'SIMULATED',
-              'BLOCKED',
-              'SKIPPED',
-              'FAILED',
-              'TEST_ACCEPTED',
-              'TEST_PENDING',
-            ]"
-            :key="s"
-          >
-            {{ s }}
-          </option>
-        </select></label
-      >
-    </aside>
-    <section class="panel inbox-list" :aria-busy="busy">
-      <div class="inbox-list-heading">
-        <h2>Messages</h2>
-        <span class="count-chip">{{ rows.length }}</span>
+  <section :class="{ 'embedded-inbox': embedded }">
+    <div v-if="!embedded" class="page-heading">
+      <div>
+        <div class="eyebrow">Testing workspace</div>
+        <h1>Test Inbox</h1>
+        <p class="page-description">
+          Review every message before it reaches your customers. Simulations stay in the sandbox.
+        </p>
       </div>
-      <p v-if="!rows.length">
-        No matching test messages. Run a scenario in Test Lab or send an allowlisted test.
-      </p>
-      <button
-        v-for="r in rows"
-        :key="r.id"
-        class="inbox-row"
-        :class="{ selected: selected?.id === r.id }"
-        @click="open(r)"
-      >
-        <strong>{{ r.channel.toUpperCase() }} · {{ r.node_label }}</strong
-        ><span
-          >{{ r.journey_name || 'Explicit test' }} {{ r.version ? '· v' + r.version : '' }}</span
-        ><span>{{ r.customer_id || 'Test recipient' }} · {{ r.status }}</span
-        ><small>{{ r.mode }} · {{ new Date(r.simulated_at).toLocaleString() }}</small></button
-      ><button v-if="rows.length >= 50" @click="load(true)">Load older messages</button>
-    </section>
-    <section class="panel inbox-detail">
-      <template v-if="selected"
-        ><h2>{{ selected.message.subject || selected.node_label }}</h2>
-        <div class="inbox-message-meta">
-          <StatusBadge :status="selected.status" /><span
-            >{{ selected.mode }} {{ selected.provider_status || '' }}</span
-          >
+      <button :disabled="busy" @click="load()">
+        <AppIcon name="refresh" :size="15" />Refresh inbox
+      </button>
+    </div>
+    <div v-else class="embedded-inbox-heading">
+      <div>
+        <h2>Test Inbox</h2>
+        <p>Messages from this run · sandbox only</p>
+      </div>
+      <button :disabled="busy" @click="load()">
+        <AppIcon name="refresh" :size="14" />Refresh messages
+      </button>
+    </div>
+    <p v-if="error" role="alert" class="error-message">{{ error }}</p>
+    <p v-if="notice" role="status">{{ notice }}</p>
+    <div class="inbox-layout">
+      <aside v-if="!embedded" class="panel inbox-filters">
+        <h2>Recipients &amp; runs</h2>
+        <label
+          >Test run<select v-model="run" @change="load()">
+            <option value="">All runs and explicit sends</option>
+            <option v-for="r in runs" :key="r.id" :value="r.id">
+              {{ r.id.slice(0, 8) }} · {{ r.result }}
+            </option>
+          </select></label
+        ><label>Customer ID<input v-model="customer" @keyup.enter="load()" /></label
+        ><button @click="load()">Filter customer</button
+        ><button v-for="c in customers" :key="c" class="list-row" @click="filterCustomer(c)">
+          {{ c }}</button
+        ><label
+          >Journey<select v-model="journey" @change="load()">
+            <option value="">All journeys</option>
+            <option v-for="j in journeys" :key="j.id" :value="j.id">{{ j.name }}</option>
+          </select></label
+        ><label
+          >Channel<select v-model="channel" @change="load()">
+            <option value="">All channels</option>
+            <option>email</option>
+            <option>sms</option>
+          </select></label
+        ><label
+          >Status<select v-model="status" aria-label="Status" @change="load()">
+            <option value="">All statuses</option>
+            <option
+              v-for="s in [
+                'SIMULATED',
+                'BLOCKED',
+                'SKIPPED',
+                'FAILED',
+                'TEST_ACCEPTED',
+                'TEST_PENDING',
+              ]"
+              :key="s"
+            >
+              {{ s }}
+            </option>
+          </select></label
+        >
+      </aside>
+      <section class="panel inbox-list" :aria-busy="busy">
+        <div class="inbox-list-heading">
+          <h2>Messages</h2>
+          <span class="count-chip">{{ rows.length }}</span>
         </div>
-        <p>To: {{ selected.message.to }} · {{ selected.message.preheader }}</p>
-        <div class="detail-tabs">
-          <button
-            v-for="t in ['Preview', 'Payload', 'Execution trace', 'Decision', 'Attempts']"
-            :key="t"
-            :class="{ active: tab === t }"
-            :aria-pressed="tab === t"
-            @click="tab = t"
-          >
-            {{ t }}
-          </button>
-        </div>
-        <div class="detail-tabs">
-          <button @click="copy">Copy rendered content</button
-          ><button :disabled="!selected.test_run_id || readonly || busy" @click="replay">
-            Replay scenario</button
-          ><button :disabled="!selected.test_run_id || busy" @click="compare">
-            Compare with previous run
-          </button>
-        </div>
-        <template v-if="tab === 'Preview'"
-          ><label v-if="selected.channel === 'email'"
-            >Device<select v-model="device">
-              <option>desktop</option>
-              <option>mobile</option>
-            </select></label
-          ><iframe
-            v-if="selected.channel === 'email'"
-            title="Test email preview"
-            sandbox=""
-            :srcdoc="document"
-            :style="{ width: device === 'mobile' ? 'min(100%,375px)' : '100%' }"
-          />
-          <div v-else class="sms-phone">
-            <p>{{ selected.message.text }}</p>
-            <small
-              >{{ selected.message.encoding }} · {{ selected.message.segments }} segments</small
+        <p v-if="!rows.length">
+          No matching test messages. Run a scenario in Test Lab or send an allowlisted test.
+        </p>
+        <button
+          v-for="r in rows"
+          :key="r.id"
+          class="inbox-row"
+          :class="{ selected: selected?.id === r.id }"
+          @click="open(r)"
+        >
+          <strong>{{ r.channel.toUpperCase() }} · {{ r.node_label }}</strong
+          ><span
+            >{{ r.journey_name || 'Explicit test' }} {{ r.version ? '· v' + r.version : '' }}</span
+          ><span>{{ r.customer_id || 'Test recipient' }} · {{ r.status }}</span
+          ><small>{{ r.mode }} · {{ new Date(r.simulated_at).toLocaleString() }}</small></button
+        ><button v-if="rows.length >= 50" @click="load(true)">Load older messages</button>
+      </section>
+      <section class="panel inbox-detail">
+        <template v-if="selected"
+          ><h2>{{ selected.message.subject || selected.node_label }}</h2>
+          <div class="inbox-message-meta">
+            <StatusBadge :status="selected.status" /><span
+              >{{ selected.mode }} {{ selected.provider_status || '' }}</span
             >
           </div>
-          <h3>Personalization values</h3>
-          <pre>{{ JSON.stringify(selected.message.personalization_values, null, 2) }}</pre>
-          <p>
-            Template {{ selected.message.template_id || 'inline' }} · Source node
-            {{ selected.source_node || 'explicit test' }} · Trace {{ selected.trace_id }}
-          </p>
-          <p>Workflow snapshot {{ selected.workflow_hash || 'standalone message' }}</p></template
-        >
-        <pre v-else-if="tab === 'Payload'">{{ JSON.stringify(selected, null, 2) }}</pre>
-        <pre v-else-if="tab === 'Execution trace'">{{
-          JSON.stringify(selected.execution_trace, null, 2)
-        }}</pre>
-        <pre v-else-if="tab === 'Decision'">{{ JSON.stringify(selected.decision, null, 2) }}</pre>
-        <pre v-else-if="tab === 'Attempts'"
-          >{{ JSON.stringify(selected.attempt_history, null, 2) }}
+          <p>To: {{ selected.message.to }} · {{ selected.message.preheader }}</p>
+          <div class="detail-tabs">
+            <button
+              v-for="t in embedded
+                ? ['Preview', 'Decision', 'Attempts']
+                : ['Preview', 'Payload', 'Execution trace', 'Decision', 'Attempts']"
+              :key="t"
+              :class="{ active: tab === t }"
+              :aria-pressed="tab === t"
+              @click="tab = t"
+            >
+              {{ t }}
+            </button>
+          </div>
+          <div v-if="!embedded" class="detail-tabs">
+            <button @click="copy">Copy rendered content</button
+            ><button :disabled="!selected.test_run_id || readonly || busy" @click="replay">
+              Replay scenario</button
+            ><button :disabled="!selected.test_run_id || busy" @click="compare">
+              Compare with previous run
+            </button>
+          </div>
+          <template v-if="tab === 'Preview'"
+            ><label v-if="selected.channel === 'email'"
+              >Device<select v-model="device">
+                <option>desktop</option>
+                <option>mobile</option>
+              </select></label
+            ><iframe
+              v-if="selected.channel === 'email'"
+              title="Test email preview"
+              sandbox=""
+              :srcdoc="document"
+              :style="{ width: device === 'mobile' ? 'min(100%,375px)' : '100%' }"
+            />
+            <div v-else class="sms-phone">
+              <p>{{ selected.message.text }}</p>
+              <small
+                >{{ selected.message.encoding }} · {{ selected.message.segments }} segments</small
+              >
+            </div>
+            <h3>Personalization values</h3>
+            <pre>{{ JSON.stringify(selected.message.personalization_values, null, 2) }}</pre>
+            <p>
+              Template {{ selected.message.template_id || 'inline' }} · Source node
+              {{ selected.source_node || 'explicit test' }} · Trace {{ selected.trace_id }}
+            </p>
+            <p>Workflow snapshot {{ selected.workflow_hash || 'standalone message' }}</p></template
+          >
+          <pre v-else-if="tab === 'Payload'">{{ JSON.stringify(selected, null, 2) }}</pre>
+          <pre v-else-if="tab === 'Execution trace'">{{
+            JSON.stringify(selected.execution_trace, null, 2)
+          }}</pre>
+          <DecisionSummary v-else-if="tab === 'Decision'" :decision="selected.decision" />
+          <pre v-else-if="tab === 'Attempts'"
+            >{{ JSON.stringify(selected.attempt_history, null, 2) }}
 Provider: {{ selected.provider }} {{ selected.provider_response }}</pre>
-        <pre v-else>{{ JSON.stringify(previous, null, 2) }}</pre>
-      </template>
-      <div v-else class="inbox-empty">
-        <span><AppIcon name="inbox" :size="32" /></span>
-        <h2>Your message preview</h2>
-        <p>Select a message to inspect its rendered content, eligibility and execution trace.</p>
-      </div>
-    </section>
-  </div>
+          <pre v-else>{{ JSON.stringify(previous, null, 2) }}</pre>
+        </template>
+        <div v-else class="inbox-empty">
+          <span><AppIcon name="inbox" :size="32" /></span>
+          <h2>Your message preview</h2>
+          <p>Select a message to inspect its rendered content, eligibility and execution trace.</p>
+        </div>
+      </section>
+    </div>
+  </section>
 </template>
 <style scoped>
+.embedded-inbox-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  gap: 12px;
+}
+.embedded-inbox-heading p {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 6px 0 0;
+}
+.embedded-inbox .inbox-layout {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(0, 1.3fr);
+  min-height: 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 10px 10px;
+}
+.embedded-inbox .inbox-list {
+  max-height: 700px;
+  overflow: auto;
+  border: 0;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  margin: 0;
+  padding: 0;
+}
+.embedded-inbox .inbox-list-heading {
+  padding: 16px;
+}
+.embedded-inbox .inbox-detail {
+  border: 0;
+  padding: 20px;
+  margin: 0;
+  border-radius: 0;
+}
+@media (max-width: 700px) {
+  .embedded-inbox .inbox-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .embedded-inbox .inbox-list {
+    max-height: 240px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
 .inbox-layout {
   display: grid;
   grid-template-columns: 220px minmax(220px, 1fr) minmax(300px, 1.5fr);

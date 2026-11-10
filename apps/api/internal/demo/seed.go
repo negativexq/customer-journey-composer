@@ -58,13 +58,18 @@ func seed(ctx context.Context, tx pgx.Tx, workspace, user string) error {
 			early.Assertions = []sim.Assertion{{Type: "state", Expected: "EXITED"}, {Type: "exit_reason", Expected: "converted"}, {Type: "no_message"}}
 			scenarios = append(scenarios, early)
 		}
+		var sourceCustomer any = "demo_new"
+		if len(template.Scenarios) > 0 {
+			scenarios = template.Scenarios
+			sourceCustomer = nil
+		}
 		for _, scenario := range scenarios {
 			_, _, normalized, err := sim.New(template.Workflow, scenario)
 			if err != nil {
 				return err
 			}
 			raw, _ := json.Marshal(normalized)
-			if _, err = tx.Exec(ctx, `INSERT INTO test_scenarios(workspace_id,journey_id,draft_revision,workflow_hash,source_customer_id,name,scenario,created_by) VALUES($1,$2,1,$3,'demo_new',$4,$5,$6)`, workspace, journey, hash, normalized.Name, raw, user); err != nil {
+			if _, err = tx.Exec(ctx, `INSERT INTO test_scenarios(workspace_id,journey_id,draft_revision,workflow_hash,source_customer_id,name,scenario,created_by) VALUES($1,$2,1,$3,$4,$5,$6,$7)`, workspace, journey, hash, sourceCustomer, normalized.Name, raw, user); err != nil {
 				return err
 			}
 		}

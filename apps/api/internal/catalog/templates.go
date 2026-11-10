@@ -1,13 +1,19 @@
 package catalog
 
-import "github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
+import (
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/simulation"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
+)
 
 type Template struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	Tags        []string          `json:"tags"`
-	Workflow    workflow.Workflow `json:"workflow"`
+	Brief       string                `json:"brief,omitempty"`
+	Notes       []string              `json:"notes,omitempty"`
+	Scenarios   []simulation.Scenario `json:"scenarios,omitempty"`
+	ID          string                `json:"id"`
+	Name        string                `json:"name"`
+	Description string                `json:"description"`
+	Tags        []string              `json:"tags"`
+	Workflow    workflow.Workflow     `json:"workflow"`
 }
 
 func edge(id, source, target, port string) workflow.Edge {
@@ -37,7 +43,7 @@ func Builtins() []Template {
 		node("done", "exit", "Onboarding complete", 80, 840, workflow.Config{Reason: "completed"}),
 		node("converted", "exit", "Activated", 540, 660, workflow.Config{Reason: "converted"}),
 	}, Edges: []workflow.Edge{edge("a", "start", "welcome", "started"), edge("b", "welcome", "delay", "next"), edge("c", "delay", "active", "completed"), edge("d", "active", "converted", "true"), edge("e", "active", "reminder", "false"), edge("f", "reminder", "done", "next")}}
-	return []Template{{"abandoned-cart", "Abandoned Cart Recovery", "Wait, check purchase and recover the cart with email/SMS. A purchase exits immediately.", []string{"commerce", "cart", "recovery"}, cart}, {"customer-onboarding", "Customer Onboarding", "Welcome new customers, wait 48 hours and remind inactive accounts.", []string{"onboarding", "activation"}, onboarding}}
+	return []Template{{ID: "abandoned-cart", Name: "Abandoned Cart Recovery", Description: "Wait, check purchase and recover the cart with email/SMS. A purchase exits immediately.", Tags: []string{"commerce", "cart", "recovery"}, Workflow: cart}, {ID: "customer-onboarding", Name: "Customer Onboarding", Description: "Welcome new customers, wait 48 hours and remind inactive accounts.", Tags: []string{"onboarding", "activation"}, Workflow: onboarding}, recoveryEUR()}
 }
 func Find(id string) (Template, bool) {
 	for _, t := range Builtins() {

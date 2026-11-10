@@ -4,6 +4,7 @@ import { api, type Journey } from '../lib/api';
 import AppIcon from './ui/AppIcon.vue';
 import StatusBadge from './ui/StatusBadge.vue';
 import CustomerProfileFields from './ui/CustomerProfileFields.vue';
+import TestInbox from './TestInbox.vue';
 const props = defineProps<{
   journeyId?: string;
   beforeRun?: () => Promise<void>;
@@ -38,6 +39,64 @@ type State = {
   assertions: { description: string; pass: boolean; actual: unknown }[];
 };
 type Run = { id: string; revision: number; workflow_hash: string; state: State };
+type Example = {
+  name: string;
+  start_time: string;
+  customer: Record<string, unknown>;
+  entry_event: Record<string, unknown>;
+  events?: unknown[];
+  attribute_changes?: unknown[];
+  assertions: unknown[];
+};
+const examples = ref<Example[]>([]);
+const selectedExample = ref('');
+const exampleNotes = ref<string[]>([]);
+let exampleRequest = 0;
+async function loadExamples() {
+  const request = ++exampleRequest;
+  examples.value = [];
+  exampleNotes.value = [];
+  selectedExample.value = '';
+  if (!journey.value) return;
+  try {
+    const selected =
+      journeys.value.find((j) => j.id === journey.value) ||
+      (await api<Journey>('/journeys/' + journey.value));
+    if (request !== exampleRequest || !selected.tags.includes('eur-recovery')) return;
+    const data = await api<{ scenarios: Example[]; notes: string[] }>(
+      '/templates/abandoned-cart-eur',
+    );
+    if (request !== exampleRequest) return;
+    examples.value = data.scenarios;
+    exampleNotes.value = data.notes;
+    if (!props.nodeId && name.value === 'Customer journey scenario' && !savedScenario.value) {
+      selectedExample.value = '2';
+      applyExample();
+    }
+  } catch (cause) {
+    if (request === exampleRequest) error.value = String(cause);
+  }
+}
+function applyExample() {
+  const example = examples.value[Number(selectedExample.value)];
+  if (!example || selectedExample.value === '') return;
+  savedScenario.value = '';
+  version.value = 0;
+  mode.value = 'full';
+  node.value = '';
+  customerID.value = '';
+  name.value = example.name;
+  start.value = example.start_time.slice(0, 19);
+  customer.value = JSON.stringify(example.customer, null, 2);
+  entry.value = JSON.stringify(example.entry_event, null, 2);
+  events.value = JSON.stringify(example.events || [], null, 2);
+  changes.value = JSON.stringify(example.attribute_changes || [], null, 2);
+  assertions.value = JSON.stringify(example.assertions, null, 2);
+  faults.value = '[]';
+  prior.value = 0;
+  run.value = undefined;
+  path.value = undefined;
+}
 const journeys = ref<Journey[]>([]);
 const journey = ref(props.journeyId || '');
 const version = ref(0);
@@ -157,7 +216,10 @@ async function loadVersions() {
     error.value = String(cause);
   }
 }
-watch(journey, () => void loadVersions());
+watch(journey, () => {
+  void loadVersions();
+  void loadExamples();
+});
 const time = (at: string) =>
   new Date(at).toLocaleString('en-US', {
     month: 'short',
@@ -283,6 +345,7 @@ onMounted(
       if (!props.journeyId) journeys.value = await api<Journey[]>('/journeys?limit=200');
       await refresh();
       await loadVersions();
+      await loadExamples();
     }),
 );
 </script>
@@ -306,6 +369,32 @@ onMounted(
           <AppIcon name="settings" :size="16" />
         </div>
         <div class="scenario-form">
+          <div v-if="examples.length" class="example-scenarios">
+            <label
+              >Recovery scenario<select
+                v-model="selectedExample"
+                aria-label="Recovery scenario"
+                :disabled="busy || readonly"
+                @change="applyExample"
+              >
+                <option value="">Custom inputs</option>
+                <option
+                  v-for="(example, index) in examples"
+                  :key="example.name"
+                  :value="String(index)"
+                >
+                  {{ example.name }}
+                </option>
+              </select></label
+            >
+            <p>Synthetic Alex · €89.90 cart. Presets fill editable sandbox inputs.</p>
+            <details>
+              <summary>Journey rules &amp; assumptions</summary>
+              <ul>
+                <li v-for="note in exampleNotes" :key="note">{{ note }}</li>
+              </ul>
+            </details>
+          </div>
           <label v-if="!journeyId"
             >Journey<select v-model="journey" @change="refresh">
               <option value="">Select a journey</option>
@@ -377,22 +466,28 @@ onMounted(
               <AppIcon name="plus" :size="15" />Add event
             </button>
             <div class="form-section-title">Expected results</div>
-            <label
-              >Expected outcome<select v-model="outcome">
-                <option value="COMPLETED">Journey completes</option>
-                <option value="EXITED">Customer exits</option>
-                <option value="FAILED">Journey fails</option>
-                <option value="WAITING">Still waiting</option>
-              </select></label
-            ><label
-              >Expected messages<select v-model="expectedMessages">
-                <option value="any">Use default assertions</option>
-                <option value="both">Email and SMS</option>
-                <option value="email">Email is generated</option>
-                <option value="sms">SMS is generated</option>
-                <option value="none">No messages</option>
-              </select></label
-            >
+            <p v-if="selectedExample !== ''" class="card-footnote">
+              This preset includes its own message, conversion and re-entry assertions. Review or
+              edit them under Advanced scenario options.
+            </p>
+            <template v-else>
+              <label
+                >Expected outcome<select v-model="outcome">
+                  <option value="COMPLETED">Journey completes</option>
+                  <option value="EXITED">Customer exits</option>
+                  <option value="FAILED">Journey fails</option>
+                  <option value="WAITING">Still waiting</option>
+                </select></label
+              ><label
+                >Expected messages<select v-model="expectedMessages">
+                  <option value="any">Use default assertions</option>
+                  <option value="both">Email and SMS</option>
+                  <option value="email">Email is generated</option>
+                  <option value="sms">SMS is generated</option>
+                  <option value="none">No messages</option>
+                </select></label
+              >
+            </template>
             <details class="advanced-options">
               <summary>Advanced scenario options <AppIcon name="down" :size="13" /></summary>
               <div class="editor-form">
@@ -590,6 +685,19 @@ onMounted(
               </p>
             </details></template
           >
+        </section>
+        <section
+          v-if="run && state?.messages.length"
+          class="surface run-inbox"
+          aria-label="Test run inbox"
+        >
+          <TestInbox
+            :key="run.id"
+            embedded
+            :test-run-id="run.id"
+            :run-revision="run.revision"
+            :readonly="readonly"
+          />
         </section>
         <section class="surface recent-test-runs">
           <div class="surface-heading">

@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue';
 import { api, type Journey } from '../lib/api';
 import type { Workflow } from '../lib/workflow';
+import AppIcon from './ui/AppIcon.vue';
 defineProps<{ readonly?: boolean }>();
 const emit = defineEmits<{ open: [Journey] }>();
 const templates = ref<
@@ -14,7 +15,7 @@ const templates = ref<
     node_count?: number;
   }[]
 >([]);
-const detail = ref<{ name: string; workflow: Workflow }>();
+const detail = ref<{ name: string; workflow: Workflow; brief?: string; notes?: string[] }>();
 const error = ref('');
 const busy = ref(false);
 async function preview(id: string) {
@@ -56,8 +57,14 @@ onMounted(async () => {
   <p v-if="error" class="error-message" role="alert">{{ error }}</p>
   <div class="journey-grid">
     <article v-for="t in templates" :key="t.id" class="panel journey-card">
-      <span class="pill">{{ t.builtin ? 'Built-in' : 'Workspace template' }}</span>
+      <div class="template-card-heading">
+        <span class="step-type-icon email"><AppIcon name="workflow" :size="19" /></span
+        ><span class="pill">{{ t.builtin ? 'Built-in' : 'Workspace template' }}</span>
+      </div>
       <h2>{{ t.name }}</h2>
+      <span v-if="t.node_count" class="template-node-count"
+        >{{ t.node_count }} connected steps</span
+      >
       <p>{{ t.description }}</p>
       <div class="tags">
         <span v-for="tag in t.tags" :key="tag">{{ tag }}</span>
@@ -70,6 +77,13 @@ onMounted(async () => {
   </div>
   <section v-if="detail" class="panel">
     <h2>{{ detail.name }}</h2>
+    <ul v-if="detail.notes?.length" class="template-guidance">
+      <li v-for="note in detail.notes" :key="note">{{ note }}</li>
+    </ul>
+    <details v-if="detail.brief">
+      <summary>Example AI brief</summary>
+      <p>{{ detail.brief }}</p>
+    </details>
     <p v-for="n in detail.workflow.nodes" :key="n.id">{{ n.label }} · {{ n.type }}</p>
     <details>
       <summary>Workflow specification</summary>
@@ -78,6 +92,25 @@ onMounted(async () => {
   </section>
 </template>
 <style scoped>
+.template-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.template-node-count {
+  color: var(--muted);
+  font-size: 12px;
+  display: block;
+  margin-top: 9px;
+}
+.template-guidance {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+  padding-left: 20px;
+}
+
 pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;

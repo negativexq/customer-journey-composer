@@ -42,6 +42,19 @@ const nodeID = ref('');
 const busy = ref(false);
 const error = ref('');
 const notice = ref('');
+const loadingBrief = ref(false);
+async function useRecoveryBrief() {
+  loadingBrief.value = true;
+  try {
+    const sample = await api<{ brief: string }>('/templates/abandoned-cart-eur');
+    prompt.value = sample.brief;
+    action.value = 'generate';
+  } catch (cause) {
+    error.value = String(cause);
+  } finally {
+    loadingBrief.value = false;
+  }
+}
 const proposal = ref<Proposal>();
 const acknowledged = ref(false);
 const inspect = ref(false);
@@ -127,6 +140,13 @@ onBeforeUnmount(() => controller?.abort());
       <span class="pill">DRAFT ONLY</span>
     </div>
     <p>Describe the experience. Review each change before applying it.</p>
+    <div class="ai-starter">
+      <span>START WITH A BRIEF</span
+      ><button :disabled="busy || readonly || loadingBrief" @click="useRecoveryBrief">
+        Recover a €50+ abandoned cart <span aria-hidden="true">↗</span>
+      </button>
+      <p>1h email · 24h SMS window · 48h follow-up</p>
+    </div>
     <label
       >Provider<select v-model="provider" :disabled="busy">
         <option value="claude">Claude</option>
@@ -178,6 +198,35 @@ onBeforeUnmount(() => controller?.abort());
     <section v-if="proposal" class="ai-proposal">
       <h3>Review proposal</h3>
       <p>{{ proposal.explanation }}</p>
+      <dl class="proposal-intent">
+        <div>
+          <dt>Entry event</dt>
+          <dd>
+            {{
+              proposal.workflow.nodes.find((n) => n.type === 'event_trigger')?.config.event_name ||
+              'Not specified'
+            }}
+          </dd>
+        </div>
+        <div>
+          <dt>Steps</dt>
+          <dd>{{ proposal.workflow.nodes.length }} proposed</dd>
+        </div>
+        <div>
+          <dt>Exit on</dt>
+          <dd>{{ proposal.workflow.global_exit?.event_name || 'Configured exit steps' }}</dd>
+        </div>
+        <div>
+          <dt>Re-entry</dt>
+          <dd>
+            {{
+              proposal.workflow.reentry?.mode === 'cooldown'
+                ? 'After ' + (proposal.workflow.reentry.cooldown_seconds || 0) / 86400 + ' days'
+                : proposal.workflow.reentry?.mode?.replaceAll('_', ' ') || 'After completion'
+            }}
+          </dd>
+        </div>
+      </dl>
       <template v-if="changed"
         ><h4>{{ proposal.name }}</h4>
         <p>{{ proposal.description }}</p>
