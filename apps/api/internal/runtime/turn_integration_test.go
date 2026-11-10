@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/analytics"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/analytics"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
 )
 
 func turnCondition(id string) workflow.Node {

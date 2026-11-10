@@ -1,6 +1,6 @@
 package messaging
 
-import "github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
+import "github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
 
 // ValidateWorkflow checks graph rules and statically renderable message syntax.
 // Missing customer values remain a preview/eligibility decision, not a reason

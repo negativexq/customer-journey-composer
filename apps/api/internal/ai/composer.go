@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ofk/customer-journey-composer/apps/api/internal/messaging"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/messaging"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
 	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 

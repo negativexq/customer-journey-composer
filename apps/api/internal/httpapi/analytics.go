@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/analytics"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/analytics"
 	"time"
 )
 

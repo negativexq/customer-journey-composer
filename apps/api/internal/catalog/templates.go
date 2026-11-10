@@ -1,6 +1,6 @@
 package catalog
 
-import "github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
+import "github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
 
 type Template struct {
 	ID          string            `json:"id"`

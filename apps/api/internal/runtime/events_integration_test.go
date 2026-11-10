@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/database"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/database"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
 )
 
 func testID() string { b := make([]byte, 12); _, _ = rand.Read(b); return hex.EncodeToString(b) }

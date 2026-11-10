@@ -4,7 +4,7 @@ package runtime
 
 import (
 	"context"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
 	"testing"
 	"time"
 )

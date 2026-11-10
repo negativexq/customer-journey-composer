@@ -13,7 +13,7 @@ import (
 	"unicode/utf16"
 
 	"github.com/microcosm-cc/bluemonday"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
 	htmlparse "golang.org/x/net/html"
 )
 

@@ -13,10 +13,10 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/analytics"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/database"
-	engine "github.com/ofk/customer-journey-composer/apps/api/internal/runtime"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/analytics"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/database"
+	engine "github.com/negativexq/customer-journey-composer/apps/api/internal/runtime"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
 )
 
 type clock struct{ now time.Time }

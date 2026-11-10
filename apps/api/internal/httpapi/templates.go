@@ -6,9 +6,9 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/catalog"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/messaging"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/catalog"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/messaging"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
 	"strings"
 )
 

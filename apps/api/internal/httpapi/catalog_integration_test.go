@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/database"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/database"
 	"io"
 	"log/slog"
 	"net/http"

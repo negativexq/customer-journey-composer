@@ -1,7 +1,7 @@
 package catalog
 
 import (
-	"github.com/ofk/customer-journey-composer/apps/api/internal/messaging"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/messaging"
 	"testing"
 )
 

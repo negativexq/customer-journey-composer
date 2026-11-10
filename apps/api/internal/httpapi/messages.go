@@ -10,10 +10,10 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/delivery"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/messaging"
-	engine "github.com/ofk/customer-journey-composer/apps/api/internal/runtime"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/delivery"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/messaging"
+	engine "github.com/negativexq/customer-journey-composer/apps/api/internal/runtime"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
 )
 
 type previewInput struct {

@@ -1,6 +1,6 @@
 package delivery
 
-import "github.com/ofk/customer-journey-composer/apps/api/internal/messaging"
+import "github.com/negativexq/customer-journey-composer/apps/api/internal/messaging"
 
 // EvaluateEligibility is pure and shared by production delivery and Test Lab.
 // Reservations include pending/unknown sends and recent accepted logical sends.

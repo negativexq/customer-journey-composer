@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
-	composer "github.com/ofk/customer-journey-composer/apps/api/internal/ai"
+	composer "github.com/negativexq/customer-journey-composer/apps/api/internal/ai"
 )
 
 func registerAI(api huma.API) {

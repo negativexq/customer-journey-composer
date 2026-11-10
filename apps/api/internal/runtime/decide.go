@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ofk/customer-journey-composer/apps/api/internal/messaging"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/messaging"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
 )
 
 type Clock interface{ Now() time.Time }

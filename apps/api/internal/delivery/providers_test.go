@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ofk/customer-journey-composer/apps/api/internal/messaging"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/messaging"
 )
 
 func TestMockRetriesAndStableIdempotency(t *testing.T) {

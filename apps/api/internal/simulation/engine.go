@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ofk/customer-journey-composer/apps/api/internal/messaging"
-	engine "github.com/ofk/customer-journey-composer/apps/api/internal/runtime"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/messaging"
+	engine "github.com/negativexq/customer-journey-composer/apps/api/internal/runtime"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
 )
 
 func New(spec workflow.Workflow, scenario Scenario) (State, workflow.Workflow, Scenario, error) {

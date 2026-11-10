@@ -2,7 +2,7 @@ package httpapi
 
 import (
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/observability"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/observability"
 	"time"
 )
 

@@ -9,9 +9,9 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/messaging"
-	sim "github.com/ofk/customer-journey-composer/apps/api/internal/simulation"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/messaging"
+	sim "github.com/negativexq/customer-journey-composer/apps/api/internal/simulation"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
 )
 
 type testInput struct {

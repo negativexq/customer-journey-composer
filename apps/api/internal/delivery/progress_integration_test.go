@@ -4,7 +4,7 @@ package delivery
 
 import (
 	"context"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/messaging"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/messaging"
 	"sync/atomic"
 	"testing"
 	"time"

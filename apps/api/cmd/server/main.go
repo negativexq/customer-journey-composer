@@ -11,11 +11,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ofk/customer-journey-composer/apps/api/internal/config"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/database"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/demo"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/httpapi"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/observability"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/config"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/database"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/demo"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/httpapi"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/observability"
 )
 
 func main() {

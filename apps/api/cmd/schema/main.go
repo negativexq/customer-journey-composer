@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/ai"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/ai"
 	"os"
 )
 

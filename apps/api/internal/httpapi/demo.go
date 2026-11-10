@@ -3,7 +3,7 @@ package httpapi
 import (
 	"context"
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/demo"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/demo"
 	"os"
 )
 

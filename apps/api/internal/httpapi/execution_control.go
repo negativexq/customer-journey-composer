@@ -5,7 +5,7 @@ import (
 	"errors"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
-	engine "github.com/ofk/customer-journey-composer/apps/api/internal/runtime"
+	engine "github.com/negativexq/customer-journey-composer/apps/api/internal/runtime"
 	"time"
 )
 

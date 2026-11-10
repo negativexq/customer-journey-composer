@@ -13,10 +13,10 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/messaging"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/observability"
-	engine "github.com/ofk/customer-journey-composer/apps/api/internal/runtime"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/messaging"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/observability"
+	engine "github.com/negativexq/customer-journey-composer/apps/api/internal/runtime"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
 	"go.opentelemetry.io/otel/attribute"
 )
 

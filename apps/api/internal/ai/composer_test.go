@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
 )
 
 const validOutput = `{"name":"Cart recovery","description":"A deterministic cart journey","explanation":"Starts on a cart event and completes.","warnings":[],"workflow":{"schema_version":1,"nodes":[{"id":"start","type":"event_trigger","label":"Cart","position":{"x":0,"y":0},"config":{"event_name":"cart_updated","filters":null}},{"id":"done","type":"exit","label":"Complete","position":{"x":0,"y":200},"config":{"reason":"completed"}}],"edges":[{"id":"edge","source":"start","target":"done","port":"started"}],"global_exit":null,"reentry":null}}`

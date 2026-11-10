@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/ofk/customer-journey-composer/apps/api/internal/config"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/database"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/config"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/database"
 )
 
 func main() {

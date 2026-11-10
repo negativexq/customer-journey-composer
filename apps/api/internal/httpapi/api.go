@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/observability"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/observability"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"log/slog"

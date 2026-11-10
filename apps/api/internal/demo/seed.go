@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/jackc/pgx/v5"
-	"github.com/ofk/customer-journey-composer/apps/api/internal/catalog"
-	sim "github.com/ofk/customer-journey-composer/apps/api/internal/simulation"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/catalog"
+	sim "github.com/negativexq/customer-journey-composer/apps/api/internal/simulation"
 	"time"
 )
 

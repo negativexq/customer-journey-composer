@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ofk/customer-journey-composer/apps/api/internal/observability"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/observability"
 	"go.opentelemetry.io/otel"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"

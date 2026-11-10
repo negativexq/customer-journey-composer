@@ -1,4 +1,4 @@
-module github.com/ofk/customer-journey-composer/apps/api
+module github.com/negativexq/customer-journey-composer/apps/api
 
 go 1.26.10
 
