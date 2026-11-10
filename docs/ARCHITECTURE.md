@@ -53,3 +53,11 @@ Before customer ingestion is released, define configurable retention for event p
 - [Vite guide](https://vite.dev/guide/)
 - [pgxpool documentation](https://pkg.go.dev/github.com/jackc/pgx/v5/pgxpool)
 - [Huma project](https://github.com/danielgtaylor/huma)
+
+## PostgreSQL performance requirements (accepted user steering)
+
+Analytics must not add unbounded scans or expensive synchronous reporting work to execution transactions. Use workspace/time predicates, bounded pages, deterministic index-compatible ordering, and batch reads instead of per-row queries. Add composite/partial/covering indexes only for implemented access paths; avoid unnecessary indexes that amplify event/job writes. Prefix tenant-facing access paths with workspace identity, and index foreign-key/claim lookups where measured workloads require it.
+
+For phase 10, maintain idempotent metric facts or deltas from runtime transitions, asynchronously aggregate them in bounded batches, and serve routine dashboard/trend/channel queries from indexed daily summaries. Show aggregation freshness. Customer/execution detail views must remain available from authoritative records. Define unique-customer denominators explicitly; summing daily distinct counts is not a valid period distinct count. Retry attempts must not increment logical-send totals.
+
+At the performance phase, seed at least 10,000 active executions and record EXPLAIN (ANALYZE, BUFFERS) for real dashboard, customer tracking, due-job claiming, event matching and trend queries. Record throughput and p50/p95/p99, pool pressure and query plans; report actual results and adjust indexes/batch sizes accordingly. Partitioning and additional caches require measured justification.

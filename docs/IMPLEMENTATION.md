@@ -2,20 +2,20 @@
 
 Source of truth for product scope: [PRD.md](PRD.md).
 
-| Phase                                  | Status   | Evidence / remaining work                                                                                 |
-| -------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------- |
-| 1. Repository & Foundation             | Complete | Vue/Go/Docker stack; PostgreSQL migrations; quality checks; integration and browser tests passed locally. |
-| 2. Authentication & Journey Management | Pending  | Depends on phase 1.                                                                                       |
-| 3. Visual Canvas & Validation          | Pending  | Vue Flow required.                                                                                        |
-| 4. Customer & Event Infrastructure     | Pending  | Deduplication and workspace isolation required.                                                           |
-| 5. Persistent Runtime                  | Pending  | PostgreSQL durability and concurrency invariants required.                                                |
-| 6. Email & SMS                         | Pending  | Mailpit and mock SMS required.                                                                            |
-| 7. AI Journey Composer                 | Pending  | Both Claude and OpenAI; common schema, validation, human approval.                                        |
-| 8. Preview & Test Lab                  | Pending  | Shared deterministic runtime with controlled Clock.                                                       |
-| 9. Test Inbox                          | Pending  | Isolated persisted outputs and traces.                                                                    |
-| 10. Live Monitor & Analytics           | Pending  | Execution-backed metrics with explicit denominators.                                                      |
-| 11. Lifecycle & Reliability            | Pending  | Race, recovery, version, security and observability tests.                                                |
-| 12. Final Product & Demo               | Pending  | E2E, measured benchmark, demo and deployment verification.                                                |
+| Phase                                  | Status   | Evidence / remaining work                                                                                                  |
+| -------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------- |
+| 1. Repository & Foundation             | Complete | Vue/Go/Docker stack; PostgreSQL migrations; quality checks; integration and browser tests passed locally.                  |
+| 2. Authentication & Journey Management | Complete | Sessions, CSRF, RBAC, workspace isolation, revision-guarded drafts and management UI; database and 6 browser tests passed. |
+| 3. Visual Canvas & Validation          | Pending  | Vue Flow required.                                                                                                         |
+| 4. Customer & Event Infrastructure     | Pending  | Deduplication and workspace isolation required.                                                                            |
+| 5. Persistent Runtime                  | Pending  | PostgreSQL durability and concurrency invariants required.                                                                 |
+| 6. Email & SMS                         | Pending  | Mailpit and mock SMS required.                                                                                             |
+| 7. AI Journey Composer                 | Pending  | Both Claude and OpenAI; common schema, validation, human approval.                                                         |
+| 8. Preview & Test Lab                  | Pending  | Shared deterministic runtime with controlled Clock.                                                                        |
+| 9. Test Inbox                          | Pending  | Isolated persisted outputs and traces.                                                                                     |
+| 10. Live Monitor & Analytics           | Pending  | Execution-backed metrics with explicit denominators.                                                                       |
+| 11. Lifecycle & Reliability            | Pending  | Race, recovery, version, security and observability tests.                                                                 |
+| 12. Final Product & Demo               | Pending  | E2E, measured benchmark, demo and deployment verification.                                                                 |
 
 ## Accepted decisions
 
@@ -28,7 +28,7 @@ Source of truth for product scope: [PRD.md](PRD.md).
 
 ## Next slice
 
-Begin phase 2: workspace authentication (login/logout and role-scoped sessions), persisted journey CRUD, editable drafts and the authenticated management UI. Keep published workflow/runtime work in the later planned phases.
+Phase 3: typed workflow specification, Vue Flow canvas, node configuration, graph validation and immutable published versions.
 
 ## Phase 1 delivery — 2026-11-10
 
@@ -41,3 +41,10 @@ Begin phase 2: workspace authentication (login/logout and role-scoped sessions),
 - No remote repository is configured, so GitHub-hosted CI has not run. No journey execution or load benchmark exists yet.
 
 See [verification notes](VERIFICATION.md) for reproducible checks and [architecture](ARCHITECTURE.md) for implemented versus planned boundaries.
+
+## Phase 2 delivery
+
+- `d6aea82` — bcrypt passwords, hashed expiring sessions, CSRF checks, workspace scoping, Viewer write rejection, persistent journeys and optimistic draft revisions.
+- Management UI provides workspace registration/login/logout, dashboard, searchable/filterable/sortable journeys, creation, duplication, archive and reopenable drafts.
+- Verified: `make check`, isolated real-PostgreSQL tests (including concurrent revision updates and cross-workspace access), Docker rebuild and 6/6 desktop/mobile browser tests.
+- User steering: optimize PostgreSQL schema, indexes and analytics queries for low read latency and bounded database load. Validate plans with EXPLAIN; avoid speculative indexes and unbounded scans on dashboard requests.

@@ -18,3 +18,56 @@ export async function getReadiness(signal?: AbortSignal): Promise<Health> {
   }
   return { status: body.status, service: body.service };
 }
+
+export type Identity = {
+  id: string;
+  workspace_id: string;
+  workspace: string;
+  email: string;
+  name: string;
+  role: 'Admin' | 'Editor' | 'Viewer';
+  csrf_token: string;
+};
+export type Journey = {
+  id: string;
+  name: string;
+  description: string;
+  tags: string[];
+  status: 'Draft' | 'Active' | 'Paused' | 'Sunset' | 'Completed' | 'Archived';
+  draft: Record<string, unknown>;
+  revision: number;
+  updated_at: string;
+};
+let csrf = '';
+export function setIdentity(identity?: Identity) {
+  csrf = identity?.csrf_token || '';
+}
+export class APIError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+export async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
+  const response = await fetch(`/api/v1${path}`, {
+    method,
+    credentials: 'same-origin',
+    signal: AbortSignal.timeout(30000),
+    headers: {
+      Accept: 'application/json',
+      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
+    },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  if (!response.ok) {
+    const problem = await response.json().catch(() => ({}));
+    throw new APIError(
+      response.status,
+      problem.detail || problem.title || 'Request failed. Please try again.',
+    );
+  }
+  return response.json() as Promise<T>;
+}
