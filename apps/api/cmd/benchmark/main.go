@@ -167,6 +167,9 @@ func run(customers int, out string) error {
 	if err != nil || n != 0 {
 		return fmt.Errorf("benchmark requires an empty isolated database")
 	}
+	if _, err = apiPool.Exec(ctx, `CREATE EXTENSION IF NOT EXISTS pg_stat_statements`); err != nil {
+		return err
+	}
 	workerPool, err := database.Open(ctx, dsn)
 	if err != nil {
 		return err
@@ -214,6 +217,21 @@ func run(customers int, out string) error {
 	server := httptest.NewServer(httpapi.New(log, func(context.Context) error { return nil }, apiPool))
 	defer server.Close()
 	client := &http.Client{Timeout: 25 * time.Second, Transport: &http.Transport{MaxIdleConns: 64, MaxIdleConnsPerHost: 32}}
+	jar, _ := cookiejar.New(nil)
+	reader := &http.Client{Jar: jar, Timeout: 25 * time.Second}
+	login, status, err := request(ctx, reader, server.URL, "/auth/login", "POST", map[string]string{"email": email, "password": password}, "", "")
+	if err != nil || status != 200 {
+		return fmt.Errorf("benchmark reader authentication failed")
+	}
+	var identity httpapi.Identity
+	if json.Unmarshal(login, &identity) != nil {
+		return fmt.Errorf("invalid benchmark reader identity")
+	}
+	if _, err = apiPool.Exec(ctx, `SELECT pg_stat_statements_reset()`); err != nil {
+		return err
+	}
+	probe := probeReads(ctx, reader, server.URL, journey)
+	defer func() { probe.stop(); <-probe.done }()
 	workerCtx, stopWorkers := context.WithCancel(ctx)
 	var workers sync.WaitGroup
 	worker := engine.NewWorker(workerPool, nil)
@@ -312,10 +330,16 @@ func run(customers int, out string) error {
 	}
 	<-dispatchDone
 	fmt.Printf("Ingested %d events in %.2fs\n", customers, ingestElapsed.Seconds())
+	probe.phase.Store("runtime_to_wait")
 	if err = waitFor(ctx, "Waiting executions", customers, apiPool, `SELECT count(*) FROM journey_executions WHERE workspace_id=$1 AND state='WAITING'`, workspace); err != nil {
 		return err
 	}
 	waitingAt := time.Now()
+	probe.phase.Store("waiting_drain")
+	stageAQueries, err := queryStats(ctx, apiPool)
+	if err != nil {
+		return err
+	}
 	active, err := counter(ctx, apiPool, `SELECT count(*) FROM journey_executions WHERE workspace_id=$1 AND state IN ('RUNNING','WAITING')`, workspace)
 	if err != nil {
 		return err
@@ -334,6 +358,10 @@ func run(customers int, out string) error {
 	if _, err = apiPool.Exec(ctx, `ANALYZE`); err != nil {
 		return err
 	}
+	if _, err = apiPool.Exec(ctx, `SELECT pg_stat_statements_reset()`); err != nil {
+		return err
+	}
+	probe.phase.Store("timer_burst")
 	due := time.Now().UTC().Add(5 * time.Second)
 	if _, err = apiPool.Exec(ctx, `UPDATE scheduled_jobs SET due_at=$2 WHERE workspace_id=$1 AND kind='timer' AND state='SCHEDULED'`, workspace, due); err != nil {
 		return err
@@ -353,6 +381,9 @@ func run(customers int, out string) error {
 	if err = explain("loaded_due_job_claim", `SELECT j.id FROM scheduled_jobs j JOIN journey_executions e ON e.id=j.execution_id JOIN journeys f ON f.id=e.journey_id WHERE j.state='SCHEDULED' AND j.due_at<=$1 AND e.state IN ('RUNNING','WAITING') AND f.status IN ('Active','Sunset') ORDER BY j.due_at,j.id LIMIT 32 FOR UPDATE OF j SKIP LOCKED`, due.Add(time.Second)); err != nil {
 		return err
 	}
+	if err = explain("ordered_due_job_candidate", orderedClaimCandidate, due.Add(time.Second)); err != nil {
+		return err
+	}
 	if err = explain("active_entry_matching", `SELECT id,current_version_id FROM journeys WHERE workspace_id=$1 AND status='Active' AND entry_event_name='cart_updated'`, workspace); err != nil {
 		return err
 	}
@@ -363,11 +394,23 @@ func run(customers int, out string) error {
 		return err
 	}
 	runtimeDone := time.Now()
+	probe.phase.Store("delivery_drain")
+	if err = explain("loaded_delivery_claim", `SELECT d.id FROM delivery_jobs d JOIN customers c ON c.workspace_id=d.workspace_id AND c.customer_id=d.customer_id JOIN journey_executions e ON e.id=d.execution_id JOIN journeys j ON j.id=e.journey_id WHERE d.status='SCHEDULED' AND d.mode='LIVE' AND d.due_at<=$1 AND j.status IN ('Active','Sunset') ORDER BY d.due_at,d.id LIMIT 1 FOR UPDATE OF c SKIP LOCKED`, time.Now().UTC()); err != nil {
+		return err
+	}
 	if err = waitFor(ctx, "Accepted mock deliveries", customers, apiPool, `SELECT count(*) FROM delivery_jobs WHERE workspace_id=$1 AND status='ACCEPTED'`, workspace); err != nil {
 		return err
 	}
 	deliveryDone := time.Now()
+	loadedReads, readFailures := probe.finish()
+	if len(readFailures) > 0 {
+		return fmt.Errorf("loaded read requests failed: %v", readFailures)
+	}
 	if err = waitFor(ctx, "Metric queue drain", 0, apiPool, `SELECT count(*) FROM metric_queue`); err != nil {
+		return err
+	}
+	stageBQueries, err := queryStats(ctx, apiPool)
+	if err != nil {
 		return err
 	}
 	if _, err = apiPool.Exec(ctx, `ANALYZE`); err != nil {
@@ -402,16 +445,6 @@ func run(customers int, out string) error {
 	if executionCount != customers || eventCount != customers || logical != customers || failures != 0 || duplicates != 0 || active != customers {
 		return fmt.Errorf("benchmark consistency invariant failed")
 	}
-	jar, _ := cookiejar.New(nil)
-	reader := &http.Client{Jar: jar, Timeout: 25 * time.Second}
-	login, status, err := request(ctx, reader, server.URL, "/auth/login", "POST", map[string]string{"email": email, "password": password}, "", "")
-	if err != nil || status != 200 {
-		return fmt.Errorf("benchmark reader authentication failed")
-	}
-	var identity httpapi.Identity
-	if json.Unmarshal(login, &identity) != nil {
-		return fmt.Errorf("invalid benchmark reader identity")
-	}
 	readLatency := map[string]distribution{}
 	for name, path := range map[string]string{"overview": "/overview", "entries_24h": "/overview/entries-24h", "analytics": "/analytics?days=30", "journey_list": "/journeys?limit=50", "customer_track": "/journeys/" + journey + "/executions?customer_id=bench_000001"} {
 		samples := []float64{}
@@ -432,7 +465,7 @@ func run(customers int, out string) error {
 	if err = apiPool.QueryRow(ctx, `SELECT version()`).Scan(&postgres); err != nil {
 		return err
 	}
-	report := map[string]any{"recorded_at": time.Now().UTC(), "commit": os.Getenv("BENCH_COMMIT"), "working_tree_dirty": os.Getenv("BENCH_DIRTY") == "true", "customers": customers, "mvp_load_threshold_met": customers >= 10000, "environment": map[string]any{"go": runtime.Version(), "os": runtime.GOOS, "arch": runtime.GOARCH, "logical_cpu_count": runtime.NumCPU(), "postgres": postgres, "postgres_container_cpu_limit": 2, "postgres_container_memory_limit_bytes": 2 << 30, "http_concurrency": 20, "runtime_concurrency": 8, "delivery_concurrency": 4, "pool_max_per_process": 20}, "method": "Real loopback HTTP ingestion and actual PostgreSQL runtime/delivery/projector, warm local Docker database. Fixture creates 1,000 inactive draft journeys and synthetic customers. Stage A reaches the requested number of simultaneously WAITING durable executions (MVP threshold: 10,000). Stage B moves only isolated fixture timer deadlines to a common wall-clock time five seconds ahead, then lets real workers process. No frozen clock, SMTP or LLM requests. Completion polling interval is 1s; Go memory includes benchmark client+API+worker in one process. Two transient mock provider outcomes (429/500) are injected.", "ingestion": map[string]any{"seconds": ingestElapsed.Seconds(), "events_per_second": float64(customers) / ingestElapsed.Seconds(), "event_to_committed_execution_upper_bound": percentiles(latencies), "http_429_retries": throttled.Load(), "duplicate_requests": min(100, customers)}, "runtime": map[string]any{"peak_confirmed_active": active, "stage_a_until_all_waiting_seconds": waitingAt.Sub(started).Seconds(), "stage_a_jobs_per_second": float64(2*customers) / waitingAt.Sub(started).Seconds(), "stage_b_due_at": due, "stage_b_until_all_completed_seconds": runtimeDone.Sub(due).Seconds(), "stage_b_jobs_per_second": float64(4*customers) / runtimeDone.Sub(due).Seconds(), "pipeline_until_all_provider_accepted_seconds": deliveryDone.Sub(due).Seconds(), "due_job_lateness_ms": map[string]any{"p50": lag[0], "p95": lag[1], "p99": lag[2], "max": lag[3]}}, "consistency": map[string]any{"events": eventCount, "executions": executionCount, "logical_deliveries": logical, "provider_attempts": attempts, "runtime_retry_attempts": jobRetries, "delivery_retry_attempts": deliveryRetries, "failed_executions": failures, "duplicate_logical_actions": duplicates}, "read_http_latency": readLatency, "memory": map[string]any{"go_peak_heap_alloc_bytes": observed.Heap, "go_peak_heap_sys_bytes": observed.HeapSys, "peak_goroutines": observed.Goroutines}, "pools": observed.Pools, "query_plans": plans}
+	report := map[string]any{"recorded_at": time.Now().UTC(), "commit": os.Getenv("BENCH_COMMIT"), "working_tree_dirty": os.Getenv("BENCH_DIRTY") == "true", "customers": customers, "mvp_load_threshold_met": customers >= 10000, "environment": map[string]any{"go": runtime.Version(), "os": runtime.GOOS, "arch": runtime.GOARCH, "logical_cpu_count": runtime.NumCPU(), "postgres": postgres, "postgres_container_cpu_limit": 2, "postgres_container_memory_limit_bytes": 2 << 30, "http_concurrency": 20, "runtime_concurrency": 8, "delivery_concurrency": 4, "pool_max_per_process": 20}, "method": "Real loopback HTTP ingestion and actual PostgreSQL runtime/delivery/projector, warm local Docker database. Fixture creates 1,000 inactive draft journeys and synthetic customers. Stage A reaches the requested number of simultaneously WAITING durable executions (MVP threshold: 10,000). Stage B moves only isolated fixture timer deadlines to a common wall-clock time five seconds ahead, then lets real workers process. No frozen clock, SMTP or LLM requests. Completion polling interval is 1s; Go memory includes benchmark client+API+worker in one process. Two transient mock provider outcomes (429/500) are injected. Five authenticated UI reads/sec run throughout the loaded phases. pg_stat_statements records top-level statement execution (including trigger cost); client network/round-trip time is not included. Timer lateness measures step completion after due_at, not claim time. EXPLAIN probes do not modify job state.", "ingestion": map[string]any{"seconds": ingestElapsed.Seconds(), "events_per_second": float64(customers) / ingestElapsed.Seconds(), "event_to_committed_execution_upper_bound": percentiles(latencies), "http_429_retries": throttled.Load(), "duplicate_requests": min(100, customers)}, "database_queries": map[string]any{"stage_a": stageAQueries, "stage_b": stageBQueries}, "loaded_read_http_latency": loadedReads, "loaded_read_failures": readFailures, "runtime": map[string]any{"peak_confirmed_active": active, "stage_a_until_all_waiting_seconds": waitingAt.Sub(started).Seconds(), "stage_a_jobs_per_second": float64(2*customers) / waitingAt.Sub(started).Seconds(), "stage_b_due_at": due, "stage_b_until_all_completed_seconds": runtimeDone.Sub(due).Seconds(), "stage_b_jobs_per_second": float64(4*customers) / runtimeDone.Sub(due).Seconds(), "pipeline_until_all_provider_accepted_seconds": deliveryDone.Sub(due).Seconds(), "timer_step_completion_lateness_ms": map[string]any{"p50": lag[0], "p95": lag[1], "p99": lag[2], "max": lag[3]}}, "consistency": map[string]any{"events": eventCount, "executions": executionCount, "logical_deliveries": logical, "provider_attempts": attempts, "runtime_retry_attempts": jobRetries, "delivery_retry_attempts": deliveryRetries, "failed_executions": failures, "duplicate_logical_actions": duplicates}, "read_http_latency": readLatency, "memory": map[string]any{"go_peak_heap_alloc_bytes": observed.Heap, "go_peak_heap_sys_bytes": observed.HeapSys, "peak_goroutines": observed.Goroutines}, "pools": observed.Pools, "query_plans": plans}
 	data, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
 		return err
