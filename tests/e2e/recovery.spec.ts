@@ -18,6 +18,21 @@ test('EUR recovery scenarios run in the sandbox with a run-scoped inline inbox',
   await page.goto('/templates');
   await page.getByRole('button', { name: 'Use Abandoned Cart · €50+', exact: true }).click();
   await expect(page.locator('.vue-flow__node')).toHaveCount(14);
+  await expect
+    .poll(async () => {
+      const entry = await page
+        .locator('.vue-flow__node')
+        .filter({ hasText: 'Cart abandoned · €50+' })
+        .boundingBox();
+      const canvas = await page.locator('.canvas').boundingBox();
+      return (
+        !!entry &&
+        !!canvas &&
+        entry.x >= canvas.x &&
+        entry.x + entry.width <= canvas.x + canvas.width
+      );
+    })
+    .toBe(true);
   const journeys = await (await page.request.get('/api/v1/journeys')).json();
   const journey = journeys[0];
   const recipe = await (await page.request.get('/api/v1/templates/abandoned-cart-eur')).json();

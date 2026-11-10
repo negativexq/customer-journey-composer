@@ -29,7 +29,20 @@ const props = defineProps<{
   hideInspector?: boolean;
 }>();
 const emit = defineEmits<{ 'update:modelValue': [Workflow]; preview: [string]; inspect: [] }>();
-const { fitView, screenToFlowCoordinate } = useVueFlow('builder');
+const { fitView, setViewport, dimensions, screenToFlowCoordinate } = useVueFlow('builder');
+let initialViewportPlaced = false;
+function placeInitialViewport() {
+  if (initialViewportPlaced || !window.matchMedia('(max-width: 700px)').matches) return;
+  const entry = nodes.value.find((node) => node.data.kind === 'event_trigger') || nodes.value[0];
+  if (!entry || !dimensions.value.width) return;
+  initialViewportPlaced = true;
+  const zoom = Math.min(0.85, (dimensions.value.width - 24) / 224);
+  void setViewport({
+    x: dimensions.value.width / 2 - (entry.position.x + 112) * zoom,
+    y: 32 - entry.position.y * zoom,
+    zoom,
+  });
+}
 type CanvasData = { kind: Kind; label: string; config: Config };
 type CanvasNode = {
   id: string;
@@ -476,6 +489,7 @@ function setAttribute(value: string) {
         :delete-key-code="readonly ? null : ['Backspace', 'Delete']"
         :multi-selection-key-code="['Meta', 'Control']"
         :default-viewport="{ x: 30, y: 35, zoom: 0.85 }"
+        @nodes-initialized="placeInitialViewport"
         @update:nodes="updateNodes"
         @update:edges="updateEdges"
         @connect="connect"
