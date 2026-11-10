@@ -65,6 +65,20 @@ func validRecipient(channel, to string) bool {
 // outbox actions. Run immediately drains a full batch without the idle pause.
 const scheduleBatchSize = 8
 
+// ScheduleQuery keeps the ordered pending index outside the customer lock.
+// The lateral LockRows boundary prevents a bulk join/sort of the pending queue.
+// Exported inside the internal package for exact-query benchmark EXPLAIN probes.
+const ScheduleQuery = `SELECT o.id::text,o.workspace_id::text,o.execution_id::text,o.node_id,o.channel,o.payload,p.customer_id,p.state,p.email,p.phone,p.consents,p.frequency_limit,p.frequency_window_seconds
+ FROM (SELECT * FROM action_outbox WHERE state='PENDING' ORDER BY created_at,id OFFSET 0) o
+ JOIN LATERAL (
+   SELECT e.customer_id,e.state,c.email,c.phone,c.consents,COALESCE(s.frequency_limit,3) AS frequency_limit,COALESCE(s.frequency_window_seconds,86400) AS frequency_window_seconds
+   FROM journey_executions e JOIN customers c ON c.workspace_id=e.workspace_id AND c.customer_id=e.customer_id
+   LEFT JOIN workspace_settings s ON s.workspace_id=o.workspace_id
+   WHERE e.id=o.execution_id AND (SELECT j.status IN ('Active','Sunset') FROM journeys j WHERE j.id=e.journey_id)
+   FOR UPDATE OF c SKIP LOCKED
+ ) p ON true
+ ORDER BY o.created_at,o.id LIMIT $1`
+
 func (s *Service) Schedule(ctx context.Context) (int, error) {
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
@@ -75,7 +89,7 @@ func (s *Service) Schedule(ctx context.Context) (int, error) {
 	// Drive from outbox_pending; joining Active journeys first made even an
 	// empty queue repeatedly probe completed execution/outbox history. Customer
 	// locks and the per-item lifecycle/pending rechecks remain unchanged.
-	rows, err := tx.Query(ctx, `SELECT o.id::text,o.workspace_id::text,o.execution_id::text,o.node_id,o.channel,o.payload,e.customer_id,e.state,c.email,c.phone,c.consents,COALESCE(p.frequency_limit,3),COALESCE(p.frequency_window_seconds,86400) FROM action_outbox o JOIN journey_executions e ON e.id=o.execution_id JOIN customers c ON c.workspace_id=e.workspace_id AND c.customer_id=e.customer_id LEFT JOIN workspace_settings p ON p.workspace_id=o.workspace_id WHERE o.state='PENDING' AND (SELECT j.status IN ('Active','Sunset') FROM journeys j WHERE j.id=e.journey_id) ORDER BY o.created_at,o.id LIMIT $1 FOR UPDATE OF c SKIP LOCKED`, scheduleBatchSize)
+	rows, err := tx.Query(ctx, ScheduleQuery, scheduleBatchSize)
 	if err != nil {
 		return 0, err
 	}

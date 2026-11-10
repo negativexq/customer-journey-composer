@@ -4,6 +4,7 @@ package delivery
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 )
@@ -84,4 +85,48 @@ func TestSchedulingDoesNotLockCustomersBeyondItsTransactionBudget(t *testing.T) 
 	if logical != 18 || unique != logical {
 		t.Fatalf("lost or duplicated actions: %d logical, %d unique", logical, unique)
 	}
+}
+
+func TestSchedulerPlanBoundsPendingQueueWork(t *testing.T) {
+	ctx, pool, _, workspace, execution := seeded(t, true)
+	if _, err := pool.Exec(ctx, `INSERT INTO action_outbox(workspace_id,execution_id,node_id,channel,payload,created_at) SELECT $1,$2,'plan_'||n,'sms','{}',now() FROM generate_series(1,10000) n`, workspace, execution); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `ANALYZE action_outbox; ANALYZE customers; ANALYZE journey_executions`); err != nil {
+		t.Fatal(err)
+	}
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback(context.Background()) }()
+	var raw []byte
+	if err = tx.QueryRow(ctx, "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) "+ScheduleQuery, scheduleBatchSize).Scan(&raw); err != nil {
+		t.Fatal(err)
+	}
+	var plan []struct{ Plan map[string]any }
+	if err = json.Unmarshal(raw, &plan); err != nil {
+		t.Fatal(err)
+	}
+	queueWork := float64(0)
+	var walk func(map[string]any)
+	walk = func(node map[string]any) {
+		if node["Relation Name"] == "action_outbox" {
+			rows, _ := node["Actual Rows"].(float64)
+			loops, _ := node["Actual Loops"].(float64)
+			queueWork += rows * loops
+		}
+		if children, ok := node["Plans"].([]any); ok {
+			for _, child := range children {
+				if child, ok := child.(map[string]any); ok {
+					walk(child)
+				}
+			}
+		}
+	}
+	walk(plan[0].Plan)
+	if queueWork == 0 || queueWork > scheduleBatchSize {
+		t.Fatalf("pending queue visits exceed the transaction budget: %v", queueWork)
+	}
+	t.Logf("10,002 pending rows: outbox row visits %.0f for budget %d", queueWork, scheduleBatchSize)
 }
