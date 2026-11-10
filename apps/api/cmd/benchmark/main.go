@@ -427,6 +427,9 @@ func run(customers int, out string, rate, delayMS, delayEvery int, profile bool)
 	if err = explain("customer_tracking", `SELECT id,state,current_node_id FROM journey_executions WHERE workspace_id=$1 AND journey_id=$2 AND customer_id='bench_000001' ORDER BY started_at DESC,id DESC LIMIT 50`, workspace, journey); err != nil {
 		return err
 	}
+	if err = explain("event_execution_lookup", `SELECT id,journey_id,version_id,customer_id,entry_event_id,state,exit_reason,started_at FROM journey_executions WHERE workspace_id=$1 AND entry_event_id=$2 ORDER BY started_at DESC,id LIMIT 25`, workspace, events[0].EventID); err != nil {
+		return err
+	}
 	if err = waitFor(ctx, "Completed executions", customers, apiPool, `SELECT count(*) FROM journey_executions WHERE workspace_id=$1 AND state='COMPLETED'`, workspace); err != nil {
 		return err
 	}
