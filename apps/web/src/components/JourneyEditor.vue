@@ -11,18 +11,22 @@ import AnalyticsView from './AnalyticsView.vue';
 import AppIcon from './ui/AppIcon.vue';
 import StatusBadge from './ui/StatusBadge.vue';
 import type { Workflow, Issue } from '../lib/workflow';
+import type { InspectionKind } from '../lib/navigation';
 const props = defineProps<{
   journey: Journey;
   readonly?: boolean;
   admin?: boolean;
   activeTab?: string;
   previewSection?: string;
+  activeExecutionId?: string;
+  activeDeliveryId?: string;
 }>();
 const emit = defineEmits<{
   back: [];
   settings: [];
   saved: [Journey];
-  navigate: [{ tab: string; preview: string }];
+  navigate: [{ tab: string; preview: string; executionID?: string; deliveryID?: string }];
+  inspect: [{ kind: InspectionKind; id: string }];
 }>();
 const name = ref(props.journey.name);
 const description = ref(props.journey.description);
@@ -547,6 +551,10 @@ function back() {
       :journey-id="journey.id"
       :readonly="readonly"
       :admin="admin"
+      :initial-execution-id="activeExecutionId"
+      :initial-delivery-id="activeDeliveryId"
+      @selection="emit('navigate', { tab: tab, preview: previewTab, ...$event })"
+      @inspect="emit('inspect', $event)"
   /></KeepAlive>
   <PublishReview
     v-model="publishOpen"

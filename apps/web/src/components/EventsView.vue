@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { api } from '../lib/api';
+import type { InspectionKind } from '../lib/navigation';
+const emit = defineEmits<{ inspect: [{ kind: InspectionKind; id: string }] }>();
 defineProps<{ readonly?: boolean }>();
 const events = ref<Record<string, unknown>[]>([]);
-const payload = ref<Record<string, unknown>>();
 const customer = ref('');
 const name = ref('cart_updated');
 const eventID = ref(crypto.randomUUID() as string);
@@ -18,12 +19,8 @@ async function load() {
     error.value = String(cause);
   }
 }
-async function inspect(id: unknown) {
-  try {
-    payload.value = await api(`/events/${encodeURIComponent(String(id))}`);
-  } catch (cause) {
-    error.value = String(cause);
-  }
+function inspect(id: unknown) {
+  emit('inspect', { kind: 'event', id: String(id) });
 }
 async function send() {
   error.value = '';
@@ -82,10 +79,6 @@ onMounted(load);
           }}</small></span
         >
       </button>
-      <details v-if="payload" open>
-        <summary>Event details</summary>
-        <pre>{{ JSON.stringify(payload, null, 2) }}</pre>
-      </details>
     </section>
     <section v-if="!readonly" class="panel">
       <h2>Send an event</h2>

@@ -170,4 +170,25 @@ test('temporary session failures preserve the deep link and retry without signin
     page.getByRole('heading', { name: 'Published versions', exact: true }),
   ).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/journeys/${journey.id}\\?tab=versions$`));
+
+  let journeyReady = false;
+  await page.route(`**/api/v1/journeys/${journey.id}`, async (route) => {
+    if (journeyReady) await route.continue();
+    else
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: 'Temporarily unavailable' }),
+      });
+  });
+  await page.reload();
+  await expect(
+    page.getByRole('heading', { name: 'Journey temporarily unavailable', exact: true }),
+  ).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/journeys/${journey.id}\\?tab=versions$`));
+  journeyReady = true;
+  await page.getByRole('button', { name: 'Retry journey', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Published versions', exact: true }),
+  ).toBeVisible();
 });

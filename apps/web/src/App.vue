@@ -1,12 +1,19 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, onErrorCaptured, ref, watch } from 'vue';
-import { pageRoute, readRoute, routeURL, type WorkspaceRoute } from './lib/navigation';
+import {
+  pageRoute,
+  readRoute,
+  routeURL,
+  type WorkspaceRoute,
+  type InspectionKind,
+} from './lib/navigation';
 import { api, APIError, setIdentity, type Identity, type Journey } from './lib/api';
 import AuthForm from './components/AuthForm.vue';
 import JourneyList from './components/JourneyList.vue';
 import JourneyEditor from './components/JourneyEditor.vue';
 import CustomersView from './components/CustomersView.vue';
 import EventsView from './components/EventsView.vue';
+import ActivityInspector from './components/ActivityInspector.vue';
 import SettingsView from './components/SettingsView.vue';
 import TestLab from './components/TestLab.vue';
 import TestInbox from './components/TestInbox.vue';
@@ -34,6 +41,7 @@ async function restoreSession() {
 const route = ref<WorkspaceRoute>(readRoute(new URL(window.location.href)));
 const page = computed(() => route.value.page);
 const routeLoading = ref(false);
+const routeUnavailable = ref(false);
 let navigationSequence = 0;
 const selected = ref<Journey>();
 const journeys = ref<Journey[]>([]);
@@ -122,6 +130,7 @@ async function applyRoute(next: WorkspaceRoute) {
     window.history.replaceState(null, '', canonical);
   }
   error.value = '';
+  routeUnavailable.value = false;
   if (!next.journeyID) {
     selected.value = undefined;
     routeLoading.value = false;
@@ -136,8 +145,10 @@ async function applyRoute(next: WorkspaceRoute) {
   } catch (cause) {
     if (request === navigationSequence) {
       error.value = String(cause);
-      route.value = pageRoute('Journeys');
-      window.history.replaceState(null, '', '/journeys');
+      if (cause instanceof APIError && [403, 404].includes(cause.status)) {
+        route.value = pageRoute('Journeys');
+        window.history.replaceState(null, '', '/journeys');
+      } else routeUnavailable.value = true;
     }
   } finally {
     if (request === navigationSequence) routeLoading.value = false;
@@ -150,10 +161,32 @@ function go(next: WorkspaceRoute) {
   }
   return applyRoute(next);
 }
+function inspectActivity(value: { kind: InspectionKind; id: string }) {
+  void go({ ...route.value, inspect: value.kind, record: value.id });
+}
+function closeActivity() {
+  if (route.value.inspect) void go({ ...route.value, inspect: undefined, record: undefined });
+}
+function openCustomer(id: string) {
+  void go({ page: 'Customers', customerID: id });
+}
+function openMonitor(value: { journeyID: string; executionID: string }) {
+  void go({
+    page: 'Journeys',
+    journeyID: value.journeyID,
+    tab: 'Live Monitor',
+    executionID: value.executionID,
+  });
+}
 function restoreLocation() {
   if (identity.value) void applyRoute(readRoute(new URL(window.location.href)));
 }
-function editorNavigation(value: { tab: string; preview: string }) {
+function editorNavigation(value: {
+  tab: string;
+  preview: string;
+  executionID?: string;
+  deliveryID?: string;
+}) {
   if (route.value.journeyID) void go({ ...route.value, ...value });
 }
 async function refresh() {
@@ -224,6 +257,14 @@ onErrorCaptured((cause) => {
   </main>
   <AuthForm v-else-if="!identity" @authenticated="authenticated" />
   <div v-else class="app-shell">
+    <ActivityInspector
+      :kind="route.inspect"
+      :record-id="route.record"
+      @close="closeActivity"
+      @inspect="inspectActivity"
+      @customer="openCustomer"
+      @monitor="openMonitor"
+    />
     <aside class="sidebar" aria-label="Application navigation">
       <a class="brand" href="/" @click.prevent="navigate('Overview')"
         ><span class="brand-mark"><AppIcon name="workflow" :size="23" /></span
@@ -319,14 +360,22 @@ onErrorCaptured((cause) => {
           </button>
         </div>
         <div v-if="routeLoading" class="panel" role="status" aria-busy="true">Opening journey…</div>
+        <section v-else-if="routeUnavailable" class="panel">
+          <h1>Journey temporarily unavailable</h1>
+          <p>Your page is preserved. Retry when the connection is available.</p>
+          <button @click="applyRoute({ ...route })">Retry journey</button>
+        </section>
         <JourneyEditor
           v-else-if="selected"
           :key="selected.id"
           :journey="selected"
           :active-tab="route.tab"
           :preview-section="route.preview"
+          :active-execution-id="route.executionID"
+          :active-delivery-id="route.deliveryID"
           :admin="identity.role === 'Admin'"
           :readonly="readOnly"
+          @inspect="inspectActivity"
           @navigate="editorNavigation"
           @back="navigate('Journeys')"
           @settings="navigate('Settings')"
@@ -347,9 +396,16 @@ onErrorCaptured((cause) => {
           v-else-if="page === 'Templates'"
           :readonly="readOnly"
           @open="open"
-        /><CustomersView v-else-if="page === 'Customers'" :readonly="readOnly" /><EventsView
+        /><CustomersView
+          v-else-if="page === 'Customers'"
+          :readonly="readOnly"
+          :customer-id="route.customerID"
+          @select="go({ ...route, customerID: $event })"
+          @inspect="inspectActivity"
+        /><EventsView
           v-else-if="page === 'Events'"
           :readonly="readOnly"
+          @inspect="inspectActivity"
         /><TestLab v-else-if="page === 'Test Lab'" :readonly="readOnly" /><TestInbox
           v-else-if="page === 'Test Inbox'"
           :readonly="readOnly"

@@ -10,6 +10,18 @@ import (
 )
 
 func registerExecutions(api huma.API, pool *pgxpool.Pool) {
+	huma.Get(api, "/api/v1/customers/{id}/executions", func(ctx context.Context, in *struct {
+		ID    string `path:"id" maxLength:"128"`
+		Limit int    `query:"limit" default:"25" minimum:"1" maximum:"100"`
+	}) (*Result[[]map[string]any], error) {
+		return jsonRow[[]map[string]any](pool.QueryRow(ctx, `SELECT COALESCE(jsonb_agg(to_jsonb(e)),'[]'::jsonb) FROM (SELECT id,journey_id,version_id,customer_id,entry_event_id,state,exit_reason,started_at FROM journey_executions WHERE workspace_id=$1 AND customer_id=$2 ORDER BY started_at DESC,id LIMIT $3)e`, who(ctx).WorkspaceID, in.ID, in.Limit))
+	})
+	huma.Get(api, "/api/v1/events/{id}/executions", func(ctx context.Context, in *struct {
+		ID    string `path:"id" maxLength:"128"`
+		Limit int    `query:"limit" default:"25" minimum:"1" maximum:"100"`
+	}) (*Result[[]map[string]any], error) {
+		return jsonRow[[]map[string]any](pool.QueryRow(ctx, `SELECT COALESCE(jsonb_agg(to_jsonb(e)),'[]'::jsonb) FROM (SELECT id,journey_id,version_id,customer_id,entry_event_id,state,exit_reason,started_at FROM journey_executions WHERE workspace_id=$1 AND entry_event_id=$2 ORDER BY started_at DESC,id LIMIT $3)e`, who(ctx).WorkspaceID, in.ID, in.Limit))
+	})
 	huma.Get(api, "/api/v1/executions/{id}", func(ctx context.Context, in *journeyID) (*Result[map[string]any], error) {
 		return jsonRow[map[string]any](pool.QueryRow(ctx, `SELECT (to_jsonb(e)-'workspace_id')||jsonb_build_object(
  'steps',COALESCE((SELECT jsonb_agg(to_jsonb(s)-'workspace_id') FROM (SELECT * FROM step_executions WHERE workspace_id=$1 AND execution_id=e.id ORDER BY started_at,id LIMIT 100) s),'[]'::jsonb),

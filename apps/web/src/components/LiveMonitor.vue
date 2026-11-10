@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, onActivated, onDeactivated, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, onActivated, onDeactivated, ref, watch } from 'vue';
 import { VueFlow, type Node, type Edge } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
@@ -11,10 +11,21 @@ import StatusBadge from './ui/StatusBadge.vue';
 import DecisionSummary from './ui/DecisionSummary.vue';
 import AttemptHistory from './ui/AttemptHistory.vue';
 import type { Workflow } from '../lib/workflow';
-const props = defineProps<{ journeyId: string; readonly?: boolean; admin?: boolean }>();
+const props = defineProps<{
+  journeyId: string;
+  readonly?: boolean;
+  admin?: boolean;
+  initialExecutionId?: string;
+  initialDeliveryId?: string;
+}>();
+const emit = defineEmits<{
+  selection: [{ executionID?: string; deliveryID?: string }];
+  inspect: [{ kind: 'event' | 'execution' | 'message'; id: string }];
+}>();
 type Execution = {
   id: string;
   version_id: string;
+  entry_event_id: string;
   customer_id: string;
   state: string;
   current_node_id: string;
@@ -82,6 +93,7 @@ let disposed = false;
 let inactive = false;
 let refreshQueued = false;
 let selectionRequest = 0;
+let routeRestore = 0;
 let deliveryRequest = 0;
 const tracking = ref(false);
 const value = (node: string, metric: string) =>
@@ -205,7 +217,8 @@ function schedule() {
     else schedule();
   }, 5000);
 }
-async function track(id: string) {
+async function track(id: string, fromRoute = false) {
+  if (!fromRoute) routeRestore++;
   const request = ++selectionRequest;
   deliveryRequest++;
   tracking.value = true;
@@ -215,6 +228,7 @@ async function track(id: string) {
     const detail = await api<Execution>('/executions/' + id);
     if (disposed || request !== selectionRequest) return;
     selected.value = detail;
+    if (!fromRoute) emit('selection', { executionID: id, deliveryID: undefined });
     const v = versions.value.find((v) => v.id === selected.value?.version_id);
     if (v && v.version !== version.value) {
       version.value = v.version;
@@ -236,19 +250,48 @@ async function control(action: string) {
     error.value = String(cause);
   }
 }
-async function inspect(id: string) {
+async function inspect(id: string, fromRoute = false) {
   const request = ++deliveryRequest;
   const execution = selected.value?.id;
   try {
     const result = await api<typeof delivery.value>('/deliveries/' + id);
-    if (!disposed && request === deliveryRequest && execution === selected.value?.id)
+    if (!disposed && request === deliveryRequest && execution === selected.value?.id) {
       delivery.value = result;
+      if (!fromRoute) emit('selection', { executionID: execution, deliveryID: id });
+    }
   } catch (cause) {
     if (request === deliveryRequest) error.value = String(cause);
   }
 }
 let activatedBefore = false;
-onMounted(() => void refresh());
+async function restoreSelection() {
+  const current = ++routeRestore;
+  const id = props.initialExecutionId;
+  if (!id) {
+    selectionRequest++;
+    deliveryRequest++;
+    selected.value = undefined;
+    delivery.value = undefined;
+    return;
+  }
+  if (selected.value?.id !== id) {
+    if (!versions.value.length) await refresh();
+    if (current !== routeRestore) return;
+    await track(id, true);
+  }
+  if (current !== routeRestore) return;
+  if (props.initialDeliveryId && selected.value && delivery.value?.id !== props.initialDeliveryId)
+    await inspect(props.initialDeliveryId, true);
+  if (!props.initialDeliveryId) delivery.value = undefined;
+}
+watch(
+  () => [props.initialExecutionId, props.initialDeliveryId],
+  () => void restoreSelection(),
+);
+onMounted(async () => {
+  await refresh();
+  if (props.initialExecutionId) await restoreSelection();
+});
 onActivated(() => {
   inactive = false;
   if (activatedBefore) void refresh();
@@ -328,6 +371,16 @@ onBeforeUnmount(() => {
     <p v-if="tracking" class="panel" role="status">Loading execution…</p>
     <section v-if="selected" class="panel execution-inspector" aria-label="Execution details">
       <h3>Execution inspector</h3>
+      <div class="toolbar">
+        <button @click="emit('inspect', { kind: 'execution', id: selected.id })">
+          Open activity inspector</button
+        ><button
+          v-if="selected.entry_event_id"
+          @click="emit('inspect', { kind: 'event', id: selected.entry_event_id })"
+        >
+          View entry event
+        </button>
+      </div>
       <button
         v-if="!readonly && ['RUNNING', 'WAITING'].includes(selected.state)"
         @click="control('cancel')"

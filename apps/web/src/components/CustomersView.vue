@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, onBeforeUnmount, ref, watch } from 'vue';
+import type { InspectionKind } from '../lib/navigation';
+import StatusBadge from './ui/StatusBadge.vue';
 import { api } from '../lib/api';
 type Customer = {
   customer_id: string;
@@ -13,17 +15,24 @@ type Customer = {
   created_at: string;
   updated_at: string;
 };
-const props = defineProps<{ readonly?: boolean }>();
+const props = defineProps<{ readonly?: boolean; customerId?: string }>();
+const emit = defineEmits<{
+  select: [string | undefined];
+  inspect: [{ kind: InspectionKind; id: string }];
+}>();
+let request = 0;
+let listRequest = 0;
+let disposed = false;
+const executions = ref<{ id: string; state: string; started_at: string }[]>([]);
 const customers = ref<Customer[]>([]);
 const selected = ref<Customer>();
 const search = ref('');
 const error = ref('');
 const busy = ref(false);
+const loadingProfile = ref(false);
 const attributes = ref('{}');
 const events = ref<Record<string, unknown>[]>([]);
-const payload = ref<Record<string, unknown>>();
 const deliveries = ref<Record<string, unknown>[]>([]);
-const delivery = ref<Record<string, unknown>>();
 const form = ref({
   customer_id: '',
   external_id: '',
@@ -35,20 +44,30 @@ const form = ref({
   smsConsent: false,
 });
 async function load() {
+  const current = ++listRequest;
   busy.value = true;
   try {
-    customers.value = await api(`/customers?limit=200&search=${encodeURIComponent(search.value)}`);
+    const result = await api<Customer[]>(
+      `/customers?limit=200&search=${encodeURIComponent(search.value)}`,
+    );
+    if (!disposed && current === listRequest) customers.value = result;
   } catch (cause) {
     error.value = String(cause);
   } finally {
-    busy.value = false;
+    if (!disposed && current === listRequest) busy.value = false;
   }
 }
-async function open(customer: Customer) {
-  payload.value = undefined;
-  delivery.value = undefined;
+async function open(customer: Pick<Customer, 'customer_id'>) {
+  const current = ++request;
+  loadingProfile.value = true;
+  selected.value = undefined;
+  error.value = '';
+  events.value = [];
+  deliveries.value = [];
+  executions.value = [];
   try {
     const c = await api<Customer>(`/customers/${encodeURIComponent(customer.customer_id)}`);
+    if (disposed || current !== request) return;
     selected.value = c;
     form.value = {
       customer_id: c.customer_id,
@@ -61,19 +80,32 @@ async function open(customer: Customer) {
       smsConsent: !!c.consents.sms,
     };
     attributes.value = JSON.stringify(c.attributes, null, 2);
-    const [timeline, history] = await Promise.all([
+    const [timeline, history, runs] = await Promise.all([
       api<Record<string, unknown>[]>(`/customers/${encodeURIComponent(c.customer_id)}/events`),
       api<Record<string, unknown>[]>(
         `/deliveries?customer_id=${encodeURIComponent(c.customer_id)}`,
       ),
+      api<typeof executions.value>(
+        `/customers/${encodeURIComponent(c.customer_id)}/executions?limit=25`,
+      ),
     ]);
+    if (disposed || current !== request) return;
+    executions.value = runs;
     events.value = timeline;
     deliveries.value = history;
   } catch (cause) {
-    error.value = String(cause);
+    if (!disposed && current === request) error.value = String(cause);
+  } finally {
+    if (!disposed && current === request) loadingProfile.value = false;
   }
 }
-function reset() {
+function reset(fromRoute = false) {
+  request++;
+  loadingProfile.value = false;
+  error.value = '';
+  deliveries.value = [];
+  executions.value = [];
+  if (!fromRoute) emit('select', undefined);
   selected.value = undefined;
   form.value = {
     customer_id: '',
@@ -109,26 +141,34 @@ async function save() {
       },
     );
     await load();
-    await open(c);
+    if (props.customerId === c.customer_id) await open(c);
+    else emit('select', c.customer_id);
   } catch (cause) {
     error.value = String(cause);
   }
 }
-async function inspect(event: Record<string, unknown>) {
-  try {
-    payload.value = await api(`/events/${encodeURIComponent(String(event.event_id))}`);
-  } catch (cause) {
-    error.value = String(cause);
-  }
+function inspect(event: Record<string, unknown>) {
+  emit('inspect', { kind: 'event', id: String(event.event_id) });
 }
-async function inspectDelivery(id: unknown) {
-  try {
-    delivery.value = await api(`/deliveries/${id}`);
-  } catch (cause) {
-    error.value = String(cause);
-  }
+function inspectDelivery(id: unknown) {
+  emit('inspect', { kind: 'message', id: String(id) });
 }
-onMounted(load);
+watch(
+  () => props.customerId,
+  (id) => {
+    if (id) void open({ customer_id: id });
+    else reset(true);
+  },
+);
+onBeforeUnmount(() => {
+  disposed = true;
+  request++;
+  listRequest++;
+});
+onMounted(() => {
+  void load();
+  if (props.customerId) void open({ customer_id: props.customerId });
+});
 </script>
 <template>
   <div class="page-heading">
@@ -137,7 +177,7 @@ onMounted(load);
       <h1>Customers</h1>
       <p class="page-description">Profiles, permissions, and the moments that matter.</p>
     </div>
-    <button v-if="!readonly" @click="reset">New customer</button>
+    <button v-if="!readonly" @click="reset()">New customer</button>
   </div>
   <p v-if="error" role="alert" class="error-message">{{ error }}</p>
   <div class="resource-grid">
@@ -155,7 +195,8 @@ onMounted(load);
         v-for="customer in customers"
         :key="customer.customer_id"
         class="list-row"
-        @click="open(customer)"
+        :aria-pressed="selected?.customer_id === customer.customer_id"
+        @click="emit('select', customer.customer_id)"
       >
         <span>{{ customer.email || customer.customer_id }}</span
         ><small>{{ customer.external_id }}</small></button
@@ -163,7 +204,18 @@ onMounted(load);
     </section>
     <section class="panel">
       <h2>{{ selected ? 'Customer profile' : 'New customer' }}</h2>
-      <form class="editor-form" @submit.prevent="save">
+      <p v-if="loadingProfile" role="status" aria-busy="true">Loading customer profile…</p>
+      <button
+        v-if="customerId && !selected && !loadingProfile"
+        @click="open({ customer_id: customerId })"
+      >
+        Retry customer
+      </button>
+      <form
+        v-if="!loadingProfile && (!customerId || selected)"
+        class="editor-form"
+        @submit.prevent="save"
+      >
         <label
           >Customer ID<input
             v-model="form.customer_id"
@@ -204,7 +256,20 @@ onMounted(load);
         </button>
       </form>
       <template v-if="selected"
-        ><h3>Message history</h3>
+        ><h3>Journey executions</h3>
+        <p v-if="!executions.length">No journey enrollments found.</p>
+        <button
+          v-for="execution in executions"
+          :key="execution.id"
+          class="list-row"
+          @click="emit('inspect', { kind: 'execution', id: execution.id })"
+        >
+          <span
+            >{{ execution.id.slice(0, 8) }} ·
+            {{ new Date(execution.started_at).toLocaleString() }}</span
+          ><StatusBadge :status="execution.state" /></button
+        ><small>Latest 25 executions.</small>
+        <h3>Message history</h3>
         <p v-if="!deliveries.length">No message actions yet.</p>
         <button
           v-for="item in deliveries"
@@ -215,10 +280,7 @@ onMounted(load);
           <span>{{ item.channel }} · {{ item.mode }}</span
           ><span>{{ item.status }}</span>
         </button>
-        <details v-if="delivery" open>
-          <summary>Delivery decision &amp; attempts</summary>
-          <pre>{{ JSON.stringify(delivery, null, 2) }}</pre>
-        </details>
+
         <h3>Event timeline</h3>
         <p v-if="!events.length">No events received yet.</p>
         <button
@@ -230,11 +292,7 @@ onMounted(load);
           <span>{{ event.event_name }}</span
           ><small>{{ new Date(String(event.occurred_at)).toLocaleString() }}</small>
         </button>
-        <details v-if="payload" open>
-          <summary>Event payload</summary>
-          <pre>{{ JSON.stringify(payload, null, 2) }}</pre>
-        </details></template
-      >
+      </template>
     </section>
   </div>
 </template>
