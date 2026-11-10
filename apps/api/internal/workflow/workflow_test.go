@@ -56,3 +56,14 @@ func TestConditions(t *testing.T) {
 		}
 	}
 }
+
+func TestDraftShapeAllowsIncompleteGraphsButRejectsUnsafeShapes(t *testing.T) {
+	for _, raw := range []string{`null`, `{"schema_version":1,"nodes":null,"edges":[]}`, `{"schema_version":1,"nodes":[],"edges":[],"execute_code":"no"}`, `{"schema_version":1,"nodes":[{"id":"bad","type":"execute_code","label":"Bad","config":{},"position":{"x":0,"y":0}}],"edges":[]}`} {
+		if _, err := DecodeDraft([]byte(raw)); err == nil {
+			t.Fatalf("invalid draft accepted: %s", raw)
+		}
+	}
+	if _, err := DecodeDraft([]byte(`{"schema_version":1,"nodes":[],"edges":[]}`)); err != nil {
+		t.Fatal(err)
+	}
+}

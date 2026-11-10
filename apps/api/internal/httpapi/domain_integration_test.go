@@ -343,3 +343,52 @@ func TestMessagePreviewIsolationAndAllowlistedTestSend(t *testing.T) {
 	call("POST", "/messages/test-send", body, 403)
 	call("POST", "/messages/preview", preview, 200)
 }
+
+func TestDisabledAIHasNoDraftSideEffects(t *testing.T) {
+	t.Setenv("AI_PROVIDER", "disabled")
+	ctx := context.Background()
+	pool, err := database.Open(ctx, os.Getenv("TEST_DATABASE_URL"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	if err := database.Migrate(ctx, pool); err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(New(slog.New(slog.NewTextHandler(io.Discard, nil)), func(context.Context) error { return nil }, pool))
+	defer server.Close()
+	jar, _ := cookiejar.New(nil)
+	client := &http.Client{Jar: jar}
+	csrf := ""
+	call := func(path string, body any, want int) []byte {
+		t.Helper()
+		data, _ := json.Marshal(body)
+		req, _ := http.NewRequest("POST", server.URL+"/api/v1"+path, bytes.NewReader(data))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-CSRF-Token", csrf)
+		response, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		out, _ := io.ReadAll(response.Body)
+		if response.StatusCode != want {
+			t.Fatalf("%s: %d %s", path, response.StatusCode, out)
+		}
+		return out
+	}
+	var identity Identity
+	json.Unmarshal(call("/auth/register", map[string]any{"name": "AI review", "workspace": "AI scope", "email": randomToken()[:12] + "@example.invalid", "password": randomToken()}, 200), &identity)
+	csrf = identity.CSRF
+	var journey Journey
+	json.Unmarshal(call("/journeys", map[string]any{"name": "Human draft"}, 200), &journey)
+	call("/ai/journeys/generate", map[string]any{"provider": "claude", "action": "generate", "prompt": "Create a cart journey", "name": journey.Name, "workflow": map[string]any{"schema_version": 1, "nodes": []any{}, "edges": []any{}}}, 503)
+	var revision int
+	var status string
+	if err := pool.QueryRow(ctx, `SELECT revision,status FROM journeys WHERE id=$1`, journey.ID).Scan(&revision, &status); err != nil {
+		t.Fatal(err)
+	}
+	if revision != 1 || status != "Draft" {
+		t.Fatal("AI changed or published a draft without approval")
+	}
+}

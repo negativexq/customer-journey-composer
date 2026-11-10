@@ -17,6 +17,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/ofk/customer-journey-composer/apps/api/internal/workflow"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -284,6 +285,9 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 		if len(in.Body.Draft) > 1<<20 || !json.Valid(in.Body.Draft) || strings.TrimSpace(in.Body.Name) == "" {
 			return nil, huma.Error422UnprocessableEntity("Valid draft and name required; maximum draft size is 1 MiB")
 		}
+		if _, err := workflow.DecodeDraft(in.Body.Draft); err != nil {
+			return nil, huma.Error422UnprocessableEntity(err.Error())
+		}
 		if in.Body.Tags == nil {
 			in.Body.Tags = []string{}
 		}
@@ -313,6 +317,7 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 	registerCustomers(api, pool)
 	registerExecutions(api, pool)
 	registerMessages(api, pool)
+	registerAI(api)
 }
 
 var dummyPasswordHash, _ = bcrypt.GenerateFromPassword([]byte(randomToken()), 12)

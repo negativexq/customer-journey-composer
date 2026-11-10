@@ -128,6 +128,9 @@ func Validate(w Workflow) []Issue {
 			add(n.ID, "position", "Finite coordinates required")
 		}
 		c := n.Config
+		if len(c.HTML) > 200000 || len(c.Text) > 20000 || len(c.Preheader) > 300 || len(c.Fallbacks) > 100 {
+			add(n.ID, "content", "Message exceeds configured size limits")
+		}
 		switch n.Type {
 		case "event_trigger", "wait_event":
 			if n.Type == "event_trigger" {

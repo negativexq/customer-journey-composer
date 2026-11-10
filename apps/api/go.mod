@@ -6,6 +6,7 @@ require (
 	github.com/danielgtaylor/huma/v2 v2.40.0
 	github.com/jackc/pgx/v5 v5.12.0
 	github.com/microcosm-cc/bluemonday v1.0.27
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	golang.org/x/crypto v0.58.0
 	golang.org/x/net v0.61.0
 )
