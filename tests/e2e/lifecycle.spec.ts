@@ -91,18 +91,21 @@ test('pause and sunset preserve durable work while closing enrollment', async ({
     (await (await page.request.get('/api/v1/executions/' + entry.executions[0])).json()).state;
   await expect.poll(state).toBe('WAITING');
   await page.goto('/');
-  await page.getByRole('button', { name: 'Lifecycle journey', exact: false }).click();
+  await page.locator('.journey-name-button').filter({ hasText: 'Lifecycle journey' }).click();
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Resume', exact: true })).toBeVisible();
   expect((await send('new')).executions).toEqual([]);
   // Let a real durable timer become due while paused; no worker step may run.
   await page.waitForTimeout(3200);
   expect(await state()).toBe('WAITING');
+  await page.getByLabel('More journey actions').click();
   await page.getByRole('button', { name: 'Sunset', exact: true }).click();
   await expect.poll(state).toBe('COMPLETED');
   expect((await send('new')).executions).toEqual([]);
+  await page.getByLabel('More journey actions').click();
   await page.getByRole('button', { name: 'Complete after draining', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('completed');
+  await page.getByLabel('More journey actions').click();
   await page.getByRole('button', { name: 'Archive', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('archived');
   const audits = await (await page.request.get('/api/v1/audit-logs')).json();

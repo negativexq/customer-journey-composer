@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { api, type Journey } from '../lib/api';
+import AppIcon from './ui/AppIcon.vue';
+import MetricCard from './ui/MetricCard.vue';
+import TrendChart from './ui/TrendChart.vue';
+import FilterSelect from './ui/FilterSelect.vue';
+import PeriodSelect from './ui/PeriodSelect.vue';
 const props = defineProps<{ journeyId?: string; overview?: boolean }>();
 type Metric = { dimension: string; key: string; metric: string; value: number };
 type Summary = { metrics: Metric[]; updated_at?: string; semantics: string };
 type Daily = { day: string; dimension: string; key: string; metric: string; value: number };
 const summary = ref<Summary>();
-const recentEntries = ref(0);
-const activity = ref<{
-  recent_executions: { id: string; journey_id: string; customer_id: string; state: string }[];
-  failed_executions: { id: string; journey_id: string; customer_id: string; state: string }[];
-}>();
 const comparison = ref<
   { id: string; name: string; entries: number; converted: number; active: number }[]
 >([]);
@@ -34,7 +34,6 @@ const converted = computed(() => value('execution', 'converted'));
 const rate = computed(() =>
   entries.value ? ((100 * converted.value) / entries.value).toFixed(1) : '0.0',
 );
-const dates = computed(() => [...new Set(daily.value?.daily.map((d) => d.day) || [])]);
 function at(day: string, metric: string) {
   return (
     daily.value?.daily.find(
@@ -42,7 +41,6 @@ function at(day: string, metric: string) {
     )?.value || 0
   );
 }
-const maxEntry = computed(() => Math.max(1, ...dates.value.map((d) => at(d, 'entries'))));
 const funnel = computed(() =>
   nodeMetrics.value.filter((m) => m.dimension === 'node' && m.metric === 'entered'),
 );
@@ -53,6 +51,16 @@ const funnelEntries = computed(
     nodeMetrics.value.find((m) => m.dimension === 'execution' && m.metric === 'entries')?.value ||
     0,
 );
+const chartData = computed(() => {
+  const end = new Date();
+  const midnight = Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate());
+  return Array.from({ length: days.value }, (_, i) => {
+    const day = new Date(midnight - (days.value - 1 - i) * 86400000).toISOString().slice(0, 10);
+    return { day, entries: at(day, 'entries'), converted: at(day, 'converted') };
+  });
+});
+const nodeLabels = ref<Record<string, string>>({});
+const labelCache = new Map<string, Record<string, string>>();
 async function load() {
   busy.value = true;
   error.value = '';
@@ -69,15 +77,25 @@ async function load() {
         '/journeys/' + selected.value + '/versions',
       );
       funnelVersion.value = versions[0]?.version || 0;
+      if (funnelVersion.value) {
+        const key = selected.value + ':' + funnelVersion.value;
+        if (!labelCache.has(key)) {
+          const result = await api<{ workflow: { nodes: { id: string; label: string }[] } }>(
+            `/journeys/${selected.value}/versions/${funnelVersion.value}`,
+          );
+          if (labelCache.size >= 10) labelCache.clear();
+          labelCache.set(
+            key,
+            Object.fromEntries(result.workflow.nodes.map((n) => [n.id, n.label])),
+          );
+        }
+        nodeLabels.value = labelCache.get(key) || {};
+      }
       nodeMetrics.value = funnelVersion.value
         ? await api(`/journeys/${selected.value}/node-stats?version=${funnelVersion.value}`)
         : [];
     } else {
-      [comparison.value, activity.value] = await Promise.all([
-        api<typeof comparison.value>('/analytics/comparison'),
-        api<typeof activity.value>('/overview/activity'),
-      ]);
-      recentEntries.value = (await api<{ entries: number }>('/overview/entries-24h')).entries;
+      comparison.value = await api<typeof comparison.value>('/analytics/comparison');
     }
   } catch (cause) {
     error.value = String(cause);
@@ -94,257 +112,258 @@ onMounted(() => {
 });
 </script>
 <template>
-  <section :aria-busy="busy">
+  <section class="analytics-page" :aria-busy="busy">
     <div class="page-heading">
       <div>
-        <h1>{{ overview ? 'Workspace overview' : 'Analytics' }}</h1>
-        <p class="page-description">
-          Execution-backed metrics · eventual consistency · UTC cohorts
-        </p>
+        <h1>{{ journeyId ? 'Journey analytics' : 'Analytics' }}</h1>
+        <p class="page-description">Understand journey performance and channel outcomes.</p>
       </div>
-      <button :disabled="busy" @click="load">Refresh metrics</button>
-    </div>
-    <p v-if="error" role="alert" class="error-message">{{ error }}</p>
-    <div v-if="!journeyId" class="editor-form">
-      <label
-        >Analytics scope<select v-model="selected" @change="load">
-          <option value="">Entire workspace</option>
-          <option v-for="j in journeys" :key="j.id" :value="j.id">{{ j.name }}</option>
-        </select></label
-      ><label
-        >UTC calendar days<select v-model.number="days" @change="load">
-          <option :value="7">7</option>
-          <option :value="30">30</option>
-          <option :value="90">90</option>
-        </select></label
-      >
-    </div>
-    <p v-if="!summary?.updated_at">
-      Metrics are waiting for the analytics worker. Refresh after processing.
-    </p>
-    <template v-if="summary"
-      ><p>Processed {{ summary.updated_at || 'not yet' }}. {{ summary.semantics }}</p>
-      <section class="stats-grid">
-        <div v-if="!selected" class="panel stat-card">
-          <span>Entries · last 24h</span><strong>{{ recentEntries }}</strong>
-        </div>
-        <button v-if="!selected" class="panel stat-card" @click="emit('browseJourneys', '')">
-          <span>Total journeys</span><strong>{{ value('journey', 'total') }}</strong>
+      <div class="heading-actions">
+        <button :disabled="busy" @click="load">
+          <AppIcon name="refresh" :size="15" />Refresh metrics
         </button>
-        <button
-          v-for="s in !selected
-            ? ['Active', 'Draft', 'Paused', 'Sunset', 'Completed', 'Archived']
-            : []"
-          :key="s"
-          class="panel stat-card"
-          @click="emit('browseJourneys', s)"
+      </div>
+    </div>
+    <p v-if="error" role="alert" class="inline-alert error-alert">{{ error }}</p>
+    <div class="analytics-filter-bar">
+      <FilterSelect
+        v-if="!journeyId"
+        v-model="selected"
+        label="Journey"
+        icon="workflow"
+        searchable
+        search-placeholder="Find a journey…"
+        :disabled="busy"
+        :options="[
+          { value: '', label: 'All journeys', description: 'Workspace-wide performance' },
+          ...journeys.map((j) => ({
+            value: j.id,
+            label: j.name,
+            description: j.status + (j.version ? ' · v' + j.version : ''),
+          })),
+        ]"
+        @update:model-value="load"
+      />
+      <div class="analytics-scope-note">
+        <AppIcon name="chart" :size="15" /><span
+          >Performance overview<small>All-time totals</small></span
         >
-          <span>{{ s }} journeys</span><strong>{{ value('journey', s) }}</strong>
-        </button>
-        <div class="panel stat-card">
-          <span>Logical entries · lifetime</span><strong>{{ entries }}</strong>
+      </div>
+    </div>
+    <div class="overview-metrics">
+      <MetricCard
+        label="Journey entries"
+        :value="entries"
+        caption="Logical enrollments · all time"
+        icon="workflow"
+        @select="emit('browseJourneys', '')"
+      /><MetricCard
+        label="Unique customers"
+        :value="value('execution', 'unique_customers')"
+        caption="Distinct enrolled customers · all time"
+        icon="users"
+        tone="blue"
+        @select="emit('navigate', 'Customers')"
+      /><MetricCard
+        label="Active executions"
+        :value="value('execution', 'RUNNING') + value('execution', 'WAITING')"
+        :caption="value('execution', 'COMPLETED') + ' completed executions'"
+        icon="events"
+        tone="green"
+        @select="emit('browseJourneys', '')"
+      /><MetricCard
+        label="Conversion rate"
+        :value="rate + '%'"
+        :caption="converted + ' converted / ' + entries + ' entries'"
+        icon="chart"
+        tone="amber"
+        @select="emit('browseJourneys', '')"
+      />
+    </div>
+    <section class="surface analytics-trend">
+      <div class="surface-heading">
+        <div>
+          <h2>Entry &amp; conversion trend</h2>
+          <p>Outcomes are attributed to the day customers entered the journey.</p>
         </div>
-        <div class="panel stat-card">
-          <span>Unique enrolled customers · lifetime</span
-          ><strong>{{ value('execution', 'unique_customers') }}</strong>
+        <PeriodSelect v-model="days" :disabled="busy" @update:model-value="load" />
+      </div>
+      <div class="chart-legend">
+        <span><i class="legend-dot violet" />Journey entries</span
+        ><span><i class="legend-dot green" />Conversions</span
+        ><span class="chart-timezone">UTC</span>
+      </div>
+      <TrendChart :data="chartData" />
+    </section>
+    <section class="surface analytics-channels">
+      <div class="surface-heading">
+        <div>
+          <h2>Channel performance · logical sends</h2>
+          <p>Retries are grouped under the original message.</p>
         </div>
-        <div class="panel stat-card">
-          <span>Active executions</span
-          ><strong>{{ value('execution', 'RUNNING') + value('execution', 'WAITING') }}</strong>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Channel</th>
+              <th>Planned</th>
+              <th>Attempted</th>
+              <th>Provider accepted</th>
+              <th>Blocked</th>
+              <th>Skipped</th>
+              <th>Failed</th>
+              <th>Unknown</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="c in ['email', 'sms']" :key="c">
+              <td>
+                <span class="channel-cell"
+                  ><span class="channel-icon" :class="c"
+                    ><AppIcon :name="c === 'email' ? 'email' : 'message'" :size="16" /></span
+                  >{{ c === 'email' ? 'Email' : 'SMS' }}</span
+                >
+              </td>
+              <td>{{ value('channel', 'scheduled', c) }}</td>
+              <td>{{ value('channel', 'attempted', c) }}</td>
+              <td>
+                <span class="accepted-number">{{ value('channel', 'ACCEPTED', c) }}</span>
+              </td>
+              <td>{{ value('channel', 'BLOCKED', c) }}</td>
+              <td>{{ value('channel', 'SKIPPED', c) + value('channel', 'CANCELLED', c) }}</td>
+              <td>{{ value('channel', 'FAILED', c) }}</td>
+              <td>{{ value('channel', 'UNKNOWN', c) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-caption">
+        <AppIcon name="shield" :size="14" />Provider acceptance is not confirmed delivery.
+        Open/click tracking is not enabled.
+      </p>
+    </section>
+    <div class="analytics-bottom">
+      <section class="surface">
+        <div class="surface-heading">
+          <div>
+            <h2>Node funnel</h2>
+            <p>
+              {{
+                selected
+                  ? 'Published v' + funnelVersion + ' · ' + funnelEntries + ' entries'
+                  : 'Choose a journey to inspect its path'
+              }}
+            </p>
+          </div>
         </div>
-        <div class="panel stat-card">
-          <span>Completed executions</span><strong>{{ value('execution', 'COMPLETED') }}</strong>
-        </div>
-        <div class="panel stat-card">
-          <span>Converted / logical entries</span
-          ><strong>{{ converted }} / {{ entries }} · {{ rate }}%</strong>
-        </div>
-        <div class="panel stat-card">
-          <span>Average terminal duration (all outcomes)</span
-          ><strong
-            >{{
-              (
-                value('execution', 'duration_ms') /
-                Math.max(1, value('execution', 'finished_count')) /
-                1000
-              ).toFixed(1)
-            }}s</strong
-          >
-        </div>
-      </section>
-      <section class="panel">
-        <h2>Entry &amp; conversion trend</h2>
-        <p>{{ daily?.semantics }}</p>
-        <p v-if="!dates.length">No entries in this period.</p>
-        <div v-for="day in dates" :key="day" class="trend-row">
-          <span>{{ day }}</span>
-          <div class="trend-bar" :style="{ width: (at(day, 'entries') / maxEntry) * 60 + '%' }" />
-          <span
-            >{{ at(day, 'entries') }} entries · {{ at(day, 'converted') }} converted ·
-            {{
-              at(day, 'entries')
-                ? ((100 * at(day, 'converted')) / at(day, 'entries')).toFixed(1)
-                : 0
-            }}%</span
-          >
-        </div>
-      </section>
-      <section class="panel">
-        <h2>Channel performance · logical sends</h2>
-        <div class="table-scroll">
+        <div v-if="selected && funnel.length" class="table-scroll">
           <table>
             <thead>
               <tr>
-                <th>Channel</th>
-                <th>Scheduled</th>
-                <th>Attempted</th>
-                <th>Provider accepted</th>
-                <th>Blocked</th>
-                <th>Skipped / cancelled</th>
-                <th>Failed</th>
-                <th>Unknown</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="c in ['email', 'sms']" :key="c">
-                <td>{{ c }}</td>
-                <td>{{ value('channel', 'scheduled', c) }}</td>
-                <td>{{ value('channel', 'attempted', c) }}</td>
-                <td>{{ value('channel', 'ACCEPTED', c) }}</td>
-                <td>{{ value('channel', 'BLOCKED', c) }}</td>
-                <td>{{ value('channel', 'SKIPPED', c) + value('channel', 'CANCELLED', c) }}</td>
-                <td>{{ value('channel', 'FAILED', c) }}</td>
-                <td>{{ value('channel', 'UNKNOWN', c) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p>
-          Acceptance is not confirmed delivery. Retry attempts do not increase logical
-          scheduled/attempted counts. Open/click tracking is not enabled.
-        </p>
-      </section>
-      <section class="panel">
-        <h2>Node funnel · published v{{ funnelVersion }} · {{ funnelEntries }} entries</h2>
-        <p v-if="!selected">Select one journey to inspect its node funnel.</p>
-        <div v-else class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Node</th>
+                <th>Step</th>
                 <th>Entered</th>
-                <th>Succeeded</th>
+                <th>Completed</th>
                 <th>Skipped</th>
-                <th>Failed</th>
-                <th>Drop-off from entry</th>
+                <th>Drop-off</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="n in funnel" :key="n.node_id">
-                <td>{{ n.node_id }}</td>
+                <td>{{ nodeLabels[n.node_id] || n.node_id }}</td>
                 <td>{{ n.value }}</td>
                 <td>{{ nodeValue(n.node_id, 'SUCCEEDED') }}</td>
                 <td>{{ nodeValue(n.node_id, 'SKIPPED') }}</td>
-                <td>{{ nodeValue(n.node_id, 'FAILED') }}</td>
                 <td>{{ funnelEntries ? ((1 - n.value / funnelEntries) * 100).toFixed(1) : 0 }}%</td>
               </tr>
             </tbody>
           </table>
         </div>
-        <p>Node success means the step completed; message acceptance is reported separately.</p>
-      </section>
-      <section class="panel">
-        <h2>Exit reasons</h2>
-        <p v-for="m in summary.metrics.filter((m) => m.dimension === 'exit_reason')" :key="m.key">
-          {{ m.key }} · {{ m.value }}
-        </p>
-      </section>
-      <section v-if="!journeyId && !overview" class="panel">
-        <h2>Journey comparison</h2>
-        <p>Lifetime logical entries and conversions. Latest 100 journeys.</p>
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Journey</th>
-                <th>Entries</th>
-                <th>Active</th>
-                <th>Converted / entries</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="j in comparison" :key="j.id">
-                <td>
-                  <button
-                    @click="
-                      selected = j.id;
-                      load();
-                    "
-                  >
-                    {{ j.name }}
-                  </button>
-                </td>
-                <td>{{ j.entries }}</td>
-                <td>{{ j.active }}</td>
-                <td>
-                  {{ j.converted }} / {{ j.entries }} ·
-                  {{ j.entries ? ((100 * j.converted) / j.entries).toFixed(1) : 0 }}%
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div v-else class="empty-state">
+          <span class="empty-icon"><AppIcon name="branch" :size="26" /></span>
+          <h3>No funnel data yet</h3>
+          <p>
+            {{
+              selected
+                ? 'Node activity will appear after customers enter.'
+                : 'Select a journey above to see step-level performance.'
+            }}
+          </p>
         </div>
-        <button v-if="selected" @click="emit('openJourney', selected)">
-          Open selected journey
-        </button>
       </section>
-      <section v-if="overview && activity" class="panel">
-        <h2>Recent executions &amp; system alerts</h2>
-        <p v-if="!activity.failed_executions.length">
-          No failed executions in the current error list.
-        </p>
-        <button
-          v-for="e in activity.failed_executions"
-          :key="e.id"
-          class="list-row"
-          @click="emit('openJourney', e.journey_id)"
-        >
-          Failed: {{ e.customer_id }} · {{ e.id }}</button
-        ><button
-          v-for="e in activity.recent_executions"
-          :key="e.id"
-          class="list-row"
-          @click="emit('openJourney', e.journey_id)"
-        >
-          {{ e.customer_id }} · {{ e.state }} · {{ e.id }}
-        </button>
-      </section></template
-    >
+      <section class="surface">
+        <div class="surface-heading"><h2>Journey outcomes</h2></div>
+        <div class="outcomes-summary">
+          <div>
+            <span>Average terminal duration</span
+            ><strong
+              >{{
+                (
+                  value('execution', 'duration_ms') /
+                  Math.max(1, value('execution', 'finished_count')) /
+                  1000
+                ).toFixed(1)
+              }}<small>sec</small></strong
+            >
+          </div>
+          <div
+            v-for="m in summary?.metrics.filter(
+              (m) => m.dimension === 'exit_reason' && m.value > 0,
+            ) || []"
+            :key="m.key"
+            class="outcome-row"
+          >
+            <span>{{ m.key.replaceAll('_', ' ') }}</span
+            ><strong>{{ m.value }}</strong>
+          </div>
+          <p v-if="!summary?.metrics.some((m) => m.dimension === 'exit_reason' && m.value > 0)">
+            Exit reasons will appear as journeys finish.
+          </p>
+        </div>
+      </section>
+    </div>
+    <section v-if="!journeyId" class="surface">
+      <div class="surface-heading">
+        <div>
+          <h2>Journey comparison</h2>
+          <p>Latest 100 journeys · lifetime logical entries</p>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Journey</th>
+              <th>Entries</th>
+              <th>Active</th>
+              <th>Converted</th>
+              <th>Conversion rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="j in comparison" :key="j.id">
+              <td>
+                <button class="journey-name-button" @click="emit('openJourney', j.id)">
+                  {{ j.name }}
+                </button>
+              </td>
+              <td>{{ j.entries }}</td>
+              <td>{{ j.active }}</td>
+              <td>{{ j.converted }}</td>
+              <td>{{ j.entries ? ((100 * j.converted) / j.entries).toFixed(1) : 0 }}%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <details class="metric-definitions">
+      <summary><AppIcon name="file" :size="14" />Metric definitions</summary>
+      <p>{{ summary?.semantics }}</p>
+      <p>{{ daily?.semantics }}</p>
+      <p>
+        Step completion and message acceptance are separate outcomes. Average terminal duration
+        includes all exit reasons.
+      </p>
+    </details>
   </section>
 </template>
-<style scoped>
-.table-scroll {
-  overflow: auto;
-}
-table {
-  width: 100%;
-  text-align: left;
-}
-th,
-td {
-  padding: 12px;
-}
-.trend-row {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin: 12px 0;
-  flex-wrap: wrap;
-}
-.trend-bar {
-  background: #88a77b;
-  height: 16px;
-  min-width: 2px;
-  border-radius: 4px;
-}
-</style>

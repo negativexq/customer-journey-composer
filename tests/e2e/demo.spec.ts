@@ -10,5 +10,7 @@ test('local demo credentials are prefilled and sign in without typing', async ({
     (await page.getByLabel('Password', { exact: true }).inputValue()).length >= 16,
   ).toBeTruthy();
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Welcome, Demo User.' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: /Good (morning|afternoon|evening), Demo/ }),
+  ).toBeVisible();
 });

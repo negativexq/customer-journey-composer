@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue';
 import { api, type Identity } from '../lib/api';
 import SystemStatus from './SystemStatus.vue';
+import AppIcon from './ui/AppIcon.vue';
 const emit = defineEmits<{ authenticated: [Identity] }>();
 const register = ref(false);
 const email = ref('');
@@ -61,7 +62,7 @@ async function submit() {
 <template>
   <main class="auth-page">
     <a href="/" class="brand"
-      ><span class="brand-symbol">j<span>·</span></span
+      ><span class="brand-mark"><AppIcon name="workflow" :size="23" /></span
       ><span>journey<span class="brand-subtitle">COMPOSER</span></span></a
     >
     <div class="auth-intro">

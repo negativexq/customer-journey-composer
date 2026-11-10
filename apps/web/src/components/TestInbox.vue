@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import AppIcon from './ui/AppIcon.vue';
+import StatusBadge from './ui/StatusBadge.vue';
 import { api, type Journey } from '../lib/api';
 type Row = {
   id: string;
@@ -147,13 +149,15 @@ onMounted(
 <template>
   <div class="page-heading">
     <div>
+      <div class="eyebrow">TESTING WORKSPACE</div>
       <h1>Test Inbox</h1>
       <p class="page-description">
-        Sandbox outputs and explicit test sends. SIMULATED never calls a provider; TEST_ACCEPTED
-        means provider acceptance.
+        Review every message before it reaches your customers. Simulations stay in the sandbox.
       </p>
     </div>
-    <button :disabled="busy" @click="load()">Refresh inbox</button>
+    <button :disabled="busy" @click="load()">
+      <AppIcon name="refresh" :size="15" />Refresh inbox
+    </button>
   </div>
   <p v-if="error" role="alert" class="error-message">{{ error }}</p>
   <p role="status">{{ notice }}</p>
@@ -202,7 +206,10 @@ onMounted(
       >
     </aside>
     <section class="panel inbox-list" :aria-busy="busy">
-      <h2>Messages</h2>
+      <div class="inbox-list-heading">
+        <h2>Messages</h2>
+        <span class="count-chip">{{ rows.length }}</span>
+      </div>
       <p v-if="!rows.length">
         No matching test messages. Run a scenario in Test Lab or send an allowlisted test.
       </p>
@@ -217,18 +224,24 @@ onMounted(
         ><span
           >{{ r.journey_name || 'Explicit test' }} {{ r.version ? '· v' + r.version : '' }}</span
         ><span>{{ r.customer_id || 'Test recipient' }} · {{ r.status }}</span
-        ><small>{{ r.mode }} · {{ r.simulated_at }}</small></button
+        ><small>{{ r.mode }} · {{ new Date(r.simulated_at).toLocaleString() }}</small></button
       ><button v-if="rows.length >= 50" @click="load(true)">Load older messages</button>
     </section>
     <section class="panel inbox-detail">
       <template v-if="selected"
         ><h2>{{ selected.message.subject || selected.node_label }}</h2>
-        <p>{{ selected.mode }} · {{ selected.status }} · {{ selected.provider_status || '' }}</p>
+        <div class="inbox-message-meta">
+          <StatusBadge :status="selected.status" /><span
+            >{{ selected.mode }} {{ selected.provider_status || '' }}</span
+          >
+        </div>
         <p>To: {{ selected.message.to }} · {{ selected.message.preheader }}</p>
         <div class="detail-tabs">
           <button
             v-for="t in ['Preview', 'Payload', 'Execution trace', 'Decision', 'Attempts']"
             :key="t"
+            :class="{ active: tab === t }"
+            :aria-pressed="tab === t"
             @click="tab = t"
           >
             {{ t }}
@@ -279,9 +292,11 @@ onMounted(
 Provider: {{ selected.provider }} {{ selected.provider_response }}</pre>
         <pre v-else>{{ JSON.stringify(previous, null, 2) }}</pre>
       </template>
-      <p v-else>
-        Select a message to inspect its rendered content, eligibility and execution trace.
-      </p>
+      <div v-else class="inbox-empty">
+        <span><AppIcon name="inbox" :size="32" /></span>
+        <h2>Your message preview</h2>
+        <p>Select a message to inspect its rendered content, eligibility and execution trace.</p>
+      </div>
     </section>
   </div>
 </template>
@@ -289,10 +304,16 @@ Provider: {{ selected.provider }} {{ selected.provider_response }}</pre>
 .inbox-layout {
   display: grid;
   grid-template-columns: 220px minmax(220px, 1fr) minmax(300px, 1.5fr);
-  gap: 16px;
-  align-items: start;
+  gap: 0;
+  align-items: stretch;
+  min-height: 600px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
 }
 .inbox-filters {
+  background: #fafbfe;
   display: grid;
   gap: 12px;
 }
@@ -302,7 +323,11 @@ Provider: {{ selected.provider }} {{ selected.provider_response }}</pre>
   width: 100%;
   text-align: left;
   padding: 16px;
-  margin-bottom: 8px;
+  margin-bottom: 0;
+  border-radius: 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: white;
   overflow-wrap: anywhere;
 }
 .inbox-detail {
@@ -323,7 +348,8 @@ Provider: {{ selected.provider }} {{ selected.provider_response }}</pre>
   flex-wrap: wrap;
 }
 .sms-phone {
-  border: 8px solid #263127;
+  background: #f7f8fc;
+  border: 7px solid #273047;
   border-radius: 28px;
   padding: 24px;
   max-width: 350px;

@@ -74,6 +74,7 @@ test('virtual clock runs persisted sandbox without changing production', async (
   await expect(page.getByTestId('test-result')).toHaveText('PENDING');
   await page.getByRole('button', { name: 'Run to completion', exact: true }).click();
   await expect(page.getByTestId('test-result')).toHaveText('PASS');
+  await page.getByText('Advanced scenario options', { exact: false }).click();
   await page
     .getByLabel('Event sequence (JSON; after_seconds, event)')
     .fill('[{"after_seconds":3600,"event":{"event_name":"purchase_completed"}}]');

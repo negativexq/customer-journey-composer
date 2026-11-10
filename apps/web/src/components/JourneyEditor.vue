@@ -7,6 +7,8 @@ import AIPanel from './AIPanel.vue';
 import TestLab from './TestLab.vue';
 import LiveMonitor from './LiveMonitor.vue';
 import AnalyticsView from './AnalyticsView.vue';
+import AppIcon from './ui/AppIcon.vue';
+import StatusBadge from './ui/StatusBadge.vue';
 import type { Workflow, Issue } from '../lib/workflow';
 const props = defineProps<{ journey: Journey; readonly?: boolean; admin?: boolean }>();
 const emit = defineEmits<{ back: []; saved: [Journey] }>();
@@ -29,6 +31,8 @@ watch([exitEvent, reentryMode, cooldown], () => {
   };
 });
 const tab = ref('Builder');
+const showAI = ref(draft.value.nodes.length === 0);
+const metadata = ref<HTMLDetailsElement>();
 const previewTab = ref('Messages');
 const messageNodeID = ref('');
 const messageStep = computed(
@@ -251,108 +255,158 @@ function back() {
 }
 </script>
 <template>
-  <div class="page-heading">
-    <div>
-      <button @click="back">← Journeys</button>
-      <h1>{{ name }}</h1>
-      <p class="page-description">{{ journey.status }} · Revision {{ revision }}</p>
+  <div class="journey-heading">
+    <div class="journey-heading-copy">
+      <button class="back-link" @click="back"><AppIcon name="back" :size="14" />Journeys</button>
+      <div class="journey-title-row">
+        <h1>{{ name }}</h1>
+        <StatusBadge :status="journey.status" />
+      </div>
+      <p class="journey-subtitle">{{ description || 'Build a connected customer experience.' }}</p>
     </div>
-    <div>
-      <button
-        class="primary"
-        :disabled="busy || readonly || journey.status === 'Archived'"
-        @click="save"
+    <div class="journey-heading-actions">
+      <span class="save-feedback" role="status"
+        ><AppIcon v-if="!dirty && !error" name="check" :size="14" />{{
+          notice || 'All changes saved'
+        }}</span
       >
-        Save
-      </button>
-      <button :disabled="busy" @click="validate">Validate</button
-      ><button
-        :disabled="busy || readonly || !admin || journey.status === 'Archived'"
-        @click="publish"
-      >
-        Publish
-      </button>
-      <button
-        v-if="admin && ['Active', 'Sunset'].includes(journey.status)"
-        :disabled="busy"
-        @click="lifecycle('pause')"
-      >
-        Pause</button
-      ><button
-        v-if="admin && journey.status === 'Paused'"
-        :disabled="busy"
-        @click="lifecycle('resume')"
-      >
-        Resume</button
-      ><button
-        v-if="admin && ['Active', 'Paused'].includes(journey.status)"
-        :disabled="busy"
-        @click="lifecycle('sunset')"
-      >
-        Sunset</button
-      ><button
-        v-if="admin && ['Sunset', 'Paused'].includes(journey.status)"
-        :disabled="busy"
-        @click="lifecycle('complete')"
-      >
-        Complete after draining</button
-      ><button
-        v-if="admin && ['Draft', 'Completed'].includes(journey.status)"
-        :disabled="busy"
-        @click="lifecycle('archive')"
-      >
-        Archive
-      </button>
-      <button :disabled="readonly || busy" @click="saveTemplate">Save as template</button>
-      <p role="status">{{ notice }}</p>
+      <div class="heading-actions">
+        <button :disabled="busy || readonly || journey.status === 'Archived'" @click="save">
+          Save</button
+        ><button :disabled="busy" @click="validate">
+          <AppIcon name="shield" :size="15" />Validate</button
+        ><button
+          @click="
+            tab = 'Preview & Test';
+            previewTab = 'Test Lab';
+          "
+        >
+          <AppIcon name="flask" :size="15" />Test</button
+        ><button
+          v-if="admin && ['Active', 'Sunset'].includes(journey.status)"
+          :disabled="busy"
+          @click="lifecycle('pause')"
+        >
+          <AppIcon name="pause" :size="15" />Pause</button
+        ><button
+          v-if="admin && journey.status === 'Paused'"
+          :disabled="busy"
+          @click="lifecycle('resume')"
+        >
+          <AppIcon name="play" :size="15" />Resume</button
+        ><button
+          class="primary"
+          :disabled="busy || readonly || !admin || journey.status === 'Archived'"
+          @click="publish"
+        >
+          <AppIcon name="upload" :size="15" />Publish
+        </button>
+        <details class="action-menu">
+          <summary aria-label="More journey actions"><AppIcon name="more" :size="19" /></summary>
+          <div @click="($event.currentTarget as HTMLElement).closest('details')!.open = false">
+            <button @click="metadata!.open = !metadata!.open">
+              <AppIcon name="settings" />Journey settings</button
+            ><button :disabled="readonly || busy" @click="saveTemplate">
+              <AppIcon name="templates" />Save as template</button
+            ><button
+              v-if="admin && ['Active', 'Paused'].includes(journey.status)"
+              :disabled="busy"
+              @click="lifecycle('sunset')"
+            >
+              Sunset</button
+            ><button
+              v-if="admin && ['Sunset', 'Paused'].includes(journey.status)"
+              :disabled="busy"
+              @click="lifecycle('complete')"
+            >
+              Complete after draining</button
+            ><button
+              v-if="admin && ['Draft', 'Completed'].includes(journey.status)"
+              :disabled="busy"
+              @click="lifecycle('archive')"
+            >
+              Archive
+            </button>
+          </div>
+        </details>
+      </div>
     </div>
   </div>
-  <p v-if="error" role="alert" class="error-message">{{ error }}</p>
-  <section class="panel editor-form">
-    <label>Name<input v-model="name" :disabled="readonly" maxlength="160" required /></label
-    ><label
-      >Description<textarea v-model="description" :disabled="readonly" maxlength="4000" /></label
-    ><label
-      >Tags<input v-model="tags" :disabled="readonly" placeholder="Comma-separated tags"
-    /></label>
-    <label
-      >Global exit event<input
-        v-model="exitEvent"
-        :disabled="readonly"
-        placeholder="e.g. purchase_completed"
-    /></label>
-    <label
-      >Re-entry policy<select v-model="reentryMode" :disabled="readonly">
-        <option value="once">Only once</option>
-        <option value="after_completion">After previous execution ends</option>
-        <option value="cooldown">After cooldown</option>
-      </select></label
-    ><label v-if="reentryMode === 'cooldown'"
-      >Cooldown (seconds)<input
-        v-model.number="cooldown"
-        type="number"
-        min="1"
-        :disabled="readonly"
-    /></label>
-  </section>
-  <nav class="detail-tabs">
-    <button :class="{ selected: tab === 'Builder' }" @click="tab = 'Builder'">Builder</button
-    ><button @click="tab = 'Preview & Test'">Preview &amp; Test</button
-    ><button @click="tab = 'Live Monitor'">Live Monitor</button
-    ><button @click="tab = 'Analytics'">Analytics</button
-    ><button @click="showVersions">Versions</button>
+  <p v-if="error" role="alert" class="inline-alert error-alert">{{ error }}</p>
+  <details ref="metadata" class="journey-settings">
+    <summary>
+      <span><AppIcon name="settings" :size="15" />Journey settings</span
+      ><span class="journey-settings-summary"
+        >{{ exitEvent ? 'Exit on ' + exitEvent : 'No global exit' }} ·
+        {{ reentryMode === 'once' ? 'Enter once' : 'Re-entry enabled'
+        }}<AppIcon name="down" :size="14"
+      /></span>
+    </summary>
+    <section class="editor-form journey-settings-form">
+      <label>Name<input v-model="name" :disabled="readonly" maxlength="160" required /></label
+      ><label
+        >Description<textarea v-model="description" :disabled="readonly" maxlength="4000" /></label
+      ><label
+        >Tags<input v-model="tags" :disabled="readonly" placeholder="Comma-separated tags"
+      /></label>
+      <label
+        >Global exit event<input
+          v-model="exitEvent"
+          :disabled="readonly"
+          placeholder="e.g. purchase_completed"
+      /></label>
+      <label
+        >Re-entry policy<select v-model="reentryMode" :disabled="readonly">
+          <option value="once">Only once</option>
+          <option value="after_completion">After previous execution ends</option>
+          <option value="cooldown">After cooldown</option>
+        </select></label
+      ><label v-if="reentryMode === 'cooldown'"
+        >Cooldown (seconds)<input
+          v-model.number="cooldown"
+          type="number"
+          min="1"
+          :disabled="readonly"
+      /></label>
+    </section>
+  </details>
+  <nav class="detail-tabs journey-tabs">
+    <button
+      v-for="[label, icon] in [
+        ['Builder', 'workflow'],
+        ['Preview & Test', 'flask'],
+        ['Live Monitor', 'events'],
+        ['Analytics', 'chart'],
+        ['Versions', 'history'],
+      ]"
+      :key="label"
+      :class="{ selected: tab === label }"
+      @click="label === 'Versions' ? showVersions() : (tab = label)"
+    >
+      <AppIcon :name="icon" :size="16" />{{ label }}</button
+    ><button
+      v-if="tab === 'Builder'"
+      class="ai-toggle"
+      :class="{ selected: showAI }"
+      @click="showAI = !showAI"
+    >
+      <AppIcon name="sparkles" :size="16" />AI composer
+    </button>
   </nav>
-  <section v-if="tab === 'Builder'" class="composer-layout">
+  <section v-if="tab === 'Builder'" class="composer-layout" :class="{ 'ai-open': showAI }">
     <div class="builder-column">
       <WorkflowCanvas
         :key="canvasKey"
         v-model="draft"
         :readonly="readonly || journey.status === 'Archived'"
         :issues="issues"
+        :hide-inspector="showAI"
+        @inspect="showAI = false"
         @preview="previewNode"
       />
     </div>
     <AIPanel
+      v-show="showAI"
       :workflow="draft"
       :name="name"
       :description="description"

@@ -17,12 +17,18 @@ import {
 } from '../lib/workflow';
 import WorkflowNode from './WorkflowNode.vue';
 import RuleEditor from './RuleEditor.vue';
+import AppIcon from './ui/AppIcon.vue';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import '@vue-flow/controls/dist/style.css';
 import '@vue-flow/minimap/dist/style.css';
-const props = defineProps<{ modelValue: Workflow; readonly?: boolean; issues: Issue[] }>();
-const emit = defineEmits<{ 'update:modelValue': [Workflow]; preview: [string] }>();
+const props = defineProps<{
+  modelValue: Workflow;
+  readonly?: boolean;
+  issues: Issue[];
+  hideInspector?: boolean;
+}>();
+const emit = defineEmits<{ 'update:modelValue': [Workflow]; preview: [string]; inspect: [] }>();
 const { fitView, screenToFlowCoordinate } = useVueFlow('builder');
 type CanvasData = { kind: Kind; label: string; config: Config };
 type CanvasNode = {
@@ -58,6 +64,30 @@ const edges = ref<CanvasEdge[]>(
   })),
 );
 const selectedID = ref('');
+const nodeSearch = ref('');
+const iconFor: Record<string, string> = {
+  event_trigger: 'zap',
+  wait: 'clock',
+  wait_event: 'events',
+  condition: 'branch',
+  email: 'email',
+  sms: 'message',
+  update_attribute: 'user',
+  exit: 'exit',
+};
+const descriptions: Record<string, string> = {
+  event_trigger: 'Start from a customer event',
+  wait: 'Wait before the next step',
+  wait_event: 'Listen for an event',
+  condition: 'Split by a condition',
+  email: 'Send an email message',
+  sms: 'Send a text message',
+  update_attribute: 'Change a customer attribute',
+  exit: 'Complete this journey',
+};
+const visibleKinds = computed(() =>
+  kinds.filter((k) => labels[k].toLowerCase().includes(nodeSearch.value.toLowerCase())),
+);
 const selected = computed(() => nodes.value.find((n) => n.id === selectedID.value));
 const history: string[] = [];
 const future: string[] = [];
@@ -306,30 +336,75 @@ function setAttribute(value: string) {
 </script>
 <template>
   <div class="builder-toolbar">
-    <div class="node-library">
-      <button
-        v-for="kind in kinds"
-        :key="kind"
-        :draggable="!readonly"
-        :disabled="readonly"
-        @dragstart="drag($event, kind)"
-        @click="add(kind)"
-      >
-        + {{ labels[kind] }}
-      </button>
+    <div class="canvas-title">
+      <AppIcon name="workflow" :size="17" /><strong>Workflow</strong
+      ><span>{{ nodes.length }} steps</span>
     </div>
-    <div class="toolbar">
-      <button :disabled="readonly" @click="undo">Undo</button
-      ><button :disabled="readonly" @click="redo">Redo</button
-      ><button :disabled="readonly" @click="selectAll">Select all nodes</button
-      ><button :disabled="readonly" @click="copy">Copy selection</button
-      ><button :disabled="readonly" @click="paste">Paste selection</button
-      ><button :disabled="readonly" @click="duplicate">Duplicate node</button
-      ><button :disabled="readonly" @click="layout">Auto layout</button
-      ><button @click="fitView()">Fit view</button>
+    <div class="canvas-tools">
+      <button
+        v-for="[title, icon, handler] in [
+          ['Undo', 'undo', undo],
+          ['Redo', 'redo', redo],
+          ['Select all nodes', 'select', selectAll],
+          ['Copy selection', 'copy', copy],
+          ['Paste selection', 'paste', paste],
+          ['Duplicate node', 'plus', duplicate],
+          ['Auto layout', 'layout', layout],
+        ] as const"
+        :key="title"
+        class="icon-button"
+        :disabled="readonly"
+        :aria-label="title"
+        :title="title"
+        @click="handler"
+      >
+        <AppIcon :name="icon" :size="16" /></button
+      ><span class="toolbar-divider" /><button
+        class="icon-button"
+        aria-label="Fit view"
+        title="Fit view"
+        @click="fitView()"
+      >
+        <AppIcon name="maximize" :size="16" />
+      </button>
     </div>
   </div>
   <div class="builder-layout">
+    <aside class="step-library">
+      <div class="step-library-heading">
+        <h3>Add a step</h3>
+        <span>Drag or click</span>
+      </div>
+      <label class="step-search"
+        ><AppIcon name="search" :size="14" /><input
+          v-model="nodeSearch"
+          aria-label="Search steps"
+          placeholder="Find a step..."
+      /></label>
+      <div class="node-library">
+        <button
+          v-for="kind in visibleKinds"
+          :key="kind"
+          :draggable="!readonly"
+          :disabled="readonly"
+          :aria-label="'+ ' + labels[kind]"
+          :class="'palette-' + kind"
+          @dragstart="drag($event, kind)"
+          @click="add(kind)"
+        >
+          <span class="step-type-icon" :class="kind"
+            ><AppIcon :name="iconFor[kind]" :size="17" /></span
+          ><span
+            ><strong>{{ labels[kind] }}</strong
+            ><small>{{ descriptions[kind] }}</small></span
+          ><AppIcon name="plus" :size="13" />
+        </button>
+      </div>
+      <div class="library-tip">
+        <AppIcon name="sparkles" :size="16" />
+        <p>Prefer to describe it?<br />Try the AI composer.</p>
+      </div>
+    </aside>
     <div class="canvas" @drop="drop" @dragover.prevent>
       <VueFlow
         id="builder"
@@ -340,12 +415,15 @@ function setAttribute(value: string) {
         :elements-selectable="true"
         :delete-key-code="readonly ? null : ['Backspace', 'Delete']"
         :multi-selection-key-code="['Meta', 'Control']"
-        fit-view-on-init
+        :default-viewport="{ x: 30, y: 35, zoom: 0.85 }"
         @update:nodes="updateNodes"
         @update:edges="updateEdges"
         @connect="connect"
-        @node-click="selectedID = $event.node.id"
-        ><Background :gap="20" pattern-color="#d6dfd1" /><Controls /><MiniMap /><template
+        @node-click="
+          selectedID = $event.node.id;
+          emit('inspect');
+        "
+        ><Background :gap="20" pattern-color="#cbd3df" /><Controls /><MiniMap /><template
           #node-step="nodeProps"
           ><WorkflowNode
             v-bind="nodeProps"
@@ -356,8 +434,16 @@ function setAttribute(value: string) {
       ></VueFlow>
       <p v-if="!nodes.length" class="canvas-empty">Add an Event Trigger to start your journey.</p>
     </div>
-    <aside v-if="selected" class="node-config">
-      <h3>{{ labels[selected.data.kind] }}</h3>
+    <aside v-if="selected && !hideInspector" class="node-config">
+      <div class="inspector-heading">
+        <div>
+          <span class="inspector-eyebrow">STEP SETTINGS</span>
+          <h3>{{ labels[selected.data.kind] }}</h3>
+        </div>
+        <button class="icon-button" aria-label="Close step settings" @click="selectedID = ''">
+          <AppIcon name="close" :size="17" />
+        </button>
+      </div>
       <label>Node label<input v-model="selected.data.label" :disabled="readonly" /></label
       ><label v-if="['event_trigger', 'wait_event'].includes(selected.data.kind)"
         >Event name<input v-model="selected.data.config.event_name" :disabled="readonly" /></label

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import CustomerProfileFields from './ui/CustomerProfileFields.vue';
 import { api } from '../lib/api';
 import type { Config } from '../lib/workflow';
 const props = defineProps<{ modelValue: Config; channel: 'email' | 'sms'; readonly?: boolean }>();
@@ -294,6 +295,7 @@ onBeforeUnmount(() => {
             v-model="customerID"
             placeholder="Customer ID from this workspace"
         /></label>
+        <CustomerProfileFields v-model="customer" />
         <details>
           <summary>Customize preview data</summary>
           <label

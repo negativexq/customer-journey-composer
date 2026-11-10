@@ -17,7 +17,7 @@ test('builds a connected workflow, validates and publishes an immutable version'
   });
   const journey = await creation.json();
   await page.goto('/');
-  await page.getByRole('button', { name: 'Canvas journey', exact: false }).click();
+  await page.locator('.journey-name-button').filter({ hasText: 'Canvas journey' }).click();
   await page.getByRole('button', { name: '+ Event Trigger', exact: true }).click();
   await page.getByRole('button', { name: '+ Exit', exact: true }).click();
   await page.getByRole('button', { name: 'Fit view', exact: true }).click();
@@ -96,6 +96,6 @@ test('builds a connected workflow, validates and publishes an immutable version'
     page.getByRole('heading', { name: 'Channel performance · logical sends' }),
   ).toBeVisible();
   await page.reload();
-  await page.getByRole('button', { name: 'Canvas journey', exact: false }).click();
+  await page.locator('.journey-name-button').filter({ hasText: 'Canvas journey' }).click();
   await expect(page.locator('.vue-flow__node')).toHaveCount(2);
 });
