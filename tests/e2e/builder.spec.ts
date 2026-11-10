@@ -34,6 +34,24 @@ test('builds a connected workflow, validates and publishes an immutable version'
   expect(versions).toHaveLength(1);
   const detail = await page.request.get(`/api/v1/journeys/${journey.id}/versions/1`);
   expect((await detail.json()).workflow.nodes).toHaveLength(2);
+  const headers = { 'X-CSRF-Token': identity.csrf_token };
+  const customer = await page.request.post('/api/v1/customers', {
+    headers,
+    data: { customer_id: 'cart_customer' },
+  });
+  expect(customer.ok()).toBeTruthy();
+  const event = await page.request.post('/api/v1/events', {
+    headers,
+    data: {
+      event_id: randomBytes(12).toString('hex'),
+      customer_id: 'cart_customer',
+      event_name: 'cart_updated',
+      occurred_at: new Date().toISOString(),
+      properties: { amount: 2450 },
+    },
+  });
+  expect(event.ok()).toBeTruthy();
+  expect((await event.json()).executions).toHaveLength(1);
   await page.reload();
   await page.getByRole('button', { name: 'Canvas journey', exact: false }).click();
   await expect(page.locator('.vue-flow__node')).toHaveCount(2);

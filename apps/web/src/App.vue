@@ -5,6 +5,9 @@ import AuthForm from './components/AuthForm.vue';
 import JourneyList from './components/JourneyList.vue';
 import JourneyEditor from './components/JourneyEditor.vue';
 import SystemStatus from './components/SystemStatus.vue';
+import CustomersView from './components/CustomersView.vue';
+import EventsView from './components/EventsView.vue';
+import SettingsView from './components/SettingsView.vue';
 const identity = ref<Identity>();
 const loading = ref(true);
 const page = ref('Overview');
@@ -79,7 +82,13 @@ onErrorCaptured((cause) => {
       <p class="nav-label">WORKSPACE</p>
       <nav>
         <button
-          v-for="item in ['Overview', 'Journeys']"
+          v-for="item in [
+            'Overview',
+            'Journeys',
+            'Customers',
+            'Events',
+            ...(identity.role === 'Admin' ? ['Settings'] : []),
+          ]"
           :key="item"
           class="nav-item"
           :class="{ selected: page === item }"
@@ -105,6 +114,9 @@ onErrorCaptured((cause) => {
         <div class="mobile-nav">
           <button @click="navigate('Overview')">Overview</button
           ><button @click="navigate('Journeys')">Journeys</button
+          ><button @click="navigate('Customers')">Customers</button
+          ><button @click="navigate('Events')">Events</button
+          ><button v-if="identity.role === 'Admin'" @click="navigate('Settings')">Settings</button
           ><button @click="logout">Sign out</button>
         </div>
         <p v-if="error" role="alert" class="error-message">{{ error }}</p>
@@ -121,9 +133,14 @@ onErrorCaptured((cause) => {
             selected = $event;
             refresh();
           "
-        /><JourneyList v-else-if="page === 'Journeys'" :readonly="readOnly" @open="open" /><template
-          v-else
-        >
+        /><JourneyList
+          v-else-if="page === 'Journeys'"
+          :readonly="readOnly"
+          @open="open"
+        /><CustomersView v-else-if="page === 'Customers'" :readonly="readOnly" /><EventsView
+          v-else-if="page === 'Events'"
+          :readonly="readOnly"
+        /><SettingsView v-else-if="page === 'Settings'" /><template v-else>
           <div class="page-heading">
             <div>
               <p class="eyebrow">YOUR ORCHESTRATION WORKSPACE</p>

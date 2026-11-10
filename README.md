@@ -4,7 +4,7 @@ AI-powered customer journey orchestration: **AI-generated, human-approved, deter
 
 Vue 3 / TypeScript frontend, Go API, PostgreSQL source of truth. The product includes a visual journey builder, persistent execution, messaging, simulation and observability as specified in the [MVP requirements](docs/PRD.md).
 
-**Current scope:** phase 1 foundation. The UI shows the roadmap and actual service readiness; journey management and runtime are not implemented yet. [Implementation tracker](docs/IMPLEMENTATION.md).
+**Current scope:** phases 1–4: workspace authentication, journey management, Vue Flow editing/validation, immutable published versions, customer profiles and transactional event ingestion/enrollment. The persistent worker and delivery pipeline are next. [Implementation tracker](docs/IMPLEMENTATION.md).
 
 ## Quick start with Docker
 
@@ -36,7 +36,7 @@ make down                 # Stop containers; preserve the PostgreSQL volume.
 docker compose logs api   # Inspect structured API logs.
 ```
 
-The local stack is for development. Production TLS, authentication, roles and other security gates are scheduled in later phases; do not expose this initial stack publicly.
+Create a workspace from the sign-in screen; no default credentials are seeded. The local stack is for development. Production TLS and the remaining reliability/security gates must be completed before public deployment.
 
 ## Native development
 
@@ -106,3 +106,5 @@ fix(delivery): prevent duplicate message jobs
 Supported types: `feat`, `fix`, `test`, `refactor`, `perf`, `docs`, `ci`, `build`, `chore`. Before committing: `make check` and `git diff --check`. At each phase boundary also run the relevant integration/E2E tests and inspect `git status --short`.
 
 Validate a commit range with `make commitlint RANGE=main..HEAD`. GitHub Actions runs the same checks plus Docker/browser smoke tests. No `.env`, credentials, personal data or provider keys may be committed.
+
+See [API policies](docs/API.md) for authentication, API keys, draft revisions and event ordering/late-event rules.

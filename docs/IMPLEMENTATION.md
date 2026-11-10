@@ -7,7 +7,7 @@ Source of truth for product scope: [PRD.md](PRD.md).
 | 1. Repository & Foundation             | Complete | Vue/Go/Docker stack; PostgreSQL migrations; quality checks; integration and browser tests passed locally.                  |
 | 2. Authentication & Journey Management | Complete | Sessions, CSRF, RBAC, workspace isolation, revision-guarded drafts and management UI; database and 6 browser tests passed. |
 | 3. Visual Canvas & Validation          | Complete | Typed schema, graph/rule validator, immutable snapshots and Vue Flow editor; database and 8 browser tests passed.          |
-| 4. Customer & Event Infrastructure     | Pending  | Deduplication and workspace isolation required.                                                                            |
+| 4. Customer & Event Infrastructure     | Complete | Profiles, scoped API keys, idempotent single/batch ingestion and atomic enrollment; database and 10 browser tests passed.  |
 | 5. Persistent Runtime                  | Pending  | PostgreSQL durability and concurrency invariants required.                                                                 |
 | 6. Email & SMS                         | Pending  | Mailpit and mock SMS required.                                                                                             |
 | 7. AI Journey Composer                 | Pending  | Both Claude and OpenAI; common schema, validation, human approval.                                                         |
@@ -28,7 +28,7 @@ Source of truth for product scope: [PRD.md](PRD.md).
 
 ## Next slice
 
-Phase 4: customer profiles, workspace API keys, validated single/batch event ingestion, deduplication, timelines and transactional enrollment.
+Phase 5: persistent worker, fenced claims/leases, deterministic step decisions, durable waits, event waiters/global exits and crash/race tests.
 
 ## Phase 1 delivery — 2026-11-10
 
@@ -56,3 +56,12 @@ See [verification notes](VERIFICATION.md) for reproducible checks and [architect
 - Vue Flow canvas: drag/drop, connection editing, node panels, AND/OR condition groups, global exit/reentry settings, zoom/pan/fit/minimap, multi-selection, undo/redo, copy/paste, duplicate, auto layout, autosave and validation markers.
 - List queries fetch metadata instead of large workflow JSON; versions fetch definitions individually. This avoids TOAST reads and large dashboard/list responses.
 - Verified: `make check`, real PostgreSQL graph/version tests, and 8/8 desktop/mobile browser tests including connecting nodes, validation, publication and reopening the canvas.
+
+## Phase 4 delivery
+
+- `1b3ea84` — profiles, hashed/revocable ingestion-only API keys, event persistence/deduplication and atomic execution/job creation. All queries derive workspace scope from identity.
+- `3027a7b` — customer email-prefix index, bounded keyset search path, metadata-only event lists and a single database query per readiness check.
+- Active entry matching uses a partial workspace/event index; reentry probes use indexed existence/latest lookup rather than counting history; active enrollment is database-constrained.
+- Customer/event/settings screens support profile attributes/consents, event timeline/payload inspection, manual ingestion and API key creation/revocation.
+- API policies document late/future events and best-effort per-item batch semantics.
+- Verified: `make check`, isolated PostgreSQL tests (8 concurrent identical events => exactly one execution/job, conflicting IDs, active enrollment, late/future events, scoped/revoked API keys), Docker stack and 10/10 browser tests. The builder test now publishes then starts an execution through the real event HTTP API.
