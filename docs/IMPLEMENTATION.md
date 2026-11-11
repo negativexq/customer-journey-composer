@@ -2,20 +2,20 @@
 
 Source of truth for product scope: [PRD.md](PRD.md).
 
-| Phase                                  | Status                         | Evidence / remaining work                                                                                                                                                                                                     |
-| -------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Repository & Foundation             | Complete                       | Vue/Go/Docker stack; PostgreSQL migrations; quality checks; integration and browser tests passed locally.                                                                                                                     |
-| 2. Authentication & Journey Management | Complete                       | Sessions, CSRF, RBAC, workspace isolation, revision-guarded drafts and management UI; database and 6 browser tests passed.                                                                                                    |
-| 3. Visual Canvas & Validation          | Complete                       | Typed schema, graph/rule validator, immutable snapshots and Vue Flow editor; database and 8 browser tests passed.                                                                                                             |
-| 4. Customer & Event Infrastructure     | Complete                       | Profiles, scoped API keys, idempotent single/batch ingestion and atomic enrollment; database and 10 browser tests passed.                                                                                                     |
-| 5. Persistent Runtime                  | Complete                       | Fenced worker, durable timers/waiters, global exit, shared pure decisions, outbox; race/recovery/version tests and actual Docker restart passed.                                                                              |
-| 6. Email & SMS                         | Complete                       | Safe rendering, channel studio, SMTP/Mailpit and mock SMS, durable deliveries/attempts, policy and retry tests; 14 browser tests passed.                                                                                      |
-| 7. AI Journey Composer                 | Complete (live tests deferred) | Shared schema, Claude/OpenAI adapters, bounded repair, diff/approval; local provider contracts and 18 browser tests passed.                                                                                                   |
-| 8. Preview & Test Lab                  | Complete                       | Virtual clock, snapshots, replay, event/attribute sequences, assertions and fault injection; 20 browser tests passed.                                                                                                         |
-| 9. Test Inbox                          | Complete                       | Three-panel inbox, scoped filters, payload/trace/attempts, replay comparison and actual test-send distinction; 20 browser tests.                                                                                              |
-| 10. Live Monitor & Analytics           | Complete                       | Transactional delta projections, indexed summaries, version-aware monitor and inspector; 22 browser tests passed.                                                                                                             |
-| 11. Lifecycle & Reliability            | Complete                       | Audited lifecycle/publish gates, recovery, roles, bounded requests, OTel propagation and dependency/image checks; 24 browser tests.                                                                                           |
-| 12. Final Product & Demo               | In progress                    | Templates, populated opt-in demo, product README, ten 3200×2100 captures, measured 10,000-execution workloads and 46 browser tests; final recorded demo/deployment validation remain; deployment explicitly deferred by user. |
+| Phase                                  | Status                 | Evidence / remaining work                                                                                                                                                                                                     |
+| -------------------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Repository & Foundation             | Complete               | Vue/Go/Docker stack; PostgreSQL migrations; quality checks; integration and browser tests passed locally.                                                                                                                     |
+| 2. Authentication & Journey Management | Complete               | Sessions, CSRF, RBAC, workspace isolation, revision-guarded drafts and management UI; database and 6 browser tests passed.                                                                                                    |
+| 3. Visual Canvas & Validation          | Complete               | Typed schema, graph/rule validator, immutable snapshots and Vue Flow editor; database and 8 browser tests passed.                                                                                                             |
+| 4. Customer & Event Infrastructure     | Complete               | Profiles, scoped API keys, idempotent single/batch ingestion and atomic enrollment; database and 10 browser tests passed.                                                                                                     |
+| 5. Persistent Runtime                  | Complete               | Fenced worker, durable timers/waiters, global exit, shared pure decisions, outbox; race/recovery/version tests and actual Docker restart passed.                                                                              |
+| 6. Email & SMS                         | Complete               | Safe rendering, channel studio, SMTP/Mailpit and mock SMS, durable deliveries/attempts, policy and retry tests; 14 browser tests passed.                                                                                      |
+| 7. AI Journey Composer                 | Implemented; live gaps | Shared schema, Claude/OpenAI adapters, bounded repair and diff/approval; deterministic contracts pass. Authorized Luna smoke passes graph validation but only 3/5 business scenarios; see LUNA-SMOKE.md.                      |
+| 8. Preview & Test Lab                  | Complete               | Virtual clock, snapshots, replay, event/attribute sequences, assertions and fault injection; 20 browser tests passed.                                                                                                         |
+| 9. Test Inbox                          | Complete               | Three-panel inbox, scoped filters, payload/trace/attempts, replay comparison and actual test-send distinction; 20 browser tests.                                                                                              |
+| 10. Live Monitor & Analytics           | Complete               | Transactional delta projections, indexed summaries, version-aware monitor and inspector; 22 browser tests passed.                                                                                                             |
+| 11. Lifecycle & Reliability            | Complete               | Audited lifecycle/publish gates, recovery, roles, bounded requests, OTel propagation and dependency/image checks; 24 browser tests.                                                                                           |
+| 12. Final Product & Demo               | In progress            | Templates, populated opt-in demo, product README, ten 3200×2100 captures, measured 10,000-execution workloads and 46 browser tests; final recorded demo/deployment validation remain; deployment explicitly deferred by user. |
 
 ## Accepted decisions
 
@@ -23,7 +23,7 @@ Source of truth for product scope: [PRD.md](PRD.md).
 - PostgreSQL is authoritative; no Redis dependency for durable state.
 - AI output is a proposal, never an automatic save or publish.
 - Both Anthropic Claude and OpenAI APIs must be supported behind the same provider boundary.
-- Live LLM/provider evaluation is deferred at the user's request. No paid LLM request is needed for foundation work or deterministic validation tests.
+- Live LLM/provider evaluation is deferred except for the explicitly authorized Luna smoke on 2026-11-11. Deterministic unit/integration tests must not call paid providers. The smoke result and remaining gaps are recorded in [LUNA-SMOKE.md](LUNA-SMOKE.md).
 - Report test execution and benchmark measurements honestly; pending work is not complete.
 
 ## Next slice
@@ -36,7 +36,7 @@ latency target, rather than continuing synthetic tuning.
 Next product work remains the staged [design direction](design/modern-saas-direction.md):
 Content/Audience surfaces, AI brief/plan review, analytics drill-down and the
 recorded walkthrough. No new feature or optimization was introduced by the
-acceptance verification below. Deployment and paid LLM tests remain deferred.
+acceptance verification below. Deployment and broader paid LLM testing remain deferred; the limited user-authorized [Luna smoke](LUNA-SMOKE.md) found an AI exit-code mismatch and missing token-usage accounting. No additional generation or fix was performed.
 
 ## Product acceptance verification — 2026-11-11
 
