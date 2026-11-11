@@ -78,7 +78,12 @@ async function setup(page: import('@playwright/test').Page) {
       },
     }),
   );
-  await page.route('**/api/v1/ai/journeys/generate', (route) => route.fulfill({ json: fixture }));
+  await page.route('**/api/v1/ai/journeys/generate/stream', (route) =>
+    route.fulfill({
+      contentType: 'text/event-stream',
+      body: `data: ${JSON.stringify({ type: 'ready', proposal: fixture })}\n\n`,
+    }),
+  );
   await page.goto('/');
   await page.getByRole('button', { name: 'AI draft', exact: false }).click();
   return journey;
@@ -125,4 +130,72 @@ test('AI cannot apply a stale proposal over a newer draft edit', async ({ page }
     page.getByText('Your draft changed after this request.', { exact: false }),
   ).toBeVisible();
   await expect(page.locator('.vue-flow__node')).toHaveCount(0);
+});
+
+test('long generation stays visible and cancellation never submits again', async ({ page }) => {
+  await setup(page);
+  let requests = 0;
+  let release!: () => void;
+  const waiting = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/api/v1/ai/journeys/generate/stream', async (route) => {
+    requests++;
+    await waiting;
+    await route
+      .fulfill({
+        contentType: 'text/event-stream',
+        body: `data: ${JSON.stringify({ type: 'ready', proposal: fixture })}\n\n`,
+      })
+      .catch(() => {});
+  });
+  await page.clock.install();
+  await page
+    .getByLabel('What should happen?', { exact: true })
+    .fill('Keep this brief while waiting');
+  await page.getByRole('button', { name: 'Compose proposal', exact: true }).click();
+  await expect(page.locator('.canvas-generation')).toContainText('Creating your proposal');
+  await page.clock.fastForward(45000);
+  await expect(page.locator('.ai-panel .generation-status')).toContainText('0:45 elapsed');
+  await expect(page.locator('.canvas-generation')).toContainText('no need to submit again');
+  await page
+    .locator('.ai-panel')
+    .getByRole('button', { name: 'Cancel request', exact: true })
+    .click();
+  await expect(page.locator('.ai-panel [role="alert"]')).toContainText('Cancellation requested');
+  await expect(page.getByLabel('What should happen?', { exact: true })).toHaveValue(
+    'Keep this brief while waiting',
+  );
+  release();
+  await expect(page.locator('.canvas-generation')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Review proposal' })).toHaveCount(0);
+  expect(requests).toBe(1);
+});
+
+test('server progress and failure are shown without changing the draft', async ({ page }) => {
+  await setup(page);
+  let requests = 0;
+  await page.route('**/api/v1/ai/journeys/generate/stream', (route) => {
+    requests++;
+    return route.fulfill({
+      contentType: 'text/event-stream',
+      body: [
+        { type: 'progress', stage: 'generating', attempt: 1 },
+        { type: 'progress', stage: 'validating', attempt: 1 },
+        { type: 'progress', stage: 'repairing', attempt: 1 },
+        {
+          type: 'error',
+          status: 422,
+          message: 'The workflow could not be validated. Refine your brief.',
+        },
+      ]
+        .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+        .join(''),
+    });
+  });
+  await page.getByRole('button', { name: 'Compose proposal', exact: true }).click();
+  await expect(page.locator('.ai-panel [role="alert"]')).toContainText('could not be validated');
+  await expect(page.locator('.vue-flow__node')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Compose proposal', exact: true })).toBeEnabled();
+  expect(requests).toBe(1);
 });

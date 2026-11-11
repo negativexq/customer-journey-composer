@@ -4608,3 +4608,101 @@ td {
     width: 44px;
   }
 }
+
+/* Generation is a visible workspace operation, without fabricated percentages. */
+.builder-column {
+  position: relative;
+}
+.generation-status {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  text-align: left;
+}
+.ai-panel .generation-status {
+  margin-top: 14px;
+}
+.generation-status-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.generation-status-heading strong {
+  font-size: 13px;
+}
+.generation-status time {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.generation-activity {
+  height: 3px;
+  background: #eeedf5;
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 14px 0;
+}
+.generation-activity span {
+  display: block;
+  width: 35%;
+  height: 100%;
+  background: var(--accent);
+  animation: generation-slide 1.8s ease-in-out infinite;
+}
+.generation-current {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.generation-stages {
+  padding-left: 20px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 2;
+}
+.generation-stages .current {
+  color: var(--accent);
+  font-weight: 600;
+}
+.generation-stages .complete {
+  color: #27734c;
+}
+.canvas-generation {
+  padding: 12px;
+}
+.canvas-generation.empty {
+  position: absolute;
+  z-index: 5;
+  inset: 90px 24px auto;
+  max-width: 480px;
+  margin: auto;
+}
+.canvas-generation.empty ~ .builder-layout .canvas-empty {
+  display: none;
+}
+@keyframes generation-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(390%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .generation-activity span {
+    animation: none;
+    width: 100%;
+    opacity: 0.6;
+  }
+}
+@media (max-width: 700px) {
+  .canvas-generation.empty {
+    inset: 80px 10px auto;
+  }
+  .generation-status-heading {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+}

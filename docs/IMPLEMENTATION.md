@@ -241,3 +241,15 @@ browser harness including review 53.763s. General workflow mode was selected,
 so this is explicit scenario evidence rather than an onboarding behavior contract.
 It remains Draft with no real sends, live customers/executions or versions.
 [Brief, output, scenarios, screenshots and timing boundaries](validation/luna-onboarding-2026-11-12/README.md).
+
+## Generation feedback — 2026-11-12
+
+Implemented visible canvas/panel processing feedback, elapsed time, cancellation,
+brief retention and real server lifecycle streaming while preserving JSON API
+compatibility and human Apply/Publish boundaries. Both providers use shared
+progress hooks; no extra model request is introduced. Local `make check` passes;
+8/8 desktop/mobile AI browser cases pass with mocked streams, including a virtual
+45-second wait, cancellation and failure. Go race tests cover real early HTTP
+flush, disconnect cancellation and repair boundaries for both provider names.
+A full disk initially prevented verification; clearing the reproducible Go build
+cache allowed the checks to pass. No paid provider call was made for this slice.

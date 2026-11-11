@@ -113,3 +113,16 @@ in normalized input totals; its unreported reasoning breakdown stays unknown.
 Sanitized metadata is persisted in workspace audit logs on success and failure,
 including after client cancellation, with a bounded accounting timeout. Prompts,
 customer content, output bodies, secrets and private reasoning are excluded.
+
+### AI generation lifecycle feedback
+
+The existing JSON generation routes remain supported. Opt-in POST `/stream`
+variants emit SSE frames for accepted, provider generation, validation,
+bounded repair/retry and terminal proposal/error. These events describe
+orchestration boundaries, never model reasoning. One request uses the same
+workspace guard, bounded Composer attempts and usage audit as JSON generation.
+The final proposal is emitted only after accounting succeeds. A five-second
+heartbeat and disabled Nginx proxy buffering keep the stream observable;
+disconnect cancels the provider context. This is request-scoped, not a durable
+background generation job and does not promise reload recovery. The frontend
+never automatically reconnects or resubmits a paid generation action.

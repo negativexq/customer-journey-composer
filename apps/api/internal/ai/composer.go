@@ -138,6 +138,7 @@ func (c *Composer) Compose(ctx context.Context, in Input) (proposal Proposal, er
 		if err := ctx.Err(); err != nil {
 			return proposal, err
 		}
+		progress(ctx, "generating", attempt+1)
 		generated, err := provider.Generate(ctx, request)
 		entry := Attempt{Provider: in.Provider, ProviderResult: generated, ProviderSucceeded: err == nil}
 		if err != nil {
@@ -156,6 +157,7 @@ func (c *Composer) Compose(ctx context.Context, in Input) (proposal Proposal, er
 		if err != nil {
 			var external *ProviderError
 			if errors.As(err, &external) && external.Temporary && attempt == 0 && external.RetryAfter <= 2*time.Second {
+				progress(ctx, "retry_wait", attempt+1)
 				timer := time.NewTimer(max(time.Second, external.RetryAfter))
 				select {
 				case <-ctx.Done():
@@ -167,6 +169,7 @@ func (c *Composer) Compose(ctx context.Context, in Input) (proposal Proposal, er
 			}
 			return proposal, err
 		}
+		progress(ctx, "validating", attempt+1)
 		value, err := jsonschema.UnmarshalJSON(bytes.NewReader(raw))
 		if err != nil || len(raw) > 1<<20 {
 			lastIssues = []workflow.Issue{{Field: "schema", Message: "Invalid or oversized JSON output"}}
@@ -276,6 +279,9 @@ func (c *Composer) Compose(ctx context.Context, in Input) (proposal Proposal, er
 					return proposal, nil
 				}
 			}
+		}
+		if attempt == 0 {
+			progress(ctx, "repairing", attempt+1)
 		}
 		feedback, _ := json.Marshal(lastIssues[:min(len(lastIssues), 20)])
 		candidate := raw

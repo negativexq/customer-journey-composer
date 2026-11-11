@@ -74,6 +74,28 @@ func registerAI(api huma.API, pool *pgxpool.Pool) {
 	huma.Post(api, "/api/v1/ai/journeys/generate", handle)
 	huma.Post(api, "/api/v1/ai/journeys/modify", handle)
 	huma.Post(api, "/api/v1/ai/messages/generate", handle)
+	// Existing JSON routes remain compatible; streaming is explicitly opt-in.
+	stream := func(ctx context.Context, in *struct{ Body composer.Input }) (*huma.StreamResponse, error) {
+		if err := canEdit(ctx); err != nil {
+			return nil, err
+		}
+		return &huma.StreamResponse{Body: func(output huma.Context) {
+			output.SetHeader("Content-Type", "text/event-stream")
+			output.SetHeader("Cache-Control", "no-store")
+			output.SetHeader("X-Accel-Buffering", "no")
+			output.SetStatus(200)
+			streamGeneration(ctx, output.BodyWriter(), func(request context.Context) (composer.Proposal, error) {
+				result, err := handle(request, in)
+				if err != nil {
+					return composer.Proposal{}, err
+				}
+				return result.Body, nil
+			})
+		}}, nil
+	}
+	huma.Post(api, "/api/v1/ai/journeys/generate/stream", stream)
+	huma.Post(api, "/api/v1/ai/journeys/modify/stream", stream)
+	huma.Post(api, "/api/v1/ai/messages/generate/stream", stream)
 }
 
 // No prompt, draft, customer content, provider body or private reasoning is persisted.

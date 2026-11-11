@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { api } from '../lib/api';
+import { api, generationStream, type GenerationProgress } from '../lib/api';
+import GenerationStatus from './GenerationStatus.vue';
 import type { Workflow } from '../lib/workflow';
 const props = defineProps<{
   workflow: Workflow;
@@ -33,7 +34,10 @@ type Proposal = {
   diff: Diff;
   action: string;
 };
-const emit = defineEmits<{ apply: [Proposal] }>();
+const emit = defineEmits<{
+  apply: [Proposal];
+  progress: [{ progress: GenerationProgress; elapsed: number } | undefined];
+}>();
 const status = ref<{
   enabled: boolean;
   default_provider: string;
@@ -46,6 +50,19 @@ const prompt = ref('');
 const nodeID = ref('');
 const busy = ref(false);
 const error = ref('');
+const progress = ref<GenerationProgress>({ stage: 'sending' });
+const elapsed = ref(0);
+let timer: ReturnType<typeof setInterval> | undefined;
+function broadcast() {
+  emit('progress', busy.value ? { progress: progress.value, elapsed: elapsed.value } : undefined);
+}
+function cancel() {
+  controller?.abort();
+}
+defineExpose({ cancel });
+function leaving(event: BeforeUnloadEvent) {
+  if (busy.value) event.preventDefault();
+}
 const notice = ref('');
 const loadingBrief = ref(false);
 async function useRecoveryBrief() {
@@ -87,6 +104,14 @@ function label(id: string) {
 async function compose() {
   if (props.readonly || !configured.value) return;
   busy.value = true;
+  progress.value = { stage: 'sending' };
+  elapsed.value = 0;
+  const started = Date.now();
+  broadcast();
+  timer = setInterval(() => {
+    elapsed.value = Math.floor((Date.now() - started) / 1000);
+    broadcast();
+  }, 1000);
   error.value = '';
   notice.value = '';
   proposal.value = undefined;
@@ -111,12 +136,24 @@ async function compose() {
       : action.value === 'generate'
         ? '/ai/journeys/generate'
         : '/ai/journeys/modify';
-    const result = await api<Proposal>(path, 'POST', input, {}, 90000, request.signal);
+    const result = await generationStream<Proposal>(
+      path,
+      input,
+      (event) => {
+        progress.value = event;
+        broadcast();
+      },
+      request.signal,
+    );
     if (!request.signal.aborted) proposal.value = result;
   } catch (cause) {
-    error.value = request.signal.aborted ? 'Request cancelled' : String(cause);
+    error.value = request.signal.aborted
+      ? 'Cancellation requested. Your draft is unchanged; the provider may already have processed the request.'
+      : String(cause);
   } finally {
     busy.value = false;
+    clearInterval(timer);
+    broadcast();
   }
 }
 function apply() {
@@ -131,6 +168,7 @@ function discard() {
   notice.value = 'Proposal discarded. Your draft is unchanged.';
 }
 onMounted(async () => {
+  window.addEventListener('beforeunload', leaving);
   try {
     status.value = await api('/settings/ai');
     if (status.value?.default_provider === 'openai') provider.value = 'openai';
@@ -138,7 +176,12 @@ onMounted(async () => {
     error.value = String(cause);
   }
 });
-onBeforeUnmount(() => controller?.abort());
+onBeforeUnmount(() => {
+  controller?.abort();
+  clearInterval(timer);
+  window.removeEventListener('beforeunload', leaving);
+  emit('progress', undefined);
+});
 </script>
 <template>
   <aside class="ai-panel panel" aria-label="AI journey composer">
@@ -207,8 +250,9 @@ onBeforeUnmount(() => controller?.abort());
       :disabled="busy || readonly || !configured || (needsNode && !nodeID)"
       @click="compose"
     >
-      {{ busy ? 'Composing proposal…' : 'Compose proposal' }}</button
-    ><button v-if="busy" @click="controller?.abort()">Cancel request</button>
+      {{ busy ? 'Composing proposal…' : 'Compose proposal' }}
+    </button>
+    <GenerationStatus v-if="busy" :progress="progress" :elapsed="elapsed" @cancel="cancel" />
     <p v-if="error" role="alert" class="error-message">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
     <section v-if="proposal" class="ai-proposal">

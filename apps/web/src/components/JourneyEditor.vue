@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch, onBeforeUnmount, nextTick } from 'vue';
-import { api, type Journey } from '../lib/api';
+import { api, type Journey, type GenerationProgress } from '../lib/api';
 import WorkflowCanvas from './WorkflowCanvas.vue';
 import MessageStudio from './MessageStudio.vue';
 import AIPanel from './AIPanel.vue';
+import GenerationStatus from './GenerationStatus.vue';
 import PublishReview from './PublishReview.vue';
 import TestLab from './TestLab.vue';
 import LiveMonitor from './LiveMonitor.vue';
@@ -28,6 +29,8 @@ const emit = defineEmits<{
   navigate: [{ tab: string; preview: string; executionID?: string; deliveryID?: string }];
   inspect: [{ kind: InspectionKind; id: string }];
 }>();
+const aiPanel = ref<InstanceType<typeof AIPanel>>();
+const generation = ref<{ progress: GenerationProgress; elapsed: number }>();
 const name = ref(props.journey.name);
 const description = ref(props.journey.description);
 const tags = ref(props.journey.tags.join(', '));
@@ -459,7 +462,15 @@ function back() {
     </button>
   </nav>
   <section v-if="tab === 'Builder'" class="composer-layout" :class="{ 'ai-open': showAI }">
-    <div class="builder-column">
+    <div class="builder-column" :aria-busy="!!generation">
+      <div v-if="generation" class="canvas-generation" :class="{ empty: !draft.nodes.length }">
+        <GenerationStatus
+          :progress="generation.progress"
+          :elapsed="generation.elapsed"
+          compact
+          @cancel="aiPanel?.cancel()"
+        />
+      </div>
       <WorkflowCanvas
         :key="canvasKey"
         v-model="draft"
@@ -472,10 +483,12 @@ function back() {
     </div>
     <AIPanel
       v-show="showAI"
+      ref="aiPanel"
       :workflow="draft"
       :name="name"
       :description="description"
       :readonly="readonly || journey.status === 'Archived'"
+      @progress="generation = $event"
       @apply="applyProposal"
     />
   </section>
