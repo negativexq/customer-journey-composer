@@ -34,7 +34,7 @@ func sqlOperation(sql string) string {
 	}
 	op := strings.ToUpper(sql[:end])
 	switch op {
-	case "SELECT", "INSERT", "UPDATE", "DELETE", "WITH", "BEGIN", "COMMIT", "ROLLBACK", "COPY", "CREATE", "ALTER", "DROP", "ANALYZE":
+	case "SELECT", "INSERT", "UPDATE", "DELETE", "WITH", "BEGIN", "COMMIT", "ROLLBACK", "COPY", "CREATE", "ALTER", "DROP", "ANALYZE", "BATCH":
 		return op
 	}
 	return "OTHER"
@@ -67,6 +67,26 @@ func (PGXTracer) TraceQueryEnd(ctx context.Context, _ *pgx.Conn, data pgx.TraceQ
 		}
 		state.span.End()
 	}
+}
+
+// Report the whole transport batch rather than treating result-read intervals
+// as independent server query durations. Never inspect SQL or bind arguments.
+func (t PGXTracer) TraceBatchStart(ctx context.Context, conn *pgx.Conn, data pgx.TraceBatchStartData) context.Context {
+	if ctx.Value(suppressedKey{}) == true {
+		return ctx
+	}
+	ctx = t.TraceQueryStart(ctx, conn, pgx.TraceQueryStartData{SQL: "BATCH"})
+	if data.Batch != nil {
+		trace.SpanFromContext(ctx).SetAttributes(attribute.Int("db.batch.size", data.Batch.Len()))
+	}
+	return ctx
+}
+func (PGXTracer) TraceBatchQuery(context.Context, *pgx.Conn, pgx.TraceBatchQueryData) {}
+func (t PGXTracer) TraceBatchEnd(ctx context.Context, conn *pgx.Conn, data pgx.TraceBatchEndData) {
+	if ctx.Value(suppressedKey{}) == true {
+		return
+	}
+	t.TraceQueryEnd(ctx, conn, pgx.TraceQueryEndData{Err: data.Err})
 }
 func (PGXTracer) TraceAcquireStart(ctx context.Context, _ *pgxpool.Pool, _ pgxpool.TraceAcquireStartData) context.Context {
 	if ctx.Value(suppressedKey{}) == true {

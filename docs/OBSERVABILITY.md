@@ -44,6 +44,8 @@ Queue sampling runs only in the worker, at most once every five seconds, with a 
 
 Histogram percentiles in Grafana are bucket estimates over the selected window; they are not interchangeable with exact interpolated benchmark samples. p95 by route remains separate from DB duration/pool waits and job lag.
 
+Runtime lock reads can share one pgx transport batch while remaining separate SQL statements in the same transaction. These produce one `postgresql BATCH` span with a query count and one DB-duration observation under operation `BATCH`, covering the whole batch through result consumption. They do not produce invented per-statement server durations; use PostgreSQL statement statistics for that breakdown. Batch telemetry never exports its SQL, arguments or raw errors. Histogram sample counts therefore count individual query/exec calls plus transport batches, not all SQL statements.
+
 With bounded runtime turns, the operational `runtime_step` operation counts claimed job processing turns, which can include multiple short nodes. Node-level business metrics continue to come from individual `step_executions` records; job throughput must not be reported as node throughput. Timer resumes retain a separate scheduling boundary. Benchmark-only `--profile` and wait-event sampling are described in [bounded-turn measurements](BOUNDED-TURNS.md); they are not enabled on production request paths.
 
 ## Trace and log correlation

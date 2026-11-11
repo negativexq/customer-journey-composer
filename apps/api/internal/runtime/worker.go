@@ -198,18 +198,29 @@ func (w *Worker) Process(ctx context.Context, job Job) (err error) {
 		return err
 	}
 	defer func() { _ = tx.Rollback(context.Background()) }()
+	// PostgreSQL still executes separate READ COMMITTED statements in lock order.
+	// Batch their transport to avoid three client round trips per step. Keep the
+	// lease fence outside: its clock must be sampled after these locks are held.
+	batch := &pgx.Batch{}
+	batch.Queue(`SELECT to_jsonb(c) FROM customers c WHERE workspace_id=$1 AND customer_id=$2 FOR UPDATE`, job.WorkspaceID, job.CustomerID)
+	batch.Queue(`SELECT status FROM journeys WHERE workspace_id=$1 AND id=$2 FOR SHARE`, job.WorkspaceID, job.JourneyID)
+	batch.Queue(`SELECT e.state,e.current_node_id,v.workflow,e.context,jsonb_build_object('event_id',c.event_id,'event_name',c.event_name,'occurred_at',c.occurred_at,'properties',c.properties) FROM journey_executions e JOIN journey_versions v ON v.id=e.version_id JOIN customer_events c ON c.workspace_id=e.workspace_id AND c.event_id=COALESCE(e.context->>'_event_id',e.entry_event_id) WHERE e.workspace_id=$1 AND e.id=$2 FOR UPDATE OF e`, job.WorkspaceID, job.ExecutionID)
+	results := tx.SendBatch(ctx, batch)
+	defer func() { _ = results.Close() }()
 	var profileJSON []byte
-	if err := tx.QueryRow(ctx, `SELECT to_jsonb(c) FROM customers c WHERE workspace_id=$1 AND customer_id=$2 FOR UPDATE`, job.WorkspaceID, job.CustomerID).Scan(&profileJSON); err != nil {
+	if err = results.QueryRow().Scan(&profileJSON); err != nil {
 		return err
 	}
 	var status string
-	if err := tx.QueryRow(ctx, `SELECT status FROM journeys WHERE workspace_id=$1 AND id=$2 FOR SHARE`, job.WorkspaceID, job.JourneyID).Scan(&status); err != nil {
+	if err = results.QueryRow().Scan(&status); err != nil {
 		return err
 	}
 	var state, current string
 	var raw, stateJSON, eventJSON []byte
-	err = tx.QueryRow(ctx, `SELECT e.state,e.current_node_id,v.workflow,e.context,jsonb_build_object('event_id',c.event_id,'event_name',c.event_name,'occurred_at',c.occurred_at,'properties',c.properties) FROM journey_executions e JOIN journey_versions v ON v.id=e.version_id JOIN customer_events c ON c.workspace_id=e.workspace_id AND c.event_id=COALESCE(e.context->>'_event_id',e.entry_event_id) WHERE e.workspace_id=$1 AND e.id=$2 FOR UPDATE OF e`, job.WorkspaceID, job.ExecutionID).Scan(&state, &current, &raw, &stateJSON, &eventJSON)
-	if err != nil {
+	if err = results.QueryRow().Scan(&state, &current, &raw, &stateJSON, &eventJSON); err != nil {
+		return err
+	}
+	if err = results.Close(); err != nil {
 		return err
 	}
 	// Lock by identity before checking the fence. Otherwise the planner can
