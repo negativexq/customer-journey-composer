@@ -17,7 +17,9 @@
     "fmt:check": "prettier --check .",
     "test": "node --test scripts/*.test.mjs",
     "test:e2e": "playwright test",
-    "commitlint": "node scripts/check-commits.mjs"
+    "commitlint": "node scripts/check-commits.mjs",
+    "demo:seed": "node scripts/seed-product-demo.mjs",
+    "screenshots": "node scripts/capture-product.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

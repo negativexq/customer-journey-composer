@@ -10,6 +10,7 @@ help:
 	@echo 'migrate            Apply PostgreSQL migrations'
 	@echo 'dev-api / dev-web  Start a native development service'
 	@echo 'check              Run formatting, lint, typecheck and unit tests'
+	@echo 'demo               Populate the local demo workspace with synthetic activity'
 	@echo 'test-integration   Run database tests using an isolated PostgreSQL container'
 	@echo 'test-e2e           Run browser smoke tests against the running stack'
 
@@ -102,3 +103,7 @@ test-telemetry:
 	node scripts/test-telemetry.mjs
 	docker compose -f compose.yaml -f compose.observability.yaml run --rm --no-deps --entrypoint /bin/promtool prometheus check rules /etc/prometheus/alerts.yaml
 	docker compose -f compose.yaml -f compose.observability.yaml run --rm --no-deps -v ./ops/observability/alerts.test.yaml:/etc/prometheus/alerts.test.yaml:ro --entrypoint /bin/promtool prometheus test rules /etc/prometheus/alerts.test.yaml
+
+.PHONY: demo
+demo:
+	node scripts/seed-product-demo.mjs
