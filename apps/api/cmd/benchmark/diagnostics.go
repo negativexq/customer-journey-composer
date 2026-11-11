@@ -113,3 +113,12 @@ func (p *delayedProvider) Send(ctx context.Context, message messaging.Message, k
 	}
 	return p.Provider.Send(ctx, message, key)
 }
+
+// Assign only the isolated workspace's pending fixture timers. Rank is stable
+// across ties, and a single timer stays at the first deadline without division
+// by zero. This is workload generation, never a production jitter policy.
+const timerSpreadUpdate = `WITH ranked AS MATERIALIZED (
+ SELECT id,row_number() OVER (ORDER BY due_at,id)-1 AS ordinal,count(*) OVER () AS total
+ FROM scheduled_jobs WHERE workspace_id=$1 AND kind='timer' AND state='SCHEDULED'
+) UPDATE scheduled_jobs j SET due_at=$2::timestamptz+($3::double precision*ranked.ordinal/GREATEST(ranked.total-1,1))*interval '1 second'
+ FROM ranked WHERE j.id=ranked.id`
