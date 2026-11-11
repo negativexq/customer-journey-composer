@@ -28,18 +28,29 @@ Source of truth for product scope: [PRD.md](PRD.md).
 
 ## Next slice
 
-User-requested follow-up order:
+Performance experiments are stopped at the user's request. The rejected experiment
+branches were deleted locally and remotely; their changes were not merged into
+main. Revisit performance work only for an observed usage problem or an agreed
+latency target, rather than continuing synthetic tuning.
 
-1. Scheduler delivery cost: bounded cursor continuation (`80329e6`), measured twice; remaining total drain overhead is documented.
-2. Timer congestion: ordered read transport batching (`5c1b4d6`), measured twice; scoped deadline-distribution harness (`98cb892`) separates burst pressure from normal arrivals. See [queue follow-up](QUEUE-FOLLOWUP.md).
-3. UI/UX: standalone Content/Audience experience, saved views, sidebar collapse, typography and theme work from the design direction.
-4. AI: dedicated brief/plan/review and a validated workspace event/attribute catalog; no live provider evaluation yet.
-5. Analytics: richer drill-down and explicit canvas analytics mode.
-6. Operations/demo: external notifications, centralized logs and recorded walkthrough. Deployment and paid LLM tests stay deferred.
+Next product work remains the staged [design direction](design/modern-saas-direction.md):
+Content/Audience surfaces, AI brief/plan review, analytics drill-down and the
+recorded walkthrough. No new feature or optimization was introduced by the
+acceptance verification below. Deployment and paid LLM tests remain deferred.
 
-Phase 12: continue the staged [design direction](design/modern-saas-direction.md), quantify the remaining runtime/scheduler round-trip cost, and record the complete product walkthrough. The populated local showcase and reproducible screenshot gallery are available. Deployment validation and live LLM evaluation remain deferred by the user.
+## Product acceptance verification — 2026-11-11
 
-Runtime follow-up research is recorded in [RUNTIME-RESEARCH.md](RUNTIME-RESEARCH.md): bounded short-step advancement, capacity-threshold refill and queue fairness are candidates; wait-event profiling must distinguish actual lock waits from total statement duration. This research changes no production execution behavior.
+Verified locally against source `b1b7ab4`, before this documentation update:
+
+- `make check`: formatting, lint, typecheck/build, race-enabled Go unit tests and Node tests pass.
+- `make test-integration`: all isolated PostgreSQL package tests pass, including runtime races, event deduplication, delivery policy, analytics and sandbox isolation.
+- `npm run test:e2e -- --workers=2`: 46/46 desktop/mobile browser tests pass. Coverage includes canvas persistence and reload/deep links; canonical EUR recovery scenarios A–E and the seven-day enrollment cooldown; personalized email/SMS and run-scoped Inbox decisions; explicit publishing; actual Mailpit SMTP/mock SMS execution; customer monitoring and analytics navigation.
+- A one-off extension of `scripts/test-recovery.mjs` used real API-key ingestion, then stopped/started the actual local worker and submitted the duplicate event. It verified one execution, three unique steps and matching projected entries/completed/unique-customer totals of 1/1/1. The verification API key was revoked. The extension and execution logs remain in ignored `.tmp` files; no credentials were committed.
+- No application fix was needed. No benchmark, paid LLM call, external messaging provider or deployment was performed. These are local results, not a claim about remote CI.
+
+The original 1h/24h/48h recovery windows were checked with the sandbox virtual
+clock. Actual process-restart verification used the existing short durable-wait
+workflow; it did not wait 73 real hours or alter a live journey's configured times.
 
 ## Bounded runtime turn delivery — 2026-11-10
 
