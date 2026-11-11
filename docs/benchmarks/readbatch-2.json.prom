@@ -1,0 +1,750 @@
+# HELP go_gc_duration_seconds A summary of the wall-time pause (stop-the-world) duration in garbage collection cycles.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 2.3e-05
+go_gc_duration_seconds{quantile="0.25"} 4.0709e-05
+go_gc_duration_seconds{quantile="0.5"} 5.7542e-05
+go_gc_duration_seconds{quantile="0.75"} 7.5792e-05
+go_gc_duration_seconds{quantile="1"} 0.000211625
+go_gc_duration_seconds_sum 0.014522591
+go_gc_duration_seconds_count 231
+# HELP go_gc_gogc_percent Heap size target percentage configured by the user, otherwise 100. This value is set by the GOGC environment variable, and the runtime/debug.SetGCPercent function. Sourced from /gc/gogc:percent.
+# TYPE go_gc_gogc_percent gauge
+go_gc_gogc_percent 100
+# HELP go_gc_gomemlimit_bytes Go runtime memory limit configured by the user, otherwise math.MaxInt64. This value is set by the GOMEMLIMIT environment variable, and the runtime/debug.SetMemoryLimit function. Sourced from /gc/gomemlimit:bytes.
+# TYPE go_gc_gomemlimit_bytes gauge
+go_gc_gomemlimit_bytes 9.223372036854776e+18
+# HELP go_goroutines Number of goroutines that currently exist.
+# TYPE go_goroutines gauge
+go_goroutines 82
+# HELP go_info Information about the Go environment.
+# TYPE go_info gauge
+go_info{version="go1.26.10"} 1
+# HELP go_memstats_alloc_bytes Number of bytes allocated in heap and currently in use. Equals to /memory/classes/heap/objects:bytes.
+# TYPE go_memstats_alloc_bytes gauge
+go_memstats_alloc_bytes 2.337116e+07
+# HELP go_memstats_alloc_bytes_total Total number of bytes allocated in heap until now, even if released already. Equals to /gc/heap/allocs:bytes.
+# TYPE go_memstats_alloc_bytes_total counter
+go_memstats_alloc_bytes_total 2.541721552e+09
+# HELP go_memstats_buck_hash_sys_bytes Number of bytes used by the profiling bucket hash table. Equals to /memory/classes/profiling/buckets:bytes.
+# TYPE go_memstats_buck_hash_sys_bytes gauge
+go_memstats_buck_hash_sys_bytes 1.761794e+06
+# HELP go_memstats_frees_total Total number of heap objects frees. Equals to /gc/heap/frees:objects + /gc/heap/tiny/allocs:objects.
+# TYPE go_memstats_frees_total counter
+go_memstats_frees_total 2.5774574e+07
+# HELP go_memstats_gc_sys_bytes Number of bytes used for garbage collection system metadata. Equals to /memory/classes/metadata/other:bytes.
+# TYPE go_memstats_gc_sys_bytes gauge
+go_memstats_gc_sys_bytes 4.089584e+06
+# HELP go_memstats_heap_alloc_bytes Number of heap bytes allocated and currently in use, same as go_memstats_alloc_bytes. Equals to /memory/classes/heap/objects:bytes.
+# TYPE go_memstats_heap_alloc_bytes gauge
+go_memstats_heap_alloc_bytes 2.337116e+07
+# HELP go_memstats_heap_idle_bytes Number of heap bytes waiting to be used. Equals to /memory/classes/heap/released:bytes + /memory/classes/heap/free:bytes.
+# TYPE go_memstats_heap_idle_bytes gauge
+go_memstats_heap_idle_bytes 1.6416768e+07
+# HELP go_memstats_heap_inuse_bytes Number of heap bytes that are in use. Equals to /memory/classes/heap/objects:bytes + /memory/classes/heap/unused:bytes
+# TYPE go_memstats_heap_inuse_bytes gauge
+go_memstats_heap_inuse_bytes 3.2636928e+07
+# HELP go_memstats_heap_objects Number of currently allocated objects. Equals to /gc/heap/objects:objects.
+# TYPE go_memstats_heap_objects gauge
+go_memstats_heap_objects 93940
+# HELP go_memstats_heap_released_bytes Number of heap bytes released to OS. Equals to /memory/classes/heap/released:bytes.
+# TYPE go_memstats_heap_released_bytes gauge
+go_memstats_heap_released_bytes 8.88832e+06
+# HELP go_memstats_heap_sys_bytes Number of heap bytes obtained from system. Equals to /memory/classes/heap/objects:bytes + /memory/classes/heap/unused:bytes + /memory/classes/heap/released:bytes + /memory/classes/heap/free:bytes.
+# TYPE go_memstats_heap_sys_bytes gauge
+go_memstats_heap_sys_bytes 4.9053696e+07
+# HELP go_memstats_last_gc_time_seconds Number of seconds since 1970 of last garbage collection.
+# TYPE go_memstats_last_gc_time_seconds gauge
+go_memstats_last_gc_time_seconds 1.794386005752487e+09
+# HELP go_memstats_mallocs_total Total number of heap objects allocated, both live and gc-ed. Semantically a counter version for go_memstats_heap_objects gauge. Equals to /gc/heap/allocs:objects + /gc/heap/tiny/allocs:objects.
+# TYPE go_memstats_mallocs_total counter
+go_memstats_mallocs_total 2.5868514e+07
+# HELP go_memstats_mcache_inuse_bytes Number of bytes in use by mcache structures. Equals to /memory/classes/metadata/mcache/inuse:bytes.
+# TYPE go_memstats_mcache_inuse_bytes gauge
+go_memstats_mcache_inuse_bytes 18368
+# HELP go_memstats_mcache_sys_bytes Number of bytes used for mcache structures obtained from system. Equals to /memory/classes/metadata/mcache/inuse:bytes + /memory/classes/metadata/mcache/free:bytes.
+# TYPE go_memstats_mcache_sys_bytes gauge
+go_memstats_mcache_sys_bytes 32144
+# HELP go_memstats_mspan_inuse_bytes Number of bytes in use by mspan structures. Equals to /memory/classes/metadata/mspan/inuse:bytes.
+# TYPE go_memstats_mspan_inuse_bytes gauge
+go_memstats_mspan_inuse_bytes 451040
+# HELP go_memstats_mspan_sys_bytes Number of bytes used for mspan structures obtained from system. Equals to /memory/classes/metadata/mspan/inuse:bytes + /memory/classes/metadata/mspan/free:bytes.
+# TYPE go_memstats_mspan_sys_bytes gauge
+go_memstats_mspan_sys_bytes 571200
+# HELP go_memstats_next_gc_bytes Number of heap bytes when next garbage collection will take place. Equals to /gc/heap/goal:bytes.
+# TYPE go_memstats_next_gc_bytes gauge
+go_memstats_next_gc_bytes 2.9546074e+07
+# HELP go_memstats_other_sys_bytes Number of bytes used for other system allocations. Equals to /memory/classes/other:bytes.
+# TYPE go_memstats_other_sys_bytes gauge
+go_memstats_other_sys_bytes 1.231686e+06
+# HELP go_memstats_stack_inuse_bytes Number of bytes obtained from system for stack allocator in non-CGO environments. Equals to /memory/classes/heap/stacks:bytes.
+# TYPE go_memstats_stack_inuse_bytes gauge
+go_memstats_stack_inuse_bytes 1.277952e+06
+# HELP go_memstats_stack_sys_bytes Number of bytes obtained from system for stack allocator. Equals to /memory/classes/heap/stacks:bytes + /memory/classes/os-stacks:bytes.
+# TYPE go_memstats_stack_sys_bytes gauge
+go_memstats_stack_sys_bytes 1.277952e+06
+# HELP go_memstats_sys_bytes Number of bytes obtained from system. Equals to /memory/classes/total:byte.
+# TYPE go_memstats_sys_bytes gauge
+go_memstats_sys_bytes 5.8018056e+07
+# HELP go_sched_gomaxprocs_threads The current runtime.GOMAXPROCS setting, or the number of operating system threads that can execute user-level Go code simultaneously. Sourced from /sched/gomaxprocs:threads.
+# TYPE go_sched_gomaxprocs_threads gauge
+go_sched_gomaxprocs_threads 8
+# HELP go_threads Number of OS threads created.
+# TYPE go_threads gauge
+go_threads 13
+# HELP journey_db_acquire_duration_seconds Pool acquisition duration, including unsuccessful acquisition.
+# TYPE journey_db_acquire_duration_seconds histogram
+journey_db_acquire_duration_seconds_bucket{result="success",le="0.0001"} 116684
+journey_db_acquire_duration_seconds_bucket{result="success",le="0.0005"} 116770
+journey_db_acquire_duration_seconds_bucket{result="success",le="0.001"} 116812
+journey_db_acquire_duration_seconds_bucket{result="success",le="0.0025"} 116844
+journey_db_acquire_duration_seconds_bucket{result="success",le="0.005"} 116856
+journey_db_acquire_duration_seconds_bucket{result="success",le="0.01"} 116889
+journey_db_acquire_duration_seconds_bucket{result="success",le="0.025"} 116956
+journey_db_acquire_duration_seconds_bucket{result="success",le="0.05"} 116975
+journey_db_acquire_duration_seconds_bucket{result="success",le="0.1"} 116977
+journey_db_acquire_duration_seconds_bucket{result="success",le="0.25"} 116977
+journey_db_acquire_duration_seconds_bucket{result="success",le="0.5"} 116977
+journey_db_acquire_duration_seconds_bucket{result="success",le="1"} 116977
+journey_db_acquire_duration_seconds_bucket{result="success",le="2.5"} 116977
+journey_db_acquire_duration_seconds_bucket{result="success",le="5"} 116977
+journey_db_acquire_duration_seconds_bucket{result="success",le="15"} 116977
+journey_db_acquire_duration_seconds_bucket{result="success",le="90"} 116977
+journey_db_acquire_duration_seconds_bucket{result="success",le="+Inf"} 116977
+journey_db_acquire_duration_seconds_sum{result="success"} 2.3510005349999905
+journey_db_acquire_duration_seconds_count{result="success"} 116977
+# HELP journey_db_pool_acquired Process-local PostgreSQL pool state.
+# TYPE journey_db_pool_acquired gauge
+journey_db_pool_acquired 0
+# HELP journey_db_pool_connections Process-local PostgreSQL pool state.
+# TYPE journey_db_pool_connections gauge
+journey_db_pool_connections 15
+# HELP journey_db_pool_max Process-local PostgreSQL pool state.
+# TYPE journey_db_pool_max gauge
+journey_db_pool_max 20
+# HELP journey_db_query_duration_seconds pgx query/exec or whole BATCH duration including result consumption, excluding pool acquisition.
+# TYPE journey_db_query_duration_seconds histogram
+journey_db_query_duration_seconds_bucket{operation="ALTER",result="success",le="0.0001"} 0
+journey_db_query_duration_seconds_bucket{operation="ALTER",result="success",le="0.0005"} 0
+journey_db_query_duration_seconds_bucket{operation="ALTER",result="success",le="0.001"} 1
+journey_db_query_duration_seconds_bucket{operation="ALTER",result="success",le="0.0025"} 2
+journey_db_query_duration_seconds_bucket{operation="ALTER",result="success",le="0.005"} 3
+journey_db_query_duration_seconds_bucket{operation="ALTER",result="success",le="0.01"} 3
+journey_db_query_duration_seconds_bucket{operation="ALTER",result="success",le="0.025"} 3
+journey_db_query_duration_seconds_bucket{operation="ALTER",result="success",le="0.05"} 3
+journey_db_query_duration_seconds_bucket{operation="ALTER",result="success",le="0.1"} 3
+journey_db_query_duration_seconds_bucket{operation="ALTER",result="success",le="0.25"} 3
+journey_db_query_duration_seconds_bucket{operation="ALTER",result="success",le="0.5"} 3
+journey_db_query_duration_seconds_bucket{operation="ALTER",result="success",le="1"} 3
+journey_db_query_duration_seconds_bucket{operation="ALTER",result="success",le="2.5"} 3
+journey_db_query_duration_seconds_bucket{operation="ALTER",result="success",le="5"} 3
+journey_db_query_duration_seconds_bucket{operation="ALTER",result="success",le="15"} 3
+journey_db_query_duration_seconds_bucket{operation="ALTER",result="success",le="90"} 3
+journey_db_query_duration_seconds_bucket{operation="ALTER",result="success",le="+Inf"} 3
+journey_db_query_duration_seconds_sum{operation="ALTER",result="success"} 0.0052219580000000005
+journey_db_query_duration_seconds_count{operation="ALTER",result="success"} 3
+journey_db_query_duration_seconds_bucket{operation="ANALYZE",result="success",le="0.0001"} 0
+journey_db_query_duration_seconds_bucket{operation="ANALYZE",result="success",le="0.0005"} 0
+journey_db_query_duration_seconds_bucket{operation="ANALYZE",result="success",le="0.001"} 0
+journey_db_query_duration_seconds_bucket{operation="ANALYZE",result="success",le="0.0025"} 0
+journey_db_query_duration_seconds_bucket{operation="ANALYZE",result="success",le="0.005"} 0
+journey_db_query_duration_seconds_bucket{operation="ANALYZE",result="success",le="0.01"} 0
+journey_db_query_duration_seconds_bucket{operation="ANALYZE",result="success",le="0.025"} 0
+journey_db_query_duration_seconds_bucket{operation="ANALYZE",result="success",le="0.05"} 1
+journey_db_query_duration_seconds_bucket{operation="ANALYZE",result="success",le="0.1"} 1
+journey_db_query_duration_seconds_bucket{operation="ANALYZE",result="success",le="0.25"} 2
+journey_db_query_duration_seconds_bucket{operation="ANALYZE",result="success",le="0.5"} 3
+journey_db_query_duration_seconds_bucket{operation="ANALYZE",result="success",le="1"} 3
+journey_db_query_duration_seconds_bucket{operation="ANALYZE",result="success",le="2.5"} 3
+journey_db_query_duration_seconds_bucket{operation="ANALYZE",result="success",le="5"} 3
+journey_db_query_duration_seconds_bucket{operation="ANALYZE",result="success",le="15"} 3
+journey_db_query_duration_seconds_bucket{operation="ANALYZE",result="success",le="90"} 3
+journey_db_query_duration_seconds_bucket{operation="ANALYZE",result="success",le="+Inf"} 3
+journey_db_query_duration_seconds_sum{operation="ANALYZE",result="success"} 0.593209375
+journey_db_query_duration_seconds_count{operation="ANALYZE",result="success"} 3
+journey_db_query_duration_seconds_bucket{operation="BATCH",result="success",le="0.0001"} 0
+journey_db_query_duration_seconds_bucket{operation="BATCH",result="success",le="0.0005"} 6291
+journey_db_query_duration_seconds_bucket{operation="BATCH",result="success",le="0.001"} 32797
+journey_db_query_duration_seconds_bucket{operation="BATCH",result="success",le="0.0025"} 39312
+journey_db_query_duration_seconds_bucket{operation="BATCH",result="success",le="0.005"} 39860
+journey_db_query_duration_seconds_bucket{operation="BATCH",result="success",le="0.01"} 39976
+journey_db_query_duration_seconds_bucket{operation="BATCH",result="success",le="0.025"} 40051
+journey_db_query_duration_seconds_bucket{operation="BATCH",result="success",le="0.05"} 40199
+journey_db_query_duration_seconds_bucket{operation="BATCH",result="success",le="0.1"} 40243
+journey_db_query_duration_seconds_bucket{operation="BATCH",result="success",le="0.25"} 40243
+journey_db_query_duration_seconds_bucket{operation="BATCH",result="success",le="0.5"} 40243
+journey_db_query_duration_seconds_bucket{operation="BATCH",result="success",le="1"} 40243
+journey_db_query_duration_seconds_bucket{operation="BATCH",result="success",le="2.5"} 40243
+journey_db_query_duration_seconds_bucket{operation="BATCH",result="success",le="5"} 40243
+journey_db_query_duration_seconds_bucket{operation="BATCH",result="success",le="15"} 40243
+journey_db_query_duration_seconds_bucket{operation="BATCH",result="success",le="90"} 40243
+journey_db_query_duration_seconds_bucket{operation="BATCH",result="success",le="+Inf"} 40243
+journey_db_query_duration_seconds_sum{operation="BATCH",result="success"} 42.51446225899997
+journey_db_query_duration_seconds_count{operation="BATCH",result="success"} 40243
+journey_db_query_duration_seconds_bucket{operation="BEGIN",result="success",le="0.0001"} 0
+journey_db_query_duration_seconds_bucket{operation="BEGIN",result="success",le="0.0005"} 55843
+journey_db_query_duration_seconds_bucket{operation="BEGIN",result="success",le="0.001"} 84108
+journey_db_query_duration_seconds_bucket{operation="BEGIN",result="success",le="0.0025"} 91052
+journey_db_query_duration_seconds_bucket{operation="BEGIN",result="success",le="0.005"} 91840
+journey_db_query_duration_seconds_bucket{operation="BEGIN",result="success",le="0.01"} 91988
+journey_db_query_duration_seconds_bucket{operation="BEGIN",result="success",le="0.025"} 92221
+journey_db_query_duration_seconds_bucket{operation="BEGIN",result="success",le="0.05"} 92757
+journey_db_query_duration_seconds_bucket{operation="BEGIN",result="success",le="0.1"} 92859
+journey_db_query_duration_seconds_bucket{operation="BEGIN",result="success",le="0.25"} 92859
+journey_db_query_duration_seconds_bucket{operation="BEGIN",result="success",le="0.5"} 92859
+journey_db_query_duration_seconds_bucket{operation="BEGIN",result="success",le="1"} 92859
+journey_db_query_duration_seconds_bucket{operation="BEGIN",result="success",le="2.5"} 92859
+journey_db_query_duration_seconds_bucket{operation="BEGIN",result="success",le="5"} 92859
+journey_db_query_duration_seconds_bucket{operation="BEGIN",result="success",le="15"} 92859
+journey_db_query_duration_seconds_bucket{operation="BEGIN",result="success",le="90"} 92859
+journey_db_query_duration_seconds_bucket{operation="BEGIN",result="success",le="+Inf"} 92859
+journey_db_query_duration_seconds_sum{operation="BEGIN",result="success"} 81.47079354399953
+journey_db_query_duration_seconds_count{operation="BEGIN",result="success"} 92859
+journey_db_query_duration_seconds_bucket{operation="COMMIT",result="success",le="0.0001"} 0
+journey_db_query_duration_seconds_bucket{operation="COMMIT",result="success",le="0.0005"} 51134
+journey_db_query_duration_seconds_bucket{operation="COMMIT",result="success",le="0.001"} 82087
+journey_db_query_duration_seconds_bucket{operation="COMMIT",result="success",le="0.0025"} 89204
+journey_db_query_duration_seconds_bucket{operation="COMMIT",result="success",le="0.005"} 90085
+journey_db_query_duration_seconds_bucket{operation="COMMIT",result="success",le="0.01"} 90247
+journey_db_query_duration_seconds_bucket{operation="COMMIT",result="success",le="0.025"} 90407
+journey_db_query_duration_seconds_bucket{operation="COMMIT",result="success",le="0.05"} 90703
+journey_db_query_duration_seconds_bucket{operation="COMMIT",result="success",le="0.1"} 90804
+journey_db_query_duration_seconds_bucket{operation="COMMIT",result="success",le="0.25"} 90804
+journey_db_query_duration_seconds_bucket{operation="COMMIT",result="success",le="0.5"} 90804
+journey_db_query_duration_seconds_bucket{operation="COMMIT",result="success",le="1"} 90804
+journey_db_query_duration_seconds_bucket{operation="COMMIT",result="success",le="2.5"} 90804
+journey_db_query_duration_seconds_bucket{operation="COMMIT",result="success",le="5"} 90804
+journey_db_query_duration_seconds_bucket{operation="COMMIT",result="success",le="15"} 90804
+journey_db_query_duration_seconds_bucket{operation="COMMIT",result="success",le="90"} 90804
+journey_db_query_duration_seconds_bucket{operation="COMMIT",result="success",le="+Inf"} 90804
+journey_db_query_duration_seconds_sum{operation="COMMIT",result="success"} 72.01712269100031
+journey_db_query_duration_seconds_count{operation="COMMIT",result="success"} 90804
+journey_db_query_duration_seconds_bucket{operation="CREATE",result="success",le="0.0001"} 0
+journey_db_query_duration_seconds_bucket{operation="CREATE",result="success",le="0.0005"} 0
+journey_db_query_duration_seconds_bucket{operation="CREATE",result="success",le="0.001"} 2
+journey_db_query_duration_seconds_bucket{operation="CREATE",result="success",le="0.0025"} 2
+journey_db_query_duration_seconds_bucket{operation="CREATE",result="success",le="0.005"} 6
+journey_db_query_duration_seconds_bucket{operation="CREATE",result="success",le="0.01"} 9
+journey_db_query_duration_seconds_bucket{operation="CREATE",result="success",le="0.025"} 11
+journey_db_query_duration_seconds_bucket{operation="CREATE",result="success",le="0.05"} 11
+journey_db_query_duration_seconds_bucket{operation="CREATE",result="success",le="0.1"} 11
+journey_db_query_duration_seconds_bucket{operation="CREATE",result="success",le="0.25"} 11
+journey_db_query_duration_seconds_bucket{operation="CREATE",result="success",le="0.5"} 11
+journey_db_query_duration_seconds_bucket{operation="CREATE",result="success",le="1"} 11
+journey_db_query_duration_seconds_bucket{operation="CREATE",result="success",le="2.5"} 11
+journey_db_query_duration_seconds_bucket{operation="CREATE",result="success",le="5"} 11
+journey_db_query_duration_seconds_bucket{operation="CREATE",result="success",le="15"} 11
+journey_db_query_duration_seconds_bucket{operation="CREATE",result="success",le="90"} 11
+journey_db_query_duration_seconds_bucket{operation="CREATE",result="success",le="+Inf"} 11
+journey_db_query_duration_seconds_sum{operation="CREATE",result="success"} 0.06299808100000001
+journey_db_query_duration_seconds_count{operation="CREATE",result="success"} 11
+journey_db_query_duration_seconds_bucket{operation="DELETE",result="success",le="0.0001"} 0
+journey_db_query_duration_seconds_bucket{operation="DELETE",result="success",le="0.0005"} 0
+journey_db_query_duration_seconds_bucket{operation="DELETE",result="success",le="0.001"} 0
+journey_db_query_duration_seconds_bucket{operation="DELETE",result="success",le="0.0025"} 0
+journey_db_query_duration_seconds_bucket{operation="DELETE",result="success",le="0.005"} 1
+journey_db_query_duration_seconds_bucket{operation="DELETE",result="success",le="0.01"} 1
+journey_db_query_duration_seconds_bucket{operation="DELETE",result="success",le="0.025"} 1
+journey_db_query_duration_seconds_bucket{operation="DELETE",result="success",le="0.05"} 1
+journey_db_query_duration_seconds_bucket{operation="DELETE",result="success",le="0.1"} 1
+journey_db_query_duration_seconds_bucket{operation="DELETE",result="success",le="0.25"} 1
+journey_db_query_duration_seconds_bucket{operation="DELETE",result="success",le="0.5"} 1
+journey_db_query_duration_seconds_bucket{operation="DELETE",result="success",le="1"} 1
+journey_db_query_duration_seconds_bucket{operation="DELETE",result="success",le="2.5"} 1
+journey_db_query_duration_seconds_bucket{operation="DELETE",result="success",le="5"} 1
+journey_db_query_duration_seconds_bucket{operation="DELETE",result="success",le="15"} 1
+journey_db_query_duration_seconds_bucket{operation="DELETE",result="success",le="90"} 1
+journey_db_query_duration_seconds_bucket{operation="DELETE",result="success",le="+Inf"} 1
+journey_db_query_duration_seconds_sum{operation="DELETE",result="success"} 0.002946625
+journey_db_query_duration_seconds_count{operation="DELETE",result="success"} 1
+journey_db_query_duration_seconds_bucket{operation="DROP",result="success",le="0.0001"} 0
+journey_db_query_duration_seconds_bucket{operation="DROP",result="success",le="0.0005"} 0
+journey_db_query_duration_seconds_bucket{operation="DROP",result="success",le="0.001"} 0
+journey_db_query_duration_seconds_bucket{operation="DROP",result="success",le="0.0025"} 1
+journey_db_query_duration_seconds_bucket{operation="DROP",result="success",le="0.005"} 1
+journey_db_query_duration_seconds_bucket{operation="DROP",result="success",le="0.01"} 1
+journey_db_query_duration_seconds_bucket{operation="DROP",result="success",le="0.025"} 1
+journey_db_query_duration_seconds_bucket{operation="DROP",result="success",le="0.05"} 1
+journey_db_query_duration_seconds_bucket{operation="DROP",result="success",le="0.1"} 1
+journey_db_query_duration_seconds_bucket{operation="DROP",result="success",le="0.25"} 1
+journey_db_query_duration_seconds_bucket{operation="DROP",result="success",le="0.5"} 1
+journey_db_query_duration_seconds_bucket{operation="DROP",result="success",le="1"} 1
+journey_db_query_duration_seconds_bucket{operation="DROP",result="success",le="2.5"} 1
+journey_db_query_duration_seconds_bucket{operation="DROP",result="success",le="5"} 1
+journey_db_query_duration_seconds_bucket{operation="DROP",result="success",le="15"} 1
+journey_db_query_duration_seconds_bucket{operation="DROP",result="success",le="90"} 1
+journey_db_query_duration_seconds_bucket{operation="DROP",result="success",le="+Inf"} 1
+journey_db_query_duration_seconds_sum{operation="DROP",result="success"} 0.001211292
+journey_db_query_duration_seconds_count{operation="DROP",result="success"} 1
+journey_db_query_duration_seconds_bucket{operation="INSERT",result="success",le="0.0001"} 0
+journey_db_query_duration_seconds_bucket{operation="INSERT",result="success",le="0.0005"} 28916
+journey_db_query_duration_seconds_bucket{operation="INSERT",result="success",le="0.001"} 103559
+journey_db_query_duration_seconds_bucket{operation="INSERT",result="success",le="0.0025"} 134753
+journey_db_query_duration_seconds_bucket{operation="INSERT",result="success",le="0.005"} 138318
+journey_db_query_duration_seconds_bucket{operation="INSERT",result="success",le="0.01"} 138959
+journey_db_query_duration_seconds_bucket{operation="INSERT",result="success",le="0.025"} 139412
+journey_db_query_duration_seconds_bucket{operation="INSERT",result="success",le="0.05"} 140201
+journey_db_query_duration_seconds_bucket{operation="INSERT",result="success",le="0.1"} 140547
+journey_db_query_duration_seconds_bucket{operation="INSERT",result="success",le="0.25"} 140547
+journey_db_query_duration_seconds_bucket{operation="INSERT",result="success",le="0.5"} 140547
+journey_db_query_duration_seconds_bucket{operation="INSERT",result="success",le="1"} 140547
+journey_db_query_duration_seconds_bucket{operation="INSERT",result="success",le="2.5"} 140547
+journey_db_query_duration_seconds_bucket{operation="INSERT",result="success",le="5"} 140547
+journey_db_query_duration_seconds_bucket{operation="INSERT",result="success",le="15"} 140547
+journey_db_query_duration_seconds_bucket{operation="INSERT",result="success",le="90"} 140547
+journey_db_query_duration_seconds_bucket{operation="INSERT",result="success",le="+Inf"} 140547
+journey_db_query_duration_seconds_sum{operation="INSERT",result="success"} 182.7894041269991
+journey_db_query_duration_seconds_count{operation="INSERT",result="success"} 140547
+journey_db_query_duration_seconds_bucket{operation="OTHER",result="success",le="0.0001"} 0
+journey_db_query_duration_seconds_bucket{operation="OTHER",result="success",le="0.0005"} 1
+journey_db_query_duration_seconds_bucket{operation="OTHER",result="success",le="0.001"} 9
+journey_db_query_duration_seconds_bucket{operation="OTHER",result="success",le="0.0025"} 12
+journey_db_query_duration_seconds_bucket{operation="OTHER",result="success",le="0.005"} 13
+journey_db_query_duration_seconds_bucket{operation="OTHER",result="success",le="0.01"} 14
+journey_db_query_duration_seconds_bucket{operation="OTHER",result="success",le="0.025"} 16
+journey_db_query_duration_seconds_bucket{operation="OTHER",result="success",le="0.05"} 16
+journey_db_query_duration_seconds_bucket{operation="OTHER",result="success",le="0.1"} 16
+journey_db_query_duration_seconds_bucket{operation="OTHER",result="success",le="0.25"} 16
+journey_db_query_duration_seconds_bucket{operation="OTHER",result="success",le="0.5"} 16
+journey_db_query_duration_seconds_bucket{operation="OTHER",result="success",le="1"} 16
+journey_db_query_duration_seconds_bucket{operation="OTHER",result="success",le="2.5"} 16
+journey_db_query_duration_seconds_bucket{operation="OTHER",result="success",le="5"} 16
+journey_db_query_duration_seconds_bucket{operation="OTHER",result="success",le="15"} 16
+journey_db_query_duration_seconds_bucket{operation="OTHER",result="success",le="90"} 16
+journey_db_query_duration_seconds_bucket{operation="OTHER",result="success",le="+Inf"} 16
+journey_db_query_duration_seconds_sum{operation="OTHER",result="success"} 0.056441750000000006
+journey_db_query_duration_seconds_count{operation="OTHER",result="success"} 16
+journey_db_query_duration_seconds_bucket{operation="ROLLBACK",result="success",le="0.0001"} 0
+journey_db_query_duration_seconds_bucket{operation="ROLLBACK",result="success",le="0.0005"} 1130
+journey_db_query_duration_seconds_bucket{operation="ROLLBACK",result="success",le="0.001"} 1786
+journey_db_query_duration_seconds_bucket{operation="ROLLBACK",result="success",le="0.0025"} 2011
+journey_db_query_duration_seconds_bucket{operation="ROLLBACK",result="success",le="0.005"} 2032
+journey_db_query_duration_seconds_bucket{operation="ROLLBACK",result="success",le="0.01"} 2036
+journey_db_query_duration_seconds_bucket{operation="ROLLBACK",result="success",le="0.025"} 2037
+journey_db_query_duration_seconds_bucket{operation="ROLLBACK",result="success",le="0.05"} 2055
+journey_db_query_duration_seconds_bucket{operation="ROLLBACK",result="success",le="0.1"} 2055
+journey_db_query_duration_seconds_bucket{operation="ROLLBACK",result="success",le="0.25"} 2055
+journey_db_query_duration_seconds_bucket{operation="ROLLBACK",result="success",le="0.5"} 2055
+journey_db_query_duration_seconds_bucket{operation="ROLLBACK",result="success",le="1"} 2055
+journey_db_query_duration_seconds_bucket{operation="ROLLBACK",result="success",le="2.5"} 2055
+journey_db_query_duration_seconds_bucket{operation="ROLLBACK",result="success",le="5"} 2055
+journey_db_query_duration_seconds_bucket{operation="ROLLBACK",result="success",le="15"} 2055
+journey_db_query_duration_seconds_bucket{operation="ROLLBACK",result="success",le="90"} 2055
+journey_db_query_duration_seconds_bucket{operation="ROLLBACK",result="success",le="+Inf"} 2055
+journey_db_query_duration_seconds_sum{operation="ROLLBACK",result="success"} 1.964490276000004
+journey_db_query_duration_seconds_count{operation="ROLLBACK",result="success"} 2055
+journey_db_query_duration_seconds_bucket{operation="SELECT",result="success",le="0.0001"} 0
+journey_db_query_duration_seconds_bucket{operation="SELECT",result="success",le="0.0005"} 31479
+journey_db_query_duration_seconds_bucket{operation="SELECT",result="success",le="0.001"} 58560
+journey_db_query_duration_seconds_bucket{operation="SELECT",result="success",le="0.0025"} 84557
+journey_db_query_duration_seconds_bucket{operation="SELECT",result="success",le="0.005"} 90450
+journey_db_query_duration_seconds_bucket{operation="SELECT",result="success",le="0.01"} 92308
+journey_db_query_duration_seconds_bucket{operation="SELECT",result="success",le="0.025"} 93536
+journey_db_query_duration_seconds_bucket{operation="SELECT",result="success",le="0.05"} 95238
+journey_db_query_duration_seconds_bucket{operation="SELECT",result="success",le="0.1"} 95659
+journey_db_query_duration_seconds_bucket{operation="SELECT",result="success",le="0.25"} 95663
+journey_db_query_duration_seconds_bucket{operation="SELECT",result="success",le="0.5"} 95663
+journey_db_query_duration_seconds_bucket{operation="SELECT",result="success",le="1"} 95663
+journey_db_query_duration_seconds_bucket{operation="SELECT",result="success",le="2.5"} 95663
+journey_db_query_duration_seconds_bucket{operation="SELECT",result="success",le="5"} 95663
+journey_db_query_duration_seconds_bucket{operation="SELECT",result="success",le="15"} 95663
+journey_db_query_duration_seconds_bucket{operation="SELECT",result="success",le="90"} 95663
+journey_db_query_duration_seconds_bucket{operation="SELECT",result="success",le="+Inf"} 95663
+journey_db_query_duration_seconds_sum{operation="SELECT",result="success"} 210.77165544999886
+journey_db_query_duration_seconds_count{operation="SELECT",result="success"} 95663
+journey_db_query_duration_seconds_bucket{operation="UPDATE",result="success",le="0.0001"} 0
+journey_db_query_duration_seconds_bucket{operation="UPDATE",result="success",le="0.0005"} 31549
+journey_db_query_duration_seconds_bucket{operation="UPDATE",result="success",le="0.001"} 98638
+journey_db_query_duration_seconds_bucket{operation="UPDATE",result="success",le="0.0025"} 118471
+journey_db_query_duration_seconds_bucket{operation="UPDATE",result="success",le="0.005"} 120026
+journey_db_query_duration_seconds_bucket{operation="UPDATE",result="success",le="0.01"} 120292
+journey_db_query_duration_seconds_bucket{operation="UPDATE",result="success",le="0.025"} 120617
+journey_db_query_duration_seconds_bucket{operation="UPDATE",result="success",le="0.05"} 121162
+journey_db_query_duration_seconds_bucket{operation="UPDATE",result="success",le="0.1"} 121291
+journey_db_query_duration_seconds_bucket{operation="UPDATE",result="success",le="0.25"} 121291
+journey_db_query_duration_seconds_bucket{operation="UPDATE",result="success",le="0.5"} 121291
+journey_db_query_duration_seconds_bucket{operation="UPDATE",result="success",le="1"} 121291
+journey_db_query_duration_seconds_bucket{operation="UPDATE",result="success",le="2.5"} 121291
+journey_db_query_duration_seconds_bucket{operation="UPDATE",result="success",le="5"} 121291
+journey_db_query_duration_seconds_bucket{operation="UPDATE",result="success",le="15"} 121291
+journey_db_query_duration_seconds_bucket{operation="UPDATE",result="success",le="90"} 121291
+journey_db_query_duration_seconds_bucket{operation="UPDATE",result="success",le="+Inf"} 121291
+journey_db_query_duration_seconds_sum{operation="UPDATE",result="success"} 127.01851066700027
+journey_db_query_duration_seconds_count{operation="UPDATE",result="success"} 121291
+journey_db_query_duration_seconds_bucket{operation="WITH",result="success",le="0.0001"} 0
+journey_db_query_duration_seconds_bucket{operation="WITH",result="success",le="0.0005"} 21854
+journey_db_query_duration_seconds_bucket{operation="WITH",result="success",le="0.001"} 56193
+journey_db_query_duration_seconds_bucket{operation="WITH",result="success",le="0.0025"} 70204
+journey_db_query_duration_seconds_bucket{operation="WITH",result="success",le="0.005"} 71786
+journey_db_query_duration_seconds_bucket{operation="WITH",result="success",le="0.01"} 72100
+journey_db_query_duration_seconds_bucket{operation="WITH",result="success",le="0.025"} 72606
+journey_db_query_duration_seconds_bucket{operation="WITH",result="success",le="0.05"} 73098
+journey_db_query_duration_seconds_bucket{operation="WITH",result="success",le="0.1"} 73274
+journey_db_query_duration_seconds_bucket{operation="WITH",result="success",le="0.25"} 73286
+journey_db_query_duration_seconds_bucket{operation="WITH",result="success",le="0.5"} 73298
+journey_db_query_duration_seconds_bucket{operation="WITH",result="success",le="1"} 73300
+journey_db_query_duration_seconds_bucket{operation="WITH",result="success",le="2.5"} 73300
+journey_db_query_duration_seconds_bucket{operation="WITH",result="success",le="5"} 73300
+journey_db_query_duration_seconds_bucket{operation="WITH",result="success",le="15"} 73300
+journey_db_query_duration_seconds_bucket{operation="WITH",result="success",le="90"} 73300
+journey_db_query_duration_seconds_bucket{operation="WITH",result="success",le="+Inf"} 73300
+journey_db_query_duration_seconds_sum{operation="WITH",result="success"} 104.54513667400023
+journey_db_query_duration_seconds_count{operation="WITH",result="success"} 73300
+# HELP journey_http_duration_seconds Full HTTP handler duration including authentication and admission.
+# TYPE journey_http_duration_seconds histogram
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/analytics",le="0.0001"} 0
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/analytics",le="0.0005"} 0
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/analytics",le="0.001"} 45
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/analytics",le="0.0025"} 91
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/analytics",le="0.005"} 109
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/analytics",le="0.01"} 112
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/analytics",le="0.025"} 113
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/analytics",le="0.05"} 127
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/analytics",le="0.1"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/analytics",le="0.25"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/analytics",le="0.5"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/analytics",le="1"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/analytics",le="2.5"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/analytics",le="5"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/analytics",le="15"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/analytics",le="90"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/analytics",le="+Inf"} 128
+journey_http_duration_seconds_sum{method="GET",route="/api/v1/analytics"} 0.8587869549999999
+journey_http_duration_seconds_count{method="GET",route="/api/v1/analytics"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys",le="0.0001"} 0
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys",le="0.0005"} 0
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys",le="0.001"} 0
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys",le="0.0025"} 61
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys",le="0.005"} 89
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys",le="0.01"} 106
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys",le="0.025"} 108
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys",le="0.05"} 121
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys",le="0.1"} 127
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys",le="0.25"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys",le="0.5"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys",le="1"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys",le="2.5"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys",le="5"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys",le="15"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys",le="90"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys",le="+Inf"} 128
+journey_http_duration_seconds_sum{method="GET",route="/api/v1/journeys"} 1.3979972180000007
+journey_http_duration_seconds_count{method="GET",route="/api/v1/journeys"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys/{id}/executions",le="0.0001"} 0
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys/{id}/executions",le="0.0005"} 0
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys/{id}/executions",le="0.001"} 51
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys/{id}/executions",le="0.0025"} 98
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys/{id}/executions",le="0.005"} 110
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys/{id}/executions",le="0.01"} 110
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys/{id}/executions",le="0.025"} 110
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys/{id}/executions",le="0.05"} 126
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys/{id}/executions",le="0.1"} 127
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys/{id}/executions",le="0.25"} 127
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys/{id}/executions",le="0.5"} 127
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys/{id}/executions",le="1"} 127
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys/{id}/executions",le="2.5"} 127
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys/{id}/executions",le="5"} 127
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys/{id}/executions",le="15"} 127
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys/{id}/executions",le="90"} 127
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/journeys/{id}/executions",le="+Inf"} 127
+journey_http_duration_seconds_sum{method="GET",route="/api/v1/journeys/{id}/executions"} 0.8999904149999997
+journey_http_duration_seconds_count{method="GET",route="/api/v1/journeys/{id}/executions"} 127
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview",le="0.0001"} 0
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview",le="0.0005"} 0
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview",le="0.001"} 46
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview",le="0.0025"} 95
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview",le="0.005"} 104
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview",le="0.01"} 105
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview",le="0.025"} 105
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview",le="0.05"} 124
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview",le="0.1"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview",le="0.25"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview",le="0.5"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview",le="1"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview",le="2.5"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview",le="5"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview",le="15"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview",le="90"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview",le="+Inf"} 128
+journey_http_duration_seconds_sum{method="GET",route="/api/v1/overview"} 1.2167880860000004
+journey_http_duration_seconds_count{method="GET",route="/api/v1/overview"} 128
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview/entries-24h",le="0.0001"} 0
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview/entries-24h",le="0.0005"} 0
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview/entries-24h",le="0.001"} 0
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview/entries-24h",le="0.0025"} 41
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview/entries-24h",le="0.005"} 85
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview/entries-24h",le="0.01"} 107
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview/entries-24h",le="0.025"} 107
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview/entries-24h",le="0.05"} 124
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview/entries-24h",le="0.1"} 127
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview/entries-24h",le="0.25"} 127
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview/entries-24h",le="0.5"} 127
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview/entries-24h",le="1"} 127
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview/entries-24h",le="2.5"} 127
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview/entries-24h",le="5"} 127
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview/entries-24h",le="15"} 127
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview/entries-24h",le="90"} 127
+journey_http_duration_seconds_bucket{method="GET",route="/api/v1/overview/entries-24h",le="+Inf"} 127
+journey_http_duration_seconds_sum{method="GET",route="/api/v1/overview/entries-24h"} 1.2990902500000006
+journey_http_duration_seconds_count{method="GET",route="/api/v1/overview/entries-24h"} 127
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/auth/login",le="0.0001"} 0
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/auth/login",le="0.0005"} 0
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/auth/login",le="0.001"} 0
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/auth/login",le="0.0025"} 0
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/auth/login",le="0.005"} 0
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/auth/login",le="0.01"} 0
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/auth/login",le="0.025"} 0
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/auth/login",le="0.05"} 0
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/auth/login",le="0.1"} 0
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/auth/login",le="0.25"} 0
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/auth/login",le="0.5"} 1
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/auth/login",le="1"} 1
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/auth/login",le="2.5"} 1
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/auth/login",le="5"} 1
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/auth/login",le="15"} 1
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/auth/login",le="90"} 1
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/auth/login",le="+Inf"} 1
+journey_http_duration_seconds_sum{method="POST",route="/api/v1/auth/login"} 0.257151375
+journey_http_duration_seconds_count{method="POST",route="/api/v1/auth/login"} 1
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/events",le="0.0001"} 0
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/events",le="0.0005"} 0
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/events",le="0.001"} 0
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/events",le="0.0025"} 85
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/events",le="0.005"} 1770
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/events",le="0.01"} 4308
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/events",le="0.025"} 6688
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/events",le="0.05"} 8364
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/events",le="0.1"} 10056
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/events",le="0.25"} 10100
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/events",le="0.5"} 10100
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/events",le="1"} 10100
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/events",le="2.5"} 10100
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/events",le="5"} 10100
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/events",le="15"} 10100
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/events",le="90"} 10100
+journey_http_duration_seconds_bucket{method="POST",route="/api/v1/events",le="+Inf"} 10100
+journey_http_duration_seconds_sum{method="POST",route="/api/v1/events"} 240.57658035299949
+journey_http_duration_seconds_count{method="POST",route="/api/v1/events"} 10100
+# HELP journey_http_requests_total HTTP responses by normalized route/method/status.
+# TYPE journey_http_requests_total counter
+journey_http_requests_total{method="GET",route="/api/v1/analytics",status="200"} 128
+journey_http_requests_total{method="GET",route="/api/v1/journeys",status="200"} 128
+journey_http_requests_total{method="GET",route="/api/v1/journeys/{id}/executions",status="200"} 127
+journey_http_requests_total{method="GET",route="/api/v1/overview",status="200"} 128
+journey_http_requests_total{method="GET",route="/api/v1/overview/entries-24h",status="200"} 127
+journey_http_requests_total{method="POST",route="/api/v1/auth/login",status="200"} 1
+journey_http_requests_total{method="POST",route="/api/v1/events",status="200"} 10100
+# HELP journey_ingestion_admission_rejected_total Event requests rejected by timeout/cancellation before obtaining a transaction slot.
+# TYPE journey_ingestion_admission_rejected_total counter
+journey_ingestion_admission_rejected_total 0
+# HELP journey_ingestion_admission_wait_seconds Event admission wait outside the DB pool.
+# TYPE journey_ingestion_admission_wait_seconds histogram
+journey_ingestion_admission_wait_seconds_bucket{le="0.0001"} 8497
+journey_ingestion_admission_wait_seconds_bucket{le="0.0005"} 8573
+journey_ingestion_admission_wait_seconds_bucket{le="0.001"} 8708
+journey_ingestion_admission_wait_seconds_bucket{le="0.0025"} 9060
+journey_ingestion_admission_wait_seconds_bucket{le="0.005"} 9489
+journey_ingestion_admission_wait_seconds_bucket{le="0.01"} 9960
+journey_ingestion_admission_wait_seconds_bucket{le="0.025"} 10087
+journey_ingestion_admission_wait_seconds_bucket{le="0.05"} 10091
+journey_ingestion_admission_wait_seconds_bucket{le="0.1"} 10100
+journey_ingestion_admission_wait_seconds_bucket{le="0.25"} 10100
+journey_ingestion_admission_wait_seconds_bucket{le="0.5"} 10100
+journey_ingestion_admission_wait_seconds_bucket{le="1"} 10100
+journey_ingestion_admission_wait_seconds_bucket{le="2.5"} 10100
+journey_ingestion_admission_wait_seconds_bucket{le="5"} 10100
+journey_ingestion_admission_wait_seconds_bucket{le="15"} 10100
+journey_ingestion_admission_wait_seconds_bucket{le="90"} 10100
+journey_ingestion_admission_wait_seconds_bucket{le="+Inf"} 10100
+journey_ingestion_admission_wait_seconds_sum 7.955928243000035
+journey_ingestion_admission_wait_seconds_count 10100
+# HELP journey_job_start_lag_seconds Runtime processing start minus persisted due_at; not claim-only latency.
+# TYPE journey_job_start_lag_seconds histogram
+journey_job_start_lag_seconds_bucket{kind="step",le="0.01"} 2409
+journey_job_start_lag_seconds_bucket{kind="step",le="0.05"} 3713
+journey_job_start_lag_seconds_bucket{kind="step",le="0.1"} 4406
+journey_job_start_lag_seconds_bucket{kind="step",le="0.25"} 5269
+journey_job_start_lag_seconds_bucket{kind="step",le="0.5"} 5575
+journey_job_start_lag_seconds_bucket{kind="step",le="1"} 6107
+journey_job_start_lag_seconds_bucket{kind="step",le="2"} 7346
+journey_job_start_lag_seconds_bucket{kind="step",le="5"} 10154
+journey_job_start_lag_seconds_bucket{kind="step",le="10"} 10407
+journey_job_start_lag_seconds_bucket{kind="step",le="30"} 30243
+journey_job_start_lag_seconds_bucket{kind="step",le="60"} 30243
+journey_job_start_lag_seconds_bucket{kind="step",le="300"} 30243
+journey_job_start_lag_seconds_bucket{kind="step",le="1800"} 30243
+journey_job_start_lag_seconds_bucket{kind="step",le="7200"} 30243
+journey_job_start_lag_seconds_bucket{kind="step",le="86400"} 30243
+journey_job_start_lag_seconds_bucket{kind="step",le="+Inf"} 30243
+journey_job_start_lag_seconds_sum{kind="step"} 333948.73958799744
+journey_job_start_lag_seconds_count{kind="step"} 30243
+journey_job_start_lag_seconds_bucket{kind="timer",le="0.01"} 0
+journey_job_start_lag_seconds_bucket{kind="timer",le="0.05"} 0
+journey_job_start_lag_seconds_bucket{kind="timer",le="0.1"} 21
+journey_job_start_lag_seconds_bucket{kind="timer",le="0.25"} 176
+journey_job_start_lag_seconds_bucket{kind="timer",le="0.5"} 416
+journey_job_start_lag_seconds_bucket{kind="timer",le="1"} 949
+journey_job_start_lag_seconds_bucket{kind="timer",le="2"} 1962
+journey_job_start_lag_seconds_bucket{kind="timer",le="5"} 5013
+journey_job_start_lag_seconds_bucket{kind="timer",le="10"} 10000
+journey_job_start_lag_seconds_bucket{kind="timer",le="30"} 10000
+journey_job_start_lag_seconds_bucket{kind="timer",le="60"} 10000
+journey_job_start_lag_seconds_bucket{kind="timer",le="300"} 10000
+journey_job_start_lag_seconds_bucket{kind="timer",le="1800"} 10000
+journey_job_start_lag_seconds_bucket{kind="timer",le="7200"} 10000
+journey_job_start_lag_seconds_bucket{kind="timer",le="86400"} 10000
+journey_job_start_lag_seconds_bucket{kind="timer",le="+Inf"} 10000
+journey_job_start_lag_seconds_sum{kind="timer"} 49808.96745400002
+journey_job_start_lag_seconds_count{kind="timer"} 10000
+# HELP journey_provider_attempts_total Provider calls, including retries; ACCEPTED does not mean delivered.
+# TYPE journey_provider_attempts_total counter
+journey_provider_attempts_total{channel="sms",provider="mock_sms",result="ACCEPTED"} 10000
+journey_provider_attempts_total{channel="sms",provider="mock_sms",result="RETRY"} 2
+# HELP journey_provider_duration_seconds Provider call duration by bounded adapter/channel/outcome.
+# TYPE journey_provider_duration_seconds histogram
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="ACCEPTED",le="0.0001"} 9995
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="ACCEPTED",le="0.0005"} 10000
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="ACCEPTED",le="0.001"} 10000
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="ACCEPTED",le="0.0025"} 10000
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="ACCEPTED",le="0.005"} 10000
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="ACCEPTED",le="0.01"} 10000
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="ACCEPTED",le="0.025"} 10000
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="ACCEPTED",le="0.05"} 10000
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="ACCEPTED",le="0.1"} 10000
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="ACCEPTED",le="0.25"} 10000
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="ACCEPTED",le="0.5"} 10000
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="ACCEPTED",le="1"} 10000
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="ACCEPTED",le="2.5"} 10000
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="ACCEPTED",le="5"} 10000
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="ACCEPTED",le="15"} 10000
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="ACCEPTED",le="90"} 10000
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="ACCEPTED",le="+Inf"} 10000
+journey_provider_duration_seconds_sum{channel="sms",provider="mock_sms",result="ACCEPTED"} 0.02093790399999977
+journey_provider_duration_seconds_count{channel="sms",provider="mock_sms",result="ACCEPTED"} 10000
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="RETRY",le="0.0001"} 2
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="RETRY",le="0.0005"} 2
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="RETRY",le="0.001"} 2
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="RETRY",le="0.0025"} 2
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="RETRY",le="0.005"} 2
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="RETRY",le="0.01"} 2
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="RETRY",le="0.025"} 2
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="RETRY",le="0.05"} 2
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="RETRY",le="0.1"} 2
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="RETRY",le="0.25"} 2
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="RETRY",le="0.5"} 2
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="RETRY",le="1"} 2
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="RETRY",le="2.5"} 2
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="RETRY",le="5"} 2
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="RETRY",le="15"} 2
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="RETRY",le="90"} 2
+journey_provider_duration_seconds_bucket{channel="sms",provider="mock_sms",result="RETRY",le="+Inf"} 2
+journey_provider_duration_seconds_sum{channel="sms",provider="mock_sms",result="RETRY"} 2.458e-06
+journey_provider_duration_seconds_count{channel="sms",provider="mock_sms",result="RETRY"} 2
+# HELP journey_queue_depth Due/pending rows, capped at 10000; inspect queue_depth_capped.
+# TYPE journey_queue_depth gauge
+journey_queue_depth{queue="analytics"} 108
+journey_queue_depth{queue="delivery"} 10
+journey_queue_depth{queue="runtime"} 0
+# HELP journey_queue_depth_capped 1 when actual depth exceeds the bounded 10000-row probe.
+# TYPE journey_queue_depth_capped gauge
+journey_queue_depth_capped{queue="analytics"} 0
+journey_queue_depth_capped{queue="delivery"} 0
+journey_queue_depth_capped{queue="runtime"} 0
+# HELP journey_queue_oldest_age_seconds Age of oldest due/pending row, zero when empty.
+# TYPE journey_queue_oldest_age_seconds gauge
+journey_queue_oldest_age_seconds{queue="analytics"} 0.068772
+journey_queue_oldest_age_seconds{queue="delivery"} 0.021772
+journey_queue_oldest_age_seconds{queue="runtime"} 0
+# HELP journey_queue_probe_errors_total Queue sampler errors; previous values remain until next successful sample.
+# TYPE journey_queue_probe_errors_total counter
+journey_queue_probe_errors_total 0
+# HELP journey_queue_sample_timestamp_seconds Unix timestamp of last successful bounded queue probe.
+# TYPE journey_queue_sample_timestamp_seconds gauge
+journey_queue_sample_timestamp_seconds 1.794386001e+09
+# HELP journey_runtime_retries_total Runtime job retries scheduled after failed transactions.
+# TYPE journey_runtime_retries_total counter
+journey_runtime_retries_total 0
+# HELP journey_worker_operation_duration_seconds Runtime and delivery operation duration; result refers to this attempt.
+# TYPE journey_worker_operation_duration_seconds histogram
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="retry",le="0.0001"} 0
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="retry",le="0.0005"} 0
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="retry",le="0.001"} 0
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="retry",le="0.0025"} 0
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="retry",le="0.005"} 0
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="retry",le="0.01"} 0
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="retry",le="0.025"} 2
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="retry",le="0.05"} 2
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="retry",le="0.1"} 2
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="retry",le="0.25"} 2
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="retry",le="0.5"} 2
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="retry",le="1"} 2
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="retry",le="2.5"} 2
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="retry",le="5"} 2
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="retry",le="15"} 2
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="retry",le="90"} 2
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="retry",le="+Inf"} 2
+journey_worker_operation_duration_seconds_sum{operation="delivery_dispatch",result="retry"} 0.029052375
+journey_worker_operation_duration_seconds_count{operation="delivery_dispatch",result="retry"} 2
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="success",le="0.0001"} 0
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="success",le="0.0005"} 0
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="success",le="0.001"} 0
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="success",le="0.0025"} 31
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="success",le="0.005"} 6141
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="success",le="0.01"} 9419
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="success",le="0.025"} 9733
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="success",le="0.05"} 9946
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="success",le="0.1"} 10000
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="success",le="0.25"} 10000
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="success",le="0.5"} 10000
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="success",le="1"} 10000
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="success",le="2.5"} 10000
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="success",le="5"} 10000
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="success",le="15"} 10000
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="success",le="90"} 10000
+journey_worker_operation_duration_seconds_bucket{operation="delivery_dispatch",result="success",le="+Inf"} 10000
+journey_worker_operation_duration_seconds_sum{operation="delivery_dispatch",result="success"} 58.399713212999764
+journey_worker_operation_duration_seconds_count{operation="delivery_dispatch",result="success"} 10000
+journey_worker_operation_duration_seconds_bucket{operation="runtime_step",result="success",le="0.0001"} 0
+journey_worker_operation_duration_seconds_bucket{operation="runtime_step",result="success",le="0.0005"} 0
+journey_worker_operation_duration_seconds_bucket{operation="runtime_step",result="success",le="0.001"} 0
+journey_worker_operation_duration_seconds_bucket{operation="runtime_step",result="success",le="0.0025"} 13
+journey_worker_operation_duration_seconds_bucket{operation="runtime_step",result="success",le="0.005"} 14644
+journey_worker_operation_duration_seconds_bucket{operation="runtime_step",result="success",le="0.01"} 34063
+journey_worker_operation_duration_seconds_bucket{operation="runtime_step",result="success",le="0.025"} 37605
+journey_worker_operation_duration_seconds_bucket{operation="runtime_step",result="success",le="0.05"} 39210
+journey_worker_operation_duration_seconds_bucket{operation="runtime_step",result="success",le="0.1"} 40236
+journey_worker_operation_duration_seconds_bucket{operation="runtime_step",result="success",le="0.25"} 40243
+journey_worker_operation_duration_seconds_bucket{operation="runtime_step",result="success",le="0.5"} 40243
+journey_worker_operation_duration_seconds_bucket{operation="runtime_step",result="success",le="1"} 40243
+journey_worker_operation_duration_seconds_bucket{operation="runtime_step",result="success",le="2.5"} 40243
+journey_worker_operation_duration_seconds_bucket{operation="runtime_step",result="success",le="5"} 40243
+journey_worker_operation_duration_seconds_bucket{operation="runtime_step",result="success",le="15"} 40243
+journey_worker_operation_duration_seconds_bucket{operation="runtime_step",result="success",le="90"} 40243
+journey_worker_operation_duration_seconds_bucket{operation="runtime_step",result="success",le="+Inf"} 40243
+journey_worker_operation_duration_seconds_sum{operation="runtime_step",result="success"} 365.6984521629991
+journey_worker_operation_duration_seconds_count{operation="runtime_step",result="success"} 40243
+# HELP journey_worker_operations_total Worker operation attempts, not unique logical sends.
+# TYPE journey_worker_operations_total counter
+journey_worker_operations_total{operation="delivery_dispatch",result="retry"} 2
+journey_worker_operations_total{operation="delivery_dispatch",result="success"} 10000
+journey_worker_operations_total{operation="runtime_step",result="success"} 40243
+# HELP process_cpu_seconds_total Total user and system CPU time spent in seconds.
+# TYPE process_cpu_seconds_total counter
+process_cpu_seconds_total 38.774064
+# HELP process_max_fds Maximum number of open file descriptors.
+# TYPE process_max_fds gauge
+process_max_fds 61440
+# HELP process_open_fds Number of open file descriptors.
+# TYPE process_open_fds gauge
+process_open_fds 84
+# HELP process_resident_memory_bytes Resident memory size in bytes.
+# TYPE process_resident_memory_bytes gauge
+process_resident_memory_bytes 7.184384e+07
+# HELP process_start_time_seconds Start time of the process since unix epoch in seconds.
+# TYPE process_start_time_seconds gauge
+process_start_time_seconds 1.794385904e+09
+# HELP process_virtual_memory_bytes Virtual memory size in bytes.
+# TYPE process_virtual_memory_bytes gauge
+process_virtual_memory_bytes 4.47153455104e+11
+# HELP process_virtual_memory_max_bytes Maximum amount of virtual memory available in bytes.
+# TYPE process_virtual_memory_max_bytes gauge
+process_virtual_memory_max_bytes 9.223372036854776e+18

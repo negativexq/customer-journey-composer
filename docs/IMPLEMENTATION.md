@@ -28,6 +28,15 @@ Source of truth for product scope: [PRD.md](PRD.md).
 
 ## Next slice
 
+User-requested follow-up order:
+
+1. Scheduler delivery cost: bounded cursor continuation (`80329e6`), measured twice; remaining total drain overhead is documented.
+2. Timer congestion: ordered read transport batching (`5c1b4d6`), measured twice; scoped deadline-distribution harness (`98cb892`) separates burst pressure from normal arrivals. See [queue follow-up](QUEUE-FOLLOWUP.md).
+3. UI/UX: standalone Content/Audience experience, saved views, sidebar collapse, typography and theme work from the design direction.
+4. AI: dedicated brief/plan/review and a validated workspace event/attribute catalog; no live provider evaluation yet.
+5. Analytics: richer drill-down and explicit canvas analytics mode.
+6. Operations/demo: external notifications, centralized logs and recorded walkthrough. Deployment and paid LLM tests stay deferred.
+
 Phase 12: continue the staged [design direction](design/modern-saas-direction.md), quantify the remaining runtime/scheduler round-trip cost, and record the complete product walkthrough. The populated local showcase and reproducible screenshot gallery are available. Deployment validation and live LLM evaluation remain deferred by the user.
 
 Runtime follow-up research is recorded in [RUNTIME-RESEARCH.md](RUNTIME-RESEARCH.md): bounded short-step advancement, capacity-threshold refill and queue fairness are candidates; wait-event profiling must distinguish actual lock waits from total statement duration. This research changes no production execution behavior.
@@ -167,6 +176,8 @@ See [verification notes](VERIFICATION.md) for reproducible checks and [architect
 - Explicit user follow-up: migrated builder/monitor/custom edges/nodes to pinned `@xyflow/vue` 2.0.0-next.21, removed old add-ons, adopted provider-scoped state and immutable updates, and prevented native HTML dragging from intercepting node connections. Widened Elements, made it a mobile overlay, hid the unselected inspector, fixed blank zoom icons and kept canvas light under dark OS preferences. `make check` and 46/46 current desktop/mobile tests passed. See [the latest design direction](design/modern-saas-direction.md) for the full staged plan and remaining modules.
 
 ## Product showcase and CI evidence
+
+- Ordered performance follow-up: `80329e6` seeks within bounded scheduler drains; `5c1b4d6` batches ordered runtime lock reads while keeping lease time evaluation after locks, with sanitized batch telemetry; `98cb892` adds isolated spread-deadline workloads. See [actual measurements](QUEUE-FOLLOWUP.md). New correctness cases cover locked/backdated/tied outbox rows, index seeking, pause during lock waits and lease expiry during lock waits. `make check`, all package-isolated PostgreSQL integration tests, 46/46 browser tests, actual worker restart and durable telemetry/alert checks passed locally. Live LLM calls and deployment remain deferred.
 
 - The [scheduler follow-up](SCHEDULER-LOCKS.md) records all smaller-batch/per-action experiments and two clean `5e7a9d1` repetitions with 10,000 active executions. Current completion is 48.351–49.414s, mock-provider drain 71.419–72.573s, zero duplicate/failed actions and zero sampled blocked timer-phase backends. Drain remains slower than the original 59.397–60.417s baseline; claim/commit overhead and synchronized timer lateness remain explicit targets, not completed optimization claims.
 

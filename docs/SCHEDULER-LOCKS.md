@@ -2,6 +2,8 @@
 
 11 November 2026. Follow-up to [bounded runtime turns](BOUNDED-TURNS.md). The scheduler now commits each logical delivery before locking another customer. This bounds lock scope and reduces observed contention, but does **not** establish an end-to-end throughput improvement over the original baseline.
 
+Subsequent improvements and their separate measurements are in [queue follow-up](QUEUE-FOLLOWUP.md). The source revisions and results below are preserved as historical comparisons.
+
 ## What changed
 
 The previous scheduler held up to 32 customer locks while rendering, checking eligibility and writing a batch. Runtime transitions serialize on those same customers. Simply lowering the batch size increased claim overhead and did not consistently improve the full pipeline.
