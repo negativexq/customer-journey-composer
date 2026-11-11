@@ -156,3 +156,8 @@ raw customer data or private reasoning.
 
 Only the audit document/evidence are added here. No corrective implementation,
 provider call, migration, new execution service or language rewrite is included.
+
+## Remediation
+
+The findings above describe the audited revision. Implemented corrections and
+subsequent local evidence are recorded in [AI-REMEDIATION.md](AI-REMEDIATION.md).

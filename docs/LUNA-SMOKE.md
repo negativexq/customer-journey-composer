@@ -132,3 +132,10 @@ exit code 1 when any acceptance scenario fails; in this recorded run, that is
 the expected signal for the six generated-flow failures, not a harness crash.
 It is not included in the always-green unit-test command. No application fix or
 manual edit of the generated proposal is part of this replay.
+
+## Corrections after the audit
+
+See [the remediation record](AI-REMEDIATION.md): the reviewed correction passes
+10/10, the original 4/10 proposal is now blocked from publication, and future
+generation usage is retained. This does not retroactively change the original
+model result or recover its discarded token usage. No new model generation was used.
