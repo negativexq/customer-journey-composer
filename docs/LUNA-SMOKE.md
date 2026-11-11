@@ -83,3 +83,52 @@ reported output usage includes tokens beyond visible text.
 Detailed generated proposal, scenario assertions, browser screenshots and count
 fixtures remain in ignored `.tmp` files. No key, credential or real customer data
 was committed. Application code and normal AI settings are unchanged.
+
+## Ten-scenario replay — 2026-11-11
+
+The user requested ten scenarios. This replay tests the **same recorded generated
+workflow**, not ten new model generations. The proposal is preserved in
+[the fixture](../tests/fixtures/ai/luna-recovery-2026-11-11.json). No model call,
+token-count endpoint or paid provider was invoked during this replay.
+
+Each input/assertion set was run through the actual persisted Test Lab API twice:
+once on the unchanged generated draft and once on the canonical approved
+`abandoned-cart-eur` template. The canonical control passes 10/10; the generated
+flow passes 4/10. This is one workflow's acceptance result, not a model-wide
+success rate. [Raw assertions and outcomes](validation/luna-recovery-ten-scenarios.json)
+include expected/actual values, virtual durations and isolation checks.
+
+| #   | Scenario                                           | Generated | Reference | Interpretation                                                                         |
+| --- | -------------------------------------------------- | --------- | --------- | -------------------------------------------------------------------------------------- |
+| 1   | Purchase at +30m                                   | PASS      | PASS      | No message; converted                                                                  |
+| 2   | Purchase after email                               | PASS      | PASS      | One email, no SMS; converted                                                           |
+| 3   | No purchase                                        | FAIL      | PASS      | Correct email/SMS counts; wrong normal-completion code and state                       |
+| 4   | SMS consent denied                                 | FAIL      | PASS      | No SMS, as required; wrong terminal state                                              |
+| 5   | Repeat entry within seven days                     | PASS      | PASS      | Repeat enrollment blocked                                                              |
+| 6   | EUR 49.99                                          | PASS      | PASS      | No enrollment or message                                                               |
+| 7   | Exactly EUR 50                                     | FAIL      | PASS      | Qualifies and sends correctly; wrong normal-completion code/state                      |
+| 8   | Both consents denied                               | FAIL      | PASS      | No messages, but exits at +25h instead of immediately and uses a different exit reason |
+| 9   | Profile already marks current cart purchased       | FAIL      | PASS      | Generated flow sends two messages; expected none and converted                         |
+| 10  | Profile changes to purchased at +72h without event | FAIL      | PASS      | Generated final branch ignores the profile change; expected converted                  |
+
+Three failures share the earlier completion-code issue. The larger suite also
+confirms missing behavior: the early/final current-cart profile checks and the
+immediate no-channel exit. Fixing exit strings alone cannot make all ten pass.
+
+The generated workflow is checked for semantic equality before/after replay
+(JSONB object-key ordering is ignored; node/edge array order and all values are
+preserved). Both journeys remain Draft. There are no published versions, live
+customers/executions/delivery jobs or changes to production analytics. Only
+sandbox runs and SIMULATED Inbox messages are persisted in the isolated workspace.
+
+Reproduce against the running local stack:
+
+```sh
+node scripts/test-luna-recovery.mjs
+```
+
+Default report: `.tmp/luna-ten-scenarios.json`. The command intentionally returns
+exit code 1 when any acceptance scenario fails; in this recorded run, that is
+the expected signal for the six generated-flow failures, not a harness crash.
+It is not included in the always-green unit-test command. No application fix or
+manual edit of the generated proposal is part of this replay.

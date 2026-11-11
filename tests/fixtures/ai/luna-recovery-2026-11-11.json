@@ -1,0 +1,315 @@
+{
+  "$schema": "http://127.0.0.1:5173/api/schemas/Proposal.json",
+  "schema_version": "composer.v1",
+  "name": "Luna recovery validation",
+  "description": "50 EUR ve üzerindeki terk edilmiş sepetler için, izin durumuna göre email ve SMS içeren geri kazanım taslağı.",
+  "workflow": {
+    "schema_version": 1,
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "event_trigger",
+        "label": "Uygun terk edilmiş sepet",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "config": {
+          "event_name": "cart_abandoned",
+          "filters": {
+            "logic": "and",
+            "rules": [
+              {
+                "logic": "or",
+                "rules": [
+                  {
+                    "path": "event.properties.amount",
+                    "operator": "greater_than",
+                    "value": 50
+                  },
+                  {
+                    "path": "event.properties.amount",
+                    "operator": "equals",
+                    "value": 50
+                  }
+                ]
+              },
+              {
+                "path": "event.properties.currency",
+                "operator": "equals",
+                "value": "EUR"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "wait-1h",
+        "type": "wait",
+        "label": "1 saat bekle",
+        "position": {
+          "x": 200,
+          "y": 0
+        },
+        "config": {
+          "duration_seconds": 3600,
+          "timezone": "Europe/Istanbul"
+        }
+      },
+      {
+        "id": "email-consent",
+        "type": "condition",
+        "label": "Email izni var mı?",
+        "position": {
+          "x": 400,
+          "y": 0
+        },
+        "config": {
+          "rule": {
+            "path": "customer.consents.email",
+            "operator": "equals",
+            "value": true
+          }
+        }
+      },
+      {
+        "id": "email",
+        "type": "email",
+        "label": "Sepet hatırlatma emaili",
+        "position": {
+          "x": 620,
+          "y": -100
+        },
+        "config": {
+          "subject": "Sepetinizi tamamlamayı unutmayın",
+          "preheader": "Sepetiniz sizi bekliyor.",
+          "html": "<p>Merhaba {{ customer.attributes.first_name }},</p><p>{{ event.properties.amount_display }} tutarındaki sepetiniz sizi bekliyor.</p><p>Sepetinize dönmek için: <a href=\"https://example.com/cart\">Sepetimi görüntüle</a></p>",
+          "text": "Merhaba {{ customer.attributes.first_name }}, {{ event.properties.amount_display }} tutarındaki sepetiniz sizi bekliyor. Sepetinize dönmek için: https://example.com/cart",
+          "fallbacks": {
+            "customer.attributes.first_name": "Merhaba",
+            "event.properties.amount_display": "belirtilen tutardaki sepetiniz"
+          }
+        }
+      },
+      {
+        "id": "wait-purchase-24h",
+        "type": "wait_event",
+        "label": "24 saat satın alma bekle",
+        "position": {
+          "x": 850,
+          "y": 0
+        },
+        "config": {
+          "event_name": "purchase_completed",
+          "timeout_seconds": 86400
+        }
+      },
+      {
+        "id": "exit-converted-24h",
+        "type": "exit",
+        "label": "Converted",
+        "position": {
+          "x": 1080,
+          "y": -120
+        },
+        "config": {
+          "reason": "converted"
+        }
+      },
+      {
+        "id": "sms-consent",
+        "type": "condition",
+        "label": "SMS izni var mı?",
+        "position": {
+          "x": 1080,
+          "y": 100
+        },
+        "config": {
+          "rule": {
+            "path": "customer.consents.sms",
+            "operator": "equals",
+            "value": true
+          }
+        }
+      },
+      {
+        "id": "sms",
+        "type": "sms",
+        "label": "COMEBACK10 SMS'i",
+        "position": {
+          "x": 1300,
+          "y": 0
+        },
+        "config": {
+          "text": "Merhaba {{ customer.attributes.first_name }}, {{ event.properties.amount_display }} tutarındaki sepetinizi tamamlayın ve COMEBACK10 koduyla %10 indirim kazanın: https://example.com/cart",
+          "fallbacks": {
+            "customer.attributes.first_name": "Merhaba",
+            "event.properties.amount_display": "belirtilen tutardaki sepetiniz"
+          }
+        }
+      },
+      {
+        "id": "wait-purchase-48h",
+        "type": "wait_event",
+        "label": "48 saat satın alma bekle",
+        "position": {
+          "x": 1520,
+          "y": 0
+        },
+        "config": {
+          "event_name": "purchase_completed",
+          "timeout_seconds": 172800
+        }
+      },
+      {
+        "id": "exit-converted-48h",
+        "type": "exit",
+        "label": "Converted",
+        "position": {
+          "x": 1740,
+          "y": -100
+        },
+        "config": {
+          "reason": "converted"
+        }
+      },
+      {
+        "id": "exit-no-sms",
+        "type": "exit",
+        "label": "Mesaj göndermeden çık",
+        "position": {
+          "x": 1300,
+          "y": 200
+        },
+        "config": {
+          "reason": "SMS izni yok; mesaj gönderilmeden çıkış"
+        }
+      },
+      {
+        "id": "exit-non-converted",
+        "type": "exit",
+        "label": "Completed / non-converted",
+        "position": {
+          "x": 1740,
+          "y": 100
+        },
+        "config": {
+          "reason": "completed/non-converted"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "trigger",
+        "target": "wait-1h",
+        "port": "started"
+      },
+      {
+        "id": "e2",
+        "source": "wait-1h",
+        "target": "email-consent",
+        "port": "completed"
+      },
+      {
+        "id": "e3",
+        "source": "email-consent",
+        "target": "email",
+        "port": "true"
+      },
+      {
+        "id": "e4",
+        "source": "email-consent",
+        "target": "wait-purchase-24h",
+        "port": "false"
+      },
+      {
+        "id": "e5",
+        "source": "email",
+        "target": "wait-purchase-24h",
+        "port": "next"
+      },
+      {
+        "id": "e6",
+        "source": "wait-purchase-24h",
+        "target": "exit-converted-24h",
+        "port": "matched"
+      },
+      {
+        "id": "e7",
+        "source": "wait-purchase-24h",
+        "target": "sms-consent",
+        "port": "timeout"
+      },
+      {
+        "id": "e8",
+        "source": "sms-consent",
+        "target": "sms",
+        "port": "true"
+      },
+      {
+        "id": "e9",
+        "source": "sms-consent",
+        "target": "exit-no-sms",
+        "port": "false"
+      },
+      {
+        "id": "e10",
+        "source": "sms",
+        "target": "wait-purchase-48h",
+        "port": "next"
+      },
+      {
+        "id": "e11",
+        "source": "wait-purchase-48h",
+        "target": "exit-converted-48h",
+        "port": "matched"
+      },
+      {
+        "id": "e12",
+        "source": "wait-purchase-48h",
+        "target": "exit-non-converted",
+        "port": "timeout"
+      }
+    ],
+    "global_exit": {
+      "event_name": "purchase_completed"
+    },
+    "reentry": {
+      "mode": "cooldown",
+      "cooldown_seconds": 604800
+    }
+  },
+  "explanation": "Journey cart_abandoned olayında tutarı ve para birimini doğrular. Bir saat sonra email iznini kontrol eder; satın alma olmadıysa 24 saatlik pencerenin sonunda SMS iznini kontrol eder. purchase_completed olayı her aktif aşamadan derhal converted çıkışı sağlar.",
+  "warnings": [
+    "https://example.com/cart demo adresidir; yayından önce gerçek ve doğrulanmış adresle değiştirilip kontrol edilmelidir.",
+    "Email ve SMS kanal ayarları, şablonların son onayı ve dağıtım yapılandırması bu taslakta yer almıyor. Provider kimlik bilgileri eklenmedi.",
+    "Workspace frequency cap ve kanal izinlerinin runtime'da ayrıca uygulanacağı varsayılmıştır.",
+    "Ad veya sepet tutarı kişiselleştirme verisi bulunamazsa mesajlar tanımlı fallback değerlerini kullanır."
+  ],
+  "diff": {
+    "metadata_changed": true,
+    "added_nodes": [
+      "email",
+      "email-consent",
+      "exit-converted-24h",
+      "exit-converted-48h",
+      "exit-no-sms",
+      "exit-non-converted",
+      "sms",
+      "sms-consent",
+      "trigger",
+      "wait-1h",
+      "wait-purchase-24h",
+      "wait-purchase-48h"
+    ],
+    "removed_nodes": [],
+    "updated_nodes": [],
+    "changed_conditions": [],
+    "changed_messages": [],
+    "edges_changed": true,
+    "exit_changed": true,
+    "reentry_changed": true
+  },
+  "action": "generate"
+}

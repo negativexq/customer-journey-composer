@@ -1,0 +1,810 @@
+{
+  "recorded_at": "2026-11-11T18:24:23.856Z",
+  "model_fixture": "gpt-6-luna",
+  "new_generation_calls": 0,
+  "workflow_sha256": "bb0512b5065b7a6a1e17326575797834f1a199bb4fcdf8a21e9bf0c5a6f9cce0",
+  "test_contract": "Original workflow is unchanged; canonical reference runs identical business assertions.",
+  "cases": [
+    {
+      "id": 1,
+      "name": "A · Purchase after 30 minutes",
+      "control": {
+        "result": "PASS",
+        "state": "EXITED",
+        "exit_reason": "converted",
+        "elapsed_seconds": 1800,
+        "enrollment_count": 1,
+        "messages": [],
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "no_message",
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "exit_reason",
+            "expected": "converted",
+            "actual": "converted",
+            "pass": true
+          }
+        ]
+      },
+      "generated": {
+        "result": "PASS",
+        "state": "EXITED",
+        "exit_reason": "converted",
+        "elapsed_seconds": 1800,
+        "enrollment_count": 1,
+        "messages": [],
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "no_message",
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "exit_reason",
+            "expected": "converted",
+            "actual": "converted",
+            "pass": true
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "name": "B · Purchase after the email",
+      "control": {
+        "result": "PASS",
+        "state": "EXITED",
+        "exit_reason": "converted",
+        "elapsed_seconds": 18000,
+        "enrollment_count": 1,
+        "messages": [
+          {
+            "channel": "email",
+            "status": "SIMULATED"
+          }
+        ],
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1,
+            "actual": 1,
+            "pass": true
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "exit_reason",
+            "expected": "converted",
+            "actual": "converted",
+            "pass": true
+          }
+        ]
+      },
+      "generated": {
+        "result": "PASS",
+        "state": "EXITED",
+        "exit_reason": "converted",
+        "elapsed_seconds": 18000,
+        "enrollment_count": 1,
+        "messages": [
+          {
+            "channel": "email",
+            "status": "SIMULATED"
+          }
+        ],
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1,
+            "actual": 1,
+            "pass": true
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "exit_reason",
+            "expected": "converted",
+            "actual": "converted",
+            "pass": true
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "name": "C · Email and SMS, no purchase",
+      "control": {
+        "result": "PASS",
+        "state": "COMPLETED",
+        "exit_reason": "completed",
+        "elapsed_seconds": 262800,
+        "enrollment_count": 1,
+        "messages": [
+          {
+            "channel": "email",
+            "status": "SIMULATED"
+          },
+          {
+            "channel": "sms",
+            "status": "SIMULATED"
+          }
+        ],
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1,
+            "actual": 1,
+            "pass": true
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1,
+            "actual": 1,
+            "pass": true
+          },
+          {
+            "type": "state",
+            "expected": "COMPLETED",
+            "actual": "COMPLETED",
+            "pass": true
+          },
+          {
+            "type": "exit_reason",
+            "expected": "completed",
+            "actual": "completed",
+            "pass": true
+          }
+        ]
+      },
+      "generated": {
+        "result": "FAIL",
+        "state": "EXITED",
+        "exit_reason": "completed/non-converted",
+        "elapsed_seconds": 262800,
+        "enrollment_count": 1,
+        "messages": [
+          {
+            "channel": "sms",
+            "status": "SIMULATED"
+          },
+          {
+            "channel": "email",
+            "status": "SIMULATED"
+          }
+        ],
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1,
+            "actual": 1,
+            "pass": true
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1,
+            "actual": 1,
+            "pass": true
+          },
+          {
+            "type": "state",
+            "expected": "COMPLETED",
+            "actual": "EXITED",
+            "pass": false
+          },
+          {
+            "type": "exit_reason",
+            "expected": "completed",
+            "actual": "completed/non-converted",
+            "pass": false
+          }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "name": "D · SMS consent denied",
+      "control": {
+        "result": "PASS",
+        "state": "COMPLETED",
+        "exit_reason": "completed",
+        "elapsed_seconds": 90000,
+        "enrollment_count": 1,
+        "messages": [
+          {
+            "channel": "email",
+            "status": "SIMULATED"
+          }
+        ],
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1,
+            "actual": 1,
+            "pass": true
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "state",
+            "expected": "COMPLETED",
+            "actual": "COMPLETED",
+            "pass": true
+          }
+        ]
+      },
+      "generated": {
+        "result": "FAIL",
+        "state": "EXITED",
+        "exit_reason": "SMS izni yok; mesaj gönderilmeden çıkış",
+        "elapsed_seconds": 90000,
+        "enrollment_count": 1,
+        "messages": [
+          {
+            "channel": "email",
+            "status": "SIMULATED"
+          }
+        ],
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1,
+            "actual": 1,
+            "pass": true
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "state",
+            "expected": "COMPLETED",
+            "actual": "EXITED",
+            "pass": false
+          }
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "name": "E · Repeat enrollment inside seven days",
+      "control": {
+        "result": "PASS",
+        "state": "EXITED",
+        "exit_reason": "converted",
+        "elapsed_seconds": 86400,
+        "enrollment_count": 1,
+        "messages": [],
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "enrollment_count",
+            "expected": 1,
+            "actual": 1,
+            "pass": true
+          },
+          {
+            "type": "no_message",
+            "actual": 0,
+            "pass": true
+          }
+        ]
+      },
+      "generated": {
+        "result": "PASS",
+        "state": "EXITED",
+        "exit_reason": "converted",
+        "elapsed_seconds": 86400,
+        "enrollment_count": 1,
+        "messages": [],
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "enrollment_count",
+            "expected": 1,
+            "actual": 1,
+            "pass": true
+          },
+          {
+            "type": "no_message",
+            "actual": 0,
+            "pass": true
+          }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "name": "F · Below threshold: EUR 49.99",
+      "control": {
+        "result": "PASS",
+        "state": "NOT_ENROLLED",
+        "elapsed_seconds": 0,
+        "enrollment_count": 0,
+        "messages": [],
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "enrollment_count",
+            "expected": 0,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "no_message",
+            "actual": 0,
+            "pass": true
+          }
+        ]
+      },
+      "generated": {
+        "result": "PASS",
+        "state": "NOT_ENROLLED",
+        "elapsed_seconds": 0,
+        "enrollment_count": 0,
+        "messages": [],
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "enrollment_count",
+            "expected": 0,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "no_message",
+            "actual": 0,
+            "pass": true
+          }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "name": "G · Exactly EUR 50 qualifies",
+      "control": {
+        "result": "PASS",
+        "state": "COMPLETED",
+        "exit_reason": "completed",
+        "elapsed_seconds": 262800,
+        "enrollment_count": 1,
+        "messages": [
+          {
+            "channel": "sms",
+            "status": "SIMULATED"
+          },
+          {
+            "channel": "email",
+            "status": "SIMULATED"
+          }
+        ],
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1,
+            "actual": 1,
+            "pass": true
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1,
+            "actual": 1,
+            "pass": true
+          },
+          {
+            "type": "state",
+            "expected": "COMPLETED",
+            "actual": "COMPLETED",
+            "pass": true
+          },
+          {
+            "type": "exit_reason",
+            "expected": "completed",
+            "actual": "completed",
+            "pass": true
+          }
+        ]
+      },
+      "generated": {
+        "result": "FAIL",
+        "state": "EXITED",
+        "exit_reason": "completed/non-converted",
+        "elapsed_seconds": 262800,
+        "enrollment_count": 1,
+        "messages": [
+          {
+            "channel": "sms",
+            "status": "SIMULATED"
+          },
+          {
+            "channel": "email",
+            "status": "SIMULATED"
+          }
+        ],
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1,
+            "actual": 1,
+            "pass": true
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1,
+            "actual": 1,
+            "pass": true
+          },
+          {
+            "type": "state",
+            "expected": "COMPLETED",
+            "actual": "EXITED",
+            "pass": false
+          },
+          {
+            "type": "exit_reason",
+            "expected": "completed",
+            "actual": "completed/non-converted",
+            "pass": false
+          }
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "name": "H · Neither channel consent: immediate exit",
+      "control": {
+        "result": "PASS",
+        "state": "EXITED",
+        "exit_reason": "condition_not_met",
+        "elapsed_seconds": 0,
+        "enrollment_count": 1,
+        "messages": [],
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "no_message",
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "exit_reason",
+            "expected": "condition_not_met",
+            "actual": "condition_not_met",
+            "pass": true
+          },
+          {
+            "description": "elapsed_seconds",
+            "pass": true,
+            "expected": 0,
+            "actual": 0
+          }
+        ]
+      },
+      "generated": {
+        "result": "FAIL",
+        "state": "EXITED",
+        "exit_reason": "SMS izni yok; mesaj gönderilmeden çıkış",
+        "elapsed_seconds": 90000,
+        "enrollment_count": 1,
+        "messages": [],
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "no_message",
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "exit_reason",
+            "expected": "condition_not_met",
+            "actual": "SMS izni yok; mesaj gönderilmeden çıkış",
+            "pass": false
+          },
+          {
+            "description": "elapsed_seconds",
+            "pass": false,
+            "expected": 0,
+            "actual": 90000
+          }
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "name": "I · Cart already purchased in profile",
+      "control": {
+        "result": "PASS",
+        "state": "EXITED",
+        "exit_reason": "converted",
+        "elapsed_seconds": 3600,
+        "enrollment_count": 1,
+        "messages": [],
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "no_message",
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "exit_reason",
+            "expected": "converted",
+            "actual": "converted",
+            "pass": true
+          }
+        ]
+      },
+      "generated": {
+        "result": "FAIL",
+        "state": "EXITED",
+        "exit_reason": "completed/non-converted",
+        "elapsed_seconds": 262800,
+        "enrollment_count": 1,
+        "messages": [
+          {
+            "channel": "sms",
+            "status": "SIMULATED"
+          },
+          {
+            "channel": "email",
+            "status": "SIMULATED"
+          }
+        ],
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "no_message",
+            "actual": 2,
+            "pass": false
+          },
+          {
+            "type": "exit_reason",
+            "expected": "converted",
+            "actual": "completed/non-converted",
+            "pass": false
+          }
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "name": "J · Profile purchase update at +72h, without purchase event",
+      "control": {
+        "result": "PASS",
+        "state": "EXITED",
+        "exit_reason": "converted",
+        "elapsed_seconds": 262800,
+        "enrollment_count": 1,
+        "messages": [
+          {
+            "channel": "email",
+            "status": "SIMULATED"
+          },
+          {
+            "channel": "sms",
+            "status": "SIMULATED"
+          }
+        ],
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1,
+            "actual": 1,
+            "pass": true
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1,
+            "actual": 1,
+            "pass": true
+          },
+          {
+            "type": "exit_reason",
+            "expected": "converted",
+            "actual": "converted",
+            "pass": true
+          }
+        ]
+      },
+      "generated": {
+        "result": "FAIL",
+        "state": "EXITED",
+        "exit_reason": "completed/non-converted",
+        "elapsed_seconds": 262800,
+        "enrollment_count": 1,
+        "messages": [
+          {
+            "channel": "sms",
+            "status": "SIMULATED"
+          },
+          {
+            "channel": "email",
+            "status": "SIMULATED"
+          }
+        ],
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true,
+            "actual": 0,
+            "pass": true
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1,
+            "actual": 1,
+            "pass": true
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1,
+            "actual": 1,
+            "pass": true
+          },
+          {
+            "type": "exit_reason",
+            "expected": "converted",
+            "actual": "completed/non-converted",
+            "pass": false
+          }
+        ]
+      }
+    }
+  ],
+  "isolation": {
+    "both_drafts": true,
+    "no_versions": true,
+    "no_live_customers": true,
+    "no_live_executions": true,
+    "no_real_delivery_jobs": true,
+    "no_production_metrics": true,
+    "workflow_unchanged": true
+  },
+  "summary": {
+    "generated_pass": 4,
+    "reference_pass": 10,
+    "total": 10
+  }
+}
