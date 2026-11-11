@@ -68,9 +68,9 @@ The baseline allocation profile reports about 3,081 MiB cumulative allocated byt
 
 ## Remaining work
 
-The outbox scheduler currently locks up to 32 customer rows for its transaction while processing the batch. Runtime transitions need the same customer serialization. This is a concrete code-level candidate for the remaining contention; the current sampler identifies waiting statements but not the exact blocker statement, so causal attribution to that scheduler still needs a blocker graph/transaction-age experiment. Provider network calls already run after commit and are not held under the customer lock.
+At this report's source revision, the outbox scheduler locked up to 32 customer rows while processing its transaction. Runtime transitions need the same customer serialization. The sampler identifies waiting statements but not the exact blocker statement, so it does not prove attribution to that scheduler. Provider network calls already ran after commit and were not held under the customer lock.
 
-Next isolate that scheduler lock duration, compare smaller/per-customer transaction boundaries without increasing claim overhead, and test queue fairness with realistic staggered deadlines. Preserve consent/caps, global exit and token fencing. Do not remove customer locks or increase concurrency to mask the issue. Threshold-based refill remains a separate measured experiment rather than a bundled configuration change.
+The subsequent [scheduler transaction report](SCHEDULER-LOCKS.md) measures smaller batches and per-action commits, records regressions and describes the retained implementation. Queue fairness with realistic staggered deadlines and threshold-based refill remain separate experiments. Customer serialization, consent/caps, global exit and token fencing must remain intact.
 
 ## Verification
 
