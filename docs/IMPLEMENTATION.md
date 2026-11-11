@@ -200,3 +200,13 @@ See [verification notes](VERIFICATION.md) for reproducible checks and [architect
 - `6617f9e` gives Inbox filters stable accessible names. Actual screenshot capture produced ten 3200×2100 PNGs, with production entries unchanged at 72 before/after the additional isolated test run. See [the gallery](images/README.md) and [reproduction instructions](SHOWCASE.md). README now presents the product with real application screenshots; native setup details moved to [local development](LOCAL-DEVELOPMENT.md).
 - Hosted [CI run 42938864757](https://github.com/negativexq/customer-journey-composer/actions/runs/42938864757), source `3d43888`, succeeded: quality, isolated PostgreSQL integration, 46 browser tests, actual worker recovery and dependency/image security. This is revision-specific evidence, not a claim about later commits. Local durable telemetry/Prometheus/alert checks also passed after restoring the observability Compose overrides.
 - `9d69ca3` keeps monitor filters in a wrapping toolbar so the canvas stays visible and aligns Inbox filters to their content instead of stretching them with the message preview. The final local `make check`, 46/46 desktop/mobile browser tests, Git diff whitespace check and history secret scan passed. The capture helper waits for application loading state and fonts instead of network idleness, which embedded message previews may never reach.
+
+## AI workflow acceptance audit — 2026-11-11
+
+[The focused audit](AI-WORKFLOW-AUDIT.md) identifies an insufficient publication
+test gate, missing semantic acceptance checks, ambiguous AI exit codes, delayed
+no-channel exit and discarded provider usage. A GET-only preflight probe returned
+ready=true for the exact generated workflow after 4 passing and 6 failing cases;
+no publication was attempted. Runtime/analytics/sandbox behavior is unchanged.
+Required-suite gating and typed AI outcomes are the first recommended corrections;
+no new generation, optimization or corrective code was introduced by the audit.

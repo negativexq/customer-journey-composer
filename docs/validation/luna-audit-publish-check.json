@@ -1,0 +1,38 @@
+{
+  "source_commit": "1da5339",
+  "recorded_at": "2026-11-11T18:33:06.757Z",
+  "workflow_sha256": "bb0512b5065b7a6a1e17326575797834f1a199bb4fcdf8a21e9bf0c5a6f9cce0",
+  "summary": {
+    "generated_pass": 4,
+    "reference_pass": 10,
+    "total": 10
+  },
+  "publish_check": {
+    "before": {
+      "ready": false,
+      "issues": [
+        {
+          "code": "test_required",
+          "message": "Complete a passing full Test Lab run for this exact workflow before publishing"
+        }
+      ],
+      "policy": "Consent is enforced for every send. Workspace frequency caps apply. Global exit: true. Publishing creates an immutable version."
+    },
+    "after": {
+      "ready": true,
+      "issues": [],
+      "policy": "Consent is enforced for every send. Workspace frequency caps apply. Global exit: true. Publishing creates an immutable version."
+    }
+  },
+  "isolation": {
+    "both_drafts": true,
+    "no_versions": true,
+    "no_live_customers": true,
+    "no_live_executions": true,
+    "no_real_delivery_jobs": true,
+    "no_production_metrics": true,
+    "workflow_unchanged": true
+  },
+  "actual_publish_called": false,
+  "new_model_calls": 0
+}
