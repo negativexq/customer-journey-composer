@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
-import { VueFlow, useVueFlow, type Node, type Edge, type Connection } from '@vue-flow/core';
-import { Background } from '@vue-flow/background';
-import { Controls } from '@vue-flow/controls';
-import { MiniMap } from '@vue-flow/minimap';
+import { VueFlow, setupVueFlow, Background, MiniMap, type Connection } from '@xyflow/vue';
 import dagre from '@dagrejs/dagre';
 import {
   kinds,
@@ -16,13 +13,11 @@ import {
   type Issue,
 } from '../lib/workflow';
 import WorkflowNode from './WorkflowNode.vue';
+import CanvasControls from './CanvasControls.vue';
 import InsertableEdge from './InsertableEdge.vue';
 import RuleEditor from './RuleEditor.vue';
 import AppIcon from './ui/AppIcon.vue';
-import '@vue-flow/core/dist/style.css';
-import '@vue-flow/core/dist/theme-default.css';
-import '@vue-flow/controls/dist/style.css';
-import '@vue-flow/minimap/dist/style.css';
+import '@xyflow/vue/style.css';
 const props = defineProps<{
   modelValue: Workflow;
   readonly?: boolean;
@@ -30,16 +25,17 @@ const props = defineProps<{
   hideInspector?: boolean;
 }>();
 const emit = defineEmits<{ 'update:modelValue': [Workflow]; preview: [string]; inspect: [] }>();
-const { fitView, setViewport, dimensions, screenToFlowCoordinate } = useVueFlow('builder');
+const { fitView, setViewport, screenToFlowPosition } = setupVueFlow<CanvasNode, CanvasEdge>();
+const canvasElement = ref<HTMLDivElement>();
 let initialViewportPlaced = false;
 function placeInitialViewport() {
   if (initialViewportPlaced || !window.matchMedia('(max-width: 700px)').matches) return;
   const entry = nodes.value.find((node) => node.data.kind === 'event_trigger') || nodes.value[0];
-  if (!entry || !dimensions.value.width) return;
+  if (!entry || !canvasElement.value?.clientWidth) return;
   initialViewportPlaced = true;
-  const zoom = Math.min(0.85, (dimensions.value.width - 24) / 224);
+  const zoom = Math.min(0.85, (canvasElement.value!.clientWidth - 24) / 224);
   void setViewport({
-    x: dimensions.value.width / 2 - (entry.position.x + 112) * zoom,
+    x: canvasElement.value!.clientWidth / 2 - (entry.position.x + 112) * zoom,
     y: 32 - entry.position.y * zoom,
     zoom,
   });
@@ -54,10 +50,13 @@ type CanvasNode = {
   class?: string;
 };
 type CanvasEdge = {
+  type?: 'insertable';
+  data?: Record<string, unknown>;
   id: string;
   source: string;
   target: string;
   sourceHandle?: string | null;
+  targetHandle?: string;
   label?: string;
 };
 const branchLabel = (port: string) =>
@@ -76,6 +75,7 @@ const edges = ref<CanvasEdge[]>(
     source: e.source,
     target: e.target,
     sourceHandle: e.port,
+    targetHandle: 'in',
     label: branchLabel(e.port),
   })),
 );
@@ -107,35 +107,40 @@ function insertStep() {
     return;
   }
   const id = crypto.randomUUID();
-  nodes.value.push({
-    id,
-    type: 'step',
-    position: {
-      x: (source.position.x + target.position.x) / 2,
-      y: (source.position.y + target.position.y) / 2,
+  nodes.value = [
+    ...nodes.value,
+    {
+      id,
+      type: 'step',
+      position: {
+        x: (source.position.x + target.position.x) / 2,
+        y: (source.position.y + target.position.y) / 2,
+      },
+      data: {
+        kind: insertKind.value,
+        label: labels[insertKind.value],
+        config: defaults(insertKind.value),
+      },
     },
-    data: {
-      kind: insertKind.value,
-      label: labels[insertKind.value],
-      config: defaults(insertKind.value),
-    },
-  });
+  ];
   edges.value = edges.value.filter((candidate) => candidate.id !== edge.id);
-  edges.value.push(
+  edges.value = [
+    ...edges.value,
     { ...edge, target: id },
     {
       id: crypto.randomUUID(),
       source: id,
       target: target.id,
       sourceHandle: insertionPort.value,
+      targetHandle: 'in',
       label: branchLabel(insertionPort.value),
     },
-  );
+  ];
   selectedID.value = id;
   insertionDialog.value?.close();
 }
 const selectedID = ref('');
-const libraryOpen = ref(true);
+const libraryOpen = ref(!window.matchMedia('(max-width: 700px)').matches);
 const inspectorOpen = ref(true);
 
 const nodeSearch = ref('');
@@ -176,6 +181,41 @@ const paletteGroups = computed(() =>
     .filter((group) => group.kinds.length),
 );
 const selected = computed(() => nodes.value.find((n) => n.id === selectedID.value));
+function patchConfig(patch: Partial<Config>) {
+  if (props.readonly) return;
+  nodes.value = nodes.value.map((node) =>
+    node.id === selectedID.value
+      ? { ...node, data: { ...node.data, config: { ...node.data.config, ...patch } } }
+      : node,
+  );
+}
+const nodeLabel = computed({
+  get: () => selected.value?.data.label || '',
+  set: (label: string) => {
+    if (!props.readonly)
+      nodes.value = nodes.value.map((node) =>
+        node.id === selectedID.value ? { ...node, data: { ...node.data, label } } : node,
+      );
+  },
+});
+function configField<K extends keyof Config>(key: K) {
+  return computed({
+    get: () => selected.value?.data.config[key],
+    set: (value: Config[K]) => patchConfig({ [key]: value }),
+  });
+}
+const eventName = configField('event_name');
+const timezone = configField('timezone');
+const nodeRule = configField('rule');
+const nodeFilters = configField('filters');
+const subject = configField('subject');
+const preheader = configField('preheader');
+const html = configField('html');
+const text = configField('text');
+const attribute = configField('attribute');
+const operation = configField('operation');
+const reason = configField('reason');
+
 const delayUnit = ref(3600);
 const delayKey = computed(() =>
   selected.value?.data.kind === 'wait_event' ? 'timeout_seconds' : 'duration_seconds',
@@ -183,8 +223,7 @@ const delayKey = computed(() =>
 const delayAmount = computed({
   get: () => (selected.value?.data.config[delayKey.value] || 0) / delayUnit.value,
   set: (value: number) => {
-    if (selected.value)
-      selected.value.data.config[delayKey.value] = Math.round(Number(value) * delayUnit.value);
+    patchConfig({ [delayKey.value]: Math.round(Number(value) * delayUnit.value) });
   },
 });
 watch(selectedID, () => {
@@ -238,8 +277,10 @@ watch(
 watch(
   () => props.issues,
   (issues) => {
-    for (const node of nodes.value)
-      node.class = issues.some((i) => i.node_id === node.id) ? 'invalid-node' : '';
+    nodes.value = nodes.value.map((node) => ({
+      ...node,
+      class: issues.some((issue) => issue.node_id === node.id) ? 'invalid-node' : '',
+    }));
   },
 );
 async function restore(data: string) {
@@ -256,6 +297,7 @@ async function restore(data: string) {
     source: e.source,
     target: e.target,
     sourceHandle: e.port,
+    targetHandle: 'in',
     label: branchLabel(e.port),
   }));
   await nextTick();
@@ -286,48 +328,35 @@ function add(
 ) {
   if (props.readonly) return;
   const id = crypto.randomUUID();
-  nodes.value.push({
-    id,
-    type: 'step',
-    position,
-    data: { kind, label: labels[kind], config: defaults(kind) },
-  });
+  nodes.value = [
+    ...nodes.value,
+    {
+      id,
+      type: 'step',
+      position,
+      data: { kind, label: labels[kind], config: defaults(kind) },
+    },
+  ];
   selectedID.value = id;
-}
-function updateNodes(value: Node[]) {
-  nodes.value = value.map((n) => ({
-    id: n.id,
-    type: 'step',
-    position: n.position,
-    data: n.data as CanvasData,
-    selected: (n as Node & { selected?: boolean }).selected,
-    class: typeof n.class === 'string' ? n.class : undefined,
-  }));
-}
-function updateEdges(value: Edge[]) {
-  edges.value = value.map((e) => ({
-    id: e.id,
-    source: e.source,
-    target: e.target,
-    sourceHandle: e.sourceHandle,
-    label: typeof e.label === 'string' ? e.label : undefined,
-  }));
 }
 function connect(connection: Connection) {
   if (props.readonly || !connection.source || !connection.target) return;
-  edges.value.push({
-    id: crypto.randomUUID(),
-    source: connection.source,
-    target: connection.target,
-    sourceHandle: connection.sourceHandle,
-    label: connection.sourceHandle || 'next',
-  });
+  edges.value = [
+    ...edges.value,
+    {
+      id: crypto.randomUUID(),
+      source: connection.source,
+      target: connection.target,
+      sourceHandle: connection.sourceHandle,
+      targetHandle: 'in',
+      label: branchLabel(connection.sourceHandle || 'next'),
+    },
+  ];
 }
 function drop(event: DragEvent) {
   event.preventDefault();
   const kind = event.dataTransfer?.getData('application/journey-node') as Kind;
-  if (kinds.includes(kind))
-    add(kind, screenToFlowCoordinate({ x: event.clientX, y: event.clientY }));
+  if (kinds.includes(kind)) add(kind, screenToFlowPosition({ x: event.clientX, y: event.clientY }));
 }
 function drag(event: DragEvent, kind: Kind) {
   event.dataTransfer?.setData('application/journey-node', kind);
@@ -338,7 +367,7 @@ function chosenNodes() {
 }
 function selectAll() {
   if (props.readonly) return;
-  for (const n of nodes.value) n.selected = true;
+  nodes.value = nodes.value.map((node) => ({ ...node, selected: true }));
   selectedID.value = nodes.value[0]?.id || '';
 }
 function copy() {
@@ -361,21 +390,23 @@ function paste() {
   }
   const ids = new Map<string, string>();
   for (const n of copied.nodes) ids.set(n.id, crypto.randomUUID());
-  for (const n of nodes.value) n.selected = false;
-  for (const n of copied.nodes) {
-    n.id = ids.get(n.id)!;
-    n.position = { x: n.position.x + 40, y: n.position.y + 40 };
-    n.selected = true;
-    nodes.value.push(n);
-  }
-  for (const e of copied.edges)
-    edges.value.push({
+  const added = copied.nodes.map((n) => ({
+    ...n,
+    id: ids.get(n.id)!,
+    position: { x: n.position.x + 40, y: n.position.y + 40 },
+    selected: true,
+  }));
+  nodes.value = [...nodes.value.map((n) => ({ ...n, selected: false })), ...added];
+  edges.value = [
+    ...edges.value,
+    ...copied.edges.map((e) => ({
       ...e,
       id: crypto.randomUUID(),
       source: ids.get(e.source)!,
       target: ids.get(e.target)!,
-    });
-  selectedID.value = copied.nodes[0]?.id || '';
+    })),
+  ];
+  selectedID.value = added[0]?.id || '';
 }
 function duplicate() {
   copy();
@@ -395,10 +426,10 @@ function layout() {
   for (const n of nodes.value) graph.setNode(n.id, { width: 224, height: 112 });
   for (const e of edges.value) graph.setEdge(e.source, e.target);
   dagre.layout(graph);
-  for (const n of nodes.value) {
+  nodes.value = nodes.value.map((n) => {
     const p = graph.node(n.id);
-    n.position = { x: p.x - 112, y: p.y - 56 };
-  }
+    return { ...n, position: { x: p.x - 112, y: p.y - 56 } };
+  });
   void nextTick(() => fitView());
 }
 function keyboard(event: KeyboardEvent) {
@@ -435,7 +466,7 @@ window.addEventListener('keydown', keyboard);
 onBeforeUnmount(() => window.removeEventListener('keydown', keyboard));
 function setAttribute(value: string) {
   try {
-    if (selected.value) selected.value.data.config.value = JSON.parse(value);
+    patchConfig({ value: JSON.parse(value) });
     configError.value = '';
   } catch {
     configError.value = 'Attribute value must be valid JSON';
@@ -485,12 +516,12 @@ function setAttribute(value: string) {
   <div class="builder-toolbar">
     <div class="canvas-title">
       <button
-        class="icon-button"
+        class="library-toggle"
         aria-label="Toggle step library"
         :aria-expanded="libraryOpen"
         @click="libraryOpen = !libraryOpen"
       >
-        <AppIcon name="templates" :size="16" />
+        <AppIcon name="templates" :size="16" /><span>Elements</span>
       </button>
       <AppIcon name="workflow" :size="17" /><strong>Workflow</strong
       ><span>{{ nodes.length }} steps</span>
@@ -499,7 +530,8 @@ function setAttribute(value: string) {
       <button
         class="icon-button"
         aria-label="Toggle step settings"
-        :aria-expanded="inspectorOpen && !hideInspector"
+        :aria-expanded="!!selected && inspectorOpen && !hideInspector"
+        :disabled="!selected"
         @click="inspectorOpen = !inspectorOpen"
       >
         <AppIcon name="settings" :size="16" />
@@ -573,11 +605,11 @@ function setAttribute(value: string) {
         <p>Prefer to describe it?<br />Try the AI composer.</p>
       </div>
     </aside>
-    <div class="canvas" @drop="drop" @dragover.prevent>
+    <div ref="canvasElement" class="canvas" @drop="drop" @dragover.prevent>
       <VueFlow
         id="builder"
-        :nodes="nodes"
-        :edges="edges"
+        v-model:nodes="nodes"
+        v-model:edges="edges"
         :default-edge-options="{ type: 'insertable' }"
         :nodes-draggable="!readonly"
         :nodes-connectable="!readonly"
@@ -586,16 +618,15 @@ function setAttribute(value: string) {
         :multi-selection-key-code="['Meta', 'Control']"
         :default-viewport="{ x: 30, y: 35, zoom: 0.85 }"
         @nodes-initialized="placeInitialViewport"
-        @update:nodes="updateNodes"
-        @update:edges="updateEdges"
         @connect="connect"
         @node-click="
           selectedID = $event.node.id;
           inspectorOpen = true;
           emit('inspect');
         "
-        ><Background :gap="20" pattern-color="#dde1ec" /><Controls /><MiniMap /><template
-          #node-step="nodeProps"
+        ><Background :gap="20" pattern-color="#dde1ec" /><CanvasControls
+          :interactive="!readonly"
+        /><MiniMap /><template #node-step="nodeProps"
           ><WorkflowNode
             v-bind="nodeProps"
             :data="{
@@ -627,9 +658,9 @@ function setAttribute(value: string) {
           <AppIcon name="close" :size="17" />
         </button>
       </div>
-      <label>Step name<input v-model="selected.data.label" :disabled="readonly" /></label
+      <label>Step name<input v-model="nodeLabel" :disabled="readonly" /></label
       ><label v-if="['event_trigger', 'wait_event'].includes(selected.data.kind)"
-        >Event name<input v-model="selected.data.config.event_name" :disabled="readonly"
+        >Event name<input v-model="eventName" :disabled="readonly"
       /></label>
       <div v-if="['wait', 'wait_event'].includes(selected.data.kind)" class="duration-field">
         <label
@@ -651,10 +682,10 @@ function setAttribute(value: string) {
         >
       </div>
       <label v-if="selected.data.kind === 'wait'"
-        >Timezone<input v-model="selected.data.config.timezone" :disabled="readonly" /></label
+        >Timezone<input v-model="timezone" :disabled="readonly" /></label
       ><RuleEditor
         v-if="selected.data.kind === 'condition'"
-        v-model="selected.data.config.rule"
+        v-model="nodeRule"
         :readonly="readonly"
       />
       <details v-if="['event_trigger', 'wait_event'].includes(selected.data.kind)">
@@ -663,7 +694,7 @@ function setAttribute(value: string) {
           v-if="!selected.data.config.filters"
           :disabled="readonly"
           @click="
-            selected.data.config.filters = {
+            nodeFilters = {
               path: 'event.properties.amount',
               operator: 'greater_than',
               value: 0,
@@ -671,30 +702,20 @@ function setAttribute(value: string) {
           "
         >
           Add filter</button
-        ><RuleEditor v-else v-model="selected.data.config.filters" :readonly="readonly" />
+        ><RuleEditor v-else v-model="nodeFilters" :readonly="readonly" />
       </details>
       <p v-if="configError" role="alert">{{ configError }}</p>
       <template v-if="selected.data.kind === 'email'"
-        ><label>Subject<input v-model="selected.data.config.subject" :disabled="readonly" /></label
+        ><label>Subject<input v-model="subject" :disabled="readonly" /></label
+        ><label>Preheader<input v-model="preheader" :disabled="readonly" /></label
         ><label
-          >Preheader<input v-model="selected.data.config.preheader" :disabled="readonly" /></label
-        ><label
-          >HTML content<textarea
-            v-model="selected.data.config.html"
-            rows="8"
-            :disabled="readonly"
-          /></label></template
+          >HTML content<textarea v-model="html" rows="8" :disabled="readonly" /></label></template
       ><label v-if="['email', 'sms'].includes(selected.data.kind)"
-        >Message text<textarea
-          v-model="selected.data.config.text"
-          :disabled="readonly"
-          rows="5"
-        /></label
+        >Message text<textarea v-model="text" :disabled="readonly" rows="5" /></label
       ><template v-if="selected.data.kind === 'update_attribute'"
+        ><label>Attribute<input v-model="attribute" :disabled="readonly" /></label
         ><label
-          >Attribute<input v-model="selected.data.config.attribute" :disabled="readonly" /></label
-        ><label
-          >Operation<select v-model="selected.data.config.operation" :disabled="readonly">
+          >Operation<select v-model="operation" :disabled="readonly">
             <option>set</option>
             <option>increment</option>
             <option>unset</option>
@@ -705,7 +726,7 @@ function setAttribute(value: string) {
             :disabled="readonly"
             @change="setAttribute(($event.target as HTMLInputElement).value)" /></label></template
       ><label v-if="selected.data.kind === 'exit'"
-        >Exit reason<select v-model="selected.data.config.reason" :disabled="readonly">
+        >Exit reason<select v-model="reason" :disabled="readonly">
           <option>completed</option>
           <option>converted</option>
           <option>condition_not_met</option>
@@ -726,24 +747,6 @@ function setAttribute(value: string) {
         Preview / Test node</button
       ><button :disabled="readonly" @click="remove">Delete node</button
       ><small>Outputs: {{ ports(selected.data.kind).join(', ') || 'Completed' }}</small>
-    </aside>
-    <aside
-      v-else-if="!hideInspector && inspectorOpen"
-      class="node-config inspector-empty"
-      aria-label="Journey inspector"
-    >
-      <span class="inspector-eyebrow">JOURNEY INSPECTOR</span>
-      <span class="empty-inspector-icon"><AppIcon name="select" :size="26" /></span>
-      <h3>Select a step</h3>
-      <p>Choose a step on the canvas to edit its settings, conditions or message.</p>
-      <div class="inspector-summary">
-        <span><AppIcon name="workflow" :size="15" />{{ nodes.length }} steps</span
-        ><span><AppIcon name="branch" :size="15" />{{ edges.length }} connections</span>
-      </div>
-      <p class="inspector-safety">
-        <AppIcon name="shield" :size="16" />Edits stay in your draft until you review and publish a
-        version.
-      </p>
     </aside>
   </div>
 </template>

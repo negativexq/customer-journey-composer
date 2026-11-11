@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from '@vue-flow/core';
+import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from '@xyflow/vue';
 import AppIcon from './ui/AppIcon.vue';
 const props = defineProps<EdgeProps & { readonly?: boolean; connectionLabel?: string }>();
 const emit = defineEmits<{ insert: [] }>();

@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, onActivated, onDeactivated, ref, watch } from 'vue';
-import { VueFlow, type Node, type Edge } from '@vue-flow/core';
-import { Background } from '@vue-flow/background';
-import { Controls } from '@vue-flow/controls';
-import { MiniMap } from '@vue-flow/minimap';
+import { VueFlow, Background, MiniMap, type Node, type Edge } from '@xyflow/vue';
 import { api } from '../lib/api';
 import WorkflowNode from './WorkflowNode.vue';
+import CanvasControls from './CanvasControls.vue';
 import AppIcon from './ui/AppIcon.vue';
 import StatusBadge from './ui/StatusBadge.vue';
 import DecisionSummary from './ui/DecisionSummary.vue';
@@ -98,7 +96,8 @@ let deliveryRequest = 0;
 const tracking = ref(false);
 const value = (node: string, metric: string) =>
   metrics.value.find((m) => m.node_id === node && m.metric === metric)?.value || 0;
-const nodes = computed<Node[]>(
+type MonitorNode = Node<InstanceType<typeof WorkflowNode>['$props']['data']>;
+const nodes = computed<MonitorNode[]>(
   () =>
     workflow.value?.nodes.map((n, i) => ({
       id: n.id,
@@ -134,6 +133,7 @@ const edges = computed<Edge[]>(
       source: e.source,
       target: e.target,
       sourceHandle: e.port,
+      targetHandle: 'in',
       label: { true: 'Yes', false: 'No', matched: 'Matched', timeout: 'Timeout' }[e.port] || '',
       animated: selected.value?.steps?.some(
         (s) => s.node_id === e.source && s.output?.port === e.port,
@@ -355,8 +355,8 @@ onBeforeUnmount(() => {
         :edges="edges"
         :nodes-draggable="false"
         :nodes-connectable="false"
-        fit-view-on-init
-        ><Background /><Controls /><MiniMap /><template #node-journey-step="nodeProps"
+        fit-view
+        ><Background /><CanvasControls /><MiniMap /><template #node-journey-step="nodeProps"
           ><WorkflowNode v-bind="nodeProps" /></template
       ></VueFlow>
     </div>

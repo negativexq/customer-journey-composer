@@ -18,8 +18,15 @@ test('builds a connected workflow, validates and publishes an immutable version'
   const journey = await creation.json();
   await page.goto('/');
   await page.locator('.journey-name-button').filter({ hasText: 'Canvas journey' }).click();
+  const elements = page.getByRole('button', { name: 'Toggle step library', exact: true });
+  if ((await elements.getAttribute('aria-expanded')) === 'false') await elements.click();
   await page.getByRole('button', { name: '+ Event Trigger', exact: true }).click();
   await page.getByRole('button', { name: '+ Exit', exact: true }).click();
+  if (
+    test.info().project.name === 'mobile' &&
+    (await elements.getAttribute('aria-expanded')) === 'true'
+  )
+    await elements.click();
   await page.getByRole('button', { name: 'Fit view', exact: true }).click();
   await expect(page.locator('.vue-flow__node')).toHaveCount(2);
   await page.locator('.vue-flow__handle.source').dragTo(page.locator('.vue-flow__handle.target'));

@@ -22,12 +22,19 @@ test('builder panels preserve the graph and duration controls persist typed seco
   ).json();
   await page.goto('/journeys/' + j.id);
   await expect(page.getByText('Editing draft', { exact: true })).toBeVisible();
+  await expect(page.getByRole('complementary', { name: 'Step settings' })).toBeHidden();
+  await expect(page.getByRole('complementary', { name: 'Journey inspector' })).toBeHidden();
+  await expect(
+    page.getByRole('button', { name: 'Toggle step settings', exact: true }),
+  ).toBeDisabled();
   await page.getByRole('button', { name: 'Fit view', exact: true }).click();
   await page.locator('.vue-flow__node').filter({ hasText: 'Wait 2 hours' }).click();
   const settings = page.getByRole('complementary', { name: 'Step settings' });
   await expect(settings.getByLabel('Delay unit')).toHaveValue('3600');
   await settings.getByLabel('Wait for', { exact: true }).fill('3');
-  await page.getByRole('button', { name: 'Toggle step library', exact: true }).click();
+  const libraryButton = page.getByRole('button', { name: 'Toggle step library', exact: true });
+  if ((await libraryButton.getAttribute('aria-expanded')) === 'false') await libraryButton.click();
+  await libraryButton.click();
   await expect(page.getByRole('complementary', { name: 'Step library' })).toBeHidden();
   await expect(page.locator('.vue-flow__node')).toHaveCount(8);
   await page.getByRole('button', { name: 'Toggle step library', exact: true }).click();

@@ -15,7 +15,7 @@
 
 Customer.io builder, Loops workflow ve Knock event-inspector görselleri görsel olarak da incelendi. Görseller ürün arayüzüne kopyalanmadı; kaynak bağlantıları referans olarak tutuldu.
 
-## Bizde doğrulanan eksikler ve öncelik
+## 10 Kasım incelemesindeki eksikler ve öncelik
 
 ### P0 — Önce anlaşılabilirlik ve güvenli işlem
 
@@ -43,4 +43,13 @@ Customer.io builder, Loops workflow ve Knock event-inspector görselleri görsel
 
 Önce geçici auth hatası görünümü ve draft/live ayrımı; sonra yayın kontrol paneli; ardından ortak timeline/decision bileşenleri. Bunlar oturduktan sonra Test Lab bağlantıları, Analytics drill-down ve edge üzerinden ekleme uygulanmalı. Her dilim masaüstü/mobil, klavye ve gerçek API hata senaryosuyla doğrulanmalı.
 
-Bu belge araştırma ve uygulama iş listesidir. Buradaki yeni bileşenler henüz geliştirilmiş sayılmaz. A/B, yeni kanallar veya journey içinde AI reasoning eklemek MVP kapsamına alınmadı.
+Bu belge araştırmanın tarihli bulgularını korur; güncel uygulama durumu aşağıdadır. A/B, yeni kanallar veya journey içinde AI reasoning eklemek MVP kapsamına alınmadı.
+
+## 11 Kasım uygulama durumu
+
+- P0/1–3: Yayın kontrol/onay paneli, draft/live ayrımı, okunabilir execution timeline, karar ve attempt kartları uygulandı. Test Lab run-scoped Test Inbox ile aynı bağlamda çalışıyor.
+- P0/4: İlk oturum kontrolünde 401, geçici 503 ve ağ hatası ayrıldı. Geçici hatalar URL'yi koruyan tekrar deneme ekranı gösteriyor. Journey detay isteğinin geçici hatası da listeye yönlendirmiyor.
+- P1/7: Bağlantı üstünden adım ekleme, açık yeni dal seçimi ve tek undo uygulandı. Trigger/Exit araya ekleme seçenekleri arasında bulunmuyor; mevcut bağlantı korunuyor.
+- P1/8: Ortak activity drawer; customer → event → execution → message bağlantıları ve seçimin URL üzerinden yenileme/geri/ileri ile korunması uygulandı. Live Monitor execution/delivery seçimi de URL'de korunur. Lazy detail sorguları, sıralama ve workspace sınırları korunur. Listeyi elle yenilemek açık drawer'ı değiştirmez.
+- Analytics'te kapsam/denominatör etiketleri ve branched node reach gösterimi mevcut; her node'dan özel filtreli Analytics drill-down ayrı bir geliştirme olarak kalır. Otomatik yeni-kayıt bildirimleri bu teslimatta yoktur; customer/event listeleri elle yenilenir.
+- Doğrulama: `make check`, tüm paketlerde PostgreSQL entegrasyonları ve 44/44 masaüstü/mobil tarayıcı testi. Ücretli LLM çağrısı veya harici deployment yapılmadı.

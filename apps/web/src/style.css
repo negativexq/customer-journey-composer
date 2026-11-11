@@ -4516,3 +4516,95 @@ td {
 .insert-step-dialog .surface-heading {
   padding: 0;
 }
+
+/* The element picker has a readable fixed width even beside the AI panel. */
+.builder-layout > .step-library {
+  width: 220px;
+  min-width: 220px;
+  flex: 0 0 220px;
+}
+.library-toggle {
+  min-height: 32px;
+  padding: 6px 9px;
+  gap: 7px;
+  white-space: nowrap;
+}
+.node-library .palette-group > button {
+  width: 100%;
+}
+@media (max-width: 700px) {
+  .builder-layout > .step-library {
+    position: absolute;
+    inset: 0 auto 0 0;
+    z-index: 15;
+    width: min(260px, 85vw);
+    min-width: 220px;
+    box-shadow: 6px 0 20px #17213b14;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .library-toggle {
+    min-height: 36px;
+  }
+}
+
+/* Canvas is light independently of the OS theme; controls use our stroked icons. */
+.vue-flow {
+  color-scheme: light;
+  --xy-background-color: #f8fafc;
+  --xy-background-pattern-dots-color: #dce1ea;
+  --xy-minimap-background-color: #fff;
+  --xy-minimap-mask-background-color: #e6eaf080;
+}
+.vue-flow__controls {
+  background: #fff;
+  border-color: #d9dfe9;
+  box-shadow: 0 2px 8px #17213b10;
+}
+.vue-flow__controls-button {
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+  padding: 9px;
+  color: #344054;
+  background: #fff;
+  border: 0;
+  border-radius: 0;
+  fill: none;
+}
+.vue-flow__controls-button:hover {
+  color: #1d2939;
+  background: #f2f4f7;
+}
+.vue-flow__controls-button svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  max-width: 18px;
+  max-height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+.canvas-zoom-level {
+  width: 38px;
+  padding: 8px 0;
+  background: #fff;
+  color: #475467;
+  font-size: 11px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  border-top: 1px solid #e7eaf0;
+}
+@media (max-width: 700px) {
+  .vue-flow__controls-button {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 12px;
+  }
+  .canvas-zoom-level {
+    width: 44px;
+  }
+}

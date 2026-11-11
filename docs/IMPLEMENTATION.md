@@ -2,20 +2,20 @@
 
 Source of truth for product scope: [PRD.md](PRD.md).
 
-| Phase                                  | Status                         | Evidence / remaining work                                                                                                                        |
-| -------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1. Repository & Foundation             | Complete                       | Vue/Go/Docker stack; PostgreSQL migrations; quality checks; integration and browser tests passed locally.                                        |
-| 2. Authentication & Journey Management | Complete                       | Sessions, CSRF, RBAC, workspace isolation, revision-guarded drafts and management UI; database and 6 browser tests passed.                       |
-| 3. Visual Canvas & Validation          | Complete                       | Typed schema, graph/rule validator, immutable snapshots and Vue Flow editor; database and 8 browser tests passed.                                |
-| 4. Customer & Event Infrastructure     | Complete                       | Profiles, scoped API keys, idempotent single/batch ingestion and atomic enrollment; database and 10 browser tests passed.                        |
-| 5. Persistent Runtime                  | Complete                       | Fenced worker, durable timers/waiters, global exit, shared pure decisions, outbox; race/recovery/version tests and actual Docker restart passed. |
-| 6. Email & SMS                         | Complete                       | Safe rendering, channel studio, SMTP/Mailpit and mock SMS, durable deliveries/attempts, policy and retry tests; 14 browser tests passed.         |
-| 7. AI Journey Composer                 | Complete (live tests deferred) | Shared schema, Claude/OpenAI adapters, bounded repair, diff/approval; local provider contracts and 18 browser tests passed.                      |
-| 8. Preview & Test Lab                  | Complete                       | Virtual clock, snapshots, replay, event/attribute sequences, assertions and fault injection; 20 browser tests passed.                            |
-| 9. Test Inbox                          | Complete                       | Three-panel inbox, scoped filters, payload/trace/attempts, replay comparison and actual test-send distinction; 20 browser tests.                 |
-| 10. Live Monitor & Analytics           | Complete                       | Transactional delta projections, indexed summaries, version-aware monitor and inspector; 22 browser tests passed.                                |
-| 11. Lifecycle & Reliability            | Complete                       | Audited lifecycle/publish gates, recovery, roles, bounded requests, OTel propagation and dependency/image checks; 24 browser tests.              |
-| 12. Final Product & Demo               | In progress                    | Templates/demo dataset, UI polish, 10,000-execution benchmarks and 32 browser tests; final demo/deployment artifacts remain.                     |
+| Phase                                  | Status                         | Evidence / remaining work                                                                                                                                          |
+| -------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1. Repository & Foundation             | Complete                       | Vue/Go/Docker stack; PostgreSQL migrations; quality checks; integration and browser tests passed locally.                                                          |
+| 2. Authentication & Journey Management | Complete                       | Sessions, CSRF, RBAC, workspace isolation, revision-guarded drafts and management UI; database and 6 browser tests passed.                                         |
+| 3. Visual Canvas & Validation          | Complete                       | Typed schema, graph/rule validator, immutable snapshots and Vue Flow editor; database and 8 browser tests passed.                                                  |
+| 4. Customer & Event Infrastructure     | Complete                       | Profiles, scoped API keys, idempotent single/batch ingestion and atomic enrollment; database and 10 browser tests passed.                                          |
+| 5. Persistent Runtime                  | Complete                       | Fenced worker, durable timers/waiters, global exit, shared pure decisions, outbox; race/recovery/version tests and actual Docker restart passed.                   |
+| 6. Email & SMS                         | Complete                       | Safe rendering, channel studio, SMTP/Mailpit and mock SMS, durable deliveries/attempts, policy and retry tests; 14 browser tests passed.                           |
+| 7. AI Journey Composer                 | Complete (live tests deferred) | Shared schema, Claude/OpenAI adapters, bounded repair, diff/approval; local provider contracts and 18 browser tests passed.                                        |
+| 8. Preview & Test Lab                  | Complete                       | Virtual clock, snapshots, replay, event/attribute sequences, assertions and fault injection; 20 browser tests passed.                                              |
+| 9. Test Inbox                          | Complete                       | Three-panel inbox, scoped filters, payload/trace/attempts, replay comparison and actual test-send distinction; 20 browser tests.                                   |
+| 10. Live Monitor & Analytics           | Complete                       | Transactional delta projections, indexed summaries, version-aware monitor and inspector; 22 browser tests passed.                                                  |
+| 11. Lifecycle & Reliability            | Complete                       | Audited lifecycle/publish gates, recovery, roles, bounded requests, OTel propagation and dependency/image checks; 24 browser tests.                                |
+| 12. Final Product & Demo               | In progress                    | Templates/demo dataset, revised UI, measured 10,000-execution workloads and 44 browser tests; final demo artifacts remain; deployment explicitly deferred by user. |
 
 ## Accepted decisions
 
@@ -158,3 +158,10 @@ See [verification notes](VERIFICATION.md) for reproducible checks and [architect
 
 - Session restoration distinguishes an anonymous 401 from temporary server/network errors. Temporary failure preserves the URL and offers an explicit retry without clearing cookies or showing sign-in. Verified with `make check` and six desktop/mobile navigation checks, including consecutive 503/network failures followed by recovery into the original version tab.
 - Production deployment and live LLM calls remain outside this user-authorized slice.
+
+- `c700148` preserves session deep links across temporary access failures. Journey detail retries also preserve the route rather than treating 503/network failures as missing journeys.
+- `e237998`, `68bd2da` and `a26b283` add edge insertion with explicit branch selection, one-step undo, a shared lazy activity drawer, customer/event/execution/message links and persisted native monitor selections. New bounded metadata endpoints use existing customer history and new workspace/event indexes; message bodies are not loaded by list queries.
+- `446d392` updates libxslt in the existing non-root web runtime. Local scans of API/web report zero HIGH/CRITICAL findings; this corrects the previous hosted CI's image-scan failure, whose quality, integration, browser and recovery checks passed.
+- Verified current functional code with `make check`, all isolated PostgreSQL integration packages and 44/44 desktop/mobile E2E tests, including explicit branch selection, Escape, reload/back/forward, stale selections and cross-workspace activity isolation. Remote CI and final performance comparisons are recorded separately after execution. User explicitly requested no deployment.
+
+- Explicit user follow-up: migrated builder/monitor/custom edges/nodes to pinned `@xyflow/vue` 2.0.0-next.21, removed old add-ons, adopted provider-scoped state and immutable updates, and prevented native HTML dragging from intercepting node connections. Widened Elements, made it a mobile overlay, hid the unselected inspector, fixed blank zoom icons and kept canvas light under dark OS preferences. `make check` and 46/46 current desktop/mobile tests passed. See [the latest design direction](design/modern-saas-direction.md) for the full staged plan and remaining modules.

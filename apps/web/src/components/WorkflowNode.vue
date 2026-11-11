@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Handle, Position } from '@vue-flow/core';
+import { Handle, Position } from '@xyflow/vue';
 import { ports, labels, type Kind, type Config } from '../lib/workflow';
 import AppIcon from './ui/AppIcon.vue';
+// NodeProps.draggable belongs to xyflow's wrapper, not native HTML drag-and-drop.
+defineOptions({ inheritAttrs: false });
 const props = defineProps<{
   data: {
     kind: Kind;
@@ -91,7 +93,7 @@ const label = (p: string) =>
       },
     ]"
   >
-    <Handle v-if="data.kind !== 'event_trigger'" type="target" :position="Position.Top" />
+    <Handle v-if="data.kind !== 'event_trigger'" id="in" type="target" :position="Position.Top" />
     <div class="workflow-node-heading">
       <span class="step-type-icon" :class="data.kind"
         ><AppIcon :name="icons[data.kind]" :size="18"
