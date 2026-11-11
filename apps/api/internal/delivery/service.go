@@ -126,21 +126,6 @@ func (s *Service) scheduleOne(ctx context.Context) (int, error) {
 		return 0, err
 	}
 	for _, p := range items {
-		var lifecycle string
-		if err := tx.QueryRow(ctx, `SELECT e.state,j.status FROM journeys j JOIN journey_executions e ON e.journey_id=j.id WHERE e.id=$1 FOR SHARE OF j`, p.execution).Scan(&p.state, &lifecycle); err != nil {
-			return 0, err
-		}
-		if lifecycle != "Active" && lifecycle != "Sunset" {
-			continue
-		}
-		var stillPending bool
-		err = tx.QueryRow(ctx, `SELECT true FROM action_outbox WHERE id=$1 AND state='PENDING' FOR UPDATE`, p.id).Scan(&stillPending)
-		if errors.Is(err, pgx.ErrNoRows) {
-			continue
-		}
-		if err != nil {
-			return 0, err
-		}
 		var message messaging.Message
 		renderError := ""
 		if err := json.Unmarshal(p.raw, &message); err != nil {
@@ -170,7 +155,32 @@ func (s *Service) scheduleOne(ctx context.Context) (int, error) {
 		if p.channel == "sms" && p.phone != nil {
 			message.To = *p.phone
 		}
-		decision := EvaluateEligibility(message, consent, 0, p.limit, p.state)
+		// This is a new READ COMMITTED statement after acquiring the customer.
+		// Keep the journey -> outbox lock order and re-read execution state here;
+		// the initial claim's snapshot can predate a concurrent global exit.
+		var lifecycle string
+		var stillPending bool
+		var reservations int
+		countReservations := renderError == "" && EvaluateEligibility(message, consent, 0, p.limit, "RUNNING").Eligible
+		err = tx.QueryRow(ctx, `WITH lifecycle AS MATERIALIZED (
+          SELECT e.state,j.status FROM journeys j JOIN journey_executions e ON e.journey_id=j.id WHERE e.id=$1 FOR SHARE OF j
+        ), pending AS MATERIALIZED (
+          SELECT a.id FROM action_outbox a CROSS JOIN lifecycle l WHERE a.id=$2 AND a.state='PENDING' AND l.status IN ('Active','Sunset') FOR UPDATE OF a
+        ) SELECT l.state,l.status,EXISTS(SELECT 1 FROM pending),
+          CASE WHEN $6::boolean AND EXISTS(SELECT 1 FROM pending) THEN (
+            SELECT count(*) FROM (SELECT 1 FROM (
+              (SELECT 1 FROM delivery_jobs WHERE workspace_id=$3 AND customer_id=$4 AND mode='LIVE' AND status IN ('SCHEDULED','CLAIMED','DISPATCHING','UNKNOWN') LIMIT $7)
+              UNION ALL
+              (SELECT 1 FROM delivery_jobs WHERE workspace_id=$3 AND customer_id=$4 AND mode='LIVE' AND status='ACCEPTED' AND accepted_at>=$5 LIMIT $7)
+            ) slots LIMIT $7) reservations
+          ) ELSE 0 END FROM lifecycle l`, p.execution, p.id, p.workspace, p.customer, now.Add(-time.Duration(p.window)*time.Second), countReservations, p.limit).Scan(&p.state, &lifecycle, &stillPending, &reservations)
+		if err != nil {
+			return 0, err
+		}
+		if !stillPending || (lifecycle != "Active" && lifecycle != "Sunset") {
+			continue
+		}
+		decision := EvaluateEligibility(message, consent, reservations, p.limit, p.state)
 		status := "SCHEDULED"
 		if !decision.Eligible {
 			status = "BLOCKED"
@@ -187,17 +197,6 @@ func (s *Service) scheduleOne(ctx context.Context) (int, error) {
 			status = "FAILED"
 		}
 
-		if decision.Eligible {
-			var reservations int
-			err := tx.QueryRow(ctx, `SELECT count(*) FROM (SELECT 1 FROM ((SELECT 1 FROM delivery_jobs WHERE workspace_id=$1 AND customer_id=$2 AND mode='LIVE' AND status IN ('SCHEDULED','CLAIMED','DISPATCHING','UNKNOWN') LIMIT $4) UNION ALL (SELECT 1 FROM delivery_jobs WHERE workspace_id=$1 AND customer_id=$2 AND mode='LIVE' AND status='ACCEPTED' AND accepted_at>=$3 LIMIT $4)) slots LIMIT $4) reservations`, p.workspace, p.customer, now.Add(-time.Duration(p.window)*time.Second), p.limit).Scan(&reservations)
-			if err != nil {
-				return 0, err
-			}
-			if reservations >= p.limit {
-				decision = EvaluateEligibility(message, consent, reservations, p.limit, p.state)
-				status = "BLOCKED"
-			}
-		}
 		name, provider := s.provider(p.channel)
 		idempotent := false
 		if provider != nil {
