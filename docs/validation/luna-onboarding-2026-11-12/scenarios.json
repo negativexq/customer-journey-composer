@@ -1,0 +1,542 @@
+[
+  {
+    "id": 1,
+    "scenario": {
+      "name": "A · Already activated at entry",
+      "start_time": "2026-11-12T09:00:00Z",
+      "customer": {
+        "customer_id": "onboarding_demo",
+        "email": "alex@example.invalid",
+        "phone": "+15005550006",
+        "attributes": {
+          "first_name": "Alex",
+          "product_name": "Atlas",
+          "activated": true
+        },
+        "consents": {
+          "email": true,
+          "sms": true
+        }
+      },
+      "entry_event": {
+        "event_id": "register_1",
+        "event_name": "user_registered",
+        "properties": {}
+      },
+      "frequency_limit": 10,
+      "frequency_window_seconds": 86400,
+      "assertions": [
+        {
+          "type": "no_duplicate_delivery",
+          "expected": true
+        },
+        {
+          "type": "message_count",
+          "channel": "email",
+          "expected": 0
+        },
+        {
+          "type": "message_count",
+          "channel": "sms",
+          "expected": 0
+        },
+        {
+          "type": "exit_reason",
+          "expected": "converted"
+        }
+      ]
+    },
+    "expected_elapsed_seconds": 0
+  },
+  {
+    "id": 2,
+    "scenario": {
+      "name": "B · Activation event at +30m",
+      "start_time": "2026-11-12T09:00:00Z",
+      "customer": {
+        "customer_id": "onboarding_demo",
+        "email": "alex@example.invalid",
+        "phone": "+15005550006",
+        "attributes": {
+          "first_name": "Alex",
+          "product_name": "Atlas",
+          "activated": false
+        },
+        "consents": {
+          "email": true,
+          "sms": true
+        }
+      },
+      "entry_event": {
+        "event_id": "register_1",
+        "event_name": "user_registered",
+        "properties": {}
+      },
+      "frequency_limit": 10,
+      "frequency_window_seconds": 86400,
+      "assertions": [
+        {
+          "type": "no_duplicate_delivery",
+          "expected": true
+        },
+        {
+          "type": "message_count",
+          "channel": "email",
+          "expected": 1
+        },
+        {
+          "type": "message_count",
+          "channel": "sms",
+          "expected": 0
+        },
+        {
+          "type": "exit_reason",
+          "expected": "converted"
+        }
+      ],
+      "events": [
+        {
+          "after_seconds": 1800,
+          "event": {
+            "event_id": "activate_1",
+            "event_name": "account_activated",
+            "properties": {}
+          }
+        }
+      ]
+    },
+    "expected_elapsed_seconds": 1800
+  },
+  {
+    "id": 3,
+    "scenario": {
+      "name": "C · Activation after SMS at +60h",
+      "start_time": "2026-11-12T09:00:00Z",
+      "customer": {
+        "customer_id": "onboarding_demo",
+        "email": "alex@example.invalid",
+        "phone": "+15005550006",
+        "attributes": {
+          "first_name": "Alex",
+          "product_name": "Atlas",
+          "activated": false
+        },
+        "consents": {
+          "email": true,
+          "sms": true
+        }
+      },
+      "entry_event": {
+        "event_id": "register_1",
+        "event_name": "user_registered",
+        "properties": {}
+      },
+      "frequency_limit": 10,
+      "frequency_window_seconds": 86400,
+      "assertions": [
+        {
+          "type": "no_duplicate_delivery",
+          "expected": true
+        },
+        {
+          "type": "message_count",
+          "channel": "email",
+          "expected": 1
+        },
+        {
+          "type": "message_count",
+          "channel": "sms",
+          "expected": 1
+        },
+        {
+          "type": "exit_reason",
+          "expected": "converted"
+        }
+      ],
+      "events": [
+        {
+          "after_seconds": 216000,
+          "event": {
+            "event_id": "activate_2",
+            "event_name": "account_activated",
+            "properties": {}
+          }
+        }
+      ]
+    },
+    "expected_elapsed_seconds": 216000
+  },
+  {
+    "id": 4,
+    "scenario": {
+      "name": "D · No activation: email then SMS",
+      "start_time": "2026-11-12T09:00:00Z",
+      "customer": {
+        "customer_id": "onboarding_demo",
+        "email": "alex@example.invalid",
+        "phone": "+15005550006",
+        "attributes": {
+          "first_name": "Alex",
+          "product_name": "Atlas",
+          "activated": false
+        },
+        "consents": {
+          "email": true,
+          "sms": true
+        }
+      },
+      "entry_event": {
+        "event_id": "register_1",
+        "event_name": "user_registered",
+        "properties": {}
+      },
+      "frequency_limit": 10,
+      "frequency_window_seconds": 86400,
+      "assertions": [
+        {
+          "type": "no_duplicate_delivery",
+          "expected": true
+        },
+        {
+          "type": "message_count",
+          "channel": "email",
+          "expected": 1
+        },
+        {
+          "type": "message_count",
+          "channel": "sms",
+          "expected": 1
+        },
+        {
+          "type": "exit_reason",
+          "expected": "completed"
+        }
+      ]
+    },
+    "expected_elapsed_seconds": 259200
+  },
+  {
+    "id": 5,
+    "scenario": {
+      "name": "E · No SMS consent",
+      "start_time": "2026-11-12T09:00:00Z",
+      "customer": {
+        "customer_id": "onboarding_demo",
+        "email": "alex@example.invalid",
+        "phone": "+15005550006",
+        "attributes": {
+          "first_name": "Alex",
+          "product_name": "Atlas",
+          "activated": false
+        },
+        "consents": {
+          "email": true,
+          "sms": false
+        }
+      },
+      "entry_event": {
+        "event_id": "register_1",
+        "event_name": "user_registered",
+        "properties": {}
+      },
+      "frequency_limit": 10,
+      "frequency_window_seconds": 86400,
+      "assertions": [
+        {
+          "type": "no_duplicate_delivery",
+          "expected": true
+        },
+        {
+          "type": "message_count",
+          "channel": "email",
+          "expected": 1
+        },
+        {
+          "type": "message_count",
+          "channel": "sms",
+          "expected": 0
+        },
+        {
+          "type": "exit_reason",
+          "expected": "completed"
+        }
+      ]
+    },
+    "expected_elapsed_seconds": 172800
+  },
+  {
+    "id": 6,
+    "scenario": {
+      "name": "F · SMS only: no welcome email",
+      "start_time": "2026-11-12T09:00:00Z",
+      "customer": {
+        "customer_id": "onboarding_demo",
+        "email": "alex@example.invalid",
+        "phone": "+15005550006",
+        "attributes": {
+          "first_name": "Alex",
+          "product_name": "Atlas",
+          "activated": false
+        },
+        "consents": {
+          "email": false,
+          "sms": true
+        }
+      },
+      "entry_event": {
+        "event_id": "register_1",
+        "event_name": "user_registered",
+        "properties": {}
+      },
+      "frequency_limit": 10,
+      "frequency_window_seconds": 86400,
+      "assertions": [
+        {
+          "type": "no_duplicate_delivery",
+          "expected": true
+        },
+        {
+          "type": "message_count",
+          "channel": "email",
+          "expected": 0
+        },
+        {
+          "type": "message_count",
+          "channel": "sms",
+          "expected": 1
+        },
+        {
+          "type": "exit_reason",
+          "expected": "completed"
+        }
+      ]
+    },
+    "expected_elapsed_seconds": 259200
+  },
+  {
+    "id": 7,
+    "scenario": {
+      "name": "G · No channels: immediate exit",
+      "start_time": "2026-11-12T09:00:00Z",
+      "customer": {
+        "customer_id": "onboarding_demo",
+        "email": "alex@example.invalid",
+        "phone": "+15005550006",
+        "attributes": {
+          "first_name": "Alex",
+          "product_name": "Atlas",
+          "activated": false
+        },
+        "consents": {
+          "email": false,
+          "sms": false
+        }
+      },
+      "entry_event": {
+        "event_id": "register_1",
+        "event_name": "user_registered",
+        "properties": {}
+      },
+      "frequency_limit": 10,
+      "frequency_window_seconds": 86400,
+      "assertions": [
+        {
+          "type": "no_duplicate_delivery",
+          "expected": true
+        },
+        {
+          "type": "message_count",
+          "channel": "email",
+          "expected": 0
+        },
+        {
+          "type": "message_count",
+          "channel": "sms",
+          "expected": 0
+        },
+        {
+          "type": "exit_reason",
+          "expected": "condition_not_met"
+        }
+      ]
+    },
+    "expected_elapsed_seconds": 0
+  },
+  {
+    "id": 8,
+    "scenario": {
+      "name": "H · Profile activation at +47h, no event",
+      "start_time": "2026-11-12T09:00:00Z",
+      "customer": {
+        "customer_id": "onboarding_demo",
+        "email": "alex@example.invalid",
+        "phone": "+15005550006",
+        "attributes": {
+          "first_name": "Alex",
+          "product_name": "Atlas",
+          "activated": false
+        },
+        "consents": {
+          "email": true,
+          "sms": true
+        }
+      },
+      "entry_event": {
+        "event_id": "register_1",
+        "event_name": "user_registered",
+        "properties": {}
+      },
+      "frequency_limit": 10,
+      "frequency_window_seconds": 86400,
+      "assertions": [
+        {
+          "type": "no_duplicate_delivery",
+          "expected": true
+        },
+        {
+          "type": "message_count",
+          "channel": "email",
+          "expected": 1
+        },
+        {
+          "type": "message_count",
+          "channel": "sms",
+          "expected": 0
+        },
+        {
+          "type": "exit_reason",
+          "expected": "converted"
+        }
+      ],
+      "attribute_changes": [
+        {
+          "after_seconds": 169200,
+          "attributes": {
+            "activated": true
+          }
+        }
+      ]
+    },
+    "expected_elapsed_seconds": 172800
+  },
+  {
+    "id": 9,
+    "scenario": {
+      "name": "I · Profile activation at +71h, no event",
+      "start_time": "2026-11-12T09:00:00Z",
+      "customer": {
+        "customer_id": "onboarding_demo",
+        "email": "alex@example.invalid",
+        "phone": "+15005550006",
+        "attributes": {
+          "first_name": "Alex",
+          "product_name": "Atlas",
+          "activated": false
+        },
+        "consents": {
+          "email": true,
+          "sms": true
+        }
+      },
+      "entry_event": {
+        "event_id": "register_1",
+        "event_name": "user_registered",
+        "properties": {}
+      },
+      "frequency_limit": 10,
+      "frequency_window_seconds": 86400,
+      "assertions": [
+        {
+          "type": "no_duplicate_delivery",
+          "expected": true
+        },
+        {
+          "type": "message_count",
+          "channel": "email",
+          "expected": 1
+        },
+        {
+          "type": "message_count",
+          "channel": "sms",
+          "expected": 1
+        },
+        {
+          "type": "exit_reason",
+          "expected": "converted"
+        }
+      ],
+      "attribute_changes": [
+        {
+          "after_seconds": 255600,
+          "attributes": {
+            "activated": true
+          }
+        }
+      ]
+    },
+    "expected_elapsed_seconds": 259200
+  },
+  {
+    "id": 10,
+    "scenario": {
+      "name": "J · Re-registration after completion blocked",
+      "start_time": "2026-11-12T09:00:00Z",
+      "customer": {
+        "customer_id": "onboarding_demo",
+        "email": "alex@example.invalid",
+        "phone": "+15005550006",
+        "attributes": {
+          "first_name": "Alex",
+          "product_name": "Atlas",
+          "activated": false
+        },
+        "consents": {
+          "email": true,
+          "sms": true
+        }
+      },
+      "entry_event": {
+        "event_id": "register_1",
+        "event_name": "user_registered",
+        "properties": {}
+      },
+      "frequency_limit": 10,
+      "frequency_window_seconds": 86400,
+      "assertions": [
+        {
+          "type": "no_duplicate_delivery",
+          "expected": true
+        },
+        {
+          "type": "message_count",
+          "channel": "email",
+          "expected": 1
+        },
+        {
+          "type": "message_count",
+          "channel": "sms",
+          "expected": 1
+        },
+        {
+          "type": "exit_reason",
+          "expected": "completed"
+        },
+        {
+          "type": "enrollment_count",
+          "expected": 1
+        }
+      ],
+      "events": [
+        {
+          "after_seconds": 288000,
+          "event": {
+            "event_id": "register_again",
+            "event_name": "user_registered",
+            "properties": {}
+          }
+        }
+      ]
+    },
+    "expected_elapsed_seconds": 288000
+  }
+]

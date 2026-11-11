@@ -229,3 +229,15 @@ scenarios. It remains Draft, with no real sends or live executions. Exact timing
 boundaries, initial unpaid UI setup retry, raw outputs, screenshots and the
 first-rejection telemetry limitation are recorded in
 [the chronological report](validation/luna-live-2026-11-12/README.md).
+
+## New live Luna onboarding brief — 2026-11-12
+
+One user-authorized Composer action produced a fresh 19-node/19-edge onboarding
+workflow on its first provider attempt, with no manual edits or repair request.
+The exact proposal passes ten sandbox scenarios, including activation events,
+profile-only changes, consent branches and once-only enrollment. Actual usage:
+1,954 input + 4,141 output = 6,095 tokens; Composer round trip 38.219s; full
+browser harness including review 53.763s. General workflow mode was selected,
+so this is explicit scenario evidence rather than an onboarding behavior contract.
+It remains Draft with no real sends, live customers/executions or versions.
+[Brief, output, scenarios, screenshots and timing boundaries](validation/luna-onboarding-2026-11-12/README.md).

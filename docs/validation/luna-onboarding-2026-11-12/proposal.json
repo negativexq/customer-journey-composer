@@ -1,0 +1,475 @@
+{
+  "$schema": "http://127.0.0.1:5173/api/schemas/Proposal.json",
+  "generation": {
+    "attempts": [
+      {
+        "provider": "openai",
+        "requested_model": "gpt-6-luna",
+        "model": "gpt-6-luna",
+        "request_id": "req_282c3819104c42d1a44e5d7e222deb4a",
+        "duration_ms": 38140,
+        "http_status": 200,
+        "usage": {
+          "input_tokens": 1954,
+          "output_tokens": 4141,
+          "reasoning_tokens": 1160,
+          "cached_input_tokens": 0,
+          "cache_creation_tokens": 1951
+        },
+        "provider_succeeded": true,
+        "accepted": true
+      }
+    ],
+    "usage": {
+      "input_tokens": 1954,
+      "output_tokens": 4141,
+      "reasoning_tokens": 1160,
+      "cached_input_tokens": 0,
+      "cache_creation_tokens": 1951
+    }
+  },
+  "schema_version": "composer.v2",
+  "name": "SaaS onboarding ve aktivasyon",
+  "description": "Kayıt olan kullanıcıları aktivasyona yönlendiren onboarding journey'si.",
+  "workflow": {
+    "schema_version": 1,
+    "nodes": [
+      {
+        "id": "trigger-registration",
+        "type": "event_trigger",
+        "label": "Kayıt olayı",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "config": {
+          "event_name": "user_registered"
+        }
+      },
+      {
+        "id": "check-already-active",
+        "type": "condition",
+        "label": "Başlangıçta aktif mi?",
+        "position": {
+          "x": 220,
+          "y": 0
+        },
+        "config": {
+          "rule": {
+            "path": "customer.attributes.activated",
+            "operator": "equals",
+            "value": true
+          }
+        }
+      },
+      {
+        "id": "exit-already-active",
+        "type": "exit",
+        "label": "Zaten aktif",
+        "position": {
+          "x": 440,
+          "y": -140
+        },
+        "config": {
+          "reason": "converted"
+        }
+      },
+      {
+        "id": "check-any-consent",
+        "type": "condition",
+        "label": "En az bir kanal izni var mı?",
+        "position": {
+          "x": 440,
+          "y": 80
+        },
+        "config": {
+          "rule": {
+            "logic": "or",
+            "rules": [
+              {
+                "path": "customer.consents.email",
+                "operator": "equals",
+                "value": true
+              },
+              {
+                "path": "customer.consents.sms",
+                "operator": "equals",
+                "value": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "exit-no-consent",
+        "type": "exit",
+        "label": "Kanal izni yok",
+        "position": {
+          "x": 660,
+          "y": 220
+        },
+        "config": {
+          "reason": "condition_not_met"
+        }
+      },
+      {
+        "id": "check-email-consent",
+        "type": "condition",
+        "label": "Email izni var mı?",
+        "position": {
+          "x": 660,
+          "y": 0
+        },
+        "config": {
+          "rule": {
+            "path": "customer.consents.email",
+            "operator": "equals",
+            "value": true
+          }
+        }
+      },
+      {
+        "id": "send-welcome-email",
+        "type": "email",
+        "label": "Hoş geldin email'i",
+        "position": {
+          "x": 880,
+          "y": -100
+        },
+        "config": {
+          "subject": "Hoş geldiniz, {{ customer.attributes.first_name }}",
+          "preheader": "{{ customer.attributes.product_name }} hesabınızı etkinleştirin",
+          "html": "<p>Merhaba {{ customer.attributes.first_name }},</p><p>{{ customer.attributes.product_name }} hesabınızı etkinleştirmeye başlayın.</p><p><a href=\"https://example.com/activate\">Hesabınızı etkinleştirin</a></p>",
+          "text": "Merhaba {{ customer.attributes.first_name }},\n\n{{ customer.attributes.product_name }} hesabınızı etkinleştirmeye başlayın: https://example.com/activate",
+          "fallbacks": {
+            "customer.attributes.first_name": "Merhaba",
+            "customer.attributes.product_name": "ürününüz"
+          }
+        }
+      },
+      {
+        "id": "wait-activation-48h",
+        "type": "wait_event",
+        "label": "48 saat aktivasyon bekle",
+        "position": {
+          "x": 1100,
+          "y": 40
+        },
+        "config": {
+          "event_name": "account_activated",
+          "timeout_seconds": 172800
+        }
+      },
+      {
+        "id": "check-active-after-48h",
+        "type": "condition",
+        "label": "48 saat sonunda profil kontrolü",
+        "position": {
+          "x": 1320,
+          "y": 40
+        },
+        "config": {
+          "rule": {
+            "path": "customer.attributes.activated",
+            "operator": "equals",
+            "value": true
+          }
+        }
+      },
+      {
+        "id": "exit-activated-48h-event",
+        "type": "exit",
+        "label": "48 saat içinde aktivasyon olayı",
+        "position": {
+          "x": 1320,
+          "y": -120
+        },
+        "config": {
+          "reason": "converted"
+        }
+      },
+      {
+        "id": "exit-activated-48h-profile",
+        "type": "exit",
+        "label": "48 saat kontrolünde aktif",
+        "position": {
+          "x": 1540,
+          "y": -80
+        },
+        "config": {
+          "reason": "converted"
+        }
+      },
+      {
+        "id": "check-sms-consent",
+        "type": "condition",
+        "label": "SMS izni var mı?",
+        "position": {
+          "x": 1540,
+          "y": 120
+        },
+        "config": {
+          "rule": {
+            "path": "customer.consents.sms",
+            "operator": "equals",
+            "value": true
+          }
+        }
+      },
+      {
+        "id": "send-activation-sms",
+        "type": "sms",
+        "label": "Aktivasyon hatırlatma SMS'i",
+        "position": {
+          "x": 1760,
+          "y": 40
+        },
+        "config": {
+          "text": "Merhaba {{ customer.attributes.first_name }}, {{ customer.attributes.product_name }} hesabınızı etkinleştirmek için: https://example.com/activate",
+          "fallbacks": {
+            "customer.attributes.first_name": "Merhaba",
+            "customer.attributes.product_name": "ürününüz"
+          }
+        }
+      },
+      {
+        "id": "exit-no-sms",
+        "type": "exit",
+        "label": "SMS izni olmadığından tamamla",
+        "position": {
+          "x": 1760,
+          "y": 220
+        },
+        "config": {
+          "reason": "completed"
+        }
+      },
+      {
+        "id": "wait-activation-24h",
+        "type": "wait_event",
+        "label": "24 saat aktivasyon bekle",
+        "position": {
+          "x": 1980,
+          "y": 40
+        },
+        "config": {
+          "event_name": "account_activated",
+          "timeout_seconds": 86400
+        }
+      },
+      {
+        "id": "check-active-after-24h",
+        "type": "condition",
+        "label": "24 saat sonunda profil kontrolü",
+        "position": {
+          "x": 2200,
+          "y": 40
+        },
+        "config": {
+          "rule": {
+            "path": "customer.attributes.activated",
+            "operator": "equals",
+            "value": true
+          }
+        }
+      },
+      {
+        "id": "exit-activated-24h-event",
+        "type": "exit",
+        "label": "24 saat içinde aktivasyon olayı",
+        "position": {
+          "x": 2200,
+          "y": -120
+        },
+        "config": {
+          "reason": "converted"
+        }
+      },
+      {
+        "id": "exit-activated-24h-profile",
+        "type": "exit",
+        "label": "Son kontrolde aktif",
+        "position": {
+          "x": 2420,
+          "y": -80
+        },
+        "config": {
+          "reason": "converted"
+        }
+      },
+      {
+        "id": "exit-not-activated",
+        "type": "exit",
+        "label": "Aktivasyon olmadan tamamla",
+        "position": {
+          "x": 2420,
+          "y": 120
+        },
+        "config": {
+          "reason": "completed"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge-01",
+        "source": "trigger-registration",
+        "target": "check-already-active",
+        "port": "started"
+      },
+      {
+        "id": "edge-02",
+        "source": "check-already-active",
+        "target": "exit-already-active",
+        "port": "true"
+      },
+      {
+        "id": "edge-03",
+        "source": "check-already-active",
+        "target": "check-any-consent",
+        "port": "false"
+      },
+      {
+        "id": "edge-04",
+        "source": "check-any-consent",
+        "target": "check-email-consent",
+        "port": "true"
+      },
+      {
+        "id": "edge-05",
+        "source": "check-any-consent",
+        "target": "exit-no-consent",
+        "port": "false"
+      },
+      {
+        "id": "edge-06",
+        "source": "check-email-consent",
+        "target": "send-welcome-email",
+        "port": "true"
+      },
+      {
+        "id": "edge-07",
+        "source": "check-email-consent",
+        "target": "wait-activation-48h",
+        "port": "false"
+      },
+      {
+        "id": "edge-08",
+        "source": "send-welcome-email",
+        "target": "wait-activation-48h",
+        "port": "next"
+      },
+      {
+        "id": "edge-09",
+        "source": "wait-activation-48h",
+        "target": "exit-activated-48h-event",
+        "port": "matched"
+      },
+      {
+        "id": "edge-10",
+        "source": "wait-activation-48h",
+        "target": "check-active-after-48h",
+        "port": "timeout"
+      },
+      {
+        "id": "edge-11",
+        "source": "check-active-after-48h",
+        "target": "exit-activated-48h-profile",
+        "port": "true"
+      },
+      {
+        "id": "edge-12",
+        "source": "check-active-after-48h",
+        "target": "check-sms-consent",
+        "port": "false"
+      },
+      {
+        "id": "edge-13",
+        "source": "check-sms-consent",
+        "target": "send-activation-sms",
+        "port": "true"
+      },
+      {
+        "id": "edge-14",
+        "source": "check-sms-consent",
+        "target": "exit-no-sms",
+        "port": "false"
+      },
+      {
+        "id": "edge-15",
+        "source": "send-activation-sms",
+        "target": "wait-activation-24h",
+        "port": "next"
+      },
+      {
+        "id": "edge-16",
+        "source": "wait-activation-24h",
+        "target": "exit-activated-24h-event",
+        "port": "matched"
+      },
+      {
+        "id": "edge-17",
+        "source": "wait-activation-24h",
+        "target": "check-active-after-24h",
+        "port": "timeout"
+      },
+      {
+        "id": "edge-18",
+        "source": "check-active-after-24h",
+        "target": "exit-activated-24h-profile",
+        "port": "true"
+      },
+      {
+        "id": "edge-19",
+        "source": "check-active-after-24h",
+        "target": "exit-not-activated",
+        "port": "false"
+      }
+    ],
+    "global_exit": {
+      "event_name": "account_activated"
+    },
+    "reentry": {
+      "mode": "once"
+    }
+  },
+  "explanation": "Journey yalnızca user_registered ile başlar ve müşteri başına bir kez çalışır. Başlangıçta zaten aktif olanlar converted ile çıkar; iki kanal izni de olmayanlar condition_not_met ile çıkar. Email izni varsa hoş geldin e-postası gönderilir, yoksa email atlanır. Her iki durumda da 48 saat account_activated beklenir ve ardından güncel profil aktivasyon durumu kontrol edilir. Aktif olmayan ve SMS izni olanlara hatırlatma SMS'i gönderilir; ardından 24 saat daha beklenir ve son profil kontrolü yapılır. account_activated olayı, journey'nin tüm aşamalarında global olarak converted çıkışına neden olur.",
+  "warnings": [
+    "https://example.com/activate örnek CTA adresidir; gerçek ürün aktivasyon bağlantısıyla değiştirilmelidir.",
+    "Yayın öncesinde workspace için email ve SMS kanal ayarları yapılandırılmalıdır. Herhangi bir sağlayıcı bilgisi belirtilmemiştir.",
+    "İsim ve ürün adı bulunmadığında mesajlarda genel fallback metinleri kullanılır.",
+    "No behavior contract selected: graph validation does not prove brief compliance. Define acceptance scenarios before publishing."
+  ],
+  "diff": {
+    "metadata_changed": true,
+    "added_nodes": [
+      "check-active-after-24h",
+      "check-active-after-48h",
+      "check-already-active",
+      "check-any-consent",
+      "check-email-consent",
+      "check-sms-consent",
+      "exit-activated-24h-event",
+      "exit-activated-24h-profile",
+      "exit-activated-48h-event",
+      "exit-activated-48h-profile",
+      "exit-already-active",
+      "exit-no-consent",
+      "exit-no-sms",
+      "exit-not-activated",
+      "send-activation-sms",
+      "send-welcome-email",
+      "trigger-registration",
+      "wait-activation-24h",
+      "wait-activation-48h"
+    ],
+    "removed_nodes": [],
+    "updated_nodes": [],
+    "changed_conditions": [],
+    "changed_messages": [],
+    "edges_changed": true,
+    "exit_changed": true,
+    "reentry_changed": true
+  },
+  "action": "generate"
+}

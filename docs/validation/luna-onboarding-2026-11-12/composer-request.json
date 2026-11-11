@@ -1,0 +1,12 @@
+{
+  "provider": "openai",
+  "action": "generate",
+  "prompt": "Bir SaaS ürünü için onboarding ve aktivasyon journey'si oluştur. Sepet veya satın alma senaryosu değildir. Giriş yalnızca user_registered event'i. Aynı müşteri yaşam boyu yalnızca bir kez bu journey'ye girebilsin. Başlangıçta customer.attributes.activated true ise hiç mesaj göndermeden converted ile çık. Değilse iki kanal izni de yoksa hiç beklemeden condition_not_met ile çık. Email izni varsa hemen hoş geldin e-postası gönder; email izni yok ama SMS izni varsa email'i atla. Her iki yolda da girişten itibaren 48 saat account_activated event'ini bekle. account_activated tüm aktif aşamalarda derhal converted global exit yapsın. 48 saat dolunca customer.attributes.activated değerini tekrar kontrol et; profil true ise converted ile çık. Hâlâ aktif değilse yalnızca SMS izni varsa aktivasyon hatırlatma SMS'i gönder; SMS izni yoksa completed ile sonlandır. SMS'ten sonra 24 saat account_activated bekle. Bu süre de dolarsa customer.attributes.activated alanını son kez kontrol et; true ise converted, false ise completed ile sonlandır. Profil alanının event olmadan değişmesi bu kontrol noktalarında değerlendirilmelidir. İzinler customer.consents.email ve customer.consents.sms. Her mesajda customer.attributes.first_name ve customer.attributes.product_name kişiselleştirme alanlarını dinamik kullan. Email ve SMS CTA adresi https://example.com/activate; gerçek ürün bağlantısı olmadığına dair uyarı ekle. Kullanılabilir event'ler yalnızca user_registered ve account_activated; bilinmeyen event veya attribute üretme. İsim Alex, ürün Atlas gibi örnek değerleri mesajlara sabit yazma. Exit reason desteklenen canonical kodlardan olsun. Workspace frequency cap runtime tarafından ayrıca uygulanır. Hiçbir şey yayınlama.",
+  "name": "Luna live onboarding",
+  "description": "",
+  "workflow": {
+    "edges": [],
+    "nodes": [],
+    "schema_version": 1
+  }
+}

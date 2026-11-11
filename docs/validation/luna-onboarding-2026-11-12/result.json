@@ -1,0 +1,1124 @@
+{
+  "started_at": "2026-11-11T21:40:22.089Z",
+  "model": "gpt-6-luna",
+  "schema": "composer.v2",
+  "generation_requests": 1,
+  "steps": [
+    {
+      "step": "1. Workspace and blank draft ready",
+      "at_seconds": 0.85,
+      "draft_status": "Draft"
+    },
+    {
+      "step": "2. Starting one Composer generation request",
+      "at_seconds": 1.103,
+      "contract": "general; manual scenario acceptance"
+    },
+    {
+      "step": "3. Proposal ready for review",
+      "at_seconds": 39.783,
+      "nodes": 19,
+      "edges": 19,
+      "warnings": [
+        "https://example.com/activate örnek CTA adresidir; gerçek ürün aktivasyon bağlantısıyla değiştirilmelidir.",
+        "Yayın öncesinde workspace için email ve SMS kanal ayarları yapılandırılmalıdır. Herhangi bir sağlayıcı bilgisi belirtilmemiştir.",
+        "İsim ve ürün adı bulunmadığında mesajlarda genel fallback metinleri kullanılır.",
+        "No behavior contract selected: graph validation does not prove brief compliance. Define acceptance scenarios before publishing."
+      ],
+      "diff": {
+        "metadata_changed": true,
+        "added_nodes": [
+          "check-active-after-24h",
+          "check-active-after-48h",
+          "check-already-active",
+          "check-any-consent",
+          "check-email-consent",
+          "check-sms-consent",
+          "exit-activated-24h-event",
+          "exit-activated-24h-profile",
+          "exit-activated-48h-event",
+          "exit-activated-48h-profile",
+          "exit-already-active",
+          "exit-no-consent",
+          "exit-no-sms",
+          "exit-not-activated",
+          "send-activation-sms",
+          "send-welcome-email",
+          "trigger-registration",
+          "wait-activation-24h",
+          "wait-activation-48h"
+        ],
+        "removed_nodes": [],
+        "updated_nodes": [],
+        "changed_conditions": [],
+        "changed_messages": [],
+        "edges_changed": true,
+        "exit_changed": true,
+        "reentry_changed": true
+      },
+      "generation": {
+        "attempts": [
+          {
+            "provider": "openai",
+            "requested_model": "gpt-6-luna",
+            "model": "gpt-6-luna",
+            "request_id": "req_282c3819104c42d1a44e5d7e222deb4a",
+            "duration_ms": 38140,
+            "http_status": 200,
+            "usage": {
+              "input_tokens": 1954,
+              "output_tokens": 4141,
+              "reasoning_tokens": 1160,
+              "cached_input_tokens": 0,
+              "cache_creation_tokens": 1951
+            },
+            "provider_succeeded": true,
+            "accepted": true
+          }
+        ],
+        "usage": {
+          "input_tokens": 1954,
+          "output_tokens": 4141,
+          "reasoning_tokens": 1160,
+          "cached_input_tokens": 0,
+          "cache_creation_tokens": 1951
+        }
+      },
+      "draft_still_empty": true
+    },
+    {
+      "step": "4. Applied exact reviewed proposal",
+      "at_seconds": 53.326,
+      "validation": {
+        "$schema": "http://127.0.0.1:8091/api/schemas/Validation.json",
+        "valid": true,
+        "issues": []
+      },
+      "draft_status": "Draft",
+      "manual_graph_edits": 0
+    },
+    {
+      "step": "5.1 A · Already activated at entry",
+      "at_seconds": 53.364,
+      "result": "PASS",
+      "messages": 0
+    },
+    {
+      "step": "5.2 B · Activation event at +30m",
+      "at_seconds": 53.392,
+      "result": "PASS",
+      "messages": 1
+    },
+    {
+      "step": "5.3 C · Activation after SMS at +60h",
+      "at_seconds": 53.408,
+      "result": "PASS",
+      "messages": 2
+    },
+    {
+      "step": "5.4 D · No activation: email then SMS",
+      "at_seconds": 53.422,
+      "result": "PASS",
+      "messages": 2
+    },
+    {
+      "step": "5.5 E · No SMS consent",
+      "at_seconds": 53.433,
+      "result": "PASS",
+      "messages": 1
+    },
+    {
+      "step": "5.6 F · SMS only: no welcome email",
+      "at_seconds": 53.446,
+      "result": "PASS",
+      "messages": 1
+    },
+    {
+      "step": "5.7 G · No channels: immediate exit",
+      "at_seconds": 53.454,
+      "result": "PASS",
+      "messages": 0
+    },
+    {
+      "step": "5.8 H · Profile activation at +47h, no event",
+      "at_seconds": 53.464,
+      "result": "PASS",
+      "messages": 1
+    },
+    {
+      "step": "5.9 I · Profile activation at +71h, no event",
+      "at_seconds": 53.475,
+      "result": "PASS",
+      "messages": 2
+    },
+    {
+      "step": "5.10 J · Re-registration after completion blocked",
+      "at_seconds": 53.486,
+      "result": "PASS",
+      "messages": 2
+    },
+    {
+      "step": "6. Final acceptance and isolation",
+      "at_seconds": 53.763,
+      "passed": 10,
+      "total": 10,
+      "publish_ready": true,
+      "published": false
+    }
+  ],
+  "scenarios": [
+    {
+      "id": 1,
+      "name": "A · Already activated at entry",
+      "result": "PASS",
+      "status": "EXITED",
+      "exit_reason": "converted",
+      "virtual_elapsed_seconds": 0,
+      "timing_passed": true,
+      "expected_elapsed_seconds": 0,
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "converted"
+          },
+          "pass": true,
+          "actual": "converted",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": []
+    },
+    {
+      "id": 2,
+      "name": "B · Activation event at +30m",
+      "result": "PASS",
+      "status": "EXITED",
+      "exit_reason": "converted",
+      "virtual_elapsed_seconds": 1800,
+      "timing_passed": true,
+      "expected_elapsed_seconds": 1800,
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "converted"
+          },
+          "pass": true,
+          "actual": "converted",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [
+        {
+          "channel": "email",
+          "status": "SIMULATED",
+          "mode": "SIMULATED",
+          "node": "Hoş geldin email'i",
+          "message": {
+            "channel": "email",
+            "encoding": "",
+            "html": "<p>Merhaba Alex,</p><p>Atlas hesabınızı etkinleştirmeye başlayın.</p><p><a href=\"https://example.com/activate\" rel=\"nofollow\">Hesabınızı etkinleştirin</a></p>",
+            "links": ["https://example.com/activate"],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "customer.attributes.product_name": "Atlas"
+            },
+            "preheader": "Atlas hesabınızı etkinleştirin",
+            "segments": 0,
+            "subject": "Hoş geldiniz, Alex",
+            "text": "Merhaba Alex,\n\nAtlas hesabınızı etkinleştirmeye başlayın: https://example.com/activate",
+            "to": "alex@example.invalid",
+            "units": 0,
+            "warnings": ["HTML was sanitized; unsupported markup or attributes were removed"]
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "C · Activation after SMS at +60h",
+      "result": "PASS",
+      "status": "EXITED",
+      "exit_reason": "converted",
+      "virtual_elapsed_seconds": 216000,
+      "timing_passed": true,
+      "expected_elapsed_seconds": 216000,
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "converted"
+          },
+          "pass": true,
+          "actual": "converted",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [
+        {
+          "channel": "email",
+          "status": "SIMULATED",
+          "mode": "SIMULATED",
+          "node": "Hoş geldin email'i",
+          "message": {
+            "channel": "email",
+            "encoding": "",
+            "html": "<p>Merhaba Alex,</p><p>Atlas hesabınızı etkinleştirmeye başlayın.</p><p><a href=\"https://example.com/activate\" rel=\"nofollow\">Hesabınızı etkinleştirin</a></p>",
+            "links": ["https://example.com/activate"],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "customer.attributes.product_name": "Atlas"
+            },
+            "preheader": "Atlas hesabınızı etkinleştirin",
+            "segments": 0,
+            "subject": "Hoş geldiniz, Alex",
+            "text": "Merhaba Alex,\n\nAtlas hesabınızı etkinleştirmeye başlayın: https://example.com/activate",
+            "to": "alex@example.invalid",
+            "units": 0,
+            "warnings": ["HTML was sanitized; unsupported markup or attributes were removed"]
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        },
+        {
+          "channel": "sms",
+          "status": "SIMULATED",
+          "mode": "SIMULATED",
+          "node": "Aktivasyon hatırlatma SMS'i",
+          "message": {
+            "channel": "sms",
+            "encoding": "Unicode",
+            "html": "",
+            "links": [],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "customer.attributes.product_name": "Atlas"
+            },
+            "preheader": "",
+            "segments": 2,
+            "subject": "",
+            "text": "Merhaba Alex, Atlas hesabınızı etkinleştirmek için: https://example.com/activate",
+            "to": "+15005550006",
+            "units": 80,
+            "warnings": []
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "D · No activation: email then SMS",
+      "result": "PASS",
+      "status": "COMPLETED",
+      "exit_reason": "completed",
+      "virtual_elapsed_seconds": 259200,
+      "timing_passed": true,
+      "expected_elapsed_seconds": 259200,
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "completed"
+          },
+          "pass": true,
+          "actual": "completed",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [
+        {
+          "channel": "email",
+          "status": "SIMULATED",
+          "mode": "SIMULATED",
+          "node": "Hoş geldin email'i",
+          "message": {
+            "channel": "email",
+            "encoding": "",
+            "html": "<p>Merhaba Alex,</p><p>Atlas hesabınızı etkinleştirmeye başlayın.</p><p><a href=\"https://example.com/activate\" rel=\"nofollow\">Hesabınızı etkinleştirin</a></p>",
+            "links": ["https://example.com/activate"],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "customer.attributes.product_name": "Atlas"
+            },
+            "preheader": "Atlas hesabınızı etkinleştirin",
+            "segments": 0,
+            "subject": "Hoş geldiniz, Alex",
+            "text": "Merhaba Alex,\n\nAtlas hesabınızı etkinleştirmeye başlayın: https://example.com/activate",
+            "to": "alex@example.invalid",
+            "units": 0,
+            "warnings": ["HTML was sanitized; unsupported markup or attributes were removed"]
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        },
+        {
+          "channel": "sms",
+          "status": "SIMULATED",
+          "mode": "SIMULATED",
+          "node": "Aktivasyon hatırlatma SMS'i",
+          "message": {
+            "channel": "sms",
+            "encoding": "Unicode",
+            "html": "",
+            "links": [],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "customer.attributes.product_name": "Atlas"
+            },
+            "preheader": "",
+            "segments": 2,
+            "subject": "",
+            "text": "Merhaba Alex, Atlas hesabınızı etkinleştirmek için: https://example.com/activate",
+            "to": "+15005550006",
+            "units": 80,
+            "warnings": []
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "E · No SMS consent",
+      "result": "PASS",
+      "status": "COMPLETED",
+      "exit_reason": "completed",
+      "virtual_elapsed_seconds": 172800,
+      "timing_passed": true,
+      "expected_elapsed_seconds": 172800,
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "completed"
+          },
+          "pass": true,
+          "actual": "completed",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [
+        {
+          "channel": "email",
+          "status": "SIMULATED",
+          "mode": "SIMULATED",
+          "node": "Hoş geldin email'i",
+          "message": {
+            "channel": "email",
+            "encoding": "",
+            "html": "<p>Merhaba Alex,</p><p>Atlas hesabınızı etkinleştirmeye başlayın.</p><p><a href=\"https://example.com/activate\" rel=\"nofollow\">Hesabınızı etkinleştirin</a></p>",
+            "links": ["https://example.com/activate"],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "customer.attributes.product_name": "Atlas"
+            },
+            "preheader": "Atlas hesabınızı etkinleştirin",
+            "segments": 0,
+            "subject": "Hoş geldiniz, Alex",
+            "text": "Merhaba Alex,\n\nAtlas hesabınızı etkinleştirmeye başlayın: https://example.com/activate",
+            "to": "alex@example.invalid",
+            "units": 0,
+            "warnings": ["HTML was sanitized; unsupported markup or attributes were removed"]
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "F · SMS only: no welcome email",
+      "result": "PASS",
+      "status": "COMPLETED",
+      "exit_reason": "completed",
+      "virtual_elapsed_seconds": 259200,
+      "timing_passed": true,
+      "expected_elapsed_seconds": 259200,
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "completed"
+          },
+          "pass": true,
+          "actual": "completed",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [
+        {
+          "channel": "sms",
+          "status": "SIMULATED",
+          "mode": "SIMULATED",
+          "node": "Aktivasyon hatırlatma SMS'i",
+          "message": {
+            "channel": "sms",
+            "encoding": "Unicode",
+            "html": "",
+            "links": [],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "customer.attributes.product_name": "Atlas"
+            },
+            "preheader": "",
+            "segments": 2,
+            "subject": "",
+            "text": "Merhaba Alex, Atlas hesabınızı etkinleştirmek için: https://example.com/activate",
+            "to": "+15005550006",
+            "units": 80,
+            "warnings": []
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "G · No channels: immediate exit",
+      "result": "PASS",
+      "status": "EXITED",
+      "exit_reason": "condition_not_met",
+      "virtual_elapsed_seconds": 0,
+      "timing_passed": true,
+      "expected_elapsed_seconds": 0,
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "condition_not_met"
+          },
+          "pass": true,
+          "actual": "condition_not_met",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": []
+    },
+    {
+      "id": 8,
+      "name": "H · Profile activation at +47h, no event",
+      "result": "PASS",
+      "status": "EXITED",
+      "exit_reason": "converted",
+      "virtual_elapsed_seconds": 172800,
+      "timing_passed": true,
+      "expected_elapsed_seconds": 172800,
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "converted"
+          },
+          "pass": true,
+          "actual": "converted",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [
+        {
+          "channel": "email",
+          "status": "SIMULATED",
+          "mode": "SIMULATED",
+          "node": "Hoş geldin email'i",
+          "message": {
+            "channel": "email",
+            "encoding": "",
+            "html": "<p>Merhaba Alex,</p><p>Atlas hesabınızı etkinleştirmeye başlayın.</p><p><a href=\"https://example.com/activate\" rel=\"nofollow\">Hesabınızı etkinleştirin</a></p>",
+            "links": ["https://example.com/activate"],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "customer.attributes.product_name": "Atlas"
+            },
+            "preheader": "Atlas hesabınızı etkinleştirin",
+            "segments": 0,
+            "subject": "Hoş geldiniz, Alex",
+            "text": "Merhaba Alex,\n\nAtlas hesabınızı etkinleştirmeye başlayın: https://example.com/activate",
+            "to": "alex@example.invalid",
+            "units": 0,
+            "warnings": ["HTML was sanitized; unsupported markup or attributes were removed"]
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "I · Profile activation at +71h, no event",
+      "result": "PASS",
+      "status": "EXITED",
+      "exit_reason": "converted",
+      "virtual_elapsed_seconds": 259200,
+      "timing_passed": true,
+      "expected_elapsed_seconds": 259200,
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "converted"
+          },
+          "pass": true,
+          "actual": "converted",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [
+        {
+          "channel": "email",
+          "status": "SIMULATED",
+          "mode": "SIMULATED",
+          "node": "Hoş geldin email'i",
+          "message": {
+            "channel": "email",
+            "encoding": "",
+            "html": "<p>Merhaba Alex,</p><p>Atlas hesabınızı etkinleştirmeye başlayın.</p><p><a href=\"https://example.com/activate\" rel=\"nofollow\">Hesabınızı etkinleştirin</a></p>",
+            "links": ["https://example.com/activate"],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "customer.attributes.product_name": "Atlas"
+            },
+            "preheader": "Atlas hesabınızı etkinleştirin",
+            "segments": 0,
+            "subject": "Hoş geldiniz, Alex",
+            "text": "Merhaba Alex,\n\nAtlas hesabınızı etkinleştirmeye başlayın: https://example.com/activate",
+            "to": "alex@example.invalid",
+            "units": 0,
+            "warnings": ["HTML was sanitized; unsupported markup or attributes were removed"]
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        },
+        {
+          "channel": "sms",
+          "status": "SIMULATED",
+          "mode": "SIMULATED",
+          "node": "Aktivasyon hatırlatma SMS'i",
+          "message": {
+            "channel": "sms",
+            "encoding": "Unicode",
+            "html": "",
+            "links": [],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "customer.attributes.product_name": "Atlas"
+            },
+            "preheader": "",
+            "segments": 2,
+            "subject": "",
+            "text": "Merhaba Alex, Atlas hesabınızı etkinleştirmek için: https://example.com/activate",
+            "to": "+15005550006",
+            "units": 80,
+            "warnings": []
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "J · Re-registration after completion blocked",
+      "result": "PASS",
+      "status": "COMPLETED",
+      "exit_reason": "completed",
+      "virtual_elapsed_seconds": 288000,
+      "timing_passed": true,
+      "expected_elapsed_seconds": 288000,
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "completed"
+          },
+          "pass": true,
+          "actual": "completed",
+          "description": "exit_reason"
+        },
+        {
+          "assertion": {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "enrollment_count"
+        }
+      ],
+      "messages": [
+        {
+          "channel": "sms",
+          "status": "SIMULATED",
+          "mode": "SIMULATED",
+          "node": "Aktivasyon hatırlatma SMS'i",
+          "message": {
+            "channel": "sms",
+            "encoding": "Unicode",
+            "html": "",
+            "links": [],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "customer.attributes.product_name": "Atlas"
+            },
+            "preheader": "",
+            "segments": 2,
+            "subject": "",
+            "text": "Merhaba Alex, Atlas hesabınızı etkinleştirmek için: https://example.com/activate",
+            "to": "+15005550006",
+            "units": 80,
+            "warnings": []
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        },
+        {
+          "channel": "email",
+          "status": "SIMULATED",
+          "mode": "SIMULATED",
+          "node": "Hoş geldin email'i",
+          "message": {
+            "channel": "email",
+            "encoding": "",
+            "html": "<p>Merhaba Alex,</p><p>Atlas hesabınızı etkinleştirmeye başlayın.</p><p><a href=\"https://example.com/activate\" rel=\"nofollow\">Hesabınızı etkinleştirin</a></p>",
+            "links": ["https://example.com/activate"],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "customer.attributes.product_name": "Atlas"
+            },
+            "preheader": "Atlas hesabınızı etkinleştirin",
+            "segments": 0,
+            "subject": "Hoş geldiniz, Alex",
+            "text": "Merhaba Alex,\n\nAtlas hesabınızı etkinleştirmeye başlayın: https://example.com/activate",
+            "to": "alex@example.invalid",
+            "units": 0,
+            "warnings": ["HTML was sanitized; unsupported markup or attributes were removed"]
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ]
+    }
+  ],
+  "published": false,
+  "journey_id": "0f70bad0-376d-43a3-80db-b09df0b23138",
+  "prompt": "Bir SaaS ürünü için onboarding ve aktivasyon journey'si oluştur. Sepet veya satın alma senaryosu değildir. Giriş yalnızca user_registered event'i. Aynı müşteri yaşam boyu yalnızca bir kez bu journey'ye girebilsin. Başlangıçta customer.attributes.activated true ise hiç mesaj göndermeden converted ile çık. Değilse iki kanal izni de yoksa hiç beklemeden condition_not_met ile çık. Email izni varsa hemen hoş geldin e-postası gönder; email izni yok ama SMS izni varsa email'i atla. Her iki yolda da girişten itibaren 48 saat account_activated event'ini bekle. account_activated tüm aktif aşamalarda derhal converted global exit yapsın. 48 saat dolunca customer.attributes.activated değerini tekrar kontrol et; profil true ise converted ile çık. Hâlâ aktif değilse yalnızca SMS izni varsa aktivasyon hatırlatma SMS'i gönder; SMS izni yoksa completed ile sonlandır. SMS'ten sonra 24 saat account_activated bekle. Bu süre de dolarsa customer.attributes.activated alanını son kez kontrol et; true ise converted, false ise completed ile sonlandır. Profil alanının event olmadan değişmesi bu kontrol noktalarında değerlendirilmelidir. İzinler customer.consents.email ve customer.consents.sms. Her mesajda customer.attributes.first_name ve customer.attributes.product_name kişiselleştirme alanlarını dinamik kullan. Email ve SMS CTA adresi https://example.com/activate; gerçek ürün bağlantısı olmadığına dair uyarı ekle. Kullanılabilir event'ler yalnızca user_registered ve account_activated; bilinmeyen event veya attribute üretme. İsim Alex, ürün Atlas gibi örnek değerleri mesajlara sabit yazma. Exit reason desteklenen canonical kodlardan olsun. Workspace frequency cap runtime tarafından ayrıca uygulanır. Hiçbir şey yayınlama.",
+  "generation_http_seconds": 38.219,
+  "generation_http_status": 200,
+  "generation": {
+    "attempts": [
+      {
+        "provider": "openai",
+        "requested_model": "gpt-6-luna",
+        "model": "gpt-6-luna",
+        "request_id": "req_282c3819104c42d1a44e5d7e222deb4a",
+        "duration_ms": 38140,
+        "http_status": 200,
+        "usage": {
+          "input_tokens": 1954,
+          "output_tokens": 4141,
+          "reasoning_tokens": 1160,
+          "cached_input_tokens": 0,
+          "cache_creation_tokens": 1951
+        },
+        "provider_succeeded": true,
+        "accepted": true
+      }
+    ],
+    "usage": {
+      "input_tokens": 1954,
+      "output_tokens": 4141,
+      "reasoning_tokens": 1160,
+      "cached_input_tokens": 0,
+      "cache_creation_tokens": 1951
+    }
+  },
+  "usage": {
+    "input_tokens": 1954,
+    "output_tokens": 4141,
+    "reasoning_tokens": 1160,
+    "cached_input_tokens": 0,
+    "cache_creation_tokens": 1951
+  },
+  "provider_seconds": 38.14,
+  "stage": "awaiting_agent_review",
+  "review_seconds": 11.53,
+  "validation": {
+    "$schema": "http://127.0.0.1:8091/api/schemas/Validation.json",
+    "valid": true,
+    "issues": []
+  },
+  "publish_check": {
+    "$schema": "http://127.0.0.1:8091/api/schemas/ResultStruct { Ready bool \"json:\\\"ready\\\"\"; Issues ListGateIssue \"json:\\\"issues\\\"\"; Policy string \"json:\\\"policy\\\"\" }Body.json",
+    "ready": true,
+    "issues": [],
+    "policy": "Consent is enforced for every send. Workspace frequency caps apply. Global exit: true. Publishing creates an immutable version."
+  },
+  "isolation": {
+    "draft": true,
+    "no_versions": true,
+    "no_live_executions": true,
+    "no_live_deliveries": true,
+    "no_live_customers": true
+  },
+  "post_review_seconds": 2.448,
+  "result": "PASS",
+  "total_elapsed_seconds": 53.763,
+  "finished_at": "2026-11-11T21:41:15.851Z",
+  "total_tokens": 6095
+}
