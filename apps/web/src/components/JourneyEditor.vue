@@ -217,7 +217,7 @@ async function confirmPublish() {
   }
 }
 function fixPublishIssue(code: string) {
-  if (code === 'test_required') {
+  if (code.startsWith('test_')) {
     tab.value = 'Preview & Test';
     previewTab.value = 'Test Lab';
   } else if (code === 'email_provider') emit('settings');
