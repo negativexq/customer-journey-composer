@@ -10,6 +10,26 @@ An AI-powered customer journey workspace with a visual builder, a persistent exe
 
 [Try locally](#run-locally) · [Product gallery](docs/images/README.md) · [Architecture](docs/ARCHITECTURE.md) · [CI](https://github.com/negativexq/customer-journey-composer/actions/workflows/ci.yml)
 
+## Verified locally — November 12, 2026
+
+The core MVP flow works locally: **AI proposal → reviewed Apply → editable canvas →
+virtual-time tests → Test Inbox**. Persistent execution, controlled publishing,
+version isolation and monitoring also have recorded local integration/browser
+verification. [Product validation report and evidence](docs/PRODUCT-VALIDATION.md).
+
+Two fresh live OpenAI `gpt-6-luna` generations were applied without manual graph
+edits and tested through the application:
+
+| Live generation                | Sandbox scenarios | Provider attempts             | Total tokens | Composer time | Report                                                                            |
+| ------------------------------ | ----------------- | ----------------------------- | ------------ | ------------- | --------------------------------------------------------------------------------- |
+| Abandoned cart recovery        | **10/10 PASS**    | 2, including automatic repair | 13,751       | 47.169s       | [Brief, output and results](docs/validation/luna-live-2026-11-12/README.md)       |
+| SaaS onboarding and activation | **10/10 PASS**    | 1                             | 6,095        | 38.219s       | [Brief, output and results](docs/validation/luna-onboarding-2026-11-12/README.md) |
+
+These live-generation trials remained **Draft** and used simulated messages.
+They verify the recorded outputs and scenarios; they do not establish production
+readiness, real channel delivery or equivalent live Claude results. No external
+deployment was performed.
+
 ## From customer event to customer experience
 
 | Workspace              | What you can do                                                                                                                 |
@@ -100,7 +120,7 @@ External provider outcomes can be ambiguous; the system preserves that state rat
 
 The Vue Flow preview version is explicitly pinned to `2.0.0-next.21`. Email uses an SMTP adapter with Mailpit for local tests; SMS uses a mock adapter in the MVP. Claude and OpenAI share a versioned workflow schema and proposal interface.
 
-Live LLM evaluation remains deferred. Local provider contracts, validation, approval and simulation tests run without paid model requests. AI never applies or publishes a proposal automatically. [AI configuration](docs/AI.md).
+Two explicitly authorized live OpenAI trials are recorded above; broader live-provider evaluation remains deferred. Deterministic provider-contract, validation, approval and simulation tests run without paid model requests. AI never applies or publishes a proposal automatically. [AI configuration](docs/AI.md).
 
 ```sh
 make install
@@ -110,7 +130,7 @@ make test-e2e
 make test-recovery
 ```
 
-The browser suite covers **46 desktop/mobile scenarios**, including real canvas connections, branch insertion/undo, access recovery, sandbox isolation, customer tracking and dark-OS/light-canvas behavior. Database integration tests use isolated PostgreSQL containers. Hosted CI also checks dependencies and application images.
+The latest recorded local browser run passed **48/48 desktop/mobile scenarios**, including real canvas connections, branch insertion/undo, access recovery, sandbox isolation, customer tracking and dark-OS/light-canvas behavior. Database integration tests use isolated PostgreSQL containers. Hosted CI also checks dependencies and application images.
 
 Measured 10,000-execution workloads, raw results and limitations are available in the [performance reports](docs/PERFORMANCE.md), [operational follow-up](docs/OPERATIONS-PERFORMANCE.md), [bounded-turn analysis](docs/BOUNDED-TURNS.md), [scheduler transaction tradeoffs](docs/SCHEDULER-LOCKS.md) and [latest queue/timer follow-up](docs/QUEUE-FOLLOWUP.md). They describe their own source revisions and matched baselines; they are not universal latency promises.
 
