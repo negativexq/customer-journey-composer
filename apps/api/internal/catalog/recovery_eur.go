@@ -14,7 +14,7 @@ func recoveryEUR() Template {
 	}
 	purchased := &workflow.Rule{Path: "customer.attributes.cart_purchased", Operator: "equals", Value: true}
 	entry := &workflow.Rule{Logic: "and", Rules: []workflow.Rule{{Path: "event.properties.currency", Operator: "equals", Value: "EUR"}, {Logic: "or", Rules: []workflow.Rule{{Path: "event.properties.amount", Operator: "greater_than", Value: 50.0}, {Path: "event.properties.amount", Operator: "equals", Value: 50.0}}}}}
-	w := workflow.Workflow{SchemaVersion: 1, GlobalExit: &workflow.ExitCriteria{EventName: "purchase_completed"}, Reentry: &workflow.Reentry{Mode: "cooldown", CooldownSeconds: 604800}, Nodes: []workflow.Node{
+	w := workflow.Workflow{AcceptanceContract: RecoveryEURContract, SchemaVersion: 1, GlobalExit: &workflow.ExitCriteria{EventName: "purchase_completed"}, Reentry: &workflow.Reentry{Mode: "cooldown", CooldownSeconds: 604800}, Nodes: []workflow.Node{
 		node("start", "event_trigger", "Cart abandoned · €50+", 340, 0, workflow.Config{EventName: "cart_abandoned", Filters: entry}),
 		node("channels", "condition", "Any channel consent?", 340, 160, workflow.Config{Rule: &workflow.Rule{Logic: "or", Rules: []workflow.Rule{*consent("email"), *consent("sms")}}}),
 		node("first_wait", "wait", "Wait 1 hour", 340, 320, workflow.Config{DurationSeconds: 3600, Timezone: "UTC"}),

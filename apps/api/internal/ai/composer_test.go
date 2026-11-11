@@ -37,7 +37,7 @@ func (s *sequence) Generate(context.Context, Request) ([]byte, error) {
 func TestSchemaArtifactAndCrossProviderSubset(t *testing.T) {
 	want, _ := json.MarshalIndent(Schema("journey"), "", "  ")
 	want = append(want, '\n')
-	got, err := os.ReadFile("../../../../docs/schemas/composer.v1.json")
+	got, err := os.ReadFile("../../../../docs/schemas/composer.v2.json")
 	if err != nil {
 		t.Fatal(err)
 	}

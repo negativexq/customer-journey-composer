@@ -42,6 +42,7 @@ export type Step = {
   config: Config;
 };
 export type Workflow = {
+  acceptance_contract?: string;
   schema_version: 1;
   nodes: Step[];
   edges: { id: string; source: string; target: string; port: string }[];

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/catalog"
 	"github.com/negativexq/customer-journey-composer/apps/api/internal/messaging"
 	"github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
 )
@@ -45,11 +46,11 @@ func registerWorkflows(api huma.API, pool *pgxpool.Pool) {
 		if err != nil {
 			return nil, err
 		}
-		issues := messaging.ValidateWorkflow(w)
+		issues := append(messaging.ValidateWorkflow(w), catalog.ValidateAcceptance(w)...)
 		return &Result[Validation]{Body: Validation{len(issues) == 0, issues}}, nil
 	})
 	huma.Post(api, "/api/v1/workflows/validate", func(ctx context.Context, in *struct{ Body workflow.Workflow }) (*Result[Validation], error) {
-		issues := messaging.ValidateWorkflow(in.Body)
+		issues := append(messaging.ValidateWorkflow(in.Body), catalog.ValidateAcceptance(in.Body)...)
 		return &Result[Validation]{Body: Validation{len(issues) == 0, issues}}, nil
 	})
 	huma.Post(api, "/api/v1/journeys/{id}/publish", func(ctx context.Context, in *struct {
@@ -80,7 +81,7 @@ func registerWorkflows(api huma.API, pool *pgxpool.Pool) {
 		if err := json.Unmarshal(data, &w); err != nil {
 			return nil, huma.Error422UnprocessableEntity("Invalid workflow")
 		}
-		if issues := messaging.ValidateWorkflow(w); len(issues) > 0 {
+		if issues := append(messaging.ValidateWorkflow(w), catalog.ValidateAcceptance(w)...); len(issues) > 0 {
 			return nil, huma.Error422UnprocessableEntity("Fix workflow validation errors before publishing")
 		}
 		gates, err := publishIssues(ctx, tx, in.ID, w)

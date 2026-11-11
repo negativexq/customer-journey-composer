@@ -1,0 +1,399 @@
+{
+  "name": "Reviewed Luna recovery correction",
+  "description": "50 EUR ve üzerindeki terk edilmiş sepetler için, izin durumuna göre email ve SMS içeren geri kazanım taslağı.",
+  "workflow": {
+    "schema_version": 1,
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "event_trigger",
+        "label": "Uygun terk edilmiş sepet",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "config": {
+          "event_name": "cart_abandoned",
+          "filters": {
+            "logic": "and",
+            "rules": [
+              {
+                "logic": "or",
+                "rules": [
+                  {
+                    "path": "event.properties.amount",
+                    "operator": "greater_than",
+                    "value": 50
+                  },
+                  {
+                    "path": "event.properties.amount",
+                    "operator": "equals",
+                    "value": 50
+                  }
+                ]
+              },
+              {
+                "path": "event.properties.currency",
+                "operator": "equals",
+                "value": "EUR"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "wait-1h",
+        "type": "wait",
+        "label": "1 saat bekle",
+        "position": {
+          "x": 200,
+          "y": 0
+        },
+        "config": {
+          "duration_seconds": 3600,
+          "timezone": "Europe/Istanbul"
+        }
+      },
+      {
+        "id": "email-consent",
+        "type": "condition",
+        "label": "Email izni var mı?",
+        "position": {
+          "x": 400,
+          "y": 0
+        },
+        "config": {
+          "rule": {
+            "path": "customer.consents.email",
+            "operator": "equals",
+            "value": true
+          }
+        }
+      },
+      {
+        "id": "email",
+        "type": "email",
+        "label": "Sepet hatırlatma emaili",
+        "position": {
+          "x": 620,
+          "y": -100
+        },
+        "config": {
+          "subject": "Sepetinizi tamamlamayı unutmayın",
+          "preheader": "Sepetiniz sizi bekliyor.",
+          "html": "<p>Merhaba {{ customer.attributes.first_name }},</p><p>{{ event.properties.amount_display }} tutarındaki sepetiniz sizi bekliyor.</p><p>Sepetinize dönmek için: <a href=\"https://example.com/cart\">Sepetimi görüntüle</a></p>",
+          "text": "Merhaba {{ customer.attributes.first_name }}, {{ event.properties.amount_display }} tutarındaki sepetiniz sizi bekliyor. Sepetinize dönmek için: https://example.com/cart",
+          "fallbacks": {
+            "customer.attributes.first_name": "Merhaba",
+            "event.properties.amount_display": "belirtilen tutardaki sepetiniz"
+          }
+        }
+      },
+      {
+        "id": "wait-purchase-24h",
+        "type": "wait_event",
+        "label": "24 saat satın alma bekle",
+        "position": {
+          "x": 850,
+          "y": 0
+        },
+        "config": {
+          "event_name": "purchase_completed",
+          "timeout_seconds": 86400
+        }
+      },
+      {
+        "id": "exit-converted-24h",
+        "type": "exit",
+        "label": "Converted",
+        "position": {
+          "x": 1080,
+          "y": -120
+        },
+        "config": {
+          "reason": "converted"
+        }
+      },
+      {
+        "id": "sms-consent",
+        "type": "condition",
+        "label": "SMS izni var mı?",
+        "position": {
+          "x": 1080,
+          "y": 100
+        },
+        "config": {
+          "rule": {
+            "path": "customer.consents.sms",
+            "operator": "equals",
+            "value": true
+          }
+        }
+      },
+      {
+        "id": "sms",
+        "type": "sms",
+        "label": "COMEBACK10 SMS'i",
+        "position": {
+          "x": 1300,
+          "y": 0
+        },
+        "config": {
+          "text": "Merhaba {{ customer.attributes.first_name }}, {{ event.properties.amount_display }} tutarındaki sepetinizi tamamlayın ve COMEBACK10 koduyla %10 indirim kazanın: https://example.com/cart",
+          "fallbacks": {
+            "customer.attributes.first_name": "Merhaba",
+            "event.properties.amount_display": "belirtilen tutardaki sepetiniz"
+          }
+        }
+      },
+      {
+        "id": "wait-purchase-48h",
+        "type": "wait_event",
+        "label": "48 saat satın alma bekle",
+        "position": {
+          "x": 1520,
+          "y": 0
+        },
+        "config": {
+          "event_name": "purchase_completed",
+          "timeout_seconds": 172800
+        }
+      },
+      {
+        "id": "exit-converted-48h",
+        "type": "exit",
+        "label": "Converted",
+        "position": {
+          "x": 1740,
+          "y": -100
+        },
+        "config": {
+          "reason": "converted"
+        }
+      },
+      {
+        "id": "exit-no-sms",
+        "type": "exit",
+        "label": "Mesaj göndermeden çık",
+        "position": {
+          "x": 1300,
+          "y": 200
+        },
+        "config": {
+          "reason": "completed"
+        }
+      },
+      {
+        "id": "exit-non-converted",
+        "type": "exit",
+        "label": "Completed / non-converted",
+        "position": {
+          "x": 1740,
+          "y": 100
+        },
+        "config": {
+          "reason": "completed"
+        }
+      },
+      {
+        "id": "any-consent",
+        "type": "condition",
+        "label": "Any permitted channel?",
+        "position": {
+          "x": 300,
+          "y": 120
+        },
+        "config": {
+          "rule": {
+            "logic": "or",
+            "rules": [
+              {
+                "path": "customer.consents.email",
+                "operator": "equals",
+                "value": true
+              },
+              {
+                "path": "customer.consents.sms",
+                "operator": "equals",
+                "value": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "initial-profile-purchase",
+        "type": "condition",
+        "label": "Already purchased?",
+        "position": {
+          "x": 300,
+          "y": 400
+        },
+        "config": {
+          "rule": {
+            "path": "customer.attributes.cart_purchased",
+            "operator": "equals",
+            "value": true
+          }
+        }
+      },
+      {
+        "id": "final-profile-purchase",
+        "type": "condition",
+        "label": "Final profile purchase check",
+        "position": {
+          "x": 300,
+          "y": 1650
+        },
+        "config": {
+          "rule": {
+            "path": "customer.attributes.cart_purchased",
+            "operator": "equals",
+            "value": true
+          }
+        }
+      },
+      {
+        "id": "exit-no-channel",
+        "type": "exit",
+        "label": "No permitted channel",
+        "position": {
+          "x": 700,
+          "y": 120
+        },
+        "config": {
+          "reason": "condition_not_met"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "trigger",
+        "target": "any-consent",
+        "port": "started"
+      },
+      {
+        "id": "e2",
+        "source": "wait-1h",
+        "target": "initial-profile-purchase",
+        "port": "completed"
+      },
+      {
+        "id": "e3",
+        "source": "email-consent",
+        "target": "email",
+        "port": "true"
+      },
+      {
+        "id": "e4",
+        "source": "email-consent",
+        "target": "wait-purchase-24h",
+        "port": "false"
+      },
+      {
+        "id": "e5",
+        "source": "email",
+        "target": "wait-purchase-24h",
+        "port": "next"
+      },
+      {
+        "id": "e6",
+        "source": "wait-purchase-24h",
+        "target": "exit-converted-24h",
+        "port": "matched"
+      },
+      {
+        "id": "e7",
+        "source": "wait-purchase-24h",
+        "target": "sms-consent",
+        "port": "timeout"
+      },
+      {
+        "id": "e8",
+        "source": "sms-consent",
+        "target": "sms",
+        "port": "true"
+      },
+      {
+        "id": "e9",
+        "source": "sms-consent",
+        "target": "exit-no-sms",
+        "port": "false"
+      },
+      {
+        "id": "e10",
+        "source": "sms",
+        "target": "wait-purchase-48h",
+        "port": "next"
+      },
+      {
+        "id": "e11",
+        "source": "wait-purchase-48h",
+        "target": "exit-converted-48h",
+        "port": "matched"
+      },
+      {
+        "id": "e12",
+        "source": "wait-purchase-48h",
+        "target": "final-profile-purchase",
+        "port": "timeout"
+      },
+      {
+        "id": "review-12",
+        "source": "any-consent",
+        "target": "wait-1h",
+        "port": "true"
+      },
+      {
+        "id": "review-13",
+        "source": "any-consent",
+        "target": "exit-no-channel",
+        "port": "false"
+      },
+      {
+        "id": "review-14",
+        "source": "initial-profile-purchase",
+        "target": "exit-converted-24h",
+        "port": "true"
+      },
+      {
+        "id": "review-15",
+        "source": "initial-profile-purchase",
+        "target": "email-consent",
+        "port": "false"
+      },
+      {
+        "id": "review-16",
+        "source": "final-profile-purchase",
+        "target": "exit-converted-48h",
+        "port": "true"
+      },
+      {
+        "id": "review-17",
+        "source": "final-profile-purchase",
+        "target": "exit-non-converted",
+        "port": "false"
+      }
+    ],
+    "global_exit": {
+      "event_name": "purchase_completed"
+    },
+    "reentry": {
+      "mode": "cooldown",
+      "cooldown_seconds": 604800
+    },
+    "acceptance_contract": "cart-recovery-eur.v1"
+  },
+  "provenance": {
+    "kind": "manual_correction",
+    "source": "luna-recovery-2026-11-11.json",
+    "new_generation_calls": 0,
+    "changes": [
+      "canonical completion codes",
+      "early any-channel gate",
+      "initial profile purchase check",
+      "final profile purchase check"
+    ]
+  }
+}

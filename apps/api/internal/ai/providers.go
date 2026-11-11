@@ -44,7 +44,7 @@ func (p *HTTPProvider) Generate(ctx context.Context, in Request) ([]byte, error)
 	path := "/v1/responses"
 	switch p.Kind {
 	case "openai":
-		body = map[string]any{"model": p.Model, "store": false, "max_output_tokens": 6000, "input": []any{map[string]any{"role": "system", "content": in.System}, map[string]any{"role": "user", "content": in.Prompt}}, "text": map[string]any{"format": map[string]any{"type": "json_schema", "name": "composer_v1_" + in.Kind, "strict": true, "schema": Schema(in.Kind)}}}
+		body = map[string]any{"model": p.Model, "store": false, "max_output_tokens": 6000, "input": []any{map[string]any{"role": "system", "content": in.System}, map[string]any{"role": "user", "content": in.Prompt}}, "text": map[string]any{"format": map[string]any{"type": "json_schema", "name": strings.ReplaceAll(SchemaVersion, ".", "_") + "_" + in.Kind, "strict": true, "schema": Schema(in.Kind)}}}
 	case "claude":
 		path = "/v1/messages"
 		body = map[string]any{"model": p.Model, "max_tokens": 6000, "system": in.System, "messages": []any{map[string]any{"role": "user", "content": in.Prompt}}, "output_config": map[string]any{"format": map[string]any{"type": "json_schema", "schema": Schema(in.Kind)}}}

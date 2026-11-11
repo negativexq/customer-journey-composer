@@ -7,7 +7,7 @@ import (
 	"slices"
 )
 
-const SchemaVersion = "composer.v1"
+const SchemaVersion = "composer.v2"
 
 type schema = map[string]any
 
@@ -60,7 +60,7 @@ func Schema(kind string) schema {
 		"email":            object(schema{"subject": text(), "preheader": text(), "html": text(), "text": text(), "fallbacks": fallbacks()}),
 		"sms":              object(schema{"text": text(), "fallbacks": fallbacks()}),
 		"update_attribute": object(schema{"attribute": text(), "operation": enumeration("set", "increment", "unset"), "value": reference("Scalar")}),
-		"exit":             object(schema{"reason": text()}),
+		"exit":             object(schema{"reason": enumeration("completed", "converted", "condition_not_met", "manually_cancelled")}),
 	}
 	variants := []any{}
 	for _, kind := range []string{"event_trigger", "wait", "wait_event", "condition", "email", "sms", "update_attribute", "exit"} {

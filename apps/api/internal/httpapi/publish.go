@@ -6,6 +6,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/catalog"
 	"github.com/negativexq/customer-journey-composer/apps/api/internal/delivery"
 	"github.com/negativexq/customer-journey-composer/apps/api/internal/messaging"
 	"github.com/negativexq/customer-journey-composer/apps/api/internal/simulation"
@@ -25,7 +26,7 @@ type gateReader interface {
 
 func publishIssues(ctx context.Context, db gateReader, id string, w workflow.Workflow) ([]gateIssue, error) {
 	issues := []gateIssue{}
-	for _, i := range messaging.ValidateWorkflow(w) {
+	for _, i := range append(messaging.ValidateWorkflow(w), catalog.ValidateAcceptance(w)...) {
 		issues = append(issues, gateIssue{"workflow", i.Message})
 	}
 	if len(issues) > 0 {

@@ -35,6 +35,7 @@ const status = ref<{
   default_provider: string;
   providers: Record<string, { configured: boolean; model: string }>;
 }>();
+const acceptanceContract = ref(props.workflow.acceptance_contract || '');
 const provider = ref('claude');
 const action = ref(props.workflow.nodes.length ? 'modify' : 'generate');
 const prompt = ref('');
@@ -49,6 +50,7 @@ async function useRecoveryBrief() {
     const sample = await api<{ brief: string }>('/templates/abandoned-cart-eur');
     prompt.value = sample.brief;
     action.value = 'generate';
+    acceptanceContract.value = 'cart-recovery-eur.v1';
   } catch (cause) {
     error.value = String(cause);
   } finally {
@@ -92,6 +94,7 @@ async function compose() {
   try {
     const input = {
       provider: provider.value,
+      acceptance_contract: acceptanceContract.value || undefined,
       action: action.value,
       prompt: prompt.value.trim() || action.value.replaceAll('_', ' '),
       name: props.name,
@@ -157,6 +160,15 @@ onBeforeUnmount(() => controller?.abort());
       Live generation is disabled or the selected provider needs a server-side API key and model.
       Manual editing and tests remain available.
     </p>
+    <label
+      >Behavior contract<select
+        v-model="acceptanceContract"
+        :disabled="busy || readonly || !!workflow.acceptance_contract"
+      >
+        <option value="">General workflow — manual acceptance tests</option>
+        <option value="cart-recovery-eur.v1">EUR cart recovery — validated behavior</option>
+      </select></label
+    >
     <label
       >Action<select v-model="action" :disabled="busy">
         <option value="generate">Generate Journey</option>

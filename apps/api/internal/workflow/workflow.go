@@ -65,11 +65,12 @@ type Reentry struct {
 	CooldownSeconds int64  `json:"cooldown_seconds,omitempty"`
 }
 type Workflow struct {
-	SchemaVersion int           `json:"schema_version" minimum:"1" maximum:"1"`
-	Nodes         []Node        `json:"nodes" maxItems:"100"`
-	Edges         []Edge        `json:"edges" maxItems:"200"`
-	GlobalExit    *ExitCriteria `json:"global_exit,omitempty"`
-	Reentry       *Reentry      `json:"reentry,omitempty"`
+	AcceptanceContract string        `json:"acceptance_contract,omitempty" enum:"cart-recovery-eur.v1"`
+	SchemaVersion      int           `json:"schema_version" minimum:"1" maximum:"1"`
+	Nodes              []Node        `json:"nodes" maxItems:"100"`
+	Edges              []Edge        `json:"edges" maxItems:"200"`
+	GlobalExit         *ExitCriteria `json:"global_exit,omitempty"`
+	Reentry            *Reentry      `json:"reentry,omitempty"`
 }
 type Issue struct {
 	NodeID  string `json:"node_id,omitempty"`

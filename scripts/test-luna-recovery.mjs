@@ -8,11 +8,10 @@ assert(
   base.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(base.hostname),
   'This verification is local only.',
 );
+const corrected = process.argv.includes('--corrected');
+const fixtureName = corrected ? 'luna-recovery-corrected.json' : 'luna-recovery-2026-11-11.json';
 const proposal = JSON.parse(
-  await readFile(
-    new URL('../tests/fixtures/ai/luna-recovery-2026-11-11.json', import.meta.url),
-    'utf8',
-  ),
+  await readFile(new URL('../tests/fixtures/ai/' + fixtureName, import.meta.url), 'utf8'),
 );
 // PostgreSQL JSONB may reorder object keys; compare semantic content, preserving array order.
 const canonical = (value) =>
@@ -34,7 +33,9 @@ let cookie = '',
   csrf = '';
 async function call(path, method = 'GET', data) {
   assert(
-    !path.includes('/ai/') && !path.includes('/publish') && !path.includes('/messages/test-send'),
+    !path.includes('/ai/') &&
+      (!path.includes('/publish') || (method === 'GET' && path.endsWith('/publish-check'))) &&
+      !path.includes('/messages/test-send'),
     'Generation, publication and provider sends are forbidden in this replay.',
   );
   const response = await fetch(new URL('/api/v1' + path, base), {
@@ -124,6 +125,8 @@ const initialMetrics = (await call('/overview')).metrics;
 const report = {
   recorded_at: new Date().toISOString(),
   model_fixture: 'gpt-6-luna',
+  correction: corrected,
+  fixture: fixtureName,
   new_generation_calls: 0,
   workflow_sha256: originalHash,
   test_contract:
@@ -208,7 +211,17 @@ report.summary = {
   reference_pass: report.cases.filter((c) => c.control.result === 'PASS').length,
   total: cases.length,
 };
-const out = process.env.CJC_SCENARIO_REPORT || '.tmp/luna-ten-scenarios.json';
+const gate = await call(`/journeys/${generated.id}/publish-check`);
+report.publish_ready = gate.ready;
+report.publish_issues = gate.issues;
+assert.equal(
+  gate.ready,
+  report.summary.generated_pass === 10,
+  'Publication readiness disagrees with acceptance results.',
+);
+const out =
+  process.env.CJC_SCENARIO_REPORT ||
+  (corrected ? '.tmp/luna-corrected-ten-scenarios.json' : '.tmp/luna-ten-scenarios.json');
 await mkdir(dirname(out), { recursive: true });
 await writeFile(out, JSON.stringify(report, null, 2) + '\n');
 console.log(

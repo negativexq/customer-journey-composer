@@ -88,3 +88,16 @@ never qualify a journey for publication. Test creation and requirement changes
 serialize with publication on the journey row. Migration 0019 adds sandbox-only
 acceptance metadata and indexes; production worker state and old snapshots are
 unchanged.
+
+### Reviewed AI behavior contract
+
+`composer.v2` constrains newly generated exit reasons to documented outcome codes;
+manual custom reasons and existing published versions retain their semantics.
+The EUR recovery brief selects `cart-recovery-eur.v1`, persisted as optional
+workflow metadata. Its bounded, no-I/O acceptance checks run during composition,
+validation and pre-launch review, including profile-only purchase decisions,
+channel consent, amount/currency boundaries and cooldown. Unselected general
+workflows explicitly warn that graph validity is not brief compliance. Workers
+do not interpret this metadata or automatically rewrite graphs. The original
+Luna fixture is retained; a separate, explicitly reviewed correction adds the
+missing decisions and is tested without further model calls.
