@@ -35,9 +35,7 @@ test('builds a connected workflow, validates and publishes an immutable version'
   await expect(page.getByRole('status')).toContainText('Workflow is valid');
   await page.getByRole('button', { name: 'Publish', exact: true }).click();
   const review = page.getByRole('dialog', { name: 'Review before publishing' });
-  await expect(
-    review.getByText('Complete a passing full Test Lab run', { exact: false }),
-  ).toBeVisible();
+  await expect(review.getByText('Run all required scenarios', { exact: false })).toBeVisible();
   await expect(review.getByRole('button', { name: 'Publish version', exact: true })).toBeDisabled();
   await review.getByRole('button', { name: 'Cancel', exact: true }).click();
   const gate = await (
