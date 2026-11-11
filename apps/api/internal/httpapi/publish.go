@@ -31,13 +31,26 @@ func publishIssues(ctx context.Context, db gateReader, id string, w workflow.Wor
 	if len(issues) > 0 {
 		return issues, nil
 	}
-	var passed bool
-	if err := db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM test_runs WHERE workspace_id=$1 AND journey_id=$2 AND workflow_hash=$3 AND result='PASS' AND mode='FULL' AND finalized LIMIT 1)`, who(ctx).WorkspaceID, id, simulation.Hash(w)).Scan(&passed); err != nil {
+	var passed, failed, pending, missing int
+	if err := db.QueryRow(ctx, `WITH latest AS MATERIALIZED (
+ SELECT DISTINCT ON(r.acceptance_key) r.acceptance_key,r.scenario_id,r.result,r.finalized
+ FROM test_runs r LEFT JOIN test_scenarios s ON s.workspace_id=r.workspace_id AND s.id=r.scenario_id
+ WHERE r.workspace_id=$1 AND r.journey_id=$2 AND r.workflow_hash=$3 AND r.mode='FULL' AND r.acceptance AND (r.scenario_id IS NULL OR s.required)
+ ORDER BY r.acceptance_key,r.created_at DESC,r.id DESC
+ ) SELECT count(*) FILTER(WHERE result='PASS' AND finalized),count(*) FILTER(WHERE result='FAIL' AND finalized),count(*) FILTER(WHERE NOT finalized OR result='PENDING'),
+ (SELECT count(*) FROM test_scenarios s WHERE s.workspace_id=$1 AND s.journey_id=$2 AND s.required AND NOT EXISTS(SELECT 1 FROM latest l WHERE l.scenario_id=s.id)) FROM latest`, who(ctx).WorkspaceID, id, simulation.Hash(w)).Scan(&passed, &failed, &pending, &missing); err != nil {
 		return nil, dbError(err)
 	}
-	if !passed {
-		issues = append(issues, gateIssue{"test_required", "Complete a passing full Test Lab run for this exact workflow before publishing"})
+	if passed+failed+pending == 0 || missing > 0 {
+		issues = append(issues, gateIssue{"test_required", fmt.Sprintf("Run all required scenarios against this exact workflow (%d saved cases missing)", missing)})
 	}
+	if failed > 0 {
+		issues = append(issues, gateIssue{"test_failed", fmt.Sprintf("%d acceptance scenarios failed; replay and pass each case before publishing", failed)})
+	}
+	if pending > 0 {
+		issues = append(issues, gateIssue{"test_incomplete", fmt.Sprintf("%d acceptance scenarios are unfinished", pending)})
+	}
+
 	hasEmail := false
 	for _, n := range w.Nodes {
 		hasEmail = hasEmail || n.Type == "email"

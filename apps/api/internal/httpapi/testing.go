@@ -15,6 +15,8 @@ import (
 )
 
 type testInput struct {
+	Required        *bool         `json:"required,omitempty"`
+	Exploratory     bool          `json:"exploratory,omitempty"`
 	ScenarioID      string        `json:"scenario_id,omitempty" format:"uuid"`
 	JourneyID       string        `json:"journey_id,omitempty" format:"uuid"`
 	Version         int           `json:"version,omitempty" minimum:"0"`
@@ -22,6 +24,7 @@ type testInput struct {
 	Scenario        *sim.Scenario `json:"scenario,omitempty"`
 }
 type testSource struct {
+	Exploratory   bool
 	JourneyID     string
 	VersionID     *string
 	DraftRevision *int
@@ -32,6 +35,7 @@ type testSource struct {
 	ParentID      *string
 }
 type TestRun struct {
+	Acceptance    bool         `json:"acceptance"`
 	ID            string       `json:"id"`
 	JourneyID     string       `json:"journey_id"`
 	VersionID     *string      `json:"version_id,omitempty"`
@@ -46,7 +50,7 @@ type TestRun struct {
 }
 
 func sourceForTest(ctx context.Context, pool *pgxpool.Pool, input testInput) (testSource, error) {
-	source := testSource{JourneyID: input.JourneyID}
+	source := testSource{JourneyID: input.JourneyID, Exploratory: input.Exploratory}
 	if input.ScenarioID != "" {
 		var raw, flow []byte
 		var id string
@@ -63,6 +67,7 @@ func sourceForTest(ctx context.Context, pool *pgxpool.Pool, input testInput) (te
 		}
 		if input.Scenario != nil {
 			source.Scenario = *input.Scenario
+			source.ScenarioID = nil
 		}
 		if !input.UseCurrentDraft && input.Version == 0 && input.Scenario == nil {
 			return source, nil
@@ -97,6 +102,7 @@ func sourceForTest(ctx context.Context, pool *pgxpool.Pool, input testInput) (te
 	source.Hash = sim.Hash(source.Workflow)
 	if input.Scenario != nil {
 		source.Scenario = *input.Scenario
+		source.ScenarioID = nil
 	}
 	if source.Scenario.Name == "" {
 		source.Scenario.Name = "Journey test"
@@ -172,6 +178,9 @@ func createTestRun(ctx context.Context, pool *pgxpool.Pool, source testSource) (
 		return nil, dbError(err)
 	}
 	defer func() { _ = tx.Rollback(context.Background()) }()
+	if _, err := tx.Exec(ctx, `SELECT 1 FROM journeys WHERE workspace_id=$1 AND id=$2 FOR SHARE`, workspace, source.JourneyID); err != nil {
+		return nil, dbError(err)
+	}
 	if err := saveSnapshot(ctx, tx, workspace, source); err != nil {
 		return nil, dbError(err)
 	}
@@ -181,7 +190,7 @@ func createTestRun(ctx context.Context, pool *pgxpool.Pool, source testSource) (
 	if scenario.CustomerID != "" {
 		customer = &scenario.CustomerID
 	}
-	out, err := jsonRow[TestRun](tx.QueryRow(ctx, `INSERT INTO test_runs(workspace_id,journey_id,version_id,draft_revision,scenario_id,parent_run_id,workflow_hash,source_customer_id,mode,scenario,state,execution_state,virtual_now,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING to_jsonb(test_runs)-'workspace_id'`, workspace, source.JourneyID, source.VersionID, source.DraftRevision, source.ScenarioID, source.ParentID, source.Hash, customer, mode, scenarioJSON, stateJSON, state.Status, state.Now, who(ctx).ID))
+	out, err := jsonRow[TestRun](tx.QueryRow(ctx, `INSERT INTO test_runs(workspace_id,journey_id,version_id,draft_revision,scenario_id,parent_run_id,workflow_hash,source_customer_id,mode,scenario,state,execution_state,virtual_now,created_by,acceptance) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING to_jsonb(test_runs)-'workspace_id'`, workspace, source.JourneyID, source.VersionID, source.DraftRevision, source.ScenarioID, source.ParentID, source.Hash, customer, mode, scenarioJSON, stateJSON, state.Status, state.Now, who(ctx).ID, !source.Exploratory))
 	if err != nil {
 		return nil, err
 	}
@@ -251,6 +260,9 @@ func registerTesting(api huma.API, pool *pgxpool.Pool) {
 			return nil, dbError(err)
 		}
 		defer func() { _ = tx.Rollback(context.Background()) }()
+		if _, err := tx.Exec(ctx, `SELECT 1 FROM journeys WHERE workspace_id=$1 AND id=$2 FOR SHARE`, who(ctx).WorkspaceID, source.JourneyID); err != nil {
+			return nil, dbError(err)
+		}
 		if err := saveSnapshot(ctx, tx, who(ctx).WorkspaceID, source); err != nil {
 			return nil, dbError(err)
 		}
@@ -259,7 +271,7 @@ func registerTesting(api huma.API, pool *pgxpool.Pool) {
 		if scenario.CustomerID != "" {
 			customer = &scenario.CustomerID
 		}
-		out, err := jsonRow[map[string]any](tx.QueryRow(ctx, `INSERT INTO test_scenarios(workspace_id,journey_id,version_id,draft_revision,workflow_hash,source_customer_id,name,scenario,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING jsonb_build_object('id',id,'name',name,'workflow_hash',workflow_hash,'created_at',created_at)`, who(ctx).WorkspaceID, source.JourneyID, source.VersionID, source.DraftRevision, source.Hash, customer, scenario.Name, data, who(ctx).ID))
+		out, err := jsonRow[map[string]any](tx.QueryRow(ctx, `INSERT INTO test_scenarios(workspace_id,journey_id,version_id,draft_revision,workflow_hash,source_customer_id,name,scenario,created_by,required) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING jsonb_build_object('id',id,'name',name,'workflow_hash',workflow_hash,'created_at',created_at,'required',required)`, who(ctx).WorkspaceID, source.JourneyID, source.VersionID, source.DraftRevision, source.Hash, customer, scenario.Name, data, who(ctx).ID, in.Body.Required == nil || *in.Body.Required))
 		if err != nil {
 			return nil, err
 		}
@@ -268,8 +280,41 @@ func registerTesting(api huma.API, pool *pgxpool.Pool) {
 		}
 		return out, nil
 	})
+	huma.Patch(api, "/api/v1/test-scenarios/{id}/requirement", func(ctx context.Context, in *struct {
+		ID   string `path:"id" format:"uuid"`
+		Body struct {
+			Required bool `json:"required"`
+		}
+	}) (*Result[map[string]any], error) {
+		if err := canEdit(ctx); err != nil {
+			return nil, err
+		}
+		tx, err := pool.Begin(ctx)
+		if err != nil {
+			return nil, dbError(err)
+		}
+		defer func() { _ = tx.Rollback(context.Background()) }()
+		var journey string
+		if err = tx.QueryRow(ctx, `SELECT journey_id::text FROM test_scenarios WHERE workspace_id=$1 AND id=$2`, who(ctx).WorkspaceID, in.ID).Scan(&journey); err != nil {
+			return nil, dbError(err)
+		}
+		if _, err = tx.Exec(ctx, `SELECT 1 FROM journeys WHERE workspace_id=$1 AND id=$2 FOR UPDATE`, who(ctx).WorkspaceID, journey); err != nil {
+			return nil, dbError(err)
+		}
+		out, err := jsonRow[map[string]any](tx.QueryRow(ctx, `UPDATE test_scenarios SET required=$3 WHERE workspace_id=$1 AND id=$2 RETURNING jsonb_build_object('id',id,'required',required)`, who(ctx).WorkspaceID, in.ID, in.Body.Required))
+		if err != nil {
+			return nil, err
+		}
+		if err = audit(ctx, tx, "test_scenario.requirement", &in.ID, map[string]any{"required": in.Body.Required}); err != nil {
+			return nil, dbError(err)
+		}
+		if err = tx.Commit(ctx); err != nil {
+			return nil, dbError(err)
+		}
+		return out, nil
+	})
 	huma.Get(api, "/api/v1/test-scenarios", func(ctx context.Context, _ *struct{}) (*Result[[]map[string]any], error) {
-		return jsonRow[[]map[string]any](pool.QueryRow(ctx, `SELECT COALESCE(jsonb_agg(to_jsonb(s)),'[]'::jsonb) FROM (SELECT id,journey_id,version_id,draft_revision,name,workflow_hash,created_at FROM test_scenarios WHERE workspace_id=$1 ORDER BY created_at DESC,id LIMIT 100) s`, who(ctx).WorkspaceID))
+		return jsonRow[[]map[string]any](pool.QueryRow(ctx, `SELECT COALESCE(jsonb_agg(to_jsonb(s)),'[]'::jsonb) FROM (SELECT id,journey_id,version_id,draft_revision,name,workflow_hash,required,created_at FROM test_scenarios WHERE workspace_id=$1 ORDER BY created_at DESC,id LIMIT 100) s`, who(ctx).WorkspaceID))
 	})
 	huma.Post(api, "/api/v1/test-runs", func(ctx context.Context, in *struct{ Body testInput }) (*Result[TestRun], error) {
 		if err := canEdit(ctx); err != nil {
@@ -362,7 +407,7 @@ func registerTesting(api huma.API, pool *pgxpool.Pool) {
 		}
 		var source testSource
 		var scene, flow []byte
-		err := pool.QueryRow(ctx, `SELECT r.journey_id::text,r.version_id::text,r.draft_revision,r.workflow_hash,r.scenario,w.workflow FROM test_runs r JOIN sandbox_workflows w ON w.workspace_id=r.workspace_id AND w.workflow_hash=r.workflow_hash WHERE r.workspace_id=$1 AND r.id=$2`, who(ctx).WorkspaceID, in.ID).Scan(&source.JourneyID, &source.VersionID, &source.DraftRevision, &source.Hash, &scene, &flow)
+		err := pool.QueryRow(ctx, `SELECT r.journey_id::text,r.version_id::text,r.draft_revision,r.workflow_hash,r.scenario,w.workflow,r.scenario_id::text,NOT r.acceptance FROM test_runs r JOIN sandbox_workflows w ON w.workspace_id=r.workspace_id AND w.workflow_hash=r.workflow_hash WHERE r.workspace_id=$1 AND r.id=$2`, who(ctx).WorkspaceID, in.ID).Scan(&source.JourneyID, &source.VersionID, &source.DraftRevision, &source.Hash, &scene, &flow, &source.ScenarioID, &source.Exploratory)
 		if err != nil {
 			return nil, dbError(err)
 		}

@@ -75,3 +75,16 @@ Runtime/delivery claims retain ordered pending/due indexes as their outer access
 The delivery scheduler commits one action before acquiring another customer's lock, retaining a bounded drain budget of 32 actions. Fresh lifecycle/pending/frequency reads follow customer locking; delivery creation and outbox acknowledgement are atomic. The [scheduler measurements](SCHEDULER-LOCKS.md) distinguish reduced lock scope from the remaining per-action claim/commit overhead and slower mock-send drain versus the original baseline. Event inspection separately adds the workspace/event/history index in migration 0018.
 
 Within a drain, `(created_at,id)` continuation seeks avoid repeatedly scanning the pending prefix; the cursor advances after commit and resets each drain so earlier skipped/backdated work is revisited. Runtime customer/journey/execution reads share a pgx transport batch but remain separate statements in lock order. The lease fence and its clock stay after that batch. [Queue follow-up measurements](QUEUE-FOLLOWUP.md) cover correctness, observed gains and remaining overhead. Benchmark deadline spreading changes only isolated fixture jobs, never production wait times.
+
+### Required test acceptance
+
+Publication checks the latest full acceptance run for every saved required case
+and every inline case exercised against the exact workflow hash. Saved cases
+remain required across draft changes and must be regressed on the current draft;
+overriding a saved scenario does not fulfill its original requirement. Replay
+preserves scenario identity and can supersede an earlier failed result. Saved
+cases may be explicitly marked optional with an audit record; exploratory runs
+never qualify a journey for publication. Test creation and requirement changes
+serialize with publication on the journey row. Migration 0019 adds sandbox-only
+acceptance metadata and indexes; production worker state and old snapshots are
+unchanged.

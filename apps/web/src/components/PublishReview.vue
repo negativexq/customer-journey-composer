@@ -33,9 +33,9 @@ const checks = computed(() => [
     checked: !!gates.value,
   },
   {
-    label: 'Passing full test for this workflow',
+    label: 'Required acceptance scenarios for this workflow',
     needed: true,
-    passed: graphValid.value && !gates.value?.issues.some((i) => i.code === 'test_required'),
+    passed: graphValid.value && !gates.value?.issues.some((i) => i.code.startsWith('test_')),
     checked: graphValid.value,
   },
   {
@@ -145,7 +145,7 @@ onBeforeUnmount(() => controller?.abort());
               <p>{{ issue.message }}</p>
               <button class="text-button" @click="fix(issue.code)">
                 {{
-                  issue.code === 'test_required'
+                  issue.code.startsWith('test_')
                     ? 'Open Test Lab'
                     : issue.code === 'email_provider'
                       ? 'Open settings'

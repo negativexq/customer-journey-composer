@@ -142,8 +142,21 @@ const assertions = ref(
 const faults = ref('[]');
 const faultChannel = ref('email');
 const prior = ref(0);
-const scenarios = ref<{ id: string; name: string; journey_id: string }[]>([]);
+const scenarios = ref<{ id: string; name: string; journey_id: string; required: boolean }[]>([]);
+const exploratory = ref(false);
+const requiredScenario = ref(true);
+async function changeRequirement() {
+  await perform(async () => {
+    await api(`/test-scenarios/${savedScenario.value}/requirement`, 'PATCH', {
+      required: requiredScenario.value,
+    });
+    await refresh();
+  });
+}
 const savedScenario = ref('');
+watch(savedScenario, (id) => {
+  requiredScenario.value = scenarios.value.find((s) => s.id === id)?.required ?? true;
+});
 const currentDraft = ref(false);
 const runs = ref<{ id: string; result: string; execution_state: string; created_at: string }[]>([]);
 const run = ref<Run>();
@@ -260,6 +273,8 @@ function input() {
     version: version.value,
     scenario_id: savedScenario.value || undefined,
     use_current_draft: currentDraft.value,
+    exploratory: exploratory.value,
+    required: requiredScenario.value,
     ...(savedScenario.value
       ? {}
       : {
@@ -431,6 +446,18 @@ onMounted(
             </select></label
           ><label v-if="savedScenario" class="checkbox-label"
             ><input v-model="currentDraft" type="checkbox" />Use current draft for regression</label
+          >
+          <label class="checkbox-label"
+            ><input v-model="exploratory" :disabled="busy || readonly" type="checkbox" />Exploratory
+            run (does not qualify for publishing)</label
+          >
+          <label class="checkbox-label"
+            ><input
+              v-model="requiredScenario"
+              :disabled="busy || readonly"
+              type="checkbox"
+              @change="savedScenario && changeRequirement()"
+            />Saved scenario required for publishing</label
           >
           <div v-if="savedScenario" class="scenario-snapshot">
             <AppIcon name="history" :size="17" />
