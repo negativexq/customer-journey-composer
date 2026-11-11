@@ -1,0 +1,973 @@
+{
+  "started_at": "2026-11-11T21:25:13.204Z",
+  "model": "gpt-6-luna",
+  "schema": "composer.v2",
+  "generation_requests": 1,
+  "steps": [
+    {
+      "step": "1. Workspace and blank draft ready",
+      "at_seconds": 0.827,
+      "draft_status": "Draft"
+    },
+    {
+      "step": "2. Starting one Composer generation request",
+      "at_seconds": 1.07,
+      "contract": "cart-recovery-eur.v1"
+    },
+    {
+      "step": "3. Proposal ready for review",
+      "at_seconds": 48.67,
+      "nodes": 17,
+      "edges": 18,
+      "warnings": [
+        "https://example.com/cart demo adresidir; yayından önce gerçek sepet adresiyle değiştirip doğrulayın.",
+        "COMEBACK10 kuponunun geçerliliğini, indirim oranını ve koşullarını yayından önce doğrulayın.",
+        "E-posta ve SMS sağlayıcı ayarları/kanal yapılandırması bu taslakta belirtilmemiştir; gönderim öncesinde yapılandırılmalıdır. İzinler ve workspace frequency cap runtime tarafından uygulanır.",
+        "customer.attributes.cart_purchased alanının güncel ve bu sepete özgü tutulduğunu doğrulayın.",
+        "İsim veya event.properties.amount_display eksik olduğunda mesajlarda belirtilen yedek metinler kullanılır."
+      ],
+      "diff": {
+        "metadata_changed": true,
+        "added_nodes": [
+          "cart_check_1h",
+          "cart_check_final",
+          "consent_initial",
+          "email_consent",
+          "exit_completed_final",
+          "exit_completed_no_sms",
+          "exit_converted_1h",
+          "exit_converted_24h",
+          "exit_converted_final",
+          "exit_no_initial_consent",
+          "send_email",
+          "send_sms",
+          "sms_consent",
+          "trigger",
+          "wait_1h",
+          "wait_purchase_24h",
+          "wait_purchase_48h"
+        ],
+        "removed_nodes": [],
+        "updated_nodes": [],
+        "changed_conditions": [],
+        "changed_messages": [],
+        "edges_changed": true,
+        "exit_changed": true,
+        "reentry_changed": true
+      },
+      "generation": {
+        "attempts": [
+          {
+            "provider": "openai",
+            "requested_model": "gpt-6-luna",
+            "model": "gpt-6-luna",
+            "request_id": "req_5ec7def033574b79b4154c3a4ac6cdb8",
+            "duration_ms": 34704,
+            "http_status": 200,
+            "usage": {
+              "input_tokens": 2102,
+              "output_tokens": 4614,
+              "reasoning_tokens": 1748,
+              "cached_input_tokens": 0,
+              "cache_creation_tokens": 2099
+            },
+            "provider_succeeded": true,
+            "accepted": false
+          },
+          {
+            "provider": "openai",
+            "requested_model": "gpt-6-luna",
+            "model": "gpt-6-luna",
+            "request_id": "req_9487b3883d394e9884d1e6f8c66b262e",
+            "duration_ms": 12382,
+            "http_status": 200,
+            "usage": {
+              "input_tokens": 4992,
+              "output_tokens": 2043,
+              "reasoning_tokens": 199,
+              "cached_input_tokens": 1627,
+              "cache_creation_tokens": 3362
+            },
+            "provider_succeeded": true,
+            "accepted": true
+          }
+        ],
+        "usage": {
+          "input_tokens": 7094,
+          "output_tokens": 6657,
+          "reasoning_tokens": 1947,
+          "cached_input_tokens": 1627,
+          "cache_creation_tokens": 5461
+        }
+      },
+      "draft_still_empty": true
+    },
+    {
+      "step": "4. Applied exact reviewed proposal",
+      "at_seconds": 116.96,
+      "validation": {
+        "$schema": "http://127.0.0.1:8091/api/schemas/Validation.json",
+        "valid": true,
+        "issues": []
+      },
+      "draft_status": "Draft",
+      "manual_graph_edits": 0
+    },
+    {
+      "step": "5.1 A · Purchase after 30 minutes",
+      "at_seconds": 116.995,
+      "result": "PASS",
+      "messages": 0
+    },
+    {
+      "step": "5.2 B · Purchase after the email",
+      "at_seconds": 117.016,
+      "result": "PASS",
+      "messages": 1
+    },
+    {
+      "step": "5.3 C · Email and SMS, no purchase",
+      "at_seconds": 117.032,
+      "result": "PASS",
+      "messages": 2
+    },
+    {
+      "step": "5.4 D · SMS consent denied",
+      "at_seconds": 117.044,
+      "result": "PASS",
+      "messages": 1
+    },
+    {
+      "step": "5.5 E · Repeat enrollment inside seven days",
+      "at_seconds": 117.052,
+      "result": "PASS",
+      "messages": 0
+    },
+    {
+      "step": "5.6 F · Below threshold: EUR 49.99",
+      "at_seconds": 117.06,
+      "result": "PASS",
+      "messages": 0
+    },
+    {
+      "step": "5.7 G · Exactly EUR 50 qualifies",
+      "at_seconds": 117.074,
+      "result": "PASS",
+      "messages": 2
+    },
+    {
+      "step": "5.8 H · Neither channel consent: immediate exit",
+      "at_seconds": 117.081,
+      "result": "PASS",
+      "messages": 0
+    },
+    {
+      "step": "5.9 I · Cart already purchased in profile",
+      "at_seconds": 117.088,
+      "result": "PASS",
+      "messages": 0
+    },
+    {
+      "step": "5.10 J · Profile purchase update at +72h, without event",
+      "at_seconds": 117.099,
+      "result": "PASS",
+      "messages": 2
+    },
+    {
+      "step": "6. Final acceptance and isolation",
+      "at_seconds": 117.374,
+      "passed": 10,
+      "total": 10,
+      "publish_ready": true,
+      "published": false
+    }
+  ],
+  "scenarios": [
+    {
+      "id": 1,
+      "name": "A · Purchase after 30 minutes",
+      "result": "PASS",
+      "status": "EXITED",
+      "exit_reason": "converted",
+      "virtual_elapsed_seconds": 1800,
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "no_message"
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_message"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "converted"
+          },
+          "pass": true,
+          "actual": "converted",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": []
+    },
+    {
+      "id": 2,
+      "name": "B · Purchase after the email",
+      "result": "PASS",
+      "status": "EXITED",
+      "exit_reason": "converted",
+      "virtual_elapsed_seconds": 18000,
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "converted"
+          },
+          "pass": true,
+          "actual": "converted",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [
+        {
+          "channel": "email",
+          "status": "SIMULATED",
+          "mode": "SIMULATED",
+          "node": "Kişiselleştirilmiş sepet hatırlatma e-postası",
+          "message": {
+            "channel": "email",
+            "encoding": "",
+            "html": "<p>Merhaba Alex,</p><p>89.90 tutarındaki sepetiniz sizi bekliyor. Alışverişinize devam etmek için <a href=\"https://example.com/cart\" rel=\"nofollow\">sepetinize dönün</a>.</p>",
+            "links": ["https://example.com/cart"],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "event.properties.amount_display": "89.90"
+            },
+            "preheader": "Sepetiniz sizi bekliyor.",
+            "segments": 0,
+            "subject": "Alex, sepetiniz sizi bekliyor",
+            "text": "Merhaba Alex, 89.90 tutarındaki sepetiniz sizi bekliyor. Alışverişinize devam etmek için https://example.com/cart adresinden sepetinize dönün.",
+            "to": "alex@example.invalid",
+            "units": 0,
+            "warnings": ["HTML was sanitized; unsupported markup or attributes were removed"]
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "C · Email and SMS, no purchase",
+      "result": "PASS",
+      "status": "COMPLETED",
+      "exit_reason": "completed",
+      "virtual_elapsed_seconds": 262800,
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "state",
+            "expected": "COMPLETED"
+          },
+          "pass": true,
+          "actual": "COMPLETED",
+          "description": "state"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "completed"
+          },
+          "pass": true,
+          "actual": "completed",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [
+        {
+          "channel": "email",
+          "status": "SIMULATED",
+          "mode": "SIMULATED",
+          "node": "Kişiselleştirilmiş sepet hatırlatma e-postası",
+          "message": {
+            "channel": "email",
+            "encoding": "",
+            "html": "<p>Merhaba Alex,</p><p>89.90 tutarındaki sepetiniz sizi bekliyor. Alışverişinize devam etmek için <a href=\"https://example.com/cart\" rel=\"nofollow\">sepetinize dönün</a>.</p>",
+            "links": ["https://example.com/cart"],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "event.properties.amount_display": "89.90"
+            },
+            "preheader": "Sepetiniz sizi bekliyor.",
+            "segments": 0,
+            "subject": "Alex, sepetiniz sizi bekliyor",
+            "text": "Merhaba Alex, 89.90 tutarındaki sepetiniz sizi bekliyor. Alışverişinize devam etmek için https://example.com/cart adresinden sepetinize dönün.",
+            "to": "alex@example.invalid",
+            "units": 0,
+            "warnings": ["HTML was sanitized; unsupported markup or attributes were removed"]
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        },
+        {
+          "channel": "sms",
+          "status": "SIMULATED",
+          "mode": "SIMULATED",
+          "node": "COMEBACK10 kodlu kişiselleştirilmiş SMS",
+          "message": {
+            "channel": "sms",
+            "encoding": "Unicode",
+            "html": "",
+            "links": [],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "event.properties.amount_display": "89.90"
+            },
+            "preheader": "",
+            "segments": 2,
+            "subject": "",
+            "text": "Merhaba Alex, 89.90 tutarındaki sepetinizi tamamlayın ve COMEBACK10 koduyla %10 indirim kazanın: https://example.com/cart",
+            "to": "+12025550100",
+            "units": 121,
+            "warnings": []
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "D · SMS consent denied",
+      "result": "PASS",
+      "status": "COMPLETED",
+      "exit_reason": "completed",
+      "virtual_elapsed_seconds": 90000,
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "state",
+            "expected": "COMPLETED"
+          },
+          "pass": true,
+          "actual": "COMPLETED",
+          "description": "state"
+        }
+      ],
+      "messages": [
+        {
+          "channel": "email",
+          "status": "SIMULATED",
+          "mode": "SIMULATED",
+          "node": "Kişiselleştirilmiş sepet hatırlatma e-postası",
+          "message": {
+            "channel": "email",
+            "encoding": "",
+            "html": "<p>Merhaba Alex,</p><p>89.90 tutarındaki sepetiniz sizi bekliyor. Alışverişinize devam etmek için <a href=\"https://example.com/cart\" rel=\"nofollow\">sepetinize dönün</a>.</p>",
+            "links": ["https://example.com/cart"],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "event.properties.amount_display": "89.90"
+            },
+            "preheader": "Sepetiniz sizi bekliyor.",
+            "segments": 0,
+            "subject": "Alex, sepetiniz sizi bekliyor",
+            "text": "Merhaba Alex, 89.90 tutarındaki sepetiniz sizi bekliyor. Alışverişinize devam etmek için https://example.com/cart adresinden sepetinize dönün.",
+            "to": "alex@example.invalid",
+            "units": 0,
+            "warnings": ["HTML was sanitized; unsupported markup or attributes were removed"]
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "E · Repeat enrollment inside seven days",
+      "result": "PASS",
+      "status": "EXITED",
+      "exit_reason": "converted",
+      "virtual_elapsed_seconds": 86400,
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "enrollment_count"
+        },
+        {
+          "assertion": {
+            "type": "no_message"
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_message"
+        }
+      ],
+      "messages": []
+    },
+    {
+      "id": 6,
+      "name": "F · Below threshold: EUR 49.99",
+      "result": "PASS",
+      "status": "NOT_ENROLLED",
+      "virtual_elapsed_seconds": 0,
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "enrollment_count",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "enrollment_count"
+        },
+        {
+          "assertion": {
+            "type": "no_message"
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_message"
+        }
+      ],
+      "messages": []
+    },
+    {
+      "id": 7,
+      "name": "G · Exactly EUR 50 qualifies",
+      "result": "PASS",
+      "status": "COMPLETED",
+      "exit_reason": "completed",
+      "virtual_elapsed_seconds": 262800,
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "state",
+            "expected": "COMPLETED"
+          },
+          "pass": true,
+          "actual": "COMPLETED",
+          "description": "state"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "completed"
+          },
+          "pass": true,
+          "actual": "completed",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [
+        {
+          "channel": "email",
+          "status": "SIMULATED",
+          "mode": "SIMULATED",
+          "node": "Kişiselleştirilmiş sepet hatırlatma e-postası",
+          "message": {
+            "channel": "email",
+            "encoding": "",
+            "html": "<p>Merhaba Alex,</p><p>50.00 tutarındaki sepetiniz sizi bekliyor. Alışverişinize devam etmek için <a href=\"https://example.com/cart\" rel=\"nofollow\">sepetinize dönün</a>.</p>",
+            "links": ["https://example.com/cart"],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "event.properties.amount_display": "50.00"
+            },
+            "preheader": "Sepetiniz sizi bekliyor.",
+            "segments": 0,
+            "subject": "Alex, sepetiniz sizi bekliyor",
+            "text": "Merhaba Alex, 50.00 tutarındaki sepetiniz sizi bekliyor. Alışverişinize devam etmek için https://example.com/cart adresinden sepetinize dönün.",
+            "to": "alex@example.invalid",
+            "units": 0,
+            "warnings": ["HTML was sanitized; unsupported markup or attributes were removed"]
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        },
+        {
+          "channel": "sms",
+          "status": "SIMULATED",
+          "mode": "SIMULATED",
+          "node": "COMEBACK10 kodlu kişiselleştirilmiş SMS",
+          "message": {
+            "channel": "sms",
+            "encoding": "Unicode",
+            "html": "",
+            "links": [],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "event.properties.amount_display": "50.00"
+            },
+            "preheader": "",
+            "segments": 2,
+            "subject": "",
+            "text": "Merhaba Alex, 50.00 tutarındaki sepetinizi tamamlayın ve COMEBACK10 koduyla %10 indirim kazanın: https://example.com/cart",
+            "to": "+12025550100",
+            "units": 121,
+            "warnings": []
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "H · Neither channel consent: immediate exit",
+      "result": "PASS",
+      "status": "EXITED",
+      "exit_reason": "condition_not_met",
+      "virtual_elapsed_seconds": 0,
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "no_message"
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_message"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "condition_not_met"
+          },
+          "pass": true,
+          "actual": "condition_not_met",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": []
+    },
+    {
+      "id": 9,
+      "name": "I · Cart already purchased in profile",
+      "result": "PASS",
+      "status": "EXITED",
+      "exit_reason": "converted",
+      "virtual_elapsed_seconds": 3600,
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "no_message"
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_message"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "converted"
+          },
+          "pass": true,
+          "actual": "converted",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": []
+    },
+    {
+      "id": 10,
+      "name": "J · Profile purchase update at +72h, without event",
+      "result": "PASS",
+      "status": "EXITED",
+      "exit_reason": "converted",
+      "virtual_elapsed_seconds": 262800,
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "converted"
+          },
+          "pass": true,
+          "actual": "converted",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [
+        {
+          "channel": "sms",
+          "status": "SIMULATED",
+          "mode": "SIMULATED",
+          "node": "COMEBACK10 kodlu kişiselleştirilmiş SMS",
+          "message": {
+            "channel": "sms",
+            "encoding": "Unicode",
+            "html": "",
+            "links": [],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "event.properties.amount_display": "89.90"
+            },
+            "preheader": "",
+            "segments": 2,
+            "subject": "",
+            "text": "Merhaba Alex, 89.90 tutarındaki sepetinizi tamamlayın ve COMEBACK10 koduyla %10 indirim kazanın: https://example.com/cart",
+            "to": "+12025550100",
+            "units": 121,
+            "warnings": []
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        },
+        {
+          "channel": "email",
+          "status": "SIMULATED",
+          "mode": "SIMULATED",
+          "node": "Kişiselleştirilmiş sepet hatırlatma e-postası",
+          "message": {
+            "channel": "email",
+            "encoding": "",
+            "html": "<p>Merhaba Alex,</p><p>89.90 tutarındaki sepetiniz sizi bekliyor. Alışverişinize devam etmek için <a href=\"https://example.com/cart\" rel=\"nofollow\">sepetinize dönün</a>.</p>",
+            "links": ["https://example.com/cart"],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "event.properties.amount_display": "89.90"
+            },
+            "preheader": "Sepetiniz sizi bekliyor.",
+            "segments": 0,
+            "subject": "Alex, sepetiniz sizi bekliyor",
+            "text": "Merhaba Alex, 89.90 tutarındaki sepetiniz sizi bekliyor. Alışverişinize devam etmek için https://example.com/cart adresinden sepetinize dönün.",
+            "to": "alex@example.invalid",
+            "units": 0,
+            "warnings": ["HTML was sanitized; unsupported markup or attributes were removed"]
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ]
+    }
+  ],
+  "published": false,
+  "journey_id": "078fd123-2dc9-4eae-9fa5-3b0ce9e74208",
+  "prompt": "50 EUR ve üzeri sepet oluşturup satın almayan müşteriler için abandoned cart recovery journey'si oluştur. Giriş event'i cart_abandoned; amount >= 50 ve currency EUR şart. İki kanal izni de yoksa hiç beklemeden condition_not_met ile çık. İlk 1 saat sonunda mevcut sepet satın alınmış mı diye customer.attributes.cart_purchased alanını kontrol et; true ise converted ile çık, mesaj gönderme. Değilse yalnızca email izni varsa kişiselleştirilmiş email gönder. Email izni yok fakat SMS izni varsa email'i atla ve yine 24 saatlik satın alma penceresini koru. Email adımından sonraki 24 saat içinde purchase_completed gelirse converted ile çık. Satın alma yok ve SMS izni varsa COMEBACK10 koduyla %10 indirim SMS'i gönder; SMS izni yoksa normal completed ile tamamla. SMS'ten sonra 48 saat daha satın alma bekle; sürenin sonunda mevcut sepetin cart_purchased profil alanını yeniden kontrol et: true ise converted, değilse completed. purchase_completed her aktif aşamada derhal converted global exit yapsın. Aynı müşteri bu journey'ye son girişten itibaren 7 gün içinde yeniden giremesin; aynı execution içindeki email ve SMS bu re-entry kuralıyla engellenmesin. Workspace frequency cap ve kanal izinlerini runtime uygular. Tüm mesajlarda müşterinin adı ve sepet tutarı dinamik olsun. İsim: customer.attributes.first_name; tutar: event.properties.amount_display; numeric eşik: event.properties.amount. İzinler customer.consents.email ve customer.consents.sms. Kullanılabilir event'ler yalnızca cart_abandoned ve purchase_completed. URL https://example.com/cart demo adresidir; yayından önce gerçek adres ve kuponun doğrulanması gerektiğini uyar. İnsan açıklamalarını node label'larına yaz; exit.reason için yalnızca desteklenen kodları kullan. Journey'yi yayınlama.",
+  "generation_http_seconds": 47.169,
+  "generation_http_status": 200,
+  "generation": {
+    "attempts": [
+      {
+        "provider": "openai",
+        "requested_model": "gpt-6-luna",
+        "model": "gpt-6-luna",
+        "request_id": "req_5ec7def033574b79b4154c3a4ac6cdb8",
+        "duration_ms": 34704,
+        "http_status": 200,
+        "usage": {
+          "input_tokens": 2102,
+          "output_tokens": 4614,
+          "reasoning_tokens": 1748,
+          "cached_input_tokens": 0,
+          "cache_creation_tokens": 2099
+        },
+        "provider_succeeded": true,
+        "accepted": false
+      },
+      {
+        "provider": "openai",
+        "requested_model": "gpt-6-luna",
+        "model": "gpt-6-luna",
+        "request_id": "req_9487b3883d394e9884d1e6f8c66b262e",
+        "duration_ms": 12382,
+        "http_status": 200,
+        "usage": {
+          "input_tokens": 4992,
+          "output_tokens": 2043,
+          "reasoning_tokens": 199,
+          "cached_input_tokens": 1627,
+          "cache_creation_tokens": 3362
+        },
+        "provider_succeeded": true,
+        "accepted": true
+      }
+    ],
+    "usage": {
+      "input_tokens": 7094,
+      "output_tokens": 6657,
+      "reasoning_tokens": 1947,
+      "cached_input_tokens": 1627,
+      "cache_creation_tokens": 5461
+    }
+  },
+  "usage": {
+    "input_tokens": 7094,
+    "output_tokens": 6657,
+    "reasoning_tokens": 1947,
+    "cached_input_tokens": 1627,
+    "cache_creation_tokens": 5461
+  },
+  "provider_seconds": 47.086,
+  "stage": "awaiting_agent_review",
+  "review_seconds": 66.262,
+  "validation": {
+    "$schema": "http://127.0.0.1:8091/api/schemas/Validation.json",
+    "valid": true,
+    "issues": []
+  },
+  "publish_check": {
+    "$schema": "http://127.0.0.1:8091/api/schemas/ResultStruct { Ready bool \"json:\\\"ready\\\"\"; Issues ListGateIssue \"json:\\\"issues\\\"\"; Policy string \"json:\\\"policy\\\"\" }Body.json",
+    "ready": true,
+    "issues": [],
+    "policy": "Consent is enforced for every send. Workspace frequency caps apply. Global exit: true. Publishing creates an immutable version."
+  },
+  "isolation": {
+    "draft": true,
+    "no_versions": true,
+    "no_live_executions": true,
+    "no_live_deliveries": true,
+    "no_live_customers": true
+  },
+  "post_review_seconds": 2.44,
+  "result": "PASS",
+  "total_elapsed_seconds": 117.374,
+  "finished_at": "2026-11-11T21:27:10.576Z",
+  "total_tokens": 13751,
+  "measurement_notes": {
+    "repository_revision": "ced4657",
+    "generation_requests": 1,
+    "billable_provider_attempts": 2,
+    "reasoning_is_part_of_output_tokens": true,
+    "no_manual_graph_edits": true,
+    "first_rejected_candidate_body_and_validation_details_retained": false,
+    "unpaid_setup_attempt_seconds": 31.071,
+    "total_measured_session_seconds": 193.204,
+    "time_definition": "Successful UI run includes agent review and screenshot capture. Full measured session also includes the earlier unpaid UI selector failure and harness correction gap; it excludes earlier container/script preparation."
+  }
+}

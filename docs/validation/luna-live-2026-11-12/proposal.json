@@ -1,0 +1,485 @@
+{
+  "$schema": "http://127.0.0.1:5173/api/schemas/Proposal.json",
+  "generation": {
+    "attempts": [
+      {
+        "provider": "openai",
+        "requested_model": "gpt-6-luna",
+        "model": "gpt-6-luna",
+        "request_id": "req_5ec7def033574b79b4154c3a4ac6cdb8",
+        "duration_ms": 34704,
+        "http_status": 200,
+        "usage": {
+          "input_tokens": 2102,
+          "output_tokens": 4614,
+          "reasoning_tokens": 1748,
+          "cached_input_tokens": 0,
+          "cache_creation_tokens": 2099
+        },
+        "provider_succeeded": true,
+        "accepted": false
+      },
+      {
+        "provider": "openai",
+        "requested_model": "gpt-6-luna",
+        "model": "gpt-6-luna",
+        "request_id": "req_9487b3883d394e9884d1e6f8c66b262e",
+        "duration_ms": 12382,
+        "http_status": 200,
+        "usage": {
+          "input_tokens": 4992,
+          "output_tokens": 2043,
+          "reasoning_tokens": 199,
+          "cached_input_tokens": 1627,
+          "cache_creation_tokens": 3362
+        },
+        "provider_succeeded": true,
+        "accepted": true
+      }
+    ],
+    "usage": {
+      "input_tokens": 7094,
+      "output_tokens": 6657,
+      "reasoning_tokens": 1947,
+      "cached_input_tokens": 1627,
+      "cache_creation_tokens": 5461
+    }
+  },
+  "schema_version": "composer.v2",
+  "name": "Luna live recovery follow-up",
+  "description": "Sepeti en az 50 EUR olan müşterilere, izin durumuna göre sepet hatırlatması gönderir; satın alma gerçekleşirse journey tamamlanır.",
+  "workflow": {
+    "acceptance_contract": "cart-recovery-eur.v1",
+    "schema_version": 1,
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "event_trigger",
+        "label": "50 EUR ve üzeri terk edilmiş sepet",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "config": {
+          "event_name": "cart_abandoned",
+          "filters": {
+            "logic": "and",
+            "rules": [
+              {
+                "logic": "or",
+                "rules": [
+                  {
+                    "path": "event.properties.amount",
+                    "operator": "greater_than",
+                    "value": 50
+                  },
+                  {
+                    "path": "event.properties.amount",
+                    "operator": "equals",
+                    "value": 50
+                  }
+                ]
+              },
+              {
+                "path": "event.properties.currency",
+                "operator": "equals",
+                "value": "EUR"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "consent_initial",
+        "type": "condition",
+        "label": "En az bir kanal izni var mı?",
+        "position": {
+          "x": 220,
+          "y": 0
+        },
+        "config": {
+          "rule": {
+            "logic": "or",
+            "rules": [
+              {
+                "path": "customer.consents.email",
+                "operator": "equals",
+                "value": true
+              },
+              {
+                "path": "customer.consents.sms",
+                "operator": "equals",
+                "value": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "exit_no_initial_consent",
+        "type": "exit",
+        "label": "İzinli kanal yok; journey'yi başlatma",
+        "position": {
+          "x": 440,
+          "y": 180
+        },
+        "config": {
+          "reason": "condition_not_met"
+        }
+      },
+      {
+        "id": "wait_1h",
+        "type": "wait",
+        "label": "1 saat bekle",
+        "position": {
+          "x": 440,
+          "y": 0
+        },
+        "config": {
+          "duration_seconds": 3600,
+          "timezone": "UTC"
+        }
+      },
+      {
+        "id": "cart_check_1h",
+        "type": "condition",
+        "label": "Sepet 1 saat içinde satın alınmış mı?",
+        "position": {
+          "x": 660,
+          "y": 0
+        },
+        "config": {
+          "rule": {
+            "path": "customer.attributes.cart_purchased",
+            "operator": "equals",
+            "value": true
+          }
+        }
+      },
+      {
+        "id": "exit_converted_1h",
+        "type": "exit",
+        "label": "Sepet satın alınmış",
+        "position": {
+          "x": 880,
+          "y": -140
+        },
+        "config": {
+          "reason": "converted"
+        }
+      },
+      {
+        "id": "email_consent",
+        "type": "condition",
+        "label": "E-posta izni var mı?",
+        "position": {
+          "x": 880,
+          "y": 40
+        },
+        "config": {
+          "rule": {
+            "path": "customer.consents.email",
+            "operator": "equals",
+            "value": true
+          }
+        }
+      },
+      {
+        "id": "send_email",
+        "type": "email",
+        "label": "Kişiselleştirilmiş sepet hatırlatma e-postası",
+        "position": {
+          "x": 1100,
+          "y": -40
+        },
+        "config": {
+          "subject": "{{ customer.attributes.first_name }}, sepetiniz sizi bekliyor",
+          "preheader": "Sepetiniz sizi bekliyor.",
+          "html": "<p>Merhaba {{ customer.attributes.first_name }},</p><p>{{ event.properties.amount_display }} tutarındaki sepetiniz sizi bekliyor. Alışverişinize devam etmek için <a href=\"https://example.com/cart\">sepetinize dönün</a>.</p>",
+          "text": "Merhaba {{ customer.attributes.first_name }}, {{ event.properties.amount_display }} tutarındaki sepetiniz sizi bekliyor. Alışverişinize devam etmek için https://example.com/cart adresinden sepetinize dönün.",
+          "fallbacks": {
+            "customer.attributes.first_name": "Merhaba",
+            "event.properties.amount_display": "sepetinizdeki ürünler"
+          }
+        }
+      },
+      {
+        "id": "wait_purchase_24h",
+        "type": "wait_event",
+        "label": "24 saat satın alma bekle",
+        "position": {
+          "x": 1320,
+          "y": 40
+        },
+        "config": {
+          "event_name": "purchase_completed",
+          "timeout_seconds": 86400
+        }
+      },
+      {
+        "id": "exit_converted_24h",
+        "type": "exit",
+        "label": "24 saatlik pencerede satın alma gerçekleşti",
+        "position": {
+          "x": 1540,
+          "y": -100
+        },
+        "config": {
+          "reason": "converted"
+        }
+      },
+      {
+        "id": "sms_consent",
+        "type": "condition",
+        "label": "SMS izni var mı?",
+        "position": {
+          "x": 1540,
+          "y": 80
+        },
+        "config": {
+          "rule": {
+            "path": "customer.consents.sms",
+            "operator": "equals",
+            "value": true
+          }
+        }
+      },
+      {
+        "id": "exit_completed_no_sms",
+        "type": "exit",
+        "label": "SMS izni yok; normal tamamla",
+        "position": {
+          "x": 1760,
+          "y": 220
+        },
+        "config": {
+          "reason": "completed"
+        }
+      },
+      {
+        "id": "send_sms",
+        "type": "sms",
+        "label": "COMEBACK10 kodlu kişiselleştirilmiş SMS",
+        "position": {
+          "x": 1760,
+          "y": 40
+        },
+        "config": {
+          "text": "Merhaba {{ customer.attributes.first_name }}, {{ event.properties.amount_display }} tutarındaki sepetinizi tamamlayın ve COMEBACK10 koduyla %10 indirim kazanın: https://example.com/cart",
+          "fallbacks": {
+            "customer.attributes.first_name": "Merhaba",
+            "event.properties.amount_display": "sepetinizdeki ürünler"
+          }
+        }
+      },
+      {
+        "id": "wait_purchase_48h",
+        "type": "wait_event",
+        "label": "SMS sonrası 48 saat satın alma bekle",
+        "position": {
+          "x": 1980,
+          "y": 40
+        },
+        "config": {
+          "event_name": "purchase_completed",
+          "timeout_seconds": 172800
+        }
+      },
+      {
+        "id": "cart_check_final",
+        "type": "condition",
+        "label": "48 saat sonunda sepet satın alınmış mı?",
+        "position": {
+          "x": 2200,
+          "y": 40
+        },
+        "config": {
+          "rule": {
+            "path": "customer.attributes.cart_purchased",
+            "operator": "equals",
+            "value": true
+          }
+        }
+      },
+      {
+        "id": "exit_converted_final",
+        "type": "exit",
+        "label": "Sepet satın alınmış",
+        "position": {
+          "x": 2420,
+          "y": -80
+        },
+        "config": {
+          "reason": "converted"
+        }
+      },
+      {
+        "id": "exit_completed_final",
+        "type": "exit",
+        "label": "Satın alma yok; journey normal tamamlandı",
+        "position": {
+          "x": 2420,
+          "y": 160
+        },
+        "config": {
+          "reason": "completed"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "trigger",
+        "target": "consent_initial",
+        "port": "started"
+      },
+      {
+        "id": "e2",
+        "source": "consent_initial",
+        "target": "wait_1h",
+        "port": "true"
+      },
+      {
+        "id": "e3",
+        "source": "consent_initial",
+        "target": "exit_no_initial_consent",
+        "port": "false"
+      },
+      {
+        "id": "e4",
+        "source": "wait_1h",
+        "target": "cart_check_1h",
+        "port": "completed"
+      },
+      {
+        "id": "e5",
+        "source": "cart_check_1h",
+        "target": "exit_converted_1h",
+        "port": "true"
+      },
+      {
+        "id": "e6",
+        "source": "cart_check_1h",
+        "target": "email_consent",
+        "port": "false"
+      },
+      {
+        "id": "e7",
+        "source": "email_consent",
+        "target": "send_email",
+        "port": "true"
+      },
+      {
+        "id": "e8",
+        "source": "email_consent",
+        "target": "wait_purchase_24h",
+        "port": "false"
+      },
+      {
+        "id": "e9",
+        "source": "send_email",
+        "target": "wait_purchase_24h",
+        "port": "next"
+      },
+      {
+        "id": "e10",
+        "source": "wait_purchase_24h",
+        "target": "exit_converted_24h",
+        "port": "matched"
+      },
+      {
+        "id": "e11",
+        "source": "wait_purchase_24h",
+        "target": "sms_consent",
+        "port": "timeout"
+      },
+      {
+        "id": "e12",
+        "source": "sms_consent",
+        "target": "send_sms",
+        "port": "true"
+      },
+      {
+        "id": "e13",
+        "source": "sms_consent",
+        "target": "exit_completed_no_sms",
+        "port": "false"
+      },
+      {
+        "id": "e14",
+        "source": "send_sms",
+        "target": "wait_purchase_48h",
+        "port": "next"
+      },
+      {
+        "id": "e15",
+        "source": "wait_purchase_48h",
+        "target": "exit_converted_final",
+        "port": "matched"
+      },
+      {
+        "id": "e16",
+        "source": "wait_purchase_48h",
+        "target": "cart_check_final",
+        "port": "timeout"
+      },
+      {
+        "id": "e17",
+        "source": "cart_check_final",
+        "target": "exit_converted_final",
+        "port": "true"
+      },
+      {
+        "id": "e18",
+        "source": "cart_check_final",
+        "target": "exit_completed_final",
+        "port": "false"
+      }
+    ],
+    "global_exit": {
+      "event_name": "purchase_completed"
+    },
+    "reentry": {
+      "mode": "cooldown",
+      "cooldown_seconds": 604800
+    }
+  },
+  "explanation": "Girişte kanal izni kontrol edilir. İlk 1 saat ve SMS sonrası 48 saat sonunda sepet profili kontrol edilir; satın alma etkinliği ise her aşamada journey'den çıkarır. E-posta atlanırsa da 24 saatlik satın alma penceresi korunur.",
+  "warnings": [
+    "https://example.com/cart demo adresidir; yayından önce gerçek sepet adresiyle değiştirip doğrulayın.",
+    "COMEBACK10 kuponunun geçerliliğini, indirim oranını ve koşullarını yayından önce doğrulayın.",
+    "E-posta ve SMS sağlayıcı ayarları/kanal yapılandırması bu taslakta belirtilmemiştir; gönderim öncesinde yapılandırılmalıdır. İzinler ve workspace frequency cap runtime tarafından uygulanır.",
+    "customer.attributes.cart_purchased alanının güncel ve bu sepete özgü tutulduğunu doğrulayın.",
+    "İsim veya event.properties.amount_display eksik olduğunda mesajlarda belirtilen yedek metinler kullanılır."
+  ],
+  "diff": {
+    "metadata_changed": true,
+    "added_nodes": [
+      "cart_check_1h",
+      "cart_check_final",
+      "consent_initial",
+      "email_consent",
+      "exit_completed_final",
+      "exit_completed_no_sms",
+      "exit_converted_1h",
+      "exit_converted_24h",
+      "exit_converted_final",
+      "exit_no_initial_consent",
+      "send_email",
+      "send_sms",
+      "sms_consent",
+      "trigger",
+      "wait_1h",
+      "wait_purchase_24h",
+      "wait_purchase_48h"
+    ],
+    "removed_nodes": [],
+    "updated_nodes": [],
+    "changed_conditions": [],
+    "changed_messages": [],
+    "edges_changed": true,
+    "exit_changed": true,
+    "reentry_changed": true
+  },
+  "action": "generate"
+}

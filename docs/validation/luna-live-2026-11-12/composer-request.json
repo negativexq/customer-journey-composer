@@ -1,0 +1,13 @@
+{
+  "provider": "openai",
+  "acceptance_contract": "cart-recovery-eur.v1",
+  "action": "generate",
+  "prompt": "50 EUR ve üzeri sepet oluşturup satın almayan müşteriler için abandoned cart recovery journey'si oluştur. Giriş event'i cart_abandoned; amount >= 50 ve currency EUR şart. İki kanal izni de yoksa hiç beklemeden condition_not_met ile çık. İlk 1 saat sonunda mevcut sepet satın alınmış mı diye customer.attributes.cart_purchased alanını kontrol et; true ise converted ile çık, mesaj gönderme. Değilse yalnızca email izni varsa kişiselleştirilmiş email gönder. Email izni yok fakat SMS izni varsa email'i atla ve yine 24 saatlik satın alma penceresini koru. Email adımından sonraki 24 saat içinde purchase_completed gelirse converted ile çık. Satın alma yok ve SMS izni varsa COMEBACK10 koduyla %10 indirim SMS'i gönder; SMS izni yoksa normal completed ile tamamla. SMS'ten sonra 48 saat daha satın alma bekle; sürenin sonunda mevcut sepetin cart_purchased profil alanını yeniden kontrol et: true ise converted, değilse completed. purchase_completed her aktif aşamada derhal converted global exit yapsın. Aynı müşteri bu journey'ye son girişten itibaren 7 gün içinde yeniden giremesin; aynı execution içindeki email ve SMS bu re-entry kuralıyla engellenmesin. Workspace frequency cap ve kanal izinlerini runtime uygular. Tüm mesajlarda müşterinin adı ve sepet tutarı dinamik olsun. İsim: customer.attributes.first_name; tutar: event.properties.amount_display; numeric eşik: event.properties.amount. İzinler customer.consents.email ve customer.consents.sms. Kullanılabilir event'ler yalnızca cart_abandoned ve purchase_completed. URL https://example.com/cart demo adresidir; yayından önce gerçek adres ve kuponun doğrulanması gerektiğini uyar. İnsan açıklamalarını node label'larına yaz; exit.reason için yalnızca desteklenen kodları kullan. Journey'yi yayınlama.",
+  "name": "Luna live recovery follow-up",
+  "description": "",
+  "workflow": {
+    "edges": [],
+    "nodes": [],
+    "schema_version": 1
+  }
+}
