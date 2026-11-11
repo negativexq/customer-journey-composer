@@ -208,7 +208,7 @@ onMounted(
       <aside v-if="!embedded" class="panel inbox-filters">
         <h2>Recipients &amp; runs</h2>
         <label
-          >Test run<select v-model="run" @change="load()">
+          >Test run<select v-model="run" aria-label="Test run" @change="load()">
             <option value="">All runs and explicit sends</option>
             <option v-for="r in runs" :key="r.id" :value="r.id">
               {{ r.id.slice(0, 8) }} · {{ r.result }}
@@ -219,12 +219,12 @@ onMounted(
         ><button v-for="c in customers" :key="c" class="list-row" @click="filterCustomer(c)">
           {{ c }}</button
         ><label
-          >Journey<select v-model="journey" @change="load()">
+          >Journey<select v-model="journey" aria-label="Journey" @change="load()">
             <option value="">All journeys</option>
             <option v-for="j in journeys" :key="j.id" :value="j.id">{{ j.name }}</option>
           </select></label
         ><label
-          >Channel<select v-model="channel" @change="load()">
+          >Channel<select v-model="channel" aria-label="Channel" @change="load()">
             <option value="">All channels</option>
             <option>email</option>
             <option>sms</option>
