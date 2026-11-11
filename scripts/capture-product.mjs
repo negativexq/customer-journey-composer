@@ -20,6 +20,7 @@ const page = await browser.newPage({
 const manifest = {
   captured_at: new Date().toISOString(),
   source_commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+  source_dirty: !!execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(),
   synthetic_data: true,
   viewport,
   device_scale_factor: 2,
@@ -28,7 +29,7 @@ const manifest = {
   screenshots: [],
 };
 async function settle() {
-  await page.waitForLoadState('networkidle');
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 15000 });
   await page.evaluate(async () => {
     await document.fonts.ready;
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
