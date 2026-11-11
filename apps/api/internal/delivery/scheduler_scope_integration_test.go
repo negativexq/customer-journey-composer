@@ -5,6 +5,7 @@ package delivery
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 )
@@ -109,12 +110,16 @@ func TestSchedulerPlanBoundsPendingQueueWork(t *testing.T) {
 		t.Fatal(err)
 	}
 	queueWork := float64(0)
+	indexCondition := ""
 	var walk func(map[string]any)
 	walk = func(node map[string]any) {
 		if node["Relation Name"] == "action_outbox" {
 			rows, _ := node["Actual Rows"].(float64)
 			loops, _ := node["Actual Loops"].(float64)
 			queueWork += rows * loops
+			if condition, ok := node["Index Cond"].(string); ok {
+				indexCondition += condition
+			}
 		}
 		if children, ok := node["Plans"].([]any); ok {
 			for _, child := range children {
@@ -129,6 +134,21 @@ func TestSchedulerPlanBoundsPendingQueueWork(t *testing.T) {
 		t.Fatalf("pending queue visits exceed the transaction budget: %v", queueWork)
 	}
 	t.Logf("10,002 pending rows: outbox row visits %.0f for budget %d", queueWork, scheduleBatchSize)
+	var position scheduleCursor
+	if err = pool.QueryRow(ctx, `SELECT created_at,id::text FROM action_outbox WHERE state='PENDING' ORDER BY created_at,id OFFSET 5000 LIMIT 1`).Scan(&position.createdAt, &position.id); err != nil {
+		t.Fatal(err)
+	}
+	if err = tx.QueryRow(ctx, "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) "+ScheduleAfterQuery, scheduleBatchSize, position.createdAt, position.id).Scan(&raw); err != nil {
+		t.Fatal(err)
+	}
+	if err = json.Unmarshal(raw, &plan); err != nil {
+		t.Fatal(err)
+	}
+	queueWork = 0
+	walk(plan[0].Plan)
+	if queueWork != scheduleBatchSize || !strings.Contains(indexCondition, "created_at") || !strings.Contains(indexCondition, "id") {
+		t.Fatalf("continuation did not seek the pending index: visits %v, condition %s", queueWork, indexCondition)
+	}
 }
 
 // A blocked later action must not keep earlier scheduled work uncommitted.
@@ -209,5 +229,75 @@ func TestSchedulerCommitsProgressBeforeTheNextAction(t *testing.T) {
 	}
 	if visible != 2 {
 		t.Fatalf("retry duplicated or lost progress: %d", visible)
+	}
+}
+
+// A cursor may skip an earlier locked customer only within the current bounded
+// drain. Releasing that lock must make its actions eligible on the next call.
+func TestSchedulerCursorRevisitsEarlierLockedCustomers(t *testing.T) {
+	ctx, pool, now, first, _ := seeded(t, true)
+	_, _, _, second, _ := seeded(t, true)
+	holder, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = holder.Rollback(context.Background()) }()
+	if _, err = holder.Exec(ctx, `SELECT 1 FROM customers WHERE workspace_id=$1 FOR UPDATE`, first); err != nil {
+		t.Fatal(err)
+	}
+	sender := New(pool, now)
+	n, err := sender.Schedule(ctx)
+	if err != nil || n != 2 {
+		t.Fatalf("later customer did not progress: %d, %v", n, err)
+	}
+	var earlier, later int
+	if err = pool.QueryRow(ctx, `SELECT count(*) FILTER (WHERE workspace_id=$1),count(*) FILTER (WHERE workspace_id=$2) FROM delivery_jobs`, first, second).Scan(&earlier, &later); err != nil {
+		t.Fatal(err)
+	}
+	if earlier != 0 || later != 2 {
+		t.Fatalf("unexpected progress: first %d, second %d", earlier, later)
+	}
+	if err = holder.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	n, err = sender.Schedule(ctx)
+	if err != nil || n != 2 {
+		t.Fatalf("earlier customer lost after cursor reset: %d, %v", n, err)
+	}
+	if n, err = sender.Schedule(ctx); err != nil || n != 0 {
+		t.Fatalf("duplicate progress: %d, %v", n, err)
+	}
+}
+
+func TestSchedulerCursorUsesTupleOrderAndResetsForBackdatedActions(t *testing.T) {
+	ctx, pool, now, workspace, execution := seeded(t, true)
+	// Equal timestamps require the UUID tie breaker; the seed's two nodes are
+	// both scheduled exactly once across separate committed transactions.
+	if _, err := pool.Exec(ctx, `UPDATE action_outbox SET created_at=$2 WHERE workspace_id=$1`, workspace, now.Now()); err != nil {
+		t.Fatal(err)
+	}
+	sender := New(pool, now)
+	cursor := &scheduleCursor{}
+	for range 2 {
+		n, err := sender.scheduleAfter(ctx, cursor)
+		if err != nil || n != 1 {
+			t.Fatalf("tuple continuation: %d, %v", n, err)
+		}
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO action_outbox(workspace_id,execution_id,node_id,channel,payload,created_at) VALUES($1,$2,'late_backdated','sms','{}',$3)`, workspace, execution, now.Now().Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := sender.scheduleAfter(ctx, cursor); err != nil || n != 0 {
+		t.Fatalf("cursor unexpectedly restarted: %d, %v", n, err)
+	}
+	if n, err := sender.Schedule(ctx); err != nil || n != 1 {
+		t.Fatalf("next drain lost backdated action: %d, %v", n, err)
+	}
+	var count int
+	if err := pool.QueryRow(ctx, `SELECT count(DISTINCT logical_key) FROM delivery_jobs WHERE workspace_id=$1`, workspace).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 3 {
+		t.Fatalf("lost/duplicate logical actions: %d", count)
 	}
 }

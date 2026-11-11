@@ -69,9 +69,8 @@ const scheduleDrainBudget = 32
 // ScheduleQuery keeps the ordered pending index outside the customer lock.
 // The lateral LockRows boundary prevents a bulk join/sort of the pending queue.
 // Exported inside the internal package for exact-query benchmark EXPLAIN probes.
-const ScheduleQuery = `SELECT o.id::text,o.workspace_id::text,o.execution_id::text,o.node_id,o.channel,o.payload,p.customer_id,p.state,p.email,p.phone,p.consents,p.frequency_limit,p.frequency_window_seconds
- FROM (SELECT * FROM action_outbox WHERE state='PENDING' ORDER BY created_at,id OFFSET 0) o
- JOIN LATERAL (
+const scheduleColumns = `SELECT o.id::text,o.workspace_id::text,o.execution_id::text,o.node_id,o.channel,o.payload,p.customer_id,p.state,p.email,p.phone,p.consents,p.frequency_limit,p.frequency_window_seconds,o.created_at`
+const scheduleJoins = ` JOIN LATERAL (
    SELECT e.customer_id,e.state,c.email,c.phone,c.consents,COALESCE(s.frequency_limit,3) AS frequency_limit,COALESCE(s.frequency_window_seconds,86400) AS frequency_window_seconds
    FROM journey_executions e JOIN customers c ON c.workspace_id=e.workspace_id AND c.customer_id=e.customer_id
    LEFT JOIN workspace_settings s ON s.workspace_id=o.workspace_id
@@ -80,10 +79,23 @@ const ScheduleQuery = `SELECT o.id::text,o.workspace_id::text,o.execution_id::te
  ) p ON true
  ORDER BY o.created_at,o.id LIMIT $1`
 
+const ScheduleQuery = scheduleColumns + ` FROM (SELECT * FROM action_outbox WHERE state='PENDING' ORDER BY created_at,id OFFSET 0) o` + scheduleJoins
+
+// ScheduleAfterQuery seeks on the existing ordered partial index. The cursor is
+// local to one bounded drain, so locked/skipped or newly backdated rows are
+// reconsidered from the beginning on the next drain.
+const ScheduleAfterQuery = scheduleColumns + ` FROM (SELECT * FROM action_outbox WHERE state='PENDING' AND (created_at,id)>($2,$3::uuid) ORDER BY created_at,id OFFSET 0) o` + scheduleJoins
+
+type scheduleCursor struct {
+	createdAt time.Time
+	id        string
+}
+
 func (s *Service) Schedule(ctx context.Context) (int, error) {
 	total := 0
+	cursor := &scheduleCursor{}
 	for total < scheduleDrainBudget {
-		n, err := s.scheduleOne(ctx)
+		n, err := s.scheduleAfter(ctx, cursor)
 		total += n
 		if err != nil || n == 0 {
 			return total, err
@@ -92,6 +104,9 @@ func (s *Service) Schedule(ctx context.Context) (int, error) {
 	return total, nil
 }
 func (s *Service) scheduleOne(ctx context.Context) (int, error) {
+	return s.scheduleAfter(ctx, &scheduleCursor{})
+}
+func (s *Service) scheduleAfter(ctx context.Context, cursor *scheduleCursor) (int, error) {
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return 0, err
@@ -101,7 +116,11 @@ func (s *Service) scheduleOne(ctx context.Context) (int, error) {
 	// Drive from outbox_pending; joining Active journeys first made even an
 	// empty queue repeatedly probe completed execution/outbox history. Customer
 	// locks and the per-item lifecycle/pending rechecks remain unchanged.
-	rows, err := tx.Query(ctx, ScheduleQuery, scheduleBatchSize)
+	query, args := ScheduleQuery, []any{scheduleBatchSize}
+	if cursor.id != "" {
+		query, args = ScheduleAfterQuery, []any{scheduleBatchSize, cursor.createdAt, cursor.id}
+	}
+	rows, err := tx.Query(ctx, query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -110,11 +129,12 @@ func (s *Service) scheduleOne(ctx context.Context) (int, error) {
 		raw, consents                                            []byte
 		email, phone                                             *string
 		limit, window                                            int
+		createdAt                                                time.Time
 	}
 	items := []pending{}
 	for rows.Next() {
 		var p pending
-		if err := rows.Scan(&p.id, &p.workspace, &p.execution, &p.node, &p.channel, &p.raw, &p.customer, &p.state, &p.email, &p.phone, &p.consents, &p.limit, &p.window); err != nil {
+		if err := rows.Scan(&p.id, &p.workspace, &p.execution, &p.node, &p.channel, &p.raw, &p.customer, &p.state, &p.email, &p.phone, &p.consents, &p.limit, &p.window, &p.createdAt); err != nil {
 			rows.Close()
 			return 0, err
 		}
@@ -212,7 +232,14 @@ func (s *Service) scheduleOne(ctx context.Context) (int, error) {
 			return 0, err
 		}
 	}
-	return len(items), tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return 0, err
+	}
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		cursor.createdAt, cursor.id = last.createdAt, last.id
+	}
+	return len(items), nil
 }
 func (s *Service) Recover(ctx context.Context) error {
 	tx, err := s.Pool.Begin(ctx)
