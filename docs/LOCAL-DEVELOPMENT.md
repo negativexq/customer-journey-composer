@@ -32,7 +32,7 @@ docker compose logs api   # Structured application logs.
 
 ## Native development
 
-Requires Go 1.26.10+ in the supported 1.26 series, Node.js 24–26 and Docker.
+Requires Go 1.26.11+ in the supported 1.26 series, Node.js 24–26 and Docker.
 
 ```sh
 make setup

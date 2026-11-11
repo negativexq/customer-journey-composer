@@ -20,6 +20,8 @@ SQL telemetry records one sanitized `postgresql BATCH` span and a whole-batch du
 
 Same profiled workload as the preceding report: fresh PostgreSQL 17, 2 CPU / 2 GiB, tmpfs, 10,000 simultaneous waiting executions, 450 offered events/sec, eight runtime slots, four dispatchers, five UI reads/sec and a common timer deadline five seconds ahead. No heavy builds/tests run concurrently. Every result links its source commit and dirty flag; matching Prometheus/CPU/allocation artifacts are alongside the JSON.
 
+These matched runs use Go 1.26.10, as recorded in each artifact. The subsequent hosted audit identified GO-2026-6859, prompting a separate Go 1.26.11 security update. Historical benchmark files are unchanged; their numbers must not be relabeled as measurements of the patched toolchain.
+
 | Variant                                                   | Source    | Waiting (s) | Completed (s) | Mock accepted (s) | Timer p95 (s) |
 | --------------------------------------------------------- | --------- | ----------: | ------------: | ----------------: | ------------: |
 | [Previous 1](benchmarks/fresh-guard-1.json)               | `5e7a9d1` |      27.479 |        48.351 |            71.419 |        10.445 |
