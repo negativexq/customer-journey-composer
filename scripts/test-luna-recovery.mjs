@@ -121,7 +121,10 @@ await call(`/journeys/${generated.id}/draft`, 'PUT', {
 const reference = await call('/templates/abandoned-cart-eur/create-journey', 'POST', {
   name: 'Canonical reference · same 10 scenarios',
 });
-const initialMetrics = (await call('/overview')).metrics;
+// Creating the two draft fixtures legitimately changes asynchronous journey counters.
+// Sandbox runs must leave execution, conversion and channel metrics untouched.
+const liveMetrics = (metrics) => metrics.filter((m) => m.dimension !== 'journey');
+const initialMetrics = liveMetrics((await call('/overview')).metrics);
 const report = {
   recorded_at: new Date().toISOString(),
   model_fixture: 'gpt-6-luna',
@@ -195,7 +198,7 @@ for (const journey of [generated, reference]) {
 }
 assert.equal((await call('/customers')).length, 0);
 assert.equal((await call('/deliveries')).length, 0);
-assert.deepEqual((await call('/overview')).metrics, initialMetrics);
+assert.deepEqual(liveMetrics((await call('/overview')).metrics), initialMetrics);
 assert.equal(hash(proposal.workflow), originalHash);
 report.isolation = {
   both_drafts: true,
