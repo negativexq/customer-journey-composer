@@ -49,6 +49,8 @@ One clean [60-second spread run](benchmarks/spread-60.json), source `98cb892`, r
 
 ## Remaining work
 
+The subsequent [queue research](QUEUE-NEXT-RESEARCH.md) records a concrete projector delete-plan micro-probe and ranks the next experiments. Those proposals are not runtime changes or full-workload improvements yet.
+
 Bounded transaction scope is retained, but the original pre-isolation baseline's 59–60s mock-send drain remains an explicit comparison. Repeated candidate selection, dispatch, projection and round trips still need profiling as a full pipeline; reducing one SQL total does not prove an equivalent end-to-end gain. Sustained traffic, hot customers, slower storage and delayed providers require separate workloads before setting SLOs.
 
 The UI/UX, workspace-aware AI catalog, richer analytics and operational integrations in the [design direction](design/modern-saas-direction.md) remain separate work. Live LLM evaluation and deployment remain deferred.
