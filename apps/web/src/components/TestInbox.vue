@@ -413,6 +413,7 @@ onMounted(
 .inbox-filters {
   background: #fafbfe;
   display: grid;
+  align-content: start;
   gap: 12px;
 }
 .inbox-row {

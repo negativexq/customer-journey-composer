@@ -319,7 +319,7 @@ onBeforeUnmount(() => {
       <button :disabled="busy" @click="refresh">Refresh monitor</button>
     </div>
     <p v-if="error" role="alert" class="error-message">{{ error }}</p>
-    <div class="editor-form">
+    <div class="monitor-filters">
       <label>Track customer ID<input v-model="customer" @keyup.enter="refresh" /></label
       ><button @click="refresh">Track customer</button
       ><label
@@ -343,7 +343,7 @@ onBeforeUnmount(() => {
         >
           <option v-for="v in versions" :key="v.id" :value="v.version">v{{ v.version }}</option>
         </select></label
-      ><label><input v-model="poll" type="checkbox" /> Auto refresh</label>
+      ><label class="monitor-poll"><input v-model="poll" type="checkbox" /> Auto refresh</label>
     </div>
     <p v-if="!versions.length" class="panel">
       Publish a validated journey to monitor live executions.
@@ -573,6 +573,27 @@ onBeforeUnmount(() => {
   background: #f8fafc;
   border: 1px solid var(--border);
   border-radius: 10px;
+}
+.monitor-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  margin: 20px 0;
+}
+.monitor-filters > label {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+.monitor-filters > label:first-child {
+  flex-basis: 260px;
+}
+.monitor-filters > .monitor-poll {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  align-self: center;
+  gap: 8px;
 }
 .panel pre {
   white-space: pre-wrap;
