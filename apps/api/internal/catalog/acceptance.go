@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/negativexq/customer-journey-composer/apps/api/internal/simulation"
 	"github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
+	"strings"
+	"time"
 )
 
 const RecoveryEURContract = "cart-recovery-eur.v1"
@@ -49,6 +51,11 @@ func RecoveryEURAcceptanceCases() []simulation.Scenario {
 	again.Events[1].AfterSeconds = 8 * 86400
 	again.Assertions = append(base(), simulation.Assertion{Type: "enrollment_count", Expected: 2}, simulation.Assertion{Type: "message_count", Expected: 2})
 	cases = append(cases, again)
+	personal := fresh("Personalization follows changed profile and cart")
+	personal.Customer["attributes"].(map[string]any)["first_name"] = "Morgan"
+	personal.Entry.Properties["amount"] = 123.45
+	personal.Entry.Properties["amount_display"] = "123.45"
+	cases = append(cases, personal)
 	return cases
 }
 
@@ -73,6 +80,34 @@ func ValidateAcceptance(w workflow.Workflow) []workflow.Issue {
 		if err != nil {
 			issues = append(issues, workflow.Issue{Field: "acceptance_contract", Message: fmt.Sprintf("%s: simulation could not complete", scenario.Name)})
 			continue
+		}
+		for _, message := range state.Messages {
+			if message.AcceptedAt == nil {
+				continue
+			}
+			text := message.Rendered.Text + message.Rendered.HTML
+			name, _ := scenario.Customer["attributes"].(map[string]any)["first_name"].(string)
+			amount, _ := scenario.Entry.Properties["amount_display"].(string)
+			if !strings.Contains(text, name) || !strings.Contains(text, amount) {
+				issues = append(issues, workflow.Issue{Field: "acceptance_contract", Message: scenario.Name + ": message must resolve customer name and cart amount"})
+			}
+			if message.Channel == "sms" && !strings.Contains(text, "COMEBACK10") {
+				issues = append(issues, workflow.Issue{Field: "acceptance_contract", Message: scenario.Name + ": SMS discount code is missing"})
+			}
+		}
+		if i == 2 {
+			if !state.Now.Equal(scenario.StartTime.Add(73 * time.Hour)) {
+				issues = append(issues, workflow.Issue{Field: "acceptance_contract", Message: "No purchase: complete after the 1h + 24h + 48h windows"})
+			}
+			for _, m := range state.Messages {
+				expected := time.Hour
+				if m.Channel == "sms" {
+					expected = 25 * time.Hour
+				}
+				if !m.At.Equal(scenario.StartTime.Add(expected)) {
+					issues = append(issues, workflow.Issue{Field: "acceptance_contract", Message: "Recovery message scheduled at the wrong virtual time"})
+				}
+			}
 		}
 		for _, result := range state.Assertions {
 			if !result.Pass {

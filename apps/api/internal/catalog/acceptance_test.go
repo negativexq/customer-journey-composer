@@ -36,3 +36,24 @@ func TestRecoveryAcceptanceRejectsOmissionsWithoutChangingWorkerSemantics(t *tes
 		t.Fatal("unknown contract accepted")
 	}
 }
+
+func TestRecoveryAcceptanceRequiresExactTimingAndDynamicPersonalization(t *testing.T) {
+	w := recoveryEUR().Workflow
+	for i := range w.Nodes {
+		if w.Nodes[i].Type == "wait" {
+			w.Nodes[i].Config.DurationSeconds = 7200
+		}
+	}
+	if issues := ValidateAcceptance(w); len(issues) == 0 {
+		t.Fatal("wrong 1h timing accepted")
+	}
+	w = recoveryEUR().Workflow
+	for i := range w.Nodes {
+		if w.Nodes[i].Type == "sms" {
+			w.Nodes[i].Config.Text = "Hello Alex, 89.90 COMEBACK10"
+		}
+	}
+	if issues := ValidateAcceptance(w); len(issues) == 0 {
+		t.Fatal("hardcoded personalization accepted")
+	}
+}
