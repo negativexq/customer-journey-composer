@@ -20,6 +20,10 @@ type Diff = {
   reentry_changed: boolean;
 };
 type Proposal = {
+  generation?: {
+    attempts: { model?: string; requested_model: string; duration_ms: number; usage: unknown }[];
+    usage: { input_tokens: number; output_tokens: number; reasoning_tokens: number | null } | null;
+  };
   schema_version: string;
   name: string;
   description: string;
@@ -209,6 +213,15 @@ onBeforeUnmount(() => controller?.abort());
     <p v-if="notice" role="status">{{ notice }}</p>
     <section v-if="proposal" class="ai-proposal">
       <h3>Review proposal</h3>
+      <p v-if="proposal.generation" class="help-text">
+        Provider attempts: {{ proposal.generation.attempts.length }}.
+        <template v-if="proposal.generation.usage"
+          >Reported tokens: {{ proposal.generation.usage.input_tokens }} input /
+          {{ proposal.generation.usage.output_tokens }} output. Reasoning:
+          {{ proposal.generation.usage.reasoning_tokens ?? 'not reported' }}.</template
+        >
+        <template v-else>Complete token usage was not reported; totals are unknown.</template>
+      </p>
       <p>{{ proposal.explanation }}</p>
       <dl class="proposal-intent">
         <div>

@@ -101,3 +101,15 @@ workflows explicitly warn that graph validity is not brief compliance. Workers
 do not interpret this metadata or automatically rewrite graphs. The original
 Luna fixture is retained; a separate, explicitly reviewed correction adds the
 missing decisions and is tested without further model calls.
+
+### AI generation accounting
+
+Both provider adapters return a structured result with actual/requested model,
+request ID, duration and provider-reported token counters. Composer aggregates
+all attempts, including rejected candidates and bounded repairs. Missing usage
+remains unknown; partial counters are retained per attempt without presenting an
+incomplete sum as an exact total. Anthropic cache-read/creation input is included
+in normalized input totals; its unreported reasoning breakdown stays unknown.
+Sanitized metadata is persisted in workspace audit logs on success and failure,
+including after client cancellation, with a bounded accounting timeout. Prompts,
+customer content, output bodies, secrets and private reasoning are excluded.

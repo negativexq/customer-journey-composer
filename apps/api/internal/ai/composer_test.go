@@ -26,13 +26,13 @@ type sequence struct {
 	calls   int
 }
 
-func (s *sequence) Generate(context.Context, Request) ([]byte, error) {
+func (s *sequence) Generate(context.Context, Request) (ProviderResult, error) {
 	s.calls++
 	if s.err != nil {
-		return nil, s.err
+		return ProviderResult{}, s.err
 	}
 	index := min(s.calls-1, len(s.outputs)-1)
-	return []byte(s.outputs[index]), nil
+	return ProviderResult{Output: []byte(s.outputs[index])}, nil
 }
 func TestSchemaArtifactAndCrossProviderSubset(t *testing.T) {
 	want, _ := json.MarshalIndent(Schema("journey"), "", "  ")
@@ -171,7 +171,7 @@ func TestHTTPProviderWireContractsWithoutLiveLLMRequests(t *testing.T) {
 			defer server.Close()
 			provider := &HTTPProvider{Kind: kind, Key: key, Model: "configured-model", BaseURL: server.URL, Client: server.Client()}
 			out, err := provider.Generate(context.Background(), Request{Kind: "journey", System: systemPrompt, Prompt: "No live customer profiles"})
-			if err != nil || string(out) != validOutput || calls != 1 {
+			if err != nil || string(out.Output) != validOutput || calls != 1 {
 				t.Fatal("provider contract failed", err, calls)
 			}
 		})

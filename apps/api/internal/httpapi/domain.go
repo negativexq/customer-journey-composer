@@ -338,7 +338,7 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 	registerCustomers(api, pool)
 	registerExecutions(api, pool)
 	registerMessages(api, pool)
-	registerAI(api)
+	registerAI(api, pool)
 	registerTesting(api, pool)
 	registerInbox(api, pool)
 	registerAnalytics(api, pool)

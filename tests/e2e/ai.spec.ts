@@ -21,7 +21,18 @@ const workflow = {
   edges: [{ id: 'edge', source: 'start', target: 'done', port: 'started' }],
 };
 const fixture = {
-  schema_version: 'composer.v1',
+  schema_version: 'composer.v2',
+  generation: {
+    attempts: [
+      {
+        requested_model: 'contract-fixture',
+        model: 'contract-fixture',
+        duration_ms: 1,
+        usage: { input_tokens: 12, output_tokens: 4, reasoning_tokens: 0 },
+      },
+    ],
+    usage: { input_tokens: 12, output_tokens: 4, reasoning_tokens: 0 },
+  },
   action: 'generate',
   name: 'AI reviewed journey',
   description: 'A reviewed proposal',
@@ -79,6 +90,7 @@ test('AI proposal requires review and applies only after human approval', async 
     .fill('Start when a cart is updated.');
   await page.getByRole('button', { name: 'Compose proposal', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Review proposal' })).toBeVisible();
+  await expect(page.locator('.ai-proposal')).toContainText('Reported tokens: 12 input / 4 output.');
   expect(
     (await (await page.request.get(`/api/v1/journeys/${journey.id}`)).json()).draft.nodes,
   ).toHaveLength(0);

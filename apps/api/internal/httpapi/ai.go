@@ -2,7 +2,9 @@ package httpapi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"os"
 	"sync"
 	"time"
@@ -11,7 +13,7 @@ import (
 	composer "github.com/negativexq/customer-journey-composer/apps/api/internal/ai"
 )
 
-func registerAI(api huma.API) {
+func registerAI(api huma.API, pool *pgxpool.Pool) {
 	engine, err := composer.New(composer.ProvidersFromEnv())
 	if err != nil {
 		panic("invalid checked-in AI schema")
@@ -36,6 +38,14 @@ func registerAI(api huma.API) {
 		request, cancel := context.WithTimeout(ctx, 85*time.Second)
 		defer cancel()
 		proposal, err := engine.Compose(request, in.Body)
+		if proposal.Generation != nil {
+			auditContext, auditCancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
+			auditErr := recordGeneration(auditContext, pool, who(ctx), in.Body.Provider, in.Body.Action, proposal.Generation, err == nil)
+			auditCancel()
+			if auditErr != nil {
+				return nil, huma.Error500InternalServerError("Generation completed but accounting could not be recorded; do not automatically retry")
+			}
+		}
 		if err != nil {
 			var invalid *composer.InvalidOutput
 			var external *composer.ProviderError
@@ -64,4 +74,14 @@ func registerAI(api huma.API) {
 	huma.Post(api, "/api/v1/ai/journeys/generate", handle)
 	huma.Post(api, "/api/v1/ai/journeys/modify", handle)
 	huma.Post(api, "/api/v1/ai/messages/generate", handle)
+}
+
+// No prompt, draft, customer content, provider body or private reasoning is persisted.
+func recordGeneration(ctx context.Context, pool *pgxpool.Pool, identity Identity, provider, action string, report *composer.GenerationReport, accepted bool) error {
+	raw, err := json.Marshal(map[string]any{"provider": provider, "action": action, "accepted": accepted, "generation": report})
+	if err != nil {
+		return err
+	}
+	_, err = pool.Exec(ctx, `INSERT INTO audit_logs(workspace_id,actor_id,action,details) VALUES($1,$2,'ai.generation',$3)`, identity.WorkspaceID, identity.ID, raw)
+	return err
 }
