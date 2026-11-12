@@ -447,3 +447,16 @@ and UNKNOWN detail hidden behind a FAILED inbox label were also recorded. No
 production workflow, execution or delivery changed. Case 10's external assertion
 field was corrected via persisted readback; this was a harness correction, not a
 runtime fix. [Evidence and limits](reports/live-cart-edges-2026-11-12.md).
+
+### Ten distinct journey audit — 2026-11-12
+
+Before the requested correlation fix, ten fresh paid business briefs generated ten
+unmodified composer.v3 drafts in separate fictional workspaces. Fifty sandbox
+cases ran: 41 passed, nine failed, zero request/execution errors. Six journey types
+passed 5/5; webinar, payment recovery, loyalty and lead qualification exposed
+channel, terminal outcome, unsupported invoice correlation and threshold gaps.
+Ten requests used twelve provider attempts (two bounded repairs), totaling 70,076
+reported input/output tokens and 324.58 seconds generation time. No version was
+published and no live customer/execution/delivery was created. The correlation
+fix is still pending after this audit; these results do not label it implemented.
+[Evidence and limitations](reports/varied-journeys-2026-11-12.md).

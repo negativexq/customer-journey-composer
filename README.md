@@ -14,6 +14,11 @@ Workspace business terminology can now be defined in Settings and reviewed again
 
 ## Verified locally — November 12, 2026
 
+**Latest varied-journey audit:** ten new paid briefs across ten journey types
+passed **41/50 behavior cases**. Four journeys exposed wrong channels, wrong
+completion outcomes, imprecise thresholds or missing invoice correlation.
+[Briefs, results and 70,076-token accounting](docs/reports/varied-journeys-2026-11-12.md).
+
 **Latest single-brief trial:** a fresh `composer.v3` generation in business language
 passed **10/11 sandbox scenarios**. The model approximated “at least 50 EUR” as
 `> 49.99`; the fractional boundary failed and publication was blocked. One provider
