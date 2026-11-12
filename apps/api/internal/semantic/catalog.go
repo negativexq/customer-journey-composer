@@ -386,7 +386,7 @@ func typeMismatches(w workflow.Workflow, entries map[string]Entry) map[string]bo
 		case float64, int, int64:
 			expected = "number"
 		}
-		if operator == "greater_than" || operator == "less_than" || operator == "increment" {
+		if operator == "greater_than" || operator == "greater_than_or_equal" || operator == "less_than" || operator == "less_than_or_equal" || operator == "increment" {
 			if expected != "number" {
 				bad[key] = true
 			}

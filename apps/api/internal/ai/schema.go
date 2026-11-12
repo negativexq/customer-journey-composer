@@ -7,7 +7,7 @@ import (
 	"slices"
 )
 
-const SchemaVersion = "composer.v4"
+const SchemaVersion = "composer.v5"
 
 type schema = map[string]any
 
@@ -38,7 +38,7 @@ func Schema(kind string) schema {
 		return message
 	}
 	scalar := schema{"type": []string{"string", "number", "boolean", "null"}}
-	leaf := object(schema{"path": text(), "operator": enumeration("equals", "not_equals", "greater_than", "less_than", "contains", "exists", "before", "after"), "value": reference("Scalar")})
+	leaf := object(schema{"path": text(), "operator": enumeration("equals", "not_equals", "greater_than", "greater_than_or_equal", "less_than", "less_than_or_equal", "contains", "exists", "before", "after"), "value": reference("Scalar")})
 	defs := schema{"Scalar": scalar, "Leaf": leaf}
 	for level := 1; level <= 2; level++ {
 		previous := "Leaf"

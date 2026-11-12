@@ -18,7 +18,7 @@ type Rule struct {
 	Logic    string `json:"logic,omitempty" enum:"and,or"`
 	Rules    []Rule `json:"rules,omitempty" maxItems:"50"`
 	Path     string `json:"path,omitempty" maxLength:"200"`
-	Operator string `json:"operator,omitempty" enum:"equals,not_equals,greater_than,less_than,contains,exists,before,after"`
+	Operator string `json:"operator,omitempty" enum:"equals,not_equals,greater_than,greater_than_or_equal,less_than,less_than_or_equal,contains,exists,before,after"`
 	Value    any    `json:"value,omitempty"`
 }
 type Config struct {
@@ -343,7 +343,7 @@ func validateRule(r Rule, depth int) error {
 		return fmt.Errorf("Rule path must start with customer, event or context")
 	}
 	switch r.Operator {
-	case "equals", "not_equals", "greater_than", "less_than", "contains", "exists", "before", "after":
+	case "equals", "not_equals", "greater_than", "greater_than_or_equal", "less_than", "less_than_or_equal", "contains", "exists", "before", "after":
 	default:
 		return fmt.Errorf("Unsupported condition operator")
 	}
@@ -420,10 +420,10 @@ func Evaluate(r Rule, data map[string]any) bool {
 				}
 			}
 		}
-	case "greater_than", "less_than":
+	case "greater_than", "greater_than_or_equal", "less_than", "less_than_or_equal":
 		a, ok := number(value)
 		b, ok2 := number(r.Value)
-		return ok && ok2 && ((r.Operator == "greater_than" && a > b) || (r.Operator == "less_than" && a < b))
+		return ok && ok2 && ((r.Operator == "greater_than" && a > b) || (r.Operator == "less_than" && a < b) || (r.Operator == "greater_than_or_equal" && a >= b) || (r.Operator == "less_than_or_equal" && a <= b))
 	case "before", "after":
 		a, e := time.Parse(time.RFC3339, fmt.Sprint(value))
 		b, e2 := time.Parse(time.RFC3339, fmt.Sprint(r.Value))

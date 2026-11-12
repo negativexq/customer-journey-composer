@@ -33,6 +33,8 @@ export function ruleSummary(rule?: Rule, depth = 0): string {
         not_equals: '≠',
         less_than: '<',
         greater_than: '>',
+        greater_than_or_equal: '≥',
+        less_than_or_equal: '≤',
         exists: 'exists',
         contains: 'contains',
       } as Record<string, string>

@@ -1,0 +1,605 @@
+{
+  "$defs": {
+    "Leaf": {
+      "additionalProperties": false,
+      "properties": {
+        "operator": {
+          "enum": [
+            "equals",
+            "not_equals",
+            "greater_than",
+            "greater_than_or_equal",
+            "less_than",
+            "less_than_or_equal",
+            "contains",
+            "exists",
+            "before",
+            "after"
+          ],
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/Scalar"
+        }
+      },
+      "required": ["operator", "path", "value"],
+      "type": "object"
+    },
+    "MaybeRule": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Rule2"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "Rule1": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Leaf"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "logic": {
+              "enum": ["and", "or"],
+              "type": "string"
+            },
+            "rules": {
+              "items": {
+                "$ref": "#/$defs/Leaf"
+              },
+              "type": "array"
+            }
+          },
+          "required": ["logic", "rules"],
+          "type": "object"
+        }
+      ]
+    },
+    "Rule2": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Leaf"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "logic": {
+              "enum": ["and", "or"],
+              "type": "string"
+            },
+            "rules": {
+              "items": {
+                "$ref": "#/$defs/Rule1"
+              },
+              "type": "array"
+            }
+          },
+          "required": ["logic", "rules"],
+          "type": "object"
+        }
+      ]
+    },
+    "Scalar": {
+      "type": ["string", "number", "boolean", "null"]
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "description": {
+      "type": "string"
+    },
+    "explanation": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "workflow": {
+      "additionalProperties": false,
+      "properties": {
+        "edges": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "port": {
+                "enum": ["started", "completed", "matched", "timeout", "true", "false", "next"],
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "target": {
+                "type": "string"
+              }
+            },
+            "required": ["id", "port", "source", "target"],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "global_exit": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "correlation": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "entry_path": {
+                          "type": "string"
+                        },
+                        "event_path": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["entry_path", "event_path"],
+                      "type": "object"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "event_name": {
+                  "type": "string"
+                },
+                "filters": {
+                  "$ref": "#/$defs/MaybeRule"
+                },
+                "reason": {
+                  "enum": ["converted", "completed", "condition_not_met", "manually_cancelled"],
+                  "type": "string"
+                }
+              },
+              "required": ["correlation", "event_name", "filters", "reason"],
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "nodes": {
+          "items": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "config": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "event_name": {
+                        "type": "string"
+                      },
+                      "filters": {
+                        "$ref": "#/$defs/MaybeRule"
+                      }
+                    },
+                    "required": ["event_name", "filters"],
+                    "type": "object"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "position": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "x": {
+                        "type": "number"
+                      },
+                      "y": {
+                        "type": "number"
+                      }
+                    },
+                    "required": ["x", "y"],
+                    "type": "object"
+                  },
+                  "type": {
+                    "enum": ["event_trigger"],
+                    "type": "string"
+                  }
+                },
+                "required": ["config", "id", "label", "position", "type"],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "config": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "duration_seconds": {
+                        "type": "integer"
+                      },
+                      "timezone": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["duration_seconds", "timezone"],
+                    "type": "object"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "position": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "x": {
+                        "type": "number"
+                      },
+                      "y": {
+                        "type": "number"
+                      }
+                    },
+                    "required": ["x", "y"],
+                    "type": "object"
+                  },
+                  "type": {
+                    "enum": ["wait"],
+                    "type": "string"
+                  }
+                },
+                "required": ["config", "id", "label", "position", "type"],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "config": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "event_name": {
+                        "type": "string"
+                      },
+                      "filters": {
+                        "$ref": "#/$defs/MaybeRule"
+                      },
+                      "timeout_seconds": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": ["event_name", "filters", "timeout_seconds"],
+                    "type": "object"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "position": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "x": {
+                        "type": "number"
+                      },
+                      "y": {
+                        "type": "number"
+                      }
+                    },
+                    "required": ["x", "y"],
+                    "type": "object"
+                  },
+                  "type": {
+                    "enum": ["wait_event"],
+                    "type": "string"
+                  }
+                },
+                "required": ["config", "id", "label", "position", "type"],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "config": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "rule": {
+                        "$ref": "#/$defs/Rule2"
+                      }
+                    },
+                    "required": ["rule"],
+                    "type": "object"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "position": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "x": {
+                        "type": "number"
+                      },
+                      "y": {
+                        "type": "number"
+                      }
+                    },
+                    "required": ["x", "y"],
+                    "type": "object"
+                  },
+                  "type": {
+                    "enum": ["condition"],
+                    "type": "string"
+                  }
+                },
+                "required": ["config", "id", "label", "position", "type"],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "config": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "fallbacks": {
+                        "items": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "path": {
+                              "type": "string"
+                            },
+                            "value": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["path", "value"],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "html": {
+                        "type": "string"
+                      },
+                      "preheader": {
+                        "type": "string"
+                      },
+                      "subject": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["fallbacks", "html", "preheader", "subject", "text"],
+                    "type": "object"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "position": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "x": {
+                        "type": "number"
+                      },
+                      "y": {
+                        "type": "number"
+                      }
+                    },
+                    "required": ["x", "y"],
+                    "type": "object"
+                  },
+                  "type": {
+                    "enum": ["email"],
+                    "type": "string"
+                  }
+                },
+                "required": ["config", "id", "label", "position", "type"],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "config": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "fallbacks": {
+                        "items": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "path": {
+                              "type": "string"
+                            },
+                            "value": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["path", "value"],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["fallbacks", "text"],
+                    "type": "object"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "position": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "x": {
+                        "type": "number"
+                      },
+                      "y": {
+                        "type": "number"
+                      }
+                    },
+                    "required": ["x", "y"],
+                    "type": "object"
+                  },
+                  "type": {
+                    "enum": ["sms"],
+                    "type": "string"
+                  }
+                },
+                "required": ["config", "id", "label", "position", "type"],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "config": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "attribute": {
+                        "type": "string"
+                      },
+                      "operation": {
+                        "enum": ["set", "increment", "unset"],
+                        "type": "string"
+                      },
+                      "value": {
+                        "$ref": "#/$defs/Scalar"
+                      }
+                    },
+                    "required": ["attribute", "operation", "value"],
+                    "type": "object"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "position": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "x": {
+                        "type": "number"
+                      },
+                      "y": {
+                        "type": "number"
+                      }
+                    },
+                    "required": ["x", "y"],
+                    "type": "object"
+                  },
+                  "type": {
+                    "enum": ["update_attribute"],
+                    "type": "string"
+                  }
+                },
+                "required": ["config", "id", "label", "position", "type"],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "config": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "reason": {
+                        "enum": [
+                          "completed",
+                          "converted",
+                          "condition_not_met",
+                          "manually_cancelled"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": ["reason"],
+                    "type": "object"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "position": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "x": {
+                        "type": "number"
+                      },
+                      "y": {
+                        "type": "number"
+                      }
+                    },
+                    "required": ["x", "y"],
+                    "type": "object"
+                  },
+                  "type": {
+                    "enum": ["exit"],
+                    "type": "string"
+                  }
+                },
+                "required": ["config", "id", "label", "position", "type"],
+                "type": "object"
+              }
+            ]
+          },
+          "type": "array"
+        },
+        "reentry": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "cooldown_seconds": {
+                  "type": "integer"
+                },
+                "mode": {
+                  "enum": ["once", "after_completion", "cooldown"],
+                  "type": "string"
+                }
+              },
+              "required": ["cooldown_seconds", "mode"],
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "schema_version": {
+          "enum": [1],
+          "type": "integer"
+        }
+      },
+      "required": ["edges", "global_exit", "nodes", "reentry", "schema_version"],
+      "type": "object"
+    }
+  },
+  "required": ["description", "explanation", "name", "warnings", "workflow"],
+  "type": "object"
+}

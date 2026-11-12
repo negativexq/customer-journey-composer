@@ -1,4 +1,17 @@
 <script setup lang="ts">
+const operatorLabels: Record<string, string> = {
+  equals: 'Equals',
+  not_equals: 'Does not equal',
+  greater_than: 'Greater than',
+  greater_than_or_equal: 'At least (≥)',
+  less_than: 'Less than',
+  less_than_or_equal: 'At most (≤)',
+  contains: 'Contains',
+  exists: 'Has a value',
+  before: 'Before',
+  after: 'After',
+};
+
 import type { Rule } from '../lib/workflow';
 const props = withDefaults(
   defineProps<{ modelValue?: Rule; readonly?: boolean; depth?: number }>(),
@@ -76,7 +89,9 @@ function child(index: number, rule: Rule) {
               'equals',
               'not_equals',
               'greater_than',
+              'greater_than_or_equal',
               'less_than',
+              'less_than_or_equal',
               'contains',
               'exists',
               'before',
@@ -84,7 +99,7 @@ function child(index: number, rule: Rule) {
             ]"
             :key="operator"
           >
-            {{ operator }}
+            {{ operatorLabels[operator] || operator }}
           </option>
         </select></label
       ><label v-if="modelValue?.operator !== 'exists'"

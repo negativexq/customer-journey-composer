@@ -1,6 +1,7 @@
 package workflow
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -65,5 +66,32 @@ func TestDraftShapeAllowsIncompleteGraphsButRejectsUnsafeShapes(t *testing.T) {
 	}
 	if _, err := DecodeDraft([]byte(`{"schema_version":1,"nodes":[],"edges":[]}`)); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestInclusiveThresholdsHaveExactBoundaries(t *testing.T) {
+	for _, tc := range []struct {
+		op    string
+		value float64
+		want  bool
+	}{
+		{"greater_than_or_equal", 49.995, false}, {"greater_than_or_equal", 50, true}, {"greater_than_or_equal", 50.01, true},
+		{"less_than_or_equal", 49.995, true}, {"less_than_or_equal", 50, true}, {"less_than_or_equal", 50.01, false},
+		{"greater_than", 50, false}, {"less_than", 50, false},
+	} {
+		t.Run(tc.op+fmt.Sprint(tc.value), func(t *testing.T) {
+			r := Rule{Path: "event.properties.amount", Operator: tc.op, Value: 50}
+			w := valid()
+			w.Nodes[0].Config.Filters = &r
+			if len(Validate(w)) != 0 {
+				t.Fatal("operator rejected")
+			}
+			if got := Evaluate(r, map[string]any{"event": map[string]any{"properties": map[string]any{"amount": tc.value}}}); got != tc.want {
+				t.Fatal(got, tc.want)
+			}
+		})
+	}
+	if Evaluate(Rule{Path: "event.properties.amount", Operator: "greater_than_or_equal", Value: 50}, map[string]any{"event": map[string]any{"properties": map[string]any{"amount": "50"}}}) {
+		t.Fatal("numeric strings were coerced")
 	}
 }
