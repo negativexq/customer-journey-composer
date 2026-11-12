@@ -46,7 +46,11 @@ export type Workflow = {
   schema_version: 1;
   nodes: Step[];
   edges: { id: string; source: string; target: string; port: string }[];
-  global_exit?: { event_name: string; filters?: Rule };
+  global_exit?: {
+    event_name: string;
+    reason?: 'converted' | 'completed' | 'condition_not_met' | 'manually_cancelled';
+    filters?: Rule;
+  };
   reentry?: { mode: string; cooldown_seconds?: number };
 };
 export type Issue = { node_id?: string; field: string; message: string };

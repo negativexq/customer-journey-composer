@@ -43,7 +43,7 @@ func applyEvent(ctx context.Context, tx pgx.Tx, workspace string, event Event, d
 		if x.spec.GlobalExit == nil || (x.spec.GlobalExit.Filters != nil && !workflow.Evaluate(*x.spec.GlobalExit.Filters, data)) {
 			continue
 		}
-		if _, err := tx.Exec(ctx, `UPDATE journey_executions SET state='EXITED',exit_reason='converted',completed_at=$2,updated_at=$2,context=context||jsonb_build_object('exit_event_id',$3::text) WHERE id=$1`, x.id, now, event.EventID); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE journey_executions SET state='EXITED',exit_reason=$4,completed_at=$2,updated_at=$2,context=context||jsonb_build_object('exit_event_id',$3::text) WHERE id=$1`, x.id, now, event.EventID, x.spec.GlobalExit.ExitOutcome()); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `UPDATE scheduled_jobs SET state='CANCELLED',lease_until=NULL,claim_token=NULL WHERE execution_id=$1 AND state IN ('SCHEDULED','CLAIMED')`, x.id); err != nil {

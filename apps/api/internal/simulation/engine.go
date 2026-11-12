@@ -323,10 +323,10 @@ func onEvent(spec workflow.Workflow, scenario Scenario, s *State, event Event, i
 	data := engine.ContextData(s.Customer, eventData(event), s.Context)
 	if s.Active && spec.GlobalExit != nil && spec.GlobalExit.EventName == event.EventName && !event.OccurredAt.Before(s.EntryOccurredAt) && (spec.GlobalExit.Filters == nil || workflow.Evaluate(*spec.GlobalExit.Filters, data)) {
 		s.Status = "EXITED"
-		s.ExitReason = "converted"
+		s.ExitReason = spec.GlobalExit.ExitOutcome()
 		s.Active = false
 		s.Outcomes[strconv.Itoa(s.Execution)] = s.Status
-		s.trace("exit", s.CurrentNodeID, "Global exit: converted")
+		s.trace("exit", s.CurrentNodeID, "Global exit: "+s.ExitReason)
 		s.cancelPending()
 	}
 	if s.Active {

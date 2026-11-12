@@ -57,6 +57,7 @@ type Edge struct {
 	Port   string `json:"port"`
 }
 type ExitCriteria struct {
+	Reason    string `json:"reason,omitempty" enum:"converted,completed,condition_not_met,manually_cancelled"`
 	EventName string `json:"event_name"`
 	Filters   *Rule  `json:"filters,omitempty"`
 }
@@ -283,6 +284,11 @@ func Validate(w Workflow) []Issue {
 		}
 	}
 	if w.GlobalExit != nil {
+		switch w.GlobalExit.Reason {
+		case "", "converted", "completed", "condition_not_met", "manually_cancelled":
+		default:
+			add("", "global_exit.reason", "Invalid global exit outcome")
+		}
 		if !eventName.MatchString(w.GlobalExit.EventName) {
 			add("", "global_exit", "Valid exit event name required")
 		}
@@ -440,3 +446,12 @@ func (w Workflow) Next(id, port string) string {
 	return ""
 }
 func BoolPort(value bool) string { return strconv.FormatBool(value) }
+
+// ExitOutcome keeps the semantics of existing immutable snapshots: a missing
+// outcome is a conversion. Newly authored cancellation exits are explicit.
+func (e *ExitCriteria) ExitOutcome() string {
+	if e == nil || e.Reason == "" {
+		return "converted"
+	}
+	return e.Reason
+}

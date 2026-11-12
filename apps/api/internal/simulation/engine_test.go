@@ -145,3 +145,23 @@ func TestThousandSandboxCustomersLeaveInputsUnchanged(t *testing.T) {
 		t.Fatal("batch simulation mutated shared profile/scenario")
 	}
 }
+
+func TestExplicitGlobalCancellationDoesNotConvert(t *testing.T) {
+	for _, reason := range []string{"completed", "condition_not_met", "manually_cancelled", "converted", ""} {
+		t.Run(reason, func(t *testing.T) {
+			w := cart()
+			w.GlobalExit = &workflow.ExitCriteria{EventName: "order_refunded", Reason: reason}
+			s := scenario()
+			s.Events = []TimedEvent{{AfterSeconds: 1800, Event: Event{EventID: "refund", EventName: "order_refunded"}}}
+			s.Assertions = []Assertion{{Type: "no_message"}}
+			state := complete(t, w, s)
+			want := reason
+			if want == "" {
+				want = "converted"
+			}
+			if state.ExitReason != want || state.Status != "EXITED" || len(state.Messages) != 0 {
+				t.Fatalf("outcome=%s state=%s", state.ExitReason, state.Status)
+			}
+		})
+	}
+}

@@ -344,3 +344,14 @@ separate no-LLM probe showed that confirming the fifth proposal's ambiguity allo
 approval even though a missing loyalty requirement was omitted as warning-only.
 These defects remain open; grounding is not proof of business completeness.
 [Full report and recorded fixtures](reports/semantic-live-five-2026-11-12.md).
+
+## Journey outcome correctness — 2026-11-12
+
+Global exits now accept an explicit outcome. Production and virtual-time runtime
+share the same resolution: missing outcome retains legacy `converted`; an explicit
+refund/cancellation can stop without conversion. Published definitions are not
+rewritten. Builder preserves existing exit filters and exposes the outcome.
+Composer v3 adds this outcome to both providers' structured schema; the v2 artifact
+remains available. `make check` and the isolated PostgreSQL runtime suite passed,
+including cancellation during a wait and cancellation of pending jobs. No paid
+AI call or external deployment was made.

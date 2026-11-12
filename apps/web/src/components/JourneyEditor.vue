@@ -46,11 +46,16 @@ watch(
 );
 let applying = false;
 const exitEvent = ref(draft.value.global_exit?.event_name || '');
+const exitReason = ref<NonNullable<Workflow['global_exit']>['reason']>(
+  draft.value.global_exit?.reason || 'converted',
+);
 const reentryMode = ref(draft.value.reentry?.mode || 'after_completion');
 const cooldown = ref(draft.value.reentry?.cooldown_seconds || 86400);
-watch([exitEvent, reentryMode, cooldown], () => {
+watch([exitEvent, exitReason, reentryMode, cooldown], () => {
   if (applying) return;
-  draft.value.global_exit = exitEvent.value ? { event_name: exitEvent.value } : undefined;
+  draft.value.global_exit = exitEvent.value
+    ? { ...draft.value.global_exit, event_name: exitEvent.value, reason: exitReason.value }
+    : undefined;
   draft.value.reentry = {
     mode: reentryMode.value,
     ...(reentryMode.value === 'cooldown' ? { cooldown_seconds: cooldown.value } : {}),
@@ -82,6 +87,7 @@ async function applyProposal(proposal: { workflow: Workflow; name: string; descr
   name.value = proposal.name;
   description.value = proposal.description;
   exitEvent.value = draft.value.global_exit?.event_name || '';
+  exitReason.value = draft.value.global_exit?.reason || 'converted';
   reentryMode.value = draft.value.reentry?.mode || 'after_completion';
   cooldown.value = draft.value.reentry?.cooldown_seconds || 86400;
   issues.value = [];
@@ -424,6 +430,13 @@ function back() {
           placeholder="e.g. purchase_completed"
       /></label>
       <label
+        >Global exit outcome<select v-model="exitReason" :disabled="readonly || !exitEvent">
+          <option value="converted">Goal reached — converted</option>
+          <option value="completed">Stop without conversion</option>
+          <option value="condition_not_met">No longer eligible</option>
+          <option value="manually_cancelled">Cancelled</option>
+        </select></label
+      ><label
         >Re-entry policy<select v-model="reentryMode" :disabled="readonly">
           <option value="once">Only once</option>
           <option value="after_completion">After previous execution ends</option>

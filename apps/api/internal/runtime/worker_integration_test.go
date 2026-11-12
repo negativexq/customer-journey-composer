@@ -298,3 +298,26 @@ func TestClaimSkipsOlderPausedAndLockedJobsBeforeApplyingLimit(t *testing.T) {
 		t.Fatal("paused work changed", state, err)
 	}
 }
+
+func TestRefundExitOutcomeIsVersionedAndNeverSchedulesMessages(t *testing.T) {
+	ctx, pool, workspace, journey, _, spec := fixture(t)
+	spec.GlobalExit = &workflow.ExitCriteria{EventName: "order_refunded", Reason: "completed"}
+	spec.Nodes = append(spec.Nodes, workflow.Node{ID: "delay", Type: "wait", Label: "Wait", Config: workflow.Config{DurationSeconds: 7200}})
+	spec.Edges = []workflow.Edge{{ID: "a", Source: "start", Target: "delay", Port: "started"}, {ID: "b", Source: "delay", Target: "done", Port: "completed"}}
+	publishTest(t, ctx, pool, workspace, journey, spec)
+	clock := &testClock{now: time.Now().UTC().Truncate(time.Microsecond)}
+	id := entry(t, ctx, pool, workspace, "cust_test", clock.Now())
+	drain(t, ctx, NewWorker(pool, clock))
+	clock.Advance(time.Hour)
+	if _, err := Ingest(ctx, pool, workspace, Event{EventID: testID(), CustomerID: "cust_test", EventName: "order_refunded", OccurredAt: clock.Now()}, clock.Now()); err != nil {
+		t.Fatal(err)
+	}
+	var reason string
+	var pending int
+	if err := pool.QueryRow(ctx, `SELECT exit_reason FROM journey_executions WHERE id=$1`, id).Scan(&reason); err != nil || reason != "completed" {
+		t.Fatal(reason, err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM scheduled_jobs WHERE execution_id=$1 AND state IN ('SCHEDULED','CLAIMED')`, id).Scan(&pending); err != nil || pending != 0 {
+		t.Fatal(pending, err)
+	}
+}

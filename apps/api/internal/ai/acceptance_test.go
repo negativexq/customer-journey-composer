@@ -21,6 +21,7 @@ func schemaFixture(t *testing.T, name string) string {
 	delete(w, "acceptance_contract")
 	if e, ok := w["global_exit"].(map[string]any); ok {
 		e["filters"] = nil
+		e["reason"] = "converted"
 	}
 	for _, item := range w["nodes"].([]any) {
 		n := item.(map[string]any)
