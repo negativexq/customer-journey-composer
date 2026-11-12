@@ -82,5 +82,29 @@ not a newly generated provider response. No UI text or geometry was substituted.
 [Generation feedback](../images/creation/generating.png) ·
 [Review diagram](../images/creation/review.png)
 
-Advanced canvas connection focus and readable node summaries are a subsequent
-slice; the creation review diagram does not replace the editable workflow graph.
+## Canvas readability follow-up
+
+The editor opens at the trigger at readable zoom. Go to start and Focus selected
+step provide orientation without squeezing a long workflow into a tiny overview.
+Selected nodes highlight adjacent connections; other nodes/edges fade. Connected
+steps and edge controls jump to the original target. Shared exits optionally use
+short labeled references, preserving the exact node and edge identities; turning
+the option off restores the full links. These references are not new runtime nodes.
+
+Conditions show grouped rules, event waits include their timeout, and message
+summaries use readable variable labels without changing stored templates.
+Orthogonal edges have arrowheads and nearby branch labels. Insert controls appear
+on hover/focus. Auto layout measures actual cards and remains undoable; this is
+not a guarantee that every arbitrary graph has zero edge crossings. No new layout
+dependency or runtime behavior was introduced.
+
+[Readable initial canvas](../images/creation/canvas-start.png) ·
+[Selected connections and navigation](../images/creation/canvas-focus.png)
+
+The final complete browser suite passes **64/64** desktop/mobile cases, including
+short exit navigation without graph mutation, Auto layout undo and failed
+composition restore without overwriting a saved brief. `make check` passes again.
+The earlier complete PostgreSQL integration run remains applicable: this
+follow-up changes frontend presentation only. No additional paid model call was
+made. The earlier 60-case result above records the creation slice before these
+four additional browser cases.

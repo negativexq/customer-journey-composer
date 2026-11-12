@@ -394,3 +394,35 @@ test('interrupted creation restores its brief without restarting a paid request'
   release();
   expect(calls).toBe(1);
 });
+
+test('a failed composition restore cannot overwrite the saved brief', async ({ page }) => {
+  const id = await startGuided(page, 'Restore safely');
+  await page
+    .getByLabel('Your brief', { exact: true })
+    .fill('This saved text must survive a read outage');
+  await page.getByRole('button', { name: '← Journeys', exact: true }).click();
+  await page.getByRole('button', { name: 'Restore safely', exact: true }).click();
+  await expect(page.getByLabel('Your brief', { exact: true })).toHaveValue(
+    'This saved text must survive a read outage',
+  );
+  let writes = 0;
+  page.on('request', (request) => {
+    if (request.url().endsWith('/composition') && request.method() === 'PUT') writes++;
+  });
+  await page.route(`**/api/v1/journeys/${id}/composition`, (route) =>
+    route.request().method() === 'GET'
+      ? route.fulfill({ status: 503, json: { detail: 'Composition unavailable' } })
+      : route.continue(),
+  );
+  await page.reload();
+  await expect(
+    page.getByRole('heading', { name: 'Creation draft unavailable', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel('Your brief', { exact: true })).toHaveCount(0);
+  expect(writes).toBe(0);
+  await page.unroute(`**/api/v1/journeys/${id}/composition`);
+  await page.getByRole('button', { name: 'Retry loading', exact: true }).click();
+  await expect(page.getByLabel('Your brief', { exact: true })).toHaveValue(
+    'This saved text must survive a read outage',
+  );
+});

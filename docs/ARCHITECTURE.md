@@ -126,3 +126,16 @@ heartbeat and disabled Nginx proxy buffering keep the stream observable;
 disconnect cancels the provider context. This is request-scoped, not a durable
 background generation job and does not promise reload recovery. The frontend
 never automatically reconnects or resubmits a paid generation action.
+
+### Resumable creation drafts
+
+Migration 0020 keeps a small creation-step marker on journeys and stores bounded
+brief/proposal data in a separate workspace/journey-keyed composition table.
+Listing projects only the marker; runtime and analytics do not load composition
+JSON. Metadata/state saves use the shared journey revision and a row lock.
+Approval revalidates the stored proposal, atomically copies it to the draft,
+moves to Builder and writes an audit entry without publishing a version.
+Unfinished creation is blocked by publication checks. Existing journeys default
+to Builder and keep their current workflow behavior. See the
+[creation workspace](design/creation-workspace.md) for endpoints, resume behavior
+and the distinction between saved review state and request-scoped generation.

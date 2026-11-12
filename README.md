@@ -43,6 +43,20 @@ deployment was performed.
 
 A published workflow is an immutable snapshot. Existing customers continue on the version they entered; editing a draft does not silently change their journey.
 
+## Review the plan before opening the canvas
+
+New journeys follow **Details → Creation method → Brief → Review → Builder**.
+Start from scratch or use one of four editable example briefs. During generation,
+see the actual processing stage and elapsed time. Review a simple diagram,
+request changes, then approve the plan to open an editable draft.
+
+Brief and Review drafts reopen at their saved step, including after a refresh.
+Approval and publishing remain separate actions.
+
+![Journey creation review with a simple diagram, alternate paths and explicit approval](docs/images/creation/review.png)
+
+[Brief and examples](docs/images/creation/brief.png) · [Generation feedback](docs/images/creation/generating.png) · [Creation and persistence details](docs/design/creation-workspace.md)
+
 ## Fast-forward before you send
 
 The Test Lab runs real journey decisions on an isolated virtual clock. Try a purchase before the first reminder, an opted-out customer, a duplicate event or a provider retry. Review the path and its assertions before publishing.
@@ -65,7 +79,7 @@ Follow live node counts and customer paths, then compare journey and channel out
 
 ![Analytics populated by synthetic customers processed through the local execution engine](docs/images/analytics.png)
 
-**About these screenshots:** all contacts and activity are synthetic demo data. Live demo actions use mock SMS; email previews are isolated simulations. Counts come from stored records, and the demo does not invent historical trends, email opens or click rates. Images are captured from the running application at **3200 × 2100**, with no UI values substituted. [Capture details](docs/SHOWCASE.md).
+**About these screenshots:** all contacts and activity are synthetic demo data. Live demo actions use mock SMS; email previews are isolated simulations. Counts come from stored records, and the demo does not invent historical trends, email opens or click rates. Original gallery images are captured at **3200 × 2100**. The creation and canvas follow-up captures use a **1440 × 1040** viewport at 1.5 scale (**2160 × 1560** output), with recorded workflow fixtures and local simulated generation progress. No UI values or geometry were substituted. [Capture details](docs/SHOWCASE.md).
 
 ## Run locally
 
@@ -130,7 +144,7 @@ make test-e2e
 make test-recovery
 ```
 
-The latest recorded local browser run passed **48/48 desktop/mobile scenarios**, including real canvas connections, branch insertion/undo, access recovery, sandbox isolation, customer tracking and dark-OS/light-canvas behavior. Database integration tests use isolated PostgreSQL containers. Hosted CI also checks dependencies and application images.
+The latest recorded local browser run passed **64/64 desktop/mobile scenarios**, including real canvas connections, branch insertion/undo, access recovery, sandbox isolation, customer tracking and dark-OS/light-canvas behavior. Database integration tests use isolated PostgreSQL containers. Hosted CI also checks dependencies and application images.
 
 Measured 10,000-execution workloads, raw results and limitations are available in the [performance reports](docs/PERFORMANCE.md), [operational follow-up](docs/OPERATIONS-PERFORMANCE.md), [bounded-turn analysis](docs/BOUNDED-TURNS.md), [scheduler transaction tradeoffs](docs/SCHEDULER-LOCKS.md) and [latest queue/timer follow-up](docs/QUEUE-FOLLOWUP.md). They describe their own source revisions and matched baselines; they are not universal latency promises.
 

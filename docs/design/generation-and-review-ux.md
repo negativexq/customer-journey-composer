@@ -1,11 +1,16 @@
 # AI generation feedback and journey review
 
-Research and proposed implementation — November 12, 2026. **Not implemented.**
-This document records a source-code review and competitor documentation research,
-not a usability study or a claim that the proposed improvements already ship.
-No paid provider call or application-data change was made for this research.
+Research snapshot — November 12, 2026. Progress feedback, resumable creation,
+box-and-arrow review and canvas navigation/readability are now implemented; see
+[the implementation evidence](creation-workspace.md). Named collapsible groups
+and ELK routing remain proposals. The baseline observations below describe the
+application before those changes.
+This document records baseline source-code review and competitor documentation
+research, not a usability study. The linked implementation report separates
+verified changes from the remaining proposals. No paid provider call or
+application-data change was made during the research itself.
 
-## Observed problems in this application
+## Baseline problems before implementation
 
 - `AIPanel.vue` awaits one JSON response, changes the Compose button label and
   exposes Cancel. Its busy state is not communicated to the canvas. There is no

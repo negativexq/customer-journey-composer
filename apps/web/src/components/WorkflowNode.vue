@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { Handle, Position } from '@xyflow/vue';
 import { ports, labels, type Kind, type Config } from '../lib/workflow';
 import AppIcon from './ui/AppIcon.vue';
+import { stepSummary } from '../lib/workflow-presentation';
 // NodeProps.draggable belongs to xyflow's wrapper, not native HTML drag-and-drop.
 defineOptions({ inheritAttrs: false });
 const props = defineProps<{
@@ -13,6 +14,7 @@ const props = defineProps<{
     invalid?: boolean;
     active?: boolean;
     visited?: boolean;
+    muted?: boolean;
     metrics?: {
       entered: number;
       waiting: number;
@@ -34,41 +36,9 @@ const icons: Record<string, string> = {
   update_attribute: 'user',
   exit: 'exit',
 };
-function duration(seconds: number) {
-  const [amount, unit] =
-    seconds >= 86400
-      ? [seconds / 86400, 'day']
-      : seconds >= 3600
-        ? [seconds / 3600, 'hour']
-        : seconds >= 60
-          ? [seconds / 60, 'minute']
-          : [seconds, 'second'];
-  return `${amount} ${unit}${amount === 1 ? '' : 's'}`;
-}
-const detail = computed(() => {
-  const c = props.data.config;
-  if (!c) return '';
-  switch (props.data.kind) {
-    case 'event_trigger':
-      return c.event_name || 'Choose an event';
-    case 'wait':
-      return 'Wait ' + duration(c.duration_seconds || 0);
-    case 'wait_event':
-      return c.event_name || 'Choose an event';
-    case 'email':
-      return c.subject || 'Add email content';
-    case 'sms':
-      return c.text || 'Add message content';
-    case 'condition':
-      return c.rule?.path?.replace('customer.attributes.', '') || 'Configure conditions';
-    case 'update_attribute':
-      return c.attribute || 'Choose an attribute';
-    case 'exit':
-      return c.reason === 'converted' ? 'Conversion goal reached' : c.reason || 'Journey complete';
-    default:
-      return '';
-  }
-});
+const detail = computed(() =>
+  stepSummary({ type: props.data.kind, config: props.data.config || {} }),
+);
 const label = (p: string) =>
   p === 'true'
     ? 'Yes'
@@ -90,6 +60,7 @@ const label = (p: string) =>
         invalid: data.invalid,
         'is-current': data.active,
         'was-visited': data.visited,
+        'is-muted': data.muted,
       },
     ]"
   >
@@ -104,7 +75,7 @@ const label = (p: string) =>
       </div>
       <span v-if="data.invalid" class="node-warning" title="Needs attention">!</span>
     </div>
-    <p class="workflow-node-detail">{{ detail }}</p>
+    <p class="workflow-node-detail" :title="detail">{{ detail }}</p>
     <div v-if="ports(data.kind).length > 1" class="node-ports">
       <span v-for="p in ports(data.kind)" :key="p" :class="p">{{ label(p) }}</span>
     </div>

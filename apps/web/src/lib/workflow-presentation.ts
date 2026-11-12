@@ -40,6 +40,13 @@ export function ruleSummary(rule?: Rule, depth = 0): string {
   return `${field} ${operator || ''}${rule.operator === 'exists' ? '' : ' ' + JSON.stringify(rule.value ?? '')}`;
 }
 
+function templateSummary(text: string) {
+  return text.replace(/{{\s*([a-zA-Z_][\w.]*)\s*}}/g, (_match, path: string) => {
+    const field = path.split('.').at(-1)!.replaceAll('_', ' ');
+    return `[${field.charAt(0).toUpperCase()}${field.slice(1)}]`;
+  });
+}
+
 export function stepSummary(step: Pick<Step, 'type' | 'config'>): string {
   const c = step.config;
   switch (step.type) {
@@ -52,9 +59,9 @@ export function stepSummary(step: Pick<Step, 'type' | 'config'>): string {
     case 'event_trigger':
       return c.event_name || 'Choose an event';
     case 'email':
-      return c.subject || 'Add email content';
+      return c.subject ? templateSummary(c.subject) : 'Add email content';
     case 'sms':
-      return c.text || 'Add message content';
+      return c.text ? templateSummary(c.text) : 'Add message content';
     case 'exit':
       return c.reason === 'converted' ? 'Conversion goal reached' : c.reason || 'Journey complete';
     case 'update_attribute':

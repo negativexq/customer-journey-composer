@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
-import { VueFlow, setupVueFlow, Background, MiniMap, type Connection } from '@xyflow/vue';
+import {
+  VueFlow,
+  setupVueFlow,
+  Background,
+  MiniMap,
+  MarkerType,
+  type Connection,
+} from '@xyflow/vue';
 import dagre from '@dagrejs/dagre';
 import {
   kinds,
@@ -13,6 +20,7 @@ import {
   type Issue,
 } from '../lib/workflow';
 import WorkflowNode from './WorkflowNode.vue';
+import { portLabel } from '../lib/workflow-presentation';
 import CanvasControls from './CanvasControls.vue';
 import InsertableEdge from './InsertableEdge.vue';
 import RuleEditor from './RuleEditor.vue';
@@ -25,15 +33,18 @@ const props = defineProps<{
   hideInspector?: boolean;
 }>();
 const emit = defineEmits<{ 'update:modelValue': [Workflow]; preview: [string]; inspect: [] }>();
-const { fitView, setViewport, screenToFlowPosition } = setupVueFlow<CanvasNode, CanvasEdge>();
+const { fitView, setViewport, setCenter, screenToFlowPosition } = setupVueFlow<
+  CanvasNode,
+  CanvasEdge
+>();
 const canvasElement = ref<HTMLDivElement>();
 let initialViewportPlaced = false;
 function placeInitialViewport() {
-  if (initialViewportPlaced || !window.matchMedia('(max-width: 700px)').matches) return;
+  if (initialViewportPlaced) return;
   const entry = nodes.value.find((node) => node.data.kind === 'event_trigger') || nodes.value[0];
   if (!entry || !canvasElement.value?.clientWidth) return;
   initialViewportPlaced = true;
-  const zoom = Math.min(0.85, (canvasElement.value!.clientWidth - 24) / 224);
+  const zoom = Math.min(0.9, (canvasElement.value!.clientWidth - 24) / 224);
   void setViewport({
     x: canvasElement.value!.clientWidth / 2 - (entry.position.x + 112) * zoom,
     y: 32 - entry.position.y * zoom,
@@ -80,6 +91,17 @@ const edges = ref<CanvasEdge[]>(
   })),
 );
 const nodeLabels = computed(() => new Map(nodes.value.map((node) => [node.id, node.data.label])));
+const shortExitLinks = ref(props.modelValue.nodes.length > 8);
+const sharedExits = computed(() => {
+  const count = new Map<string, number>();
+  for (const edge of edges.value) count.set(edge.target, (count.get(edge.target) || 0) + 1);
+  return new Set(
+    nodes.value
+      .filter((node) => node.data.kind === 'exit' && (count.get(node.id) || 0) > 1)
+      .map((node) => node.id),
+  );
+});
+
 const insertionDialog = ref<HTMLDialogElement>();
 const insertionEdge = ref('');
 const insertionPort = ref('');
@@ -141,6 +163,47 @@ function insertStep() {
 }
 const selectedID = ref('');
 const libraryOpen = ref(!window.matchMedia('(max-width: 700px)').matches);
+const neighbors = computed(() => {
+  if (!selectedID.value) return undefined;
+  const ids = new Set([selectedID.value]);
+  for (const edge of edges.value)
+    if (edge.source === selectedID.value || edge.target === selectedID.value) {
+      ids.add(edge.source);
+      ids.add(edge.target);
+    }
+  return ids;
+});
+const connectedSteps = computed(() =>
+  edges.value
+    .filter((edge) => edge.source === selectedID.value || edge.target === selectedID.value)
+    .map((edge) => ({
+      id: edge.id,
+      target: edge.source === selectedID.value ? edge.target : edge.source,
+      label: `${edge.source === selectedID.value ? portLabel(edge.sourceHandle || 'next') + ' →' : '← From'} ${nodeLabels.value.get(edge.source === selectedID.value ? edge.target : edge.source)}`,
+    })),
+);
+function focusNode(id: string) {
+  const node = nodes.value.find((node) => node.id === id);
+  if (!node) return;
+  selectedID.value = id;
+  nodes.value = nodes.value.map((node) => ({ ...node, selected: node.id === id }));
+  inspectorOpen.value = true;
+  emit('inspect');
+  void nextTick(() =>
+    setCenter(node.position.x + 112, node.position.y + 65, {
+      zoom: 0.9,
+      duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 160,
+    }),
+  );
+}
+function startView() {
+  nodes.value = nodes.value.map((node) => ({ ...node, selected: false }));
+  selectedID.value = '';
+  inspectorOpen.value = false;
+  initialViewportPlaced = false;
+  void nextTick(placeInitialViewport);
+}
+
 const inspectorOpen = ref(true);
 
 const nodeSearch = ref('');
@@ -420,17 +483,25 @@ function remove() {
   selectedID.value = '';
 }
 function layout() {
-  const graph = new dagre.graphlib.Graph();
-  graph.setGraph({ rankdir: 'TB', nodesep: 80, ranksep: 70 });
+  const graph = new dagre.graphlib.Graph({ multigraph: true });
+  graph.setGraph({ rankdir: 'TB', nodesep: 100, ranksep: 88 });
   graph.setDefaultEdgeLabel(() => ({}));
-  for (const n of nodes.value) graph.setNode(n.id, { width: 224, height: 112 });
-  for (const e of edges.value) graph.setEdge(e.source, e.target);
+  for (const node of nodes.value) {
+    const card = canvasElement.value?.querySelector<HTMLElement>(
+      `[data-id="${CSS.escape(node.id)}"] .workflow-node`,
+    );
+    graph.setNode(node.id, { width: card?.offsetWidth || 224, height: card?.offsetHeight || 130 });
+  }
+  for (const edge of edges.value) graph.setEdge(edge.source, edge.target, {}, edge.id);
   dagre.layout(graph);
-  nodes.value = nodes.value.map((n) => {
-    const p = graph.node(n.id);
-    return { ...n, position: { x: p.x - 112, y: p.y - 56 } };
+  nodes.value = nodes.value.map((node) => {
+    const position = graph.node(node.id);
+    return {
+      ...node,
+      position: { x: position.x - position.width / 2, y: position.y - position.height / 2 },
+    };
   });
-  void nextTick(() => fitView());
+  void nextTick(startView);
 }
 function keyboard(event: KeyboardEvent) {
   if (
@@ -555,14 +626,30 @@ function setAttribute(value: string) {
       >
         <AppIcon :name="icon" :size="16" /></button
       ><span class="toolbar-divider" /><button
+        type="button"
         class="icon-button"
-        aria-label="Fit view"
-        title="Fit view"
-        @click="fitView()"
+        aria-label="Go to start"
+        title="Go to start · readable zoom"
+        @click="startView"
       >
+        <AppIcon name="home" :size="16" /></button
+      ><button
+        type="button"
+        class="icon-button"
+        aria-label="Focus selected step"
+        title="Focus selected step"
+        :disabled="!selectedID"
+        @click="focusNode(selectedID)"
+      >
+        <AppIcon name="search" :size="16" /></button
+      ><button class="icon-button" aria-label="Fit view" title="Fit view" @click="fitView()">
         <AppIcon name="maximize" :size="16" />
       </button>
     </div>
+  </div>
+  <div v-if="sharedExits.size" class="canvas-reading-bar">
+    <label><input v-model="shortExitLinks" type="checkbox" />Short exit links</label
+    ><span>Shared exits appear as references. Select one to open the original step.</span>
   </div>
   <div class="builder-layout">
     <aside v-show="libraryOpen" class="step-library" aria-label="Step library">
@@ -610,7 +697,10 @@ function setAttribute(value: string) {
         id="builder"
         v-model:nodes="nodes"
         v-model:edges="edges"
-        :default-edge-options="{ type: 'insertable' }"
+        :default-edge-options="{
+          type: 'insertable',
+          markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: '#98a4b6' },
+        }"
         :nodes-draggable="!readonly"
         :nodes-connectable="!readonly"
         :elements-selectable="true"
@@ -632,6 +722,7 @@ function setAttribute(value: string) {
             :data="{
               ...nodeProps.data,
               invalid: issues.some((i) => i.node_id === nodeProps.id),
+              muted: !!neighbors && !neighbors.has(nodeProps.id),
             }"
         /></template>
         <template #edge-insertable="edgeProps"
@@ -639,6 +730,20 @@ function setAttribute(value: string) {
             v-bind="edgeProps"
             :connection-label="`${nodeLabels.get(edgeProps.source)} → ${nodeLabels.get(edgeProps.target)}${edgeProps.label ? ' · ' + edgeProps.label : ''}`"
             :readonly="readonly"
+            :exit-reference="
+              shortExitLinks &&
+              sharedExits.has(edgeProps.target) &&
+              Math.abs(edgeProps.targetY - edgeProps.sourceY) > 400
+                ? nodeLabels.get(edgeProps.target)
+                : undefined
+            "
+            :highlighted="
+              !!selectedID && (edgeProps.source === selectedID || edgeProps.target === selectedID)
+            "
+            :muted="
+              !!selectedID && edgeProps.source !== selectedID && edgeProps.target !== selectedID
+            "
+            @jump="focusNode(edgeProps.target)"
             @insert="chooseEdge(edgeProps.id)"
         /></template>
       </VueFlow>
@@ -658,6 +763,18 @@ function setAttribute(value: string) {
           <AppIcon name="close" :size="17" />
         </button>
       </div>
+      <details v-if="connectedSteps.length" class="connected-steps" open>
+        <summary>Connected steps · {{ connectedSteps.length }}</summary>
+        <button
+          v-for="connection in connectedSteps"
+          :key="connection.id"
+          type="button"
+          :title="connection.label"
+          @click="focusNode(connection.target)"
+        >
+          {{ connection.label }}
+        </button>
+      </details>
       <label>Step name<input v-model="nodeLabel" :disabled="readonly" /></label
       ><label v-if="['event_trigger', 'wait_event'].includes(selected.data.kind)"
         >Event name<input v-model="eventName" :disabled="readonly"

@@ -265,3 +265,14 @@ correction briefs and approval preparation are implemented. Approval opens an
 editable Draft and does not publish. `make check`, complete PostgreSQL integration
 suites and all 60 desktop/mobile E2E cases pass locally. Screenshots were inspected;
 no new paid call was made. [Behavior, persistence and evidence](design/creation-workspace.md).
+
+## Canvas readability and final creation verification — 2026-11-12
+
+Readable trigger-centered opening, source branch labels, directional connections,
+selection focus, connected-step jumps and optional short shared-exit references
+are implemented without modifying workflow semantics. Grouped rules and wait
+timeouts are visible; template variables use readable summary labels. Auto layout
+measures rendered cards and is undoable. Final `make check` and all 64 desktop/mobile
+E2E cases pass locally, including graph preservation and restore-failure safety.
+The full PostgreSQL integration suite passed for migration 0020 and the creation
+API before this frontend-only follow-up. [Screenshots and limits](design/creation-workspace.md).
