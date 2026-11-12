@@ -172,3 +172,7 @@ make test-telemetry
 [Product requirements](docs/PRD.md) · [Implementation status](docs/IMPLEMENTATION.md) · [API policies](docs/API.md) · [Analytics semantics](docs/ANALYTICS.md) · [Observability](docs/OBSERVABILITY.md) · [Design direction](docs/design/modern-saas-direction.md)
 
 Contributions follow the repository [working agreement](AGENTS.md): verified, focused Conventional Commits; formatting, lint, typecheck and relevant tests before committing. Secrets, `.env` files and real customer data do not belong in Git.
+
+Journey observation load validation: [10,000 active executions, API latency and
+projection lag](docs/JOURNEY-OBSERVABILITY-PERFORMANCE.md). Counts reconciled with
+zero duplicate actions; the report includes the measured queue-lag limitation.

@@ -405,3 +405,17 @@ plans were sampled on the existing demo and documented as small local samples,
 not capacity/p95 results. Audience dimensions and channel conversion attribution
 remain outside this slice. No paid AI call or external deployment was made.
 [Behavior, screenshots and limitations](design/journey-observability-implementation.md).
+
+### Journey observation load validation — 2026-11-12
+
+The clean `81f3a92` benchmark runner passed an isolated 10,000-active-execution
+run after its 100-customer smoke check and `make check`. At 300 offered events/sec,
+all 10,000 entries, completions, branch transitions, distinct customers and
+logical/provider-accepted SMS counts reconciled. There were zero failed
+executions, duplicate logical actions or loaded HTTP failures. During the common
+timer burst live/Analytics p95 were 49.85/54.83 ms. The projection queue peaked at
+34,320 rows and 28.79 seconds oldest age, then drained within the one-second
+polling interval after delivery completion. This identifies queue drain cost and
+common-branch people lookup as follow-ups; it does not claim saturation capacity
+or a controlled improvement against older runs.
+[Method, raw data, query plans and limits](JOURNEY-OBSERVABILITY-PERFORMANCE.md).

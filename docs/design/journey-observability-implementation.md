@@ -118,7 +118,10 @@ overdue check executed in **0.142 ms**; for this small journey PostgreSQL chose 
 active-execution and execution-job indexes, rather than the new workspace/due
 index. These are individual warm local SQL samples, not API p95 values, a
 10,000-execution capacity test or evidence that PostgreSQL always chooses the
-same plan. Larger-load/write-amplification measurements remain future work.
+same plan. The subsequent [10,000-execution load test](../JOURNEY-OBSERVABILITY-PERFORMANCE.md)
+measured these APIs under timer and delivery load, reconciled their counts and
+recorded temporary projection lag plus relation/write statistics. A controlled
+before/after write-amplification comparison remains future work.
 
 No paid model call or external deployment was performed for this implementation.
 
