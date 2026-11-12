@@ -19,6 +19,11 @@ passed **10/11 sandbox scenarios**. The model approximated “at least 50 EUR”
 `> 49.99`; the fractional boundary failed and publication was blocked. One provider
 attempt used **6,856 tokens** in **33.90 s**. [Brief, output, screenshots and results](docs/reports/live-brief-cart-2026-11-12.md).
 
+A follow-up ran **10 additional edge cases** on that same output: **9/10 passed**.
+An unrelated cart purchase incorrectly converted the journey; duplicate events,
+cooldown boundaries, consent revocation and ambiguous-provider no-retry checks
+passed in the sandbox. [Edge-case findings and traces](docs/reports/live-cart-edges-2026-11-12.md).
+
 **Latest broader audit:** five fresh paid business briefs produced valid graphs,
 but the subsequent behavior audit passed **22/29 checks**. Refund outcomes,
 profile-goal checks, missing fallbacks and an omitted-requirement approval gap

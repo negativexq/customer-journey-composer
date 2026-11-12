@@ -432,3 +432,18 @@ publication was correctly blocked by that failed acceptance run. The draft and
 sandbox evidence remain available; there is no published version, live execution
 or new live delivery. No graph patch or additional paid repair was made.
 [Full findings and recorded artifacts](reports/live-brief-cart-2026-11-12.md).
+
+### Ten additional sandbox edges — 2026-11-12
+
+Ten new scenarios on the unchanged live-generated cart draft passed 9/10, with no
+new LLM/provider calls. Cases covered duplicate entry, cooldown at seven days
+minus one second and exactly seven days, equal event/timer timestamps, consent
+revoked between retry attempts, missing personalization, wrong currency, missing
+email contact, an unrelated-cart purchase and ambiguous provider 408. The new
+failure is a purchase from a different cart ending this journey as converted,
+reflecting the definition's unscoped global exit. Together with the prior amount
+boundary, two required cases block publication. Missing-value copy repetition
+and UNKNOWN detail hidden behind a FAILED inbox label were also recorded. No
+production workflow, execution or delivery changed. Case 10's external assertion
+field was corrected via persisted readback; this was a harness correction, not a
+runtime fix. [Evidence and limits](reports/live-cart-edges-2026-11-12.md).
