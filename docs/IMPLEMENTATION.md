@@ -276,3 +276,24 @@ measures rendered cards and is undoable. Final `make check` and all 64 desktop/m
 E2E cases pass locally, including graph preservation and restore-failure safety.
 The full PostgreSQL integration suite passed for migration 0020 and the creation
 API before this frontend-only follow-up. [Screenshots and limits](design/creation-workspace.md).
+
+## Journey-aware test inputs and business briefs — 2026-11-12
+
+Test Lab prepares a synthetic profile and entry event from the selected draft or
+immutable version, including referenced condition and message fields. It offers
+structural progression, global-exit and consent checks for human review. Suggested
+checks start exploratory; saving a suggested acceptance case requires explicit
+review. A mismatched entry event is flagged and requires intentional negative-test
+selection. Existing authored inputs and saved scenario snapshots are preserved;
+canonical EUR recovery cases remain available. No production profile is changed.
+
+Brief examples now use business language rather than event/attribute identifiers.
+This does not implement a workspace data catalog: grounded mapping to observed
+workspace events and attributes, ambiguity resolution and friendly field labels
+remain follow-up work. Structural test suggestions do not prove brief compliance.
+
+Validation: `make check` (including Go race tests and six script tests),
+`git diff --check` and all 66 desktop/mobile Playwright cases passed locally.
+Browser coverage includes onboarding-specific inputs, mismatched-event feedback,
+explicit suggested-case review and a passing isolated global-exit run. No paid
+provider call, external deployment, schema change or production query was added.

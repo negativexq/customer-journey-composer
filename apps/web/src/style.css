@@ -5291,3 +5291,46 @@ td {
     display: none;
   }
 }
+fieldset.scenario-form {
+  border: 0;
+  padding: 19px;
+  margin: 0;
+  min-width: 0;
+}
+.journey-test-context,
+.suggested-checks {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: #fafbfc;
+  margin-bottom: 14px;
+}
+.journey-test-context strong {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.journey-test-context p,
+.suggested-checks p,
+.journey-test-context li {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.journey-test-context ul {
+  padding-left: 16px;
+}
+.scenario-fields {
+  border-left: 2px solid #e6e1f2;
+  padding-left: 11px;
+  margin: 12px 0;
+}
+.scenario-fields label > span {
+  overflow-wrap: anywhere;
+  text-transform: none;
+}
+.scenario-fields small {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 3px;
+}

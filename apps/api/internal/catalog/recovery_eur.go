@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const RecoveryEURBrief = `Create an abandoned-cart recovery journey for EUR carts worth at least 50. Wait one hour, then email customers who have not purchased and have email consent. Wait up to 24 hours for a purchase. If there is no purchase and SMS consent is present, send a personalized SMS with the code COMEBACK10 for 10% off. Wait another 48 hours, then finish as converted or without conversion. Exit immediately whenever purchase_completed arrives. Use the customer's first name and cart amount in both messages. Prevent re-entry for seven days, while allowing the email and SMS within the same execution. Enforce consent and workspace frequency limits before dispatch. Report conversion separately from provider acceptance.`
+const RecoveryEURBrief = `Create an abandoned-cart recovery journey for EUR carts worth at least 50. Wait one hour, then email customers who have not purchased and have email consent. Wait up to 24 hours for a purchase. If there is no purchase and SMS consent is present, send a personalized SMS with the code COMEBACK10 for 10% off. Wait another 48 hours, then finish as converted or without conversion. Exit immediately whenever the customer purchases. Use the customer's first name and cart amount in both messages. Prevent re-entry for seven days, while allowing the email and SMS within the same execution. Enforce consent and workspace frequency limits before dispatch. Report conversion separately from provider acceptance.`
 
 func recoveryEUR() Template {
 	consent := func(channel string) *workflow.Rule {

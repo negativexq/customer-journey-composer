@@ -554,6 +554,8 @@ function back() {
     ><TestLab
       v-if="tab === 'Preview & Test' && previewTab === 'Test Lab'"
       :journey-id="journey.id"
+      :workflow="draft"
+      :journey-tags="journey.tags"
       :before-run="flushDraft"
       :readonly="readonly"
       :node-id="testNodeID"

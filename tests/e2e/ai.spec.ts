@@ -240,7 +240,7 @@ test('creation is a page and resumes a saved brief without making a model reques
     if (request.url().includes('/ai/journeys/')) requests++;
   });
   await page.getByRole('button', { name: 'Trial conversion', exact: false }).click();
-  await expect(page.getByLabel('Your brief', { exact: true })).toHaveValue(/trial_started/);
+  await expect(page.getByLabel('Your brief', { exact: true })).toHaveValue(/trial customers/);
   expect(await page.getByLabel('Your brief', { exact: true }).inputValue()).not.toMatch(
     /never publish|do not publish/i,
   );

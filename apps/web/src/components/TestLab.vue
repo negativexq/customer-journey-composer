@@ -1,12 +1,17 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onActivated, onMounted, ref, watch } from 'vue';
 import { api, type Journey } from '../lib/api';
 import AppIcon from './ui/AppIcon.vue';
 import StatusBadge from './ui/StatusBadge.vue';
 import CustomerProfileFields from './ui/CustomerProfileFields.vue';
 import TestInbox from './TestInbox.vue';
+import ScenarioFields from './ui/ScenarioFields.vue';
+import { testContext, type TestContext, type ScenarioDraft } from '../lib/test-context';
+import type { Workflow } from '../lib/workflow';
 const props = defineProps<{
   journeyId?: string;
+  workflow?: Workflow;
+  journeyTags?: string[];
   beforeRun?: () => Promise<void>;
   readonly?: boolean;
   nodeId?: string;
@@ -52,35 +57,156 @@ const examples = ref<Example[]>([]);
 const selectedExample = ref('');
 const exampleNotes = ref<string[]>([]);
 let exampleRequest = 0;
-async function loadExamples() {
+const context = ref<TestContext>();
+const sourceLoading = ref(false);
+const sourceFailed = ref(false);
+const sourceChanged = ref(false);
+const intentionalEntry = ref(false);
+const selectedSuggestion = ref('');
+const reviewedSuggestion = ref(false);
+let lastSource = '',
+  defaultInputs = '';
+let applyingInputs = false;
+const formSignature = () =>
+  JSON.stringify([
+    name.value,
+    customer.value,
+    entry.value,
+    events.value,
+    changes.value,
+    assertions.value,
+  ]);
+const mismatchedEntry = computed(
+  () =>
+    !savedScenario.value &&
+    mode.value === 'full' &&
+    !!context.value?.entryName &&
+    entryName.value !== context.value.entryName,
+);
+const customerFields = computed(() =>
+  (context.value?.fields || []).filter(
+    (field) =>
+      field.path.startsWith('customer.') &&
+      ![
+        'customer.email',
+        'customer.phone',
+        'customer.timezone',
+        'customer.attributes.first_name',
+        'customer.consents.email',
+        'customer.consents.sms',
+      ].includes(field.path),
+  ),
+);
+const eventFields = computed(() =>
+  (context.value?.fields || []).filter((field) => field.path.startsWith('event.properties.')),
+);
+async function loadExamples(autofill = true) {
   const request = ++exampleRequest;
-  examples.value = [];
-  exampleNotes.value = [];
-  selectedExample.value = '';
-  if (!journey.value) return;
+  if (!journey.value) {
+    context.value = undefined;
+    examples.value = [];
+    return;
+  }
+  sourceLoading.value = true;
+  sourceFailed.value = false;
   try {
     const selected =
-      journeys.value.find((j) => j.id === journey.value) ||
-      (await api<Journey>('/journeys/' + journey.value));
-    if (request !== exampleRequest || !selected.tags.includes('eur-recovery')) return;
-    const data = await api<{ scenarios: Example[]; notes: string[] }>(
-      '/templates/abandoned-cart-eur',
-    );
+      props.workflow && props.journeyId === journey.value
+        ? { tags: props.journeyTags || [], draft: props.workflow }
+        : await api<Journey>('/journeys/' + journey.value);
+    const workflow =
+      version.value > 0
+        ? (
+            await api<{ workflow: Workflow }>(
+              `/journeys/${journey.value}/versions/${version.value}`,
+            )
+          ).workflow
+        : (selected.draft as unknown as Workflow);
     if (request !== exampleRequest) return;
-    examples.value = data.scenarios;
-    exampleNotes.value = data.notes;
-    if (!props.nodeId && name.value === 'Customer journey scenario' && !savedScenario.value) {
-      selectedExample.value = '2';
-      applyExample();
-    }
+    const key = JSON.stringify([journey.value, version.value, workflow]);
+    const changed = !!lastSource && key !== lastSource;
+    const pristine = !defaultInputs || formSignature() === defaultInputs;
+    context.value = testContext(workflow);
+    if (key === lastSource) return;
+    sourceChanged.value = changed;
+    examples.value = [];
+    exampleNotes.value = [];
+    if (
+      selected.tags.includes('eur-recovery') &&
+      workflow.acceptance_contract === 'cart-recovery-eur.v1'
+    ) {
+      const data = await api<{ scenarios: Example[]; notes: string[] }>(
+        '/templates/abandoned-cart-eur',
+      );
+      if (request !== exampleRequest) return;
+      examples.value = data.scenarios;
+      exampleNotes.value = data.notes;
+      if (autofill && pristine && !savedScenario.value && !props.nodeId && version.value === 0) {
+        selectedExample.value = '2';
+        applyExample();
+      }
+    } else if (autofill && pristine && !savedScenario.value) applyDefaults();
+    lastSource = key;
   } catch (cause) {
-    if (request === exampleRequest) error.value = String(cause);
+    if (request === exampleRequest) {
+      sourceFailed.value = true;
+      error.value = String(cause);
+    }
+  } finally {
+    if (request === exampleRequest) sourceLoading.value = false;
   }
+}
+function applyScenario(scene: ScenarioDraft) {
+  applyingInputs = true;
+  savedScenario.value = '';
+  selectedExample.value = '';
+  customerID.value = '';
+  name.value = scene.name;
+  start.value = scene.start_time.slice(0, 19);
+  mode.value = props.nodeId ? 'single_node' : 'full';
+  node.value = props.nodeId || '';
+  customer.value = JSON.stringify(scene.customer, null, 2);
+  entry.value = JSON.stringify(scene.entry_event, null, 2);
+  events.value = JSON.stringify(scene.events, null, 2);
+  changes.value = JSON.stringify(scene.attribute_changes, null, 2);
+  outcome.value = 'any';
+  expectedMessages.value = 'any';
+  assertions.value = JSON.stringify(
+    scene.assertions.filter((check) => mode.value === 'full' || check.type !== 'enrollment_count'),
+    null,
+    2,
+  );
+  faults.value = '[]';
+  prior.value = 0;
+  exploratory.value = true;
+  intentionalEntry.value = false;
+  run.value = undefined;
+  path.value = undefined;
+  sourceChanged.value = false;
+  applyingInputs = false;
+  defaultInputs = formSignature();
+}
+function applyDefaults() {
+  if (context.value) {
+    selectedSuggestion.value = '';
+    reviewedSuggestion.value = false;
+    applyScenario(context.value.sample);
+  }
+}
+function applySuggestion() {
+  const suggestion = context.value?.suggestions[Number(selectedSuggestion.value)];
+  if (!suggestion || selectedSuggestion.value === '') return;
+  reviewedSuggestion.value = false;
+  applyScenario(suggestion.scenario);
 }
 function applyExample() {
   const example = examples.value[Number(selectedExample.value)];
   if (!example || selectedExample.value === '') return;
+  applyingInputs = true;
+  intentionalEntry.value = false;
   savedScenario.value = '';
+  selectedSuggestion.value = '';
+  exploratory.value = false;
   version.value = 0;
   mode.value = 'full';
   node.value = '';
@@ -96,6 +222,8 @@ function applyExample() {
   prior.value = 0;
   run.value = undefined;
   path.value = undefined;
+  applyingInputs = false;
+  defaultInputs = formSignature();
 }
 const journeys = ref<Journey[]>([]);
 const journey = ref(props.journeyId || '');
@@ -131,9 +259,7 @@ const customer = ref(
     2,
   ),
 );
-const entry = ref(
-  '{"event_id":"sandbox_entry","event_name":"cart_updated","properties":{"amount":2450,"currency":"TRY"}}',
-);
+const entry = ref('{"event_id":"sandbox_entry","event_name":"","properties":{}}');
 const events = ref('[]');
 const changes = ref('[]');
 const assertions = ref(
@@ -157,6 +283,9 @@ const savedScenario = ref('');
 watch(savedScenario, (id) => {
   requiredScenario.value = scenarios.value.find((s) => s.id === id)?.required ?? true;
 });
+watch(formSignature, () => {
+  if (selectedSuggestion.value && !applyingInputs) reviewedSuggestion.value = false;
+});
 const currentDraft = ref(false);
 const runs = ref<{ id: string; result: string; execution_state: string; created_at: string }[]>([]);
 const run = ref<Run>();
@@ -166,7 +295,7 @@ const notice = ref('');
 const busy = ref(false);
 const state = computed(() => path.value || run.value?.state);
 const versions = ref<{ version: number }[]>([]);
-const outcome = ref('COMPLETED');
+const outcome = ref('any');
 const expectedMessages = ref('any');
 const entryName = computed({
   get() {
@@ -199,7 +328,7 @@ function addEvent() {
     ...eventRows.value,
     {
       after_seconds: 3600,
-      event: { event_name: 'purchase_completed', event_id: crypto.randomUUID() },
+      event: { event_name: context.value?.eventNames[0] || '', event_id: crypto.randomUUID() },
     },
   ];
   events.value = JSON.stringify(rows, null, 2);
@@ -217,18 +346,23 @@ function removeEvent(index: number) {
     2,
   );
 }
-watch([outcome, expectedMessages], () => {
-  const checks: Record<string, unknown>[] = [
-    { type: 'state', expected: outcome.value },
-    { type: 'no_duplicate_delivery', expected: true },
-  ];
-  if (expectedMessages.value === 'none') checks.push({ type: 'no_message' });
-  if (['email', 'both'].includes(expectedMessages.value))
-    checks.push({ type: 'message_sent', channel: 'email' });
-  if (['sms', 'both'].includes(expectedMessages.value))
-    checks.push({ type: 'message_sent', channel: 'sms' });
-  assertions.value = JSON.stringify(checks, null, 2);
-});
+watch(
+  [outcome, expectedMessages],
+  () => {
+    if (applyingInputs) return;
+    const checks: Record<string, unknown>[] = [{ type: 'no_duplicate_delivery', expected: true }];
+    if (outcome.value !== 'any') checks.push({ type: 'state', expected: outcome.value });
+    if (mode.value === 'full') checks.push({ type: 'enrollment_count', expected: 1 });
+    if (outcome.value !== 'any' || expectedMessages.value !== 'any') exploratory.value = false;
+    if (expectedMessages.value === 'none') checks.push({ type: 'no_message' });
+    if (['email', 'both'].includes(expectedMessages.value))
+      checks.push({ type: 'message_sent', channel: 'email' });
+    if (['sms', 'both'].includes(expectedMessages.value))
+      checks.push({ type: 'message_sent', channel: 'sms' });
+    assertions.value = JSON.stringify(checks, null, 2);
+  },
+  { flush: 'sync' },
+);
 async function loadVersions() {
   if (!journey.value) {
     versions.value = [];
@@ -241,8 +375,16 @@ async function loadVersions() {
   }
 }
 watch(journey, () => {
+  version.value = 0;
+  savedScenario.value = '';
+  run.value = undefined;
+  path.value = undefined;
   void loadVersions();
   void loadExamples();
+});
+watch(version, () => void loadExamples(false));
+onActivated(() => {
+  if (context.value) void loadExamples(false);
 });
 const time = (at: string) =>
   new Date(at).toLocaleString('en-US', {
@@ -316,6 +458,14 @@ async function perform(action: () => Promise<void>) {
 }
 async function prepare() {
   if (props.beforeRun) await props.beforeRun();
+  if (savedScenario.value) return;
+  await loadExamples(false);
+  if (sourceFailed.value || !context.value?.entryName)
+    throw new Error('Load a workflow with an Event Trigger before testing.');
+  if (mismatchedEntry.value && !intentionalEntry.value)
+    throw new Error(
+      `This journey starts with ${context.value.entryName}. Update the entry event or mark this as an intentional negative-entry test.`,
+    );
 }
 async function create() {
   await perform(async () => {
@@ -327,6 +477,10 @@ async function create() {
 }
 async function saveScenario() {
   await perform(async () => {
+    if (selectedSuggestion.value && !reviewedSuggestion.value)
+      throw new Error(
+        'Review the suggested inputs and expected checks before saving a required scenario.',
+      );
     await prepare();
     await api('/test-scenarios', 'POST', input());
     notice.value = 'Scenario saved with workflow and customer snapshots';
@@ -394,7 +548,54 @@ onMounted(
           <h2>Scenario setup</h2>
           <AppIcon name="settings" :size="16" />
         </div>
-        <div class="scenario-form">
+        <fieldset class="scenario-form" :disabled="sourceLoading">
+          <p v-if="sourceFailed" class="error-message">
+            Journey inputs could not be loaded. Your values are preserved.
+            <button type="button" @click="loadExamples(false)">Reload journey inputs</button>
+          </p>
+          <p v-if="sourceLoading" role="status">Loading journey inputs…</p>
+          <section
+            v-if="context && !savedScenario"
+            class="journey-test-context"
+            aria-label="Journey test context"
+          >
+            <strong>Starts with {{ context.entryName }}</strong>
+            <p>Test-only values prepared from this workflow. Review them before running.</p>
+            <p v-if="sourceChanged">Workflow changed. Your inputs have been kept.</p>
+            <button type="button" class="text-button" @click="applyDefaults">
+              Use journey defaults
+            </button>
+            <ul v-if="context.notes.length">
+              <li v-for="note in context.notes" :key="note">{{ note }}</li>
+            </ul>
+          </section>
+          <section v-if="context && !savedScenario && !examples.length" class="suggested-checks">
+            <label
+              >Suggested check<select
+                v-model="selectedSuggestion"
+                aria-label="Suggested check"
+                @change="applySuggestion"
+              >
+                <option value="">Custom inputs</option>
+                <option
+                  v-for="(suggestion, index) in context.suggestions"
+                  :key="suggestion.label"
+                  :value="String(index)"
+                >
+                  {{ suggestion.label }}
+                </option>
+              </select></label
+            ><template v-if="selectedSuggestion !== ''"
+              ><p>{{ context.suggestions[Number(selectedSuggestion)]?.note }}</p>
+              <label class="checkbox-label"
+                ><input
+                  v-model="reviewedSuggestion"
+                  type="checkbox"
+                  @change="reviewedSuggestion && (exploratory = false)"
+                />I reviewed the sample inputs and expected checks</label
+              ></template
+            >
+          </section>
           <div v-if="examples.length" class="example-scenarios">
             <label
               >Recovery scenario<select
@@ -477,8 +678,21 @@ onMounted(
             ><label v-if="profile === 'Existing Customer'"
               >Source customer ID<input v-model="customerID" placeholder="Customer ID" /></label
             ><CustomerProfileFields v-model="customer" />
+            <ScenarioFields v-model="customer" :fields="customerFields" root="customer" />
             <div class="form-section-title">Entry &amp; events</div>
-            <label>Entry event name<input v-model="entryName" placeholder="cart_updated" /></label>
+            <label
+              >Entry event name<input
+                v-model="entryName"
+                placeholder="Event that starts this journey"
+            /></label>
+            <p v-if="mismatchedEntry" class="warning-message">
+              This journey expects {{ context?.entryName }}. This event will not enter the journey.
+            </p>
+            <label v-if="mismatchedEntry" class="checkbox-label"
+              ><input v-model="intentionalEntry" type="checkbox" />Intentional non-matching entry
+              test</label
+            >
+            <ScenarioFields v-model="entry" :fields="eventFields" root="event" />
             <div v-for="(e, i) in eventRows" :key="i" class="scenario-event">
               <label
                 >Event name<input
@@ -511,6 +725,7 @@ onMounted(
             <template v-else>
               <label
                 >Expected outcome<select v-model="outcome">
+                  <option value="any">Choose the outcome expected from your brief</option>
                   <option value="COMPLETED">Journey completes</option>
                   <option value="EXITED">Customer exits</option>
                   <option value="FAILED">Journey fails</option>
@@ -583,7 +798,13 @@ onMounted(
           <div class="scenario-actions">
             <button
               class="primary"
-              :disabled="busy || readonly || (!journey && !savedScenario)"
+              :disabled="
+                busy ||
+                readonly ||
+                (sourceFailed && !savedScenario) ||
+                (!journey && !savedScenario) ||
+                (mismatchedEntry && !intentionalEntry)
+              "
               @click="create"
             >
               <AppIcon name="play" :size="15" />Create test run</button
@@ -593,7 +814,7 @@ onMounted(
               Preview journey path <AppIcon name="arrow" :size="14" />
             </button>
           </div>
-        </div>
+        </fieldset>
       </aside>
       <div class="test-results-column">
         <section v-if="run" class="surface virtual-clock">
