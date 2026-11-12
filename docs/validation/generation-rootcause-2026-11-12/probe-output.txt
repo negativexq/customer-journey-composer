@@ -1,0 +1,15 @@
+=== RUN   TestAuditBusinessMismatchPassesWithoutAcceptanceContract
+=== RUN   TestAuditBusinessMismatchPassesWithoutAcceptanceContract/wrong_channel
+    rootcause_audit_probe_test.go:37: CONFIRMED: wrong_channel accepted unchanged after one stub attempt despite contradictory brief
+=== RUN   TestAuditBusinessMismatchPassesWithoutAcceptanceContract/wrong_outcome
+    rootcause_audit_probe_test.go:37: CONFIRMED: wrong_outcome accepted unchanged after one stub attempt despite contradictory brief
+=== RUN   TestAuditBusinessMismatchPassesWithoutAcceptanceContract/approximate_threshold
+    rootcause_audit_probe_test.go:37: CONFIRMED: approximate_threshold accepted unchanged after one stub attempt despite contradictory brief
+=== NAME  TestAuditBusinessMismatchPassesWithoutAcceptanceContract
+    rootcause_audit_probe_test.go:41: CONFIRMED: existing AND/OR rules can express the exact >= threshold
+--- PASS: TestAuditBusinessMismatchPassesWithoutAcceptanceContract (0.01s)
+    --- PASS: TestAuditBusinessMismatchPassesWithoutAcceptanceContract/wrong_channel (0.00s)
+    --- PASS: TestAuditBusinessMismatchPassesWithoutAcceptanceContract/wrong_outcome (0.00s)
+    --- PASS: TestAuditBusinessMismatchPassesWithoutAcceptanceContract/approximate_threshold (0.00s)
+PASS
+ok  	github.com/negativexq/customer-journey-composer/apps/api/internal/ai	0.674s

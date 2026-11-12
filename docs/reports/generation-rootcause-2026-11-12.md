@@ -8,7 +8,7 @@ selected acceptance contract. A fourth check confirms existing OR rules can
 represent the exact >= boundary.
 
 [Probe source](../validation/generation-rootcause-2026-11-12/probe.go.txt).
-[Actual test output](../validation/generation-rootcause-2026-11-12/probe.log).
+[Actual test output](../validation/generation-rootcause-2026-11-12/probe-output.txt).
 [Recorded paid outputs and scenarios](../validation/varied-journeys-2026-11-12/result.json).
 
 ## What the evidence establishes
