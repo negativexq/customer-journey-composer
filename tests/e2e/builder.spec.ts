@@ -93,7 +93,7 @@ test('builds a connected workflow, validates and publishes an immutable version'
   await page.getByLabel('Track customer ID').fill('cart_customer');
   await page.getByRole('button', { name: 'Track customer', exact: true }).click();
   await page.getByRole('button', { name: /cart_customer · COMPLETED/ }).click();
-  await expect(page.getByRole('heading', { name: 'Execution inspector' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Customer journey' })).toBeVisible();
   await expect(page.locator('.monitor-canvas .vue-flow__node')).toHaveCount(2);
   await expect
     .poll(async () => {
@@ -105,13 +105,9 @@ test('builds a connected workflow, validates and publishes an immutable version'
     .locator('.detail-tabs')
     .getByRole('button', { name: 'Analytics', exact: true })
     .click();
-  await expect(
-    page.getByRole('heading', { name: 'Channel performance · logical sends' }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Channel performance' })).toBeVisible();
   await page.reload();
-  await expect(
-    page.getByRole('heading', { name: 'Channel performance · logical sends' }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Channel performance' })).toBeVisible();
   await page.locator('.journey-tabs').getByRole('button', { name: 'Builder', exact: true }).click();
   await expect(page.locator('.vue-flow__node')).toHaveCount(2);
 });

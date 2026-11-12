@@ -329,10 +329,16 @@ function back() {
         {{ description || 'Build a connected customer experience.' }}
       </p>
       <div class="draft-context">
-        <strong>{{ readonly ? 'Viewing draft' : 'Editing draft' }}</strong
+        <strong>{{
+          ['Live Monitor', 'Analytics'].includes(tab)
+            ? 'Published journey'
+            : readonly
+              ? 'Viewing draft'
+              : 'Editing draft'
+        }}</strong
         ><span class="version-context"
           ><AppIcon name="history" :size="13" />{{
-            publishedVersion ? 'Published v' + publishedVersion : 'Not published yet'
+            publishedVersion ? 'Latest published v' + publishedVersion : 'Not published yet'
           }}</span
         >
       </div>
@@ -539,7 +545,14 @@ function back() {
       <p v-else class="panel">Add an email or SMS node in Builder to preview a message.</p>
     </template>
   </section>
-  <AnalyticsView v-else-if="tab === 'Analytics'" :journey-id="journey.id" />
+  <AnalyticsView
+    v-else-if="tab === 'Analytics'"
+    :journey-id="journey.id"
+    :initial-execution-id="activeExecutionId"
+    :initial-delivery-id="activeDeliveryId"
+    @inspect="emit('inspect', $event)"
+    @selection="emit('navigate', { tab, preview: previewTab, ...$event })"
+  />
   <div v-else-if="tab === 'Versions'" class="panel">
     <h2>Published versions</h2>
     <div v-if="versions.length > 1" class="editor-form">

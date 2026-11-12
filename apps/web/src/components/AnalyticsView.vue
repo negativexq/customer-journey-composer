@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LiveMonitor from './LiveMonitor.vue';
 import { computed, onMounted, ref } from 'vue';
 import { api, type Journey } from '../lib/api';
 import AppIcon from './ui/AppIcon.vue';
@@ -6,7 +7,12 @@ import MetricCard from './ui/MetricCard.vue';
 import TrendChart from './ui/TrendChart.vue';
 import FilterSelect from './ui/FilterSelect.vue';
 import PeriodSelect from './ui/PeriodSelect.vue';
-const props = defineProps<{ journeyId?: string; overview?: boolean }>();
+const props = defineProps<{
+  journeyId?: string;
+  overview?: boolean;
+  initialExecutionId?: string;
+  initialDeliveryId?: string;
+}>();
 type Metric = { dimension: string; key: string; metric: string; value: number };
 type Summary = { metrics: Metric[]; updated_at?: string; semantics: string };
 type Daily = { day: string; dimension: string; key: string; metric: string; value: number };
@@ -24,7 +30,13 @@ const selected = ref(props.journeyId || '');
 const days = ref(30);
 const error = ref('');
 const busy = ref(false);
-const emit = defineEmits<{ openJourney: [string]; browseJourneys: [string]; navigate: [string] }>();
+const emit = defineEmits<{
+  inspect: [{ kind: 'event' | 'execution' | 'message'; id: string }];
+  selection: [{ executionID?: string; deliveryID?: string }];
+  openJourney: [string];
+  browseJourneys: [string];
+  navigate: [string];
+}>();
 const value = (dimension: string, metric: string, key = '') =>
   summary.value?.metrics.find(
     (m) => m.dimension === dimension && m.metric === metric && m.key === key,
@@ -104,6 +116,7 @@ async function load() {
   }
 }
 onMounted(() => {
+  if (props.journeyId) return;
   void load();
   if (!props.journeyId)
     void api<Journey[]>('/journeys?limit=200')
@@ -112,7 +125,8 @@ onMounted(() => {
 });
 </script>
 <template>
-  <section class="analytics-page" :aria-busy="busy">
+  <LiveMonitor v-if="journeyId" :journey-id="journeyId" mode="analytics" :readonly="true" />
+  <section v-else class="analytics-page" :aria-busy="busy">
     <div class="page-heading">
       <div>
         <h1>{{ journeyId ? 'Journey analytics' : 'Analytics' }}</h1>

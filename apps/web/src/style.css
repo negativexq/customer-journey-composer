@@ -5405,3 +5405,328 @@ fieldset.scenario-form {
     grid-template-columns: 1fr;
   }
 }
+
+/* Journey observations follow canvas + recipient activity patterns; Reka owns
+   selection, positioning and keyboard tab behavior. */
+.scope-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-width: 180px;
+  min-height: 42px;
+  text-align: left;
+  border-radius: 7px;
+  padding: 7px 11px;
+  background: var(--surface);
+}
+.scope-select-trigger > span {
+  display: grid;
+  gap: 3px;
+}
+.scope-select-trigger small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.scope-select-trigger[data-state='open'] {
+  border-color: var(--accent);
+}
+.scope-select-content {
+  z-index: 90;
+  min-width: var(--reka-select-trigger-width);
+  max-width: min(400px, calc(100vw - 24px));
+  max-height: 320px;
+  overflow: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 6px 24px #26334814;
+}
+.scope-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 10px;
+  font-size: 13px;
+  border-radius: 5px;
+  cursor: pointer;
+  outline: none;
+}
+.scope-select-option[data-highlighted] {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+.observe-toolbar,
+.observe-record-filters {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.observe-toolbar {
+  margin: 16px 0;
+}
+.observe-freshness {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+.observe-freshness small {
+  display: block;
+  font-size: 11px;
+  margin-top: 4px;
+}
+.observe-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+.observe-kpis .metric-card {
+  min-height: 106px;
+  padding: 15px;
+}
+.observe-kpis .metric-card > strong {
+  font-size: 26px;
+}
+.observe-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.observe-layout.has-details {
+  grid-template-columns: minmax(0, 1fr) 380px;
+}
+.observe-main {
+  min-width: 0;
+}
+.metrics-canvas {
+  height: 560px;
+  position: relative;
+  background: #fbfcfe;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.metrics-canvas .workflow-node {
+  width: 248px;
+}
+.metrics-canvas .node-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.metrics-canvas-actions {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  display: flex;
+  gap: 6px;
+  z-index: 4;
+}
+.metrics-canvas-actions button {
+  font-size: 12px;
+  padding: 6px 9px;
+  min-height: 30px;
+  background: var(--surface);
+}
+.observe-details {
+  position: sticky;
+  top: 12px;
+  min-width: 0;
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 16px;
+}
+.observe-details h3 {
+  margin: 4px 0 12px;
+  font-size: 16px;
+}
+.observe-details h4 {
+  margin-top: 20px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.observe-details p {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.observe-details .surface-heading {
+  padding: 0;
+  gap: 8px;
+}
+.observe-details .execution-facts {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  padding: 12px;
+  background: #fafbfe;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.execution-facts dt {
+  font-size: 11px;
+  color: var(--muted);
+}
+.execution-facts dd {
+  margin: 4px 0 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.observe-tabs {
+  display: flex;
+  gap: 16px;
+  margin: 12px 0 16px;
+  border-bottom: 1px solid var(--border);
+}
+.observe-tabs button {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 8px 0;
+  border-bottom: 2px solid transparent;
+  box-shadow: none;
+}
+.observe-tabs button[data-state='active'] {
+  border-bottom-color: var(--accent);
+  color: var(--accent);
+}
+.node-detail-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 16px 0;
+}
+.node-detail-stats dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+.node-detail-stats dd {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 4px 0;
+}
+.observe-details .list-row {
+  font-size: 12px;
+  gap: 10px;
+  min-width: 0;
+}
+.observe-details .toolbar {
+  gap: 6px;
+}
+.observe-details .toolbar button {
+  font-size: 12px;
+  padding: 7px 9px;
+}
+.observe-people {
+  margin-top: 16px;
+}
+.observe-record-filters {
+  padding: 0 16px 12px;
+}
+.observe-record-filters label {
+  flex: 1;
+  min-width: 120px;
+}
+.observe-record-filters .scope-select-trigger {
+  min-width: 140px;
+}
+.observe-record-list {
+  max-height: 300px;
+  overflow: auto;
+  padding: 0 12px 8px;
+}
+.observe-record-list .list-row {
+  padding: 12px 8px;
+  border-radius: 5px;
+}
+.observe-record-list .list-row.selected {
+  background: var(--accent-soft);
+}
+.observe-record-list small,
+.observe-details .list-row small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 5px;
+}
+.observe-record-list time {
+  color: var(--muted);
+  font-size: 11px;
+}
+.load-more {
+  display: block;
+  margin: 8px auto 16px;
+}
+.empty-inline {
+  padding: 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.observe-trend {
+  margin-bottom: 16px;
+}
+.observe-trend .trend-chart {
+  height: 180px;
+}
+.observe-analytics-bottom {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  margin: 16px 0;
+}
+.observe-analytics-bottom .list-row {
+  padding: 12px 18px;
+}
+.metric-link {
+  border: 0;
+  padding: 2px 4px;
+  background: transparent;
+  color: var(--accent-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+@media (max-width: 1100px) {
+  .observe-layout.has-details {
+    grid-template-columns: minmax(0, 1fr) 330px;
+  }
+  .observe-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .observe-layout.has-details,
+  .observe-analytics-bottom {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .observe-details {
+    position: static;
+    max-height: none;
+  }
+  .observe-freshness {
+    margin-left: 0;
+  }
+  .scope-select-trigger {
+    min-width: 140px;
+    flex: 1;
+  }
+  .metrics-canvas {
+    height: 450px;
+  }
+  .metrics-canvas-actions {
+    right: 6px;
+    top: 6px;
+    gap: 4px;
+  }
+  .metrics-canvas-actions button {
+    font-size: 11px;
+  }
+  .observe-record-list time {
+    display: none;
+  }
+}

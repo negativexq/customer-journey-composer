@@ -88,6 +88,11 @@ Follow live node counts and customer paths, then compare journey and channel out
 
 **About these screenshots:** all contacts and activity are synthetic demo data. Live demo actions use mock SMS; email previews are isolated simulations. Counts come from stored records, and the demo does not invent historical trends, email opens or click rates. Original gallery images are captured at **3200 × 2100**. The creation and canvas follow-up captures use a **1440 × 1040** viewport at 1.5 scale (**2160 × 1560** output), with recorded workflow fixtures and local simulated generation progress. No UI values or geometry were substituted. [Capture details](docs/SHOWCASE.md).
 
+Individual journeys now share version/cohort filters, readable path metrics and
+node → people/messages → customer-trace drilldowns. Select and Tabs use Reka UI.
+[Behavior, verification and limits](docs/design/journey-observability-implementation.md) ·
+[Updated journey observation screenshots](docs/images/journey-observability/README.md).
+
 ## Run locally
 
 Requires **Docker with Compose v2**, **Git** and **Node.js 24+** in the supported range. An AI key is optional.

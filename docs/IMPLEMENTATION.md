@@ -385,3 +385,23 @@ integration tests cover these read modes and verify that a stale baseline cannot
 restore an old blocked state over an accepted message. `make check`, the full
 PostgreSQL suite and the follow-up API suite passed locally. No larger-load latency
 or throughput result is claimed for this change.
+
+## Journey-level Live Monitor and Analytics — 2026-11-12
+
+A shared readable metrics canvas now powers both journey detail views. Reka UI
+Select/Tabs provide scope and step navigation with keyboard behavior. Node panels
+show Summary/People/Messages; branch and decision-reason counts lead to filtered,
+paged records and the customer's path/timeline in the adjacent pane. Version and
+entry period are coherent across sections and persist for the session. Polling
+preserves the viewport, stops when inactive/hidden and omits historical distinct
+membership; Analytics refreshes explicitly. Graph-order tables include zero-entry
+nodes. Global exits are annotated at the node they left. Wrong-journey execution
+and wrong-execution message inspection are guarded. Existing version snapshots
+retain legacy exit defaults; new cancellation outcomes are explicit.
+
+`make check`, the full PostgreSQL integration suite, the follow-up scoped API suite
+and all 72 desktop/mobile browser cases passed. Screenshots were inspected; SQL
+plans were sampled on the existing demo and documented as small local samples,
+not capacity/p95 results. Audience dimensions and channel conversion attribution
+remain outside this slice. No paid AI call or external deployment was made.
+[Behavior, screenshots and limitations](design/journey-observability-implementation.md).

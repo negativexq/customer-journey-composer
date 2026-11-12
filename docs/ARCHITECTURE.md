@@ -139,3 +139,13 @@ Unfinished creation is blocked by publication checks. Existing journeys default
 to Builder and keep their current workflow behavior. See the
 [creation workspace](design/creation-workspace.md) for endpoints, resume behavior
 and the distinction between saved review state and request-scoped generation.
+
+## Journey observation projections
+
+Journey detail uses versioned entry-cohort snapshots alongside the compatible
+lifetime metrics. The existing projector coalesces source snapshots and replaces
+previous contributions atomically; a lower-priority cursor backfill does not lock
+runtime records. Execution occupancy, branch transitions and node delivery/reason
+facts feed one shared read-only canvas and bounded record drilldowns. Live polls
+omit exact historical distinct membership; reporting can request it explicitly.
+[Projection/query contract and measured read-plan limits](design/journey-observability-implementation.md).

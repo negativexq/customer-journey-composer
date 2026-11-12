@@ -4,6 +4,13 @@ Date: 2026-11-12. Scope: individual journey Analytics, Live Monitor, node/branch
 breakdowns and customer inspection. This is a read-only audit and proposed product
 contract, not an implemented redesign.
 
+## Implementation update
+
+Core journey scope, canvas/detail drilldowns, branch/message projections and
+explicit exit outcomes are now implemented. The original findings below remain
+an audit record. [Implemented behavior, screenshots, checks and remaining limits](journey-observability-implementation.md)
+distinguishes delivered work from later audience/attribution features.
+
 ## Evidence
 
 Reviewed `AnalyticsView.vue`, `LiveMonitor.vue`, `WorkflowNode.vue`, API analytics

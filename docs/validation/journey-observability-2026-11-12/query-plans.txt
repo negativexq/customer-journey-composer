@@ -1,0 +1,48 @@
+                                                                                                                            QUERY PLAN                                                                                                                             
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=8.32..8.35 rows=1 width=32) (actual time=0.158..0.171 rows=37 loops=1)
+   Group Key: dimension, dimension_key, metric
+   Buffers: shared hit=42
+   ->  Sort  (cost=8.32..8.33 rows=1 width=32) (actual time=0.154..0.156 rows=37 loops=1)
+         Sort Key: dimension, dimension_key, metric
+         Sort Method: quicksort  Memory: 26kB
+         Buffers: shared hit=42
+         ->  Index Scan using journey_cohort_metrics_pkey on journey_cohort_metrics  (cost=0.29..8.31 rows=1 width=32) (actual time=0.018..0.123 rows=37 loops=1)
+               Index Cond: ((workspace_id = '2682a1d7-88fd-4ea2-83a2-2602019a2432'::uuid) AND (journey_id = '489768b3-50de-4930-b48a-59e19f258525'::uuid) AND (cohort_day >= (CURRENT_DATE - 30)) AND (version_id = 'f231ed11-3bc3-480d-903b-62a022f54174'::uuid))
+               Buffers: shared hit=39
+ Planning:
+   Buffers: shared hit=101 dirtied=1
+ Planning Time: 0.805 ms
+ Execution Time: 0.202 ms
+(14 rows)
+
+                                                                           QUERY PLAN                                                                            
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=16.63..16.64 rows=1 width=8) (actual time=0.107..0.107 rows=1 loops=1)
+   Buffers: shared hit=52
+   ->  Sort  (cost=16.62..16.63 rows=1 width=16) (actual time=0.106..0.106 rows=0 loops=1)
+         Sort Key: e.id
+         Sort Method: quicksort  Memory: 25kB
+         Buffers: shared hit=52
+         ->  Nested Loop  (cost=0.55..16.61 rows=1 width=16) (actual time=0.082..0.083 rows=0 loops=1)
+               Buffers: shared hit=49
+               ->  Index Scan using executions_one_active on journey_executions e  (cost=0.27..8.30 rows=1 width=32) (actual time=0.016..0.027 rows=14 loops=1)
+                     Index Cond: ((workspace_id = '2682a1d7-88fd-4ea2-83a2-2602019a2432'::uuid) AND (journey_id = '489768b3-50de-4930-b48a-59e19f258525'::uuid))
+                     Filter: ((version_id = 'f231ed11-3bc3-480d-903b-62a022f54174'::uuid) AND (state = 'WAITING'::text))
+                     Buffers: shared hit=7
+               ->  Index Scan using jobs_execution on scheduled_jobs q  (cost=0.27..8.30 rows=1 width=32) (actual time=0.004..0.004 rows=0 loops=14)
+                     Index Cond: ((workspace_id = '2682a1d7-88fd-4ea2-83a2-2602019a2432'::uuid) AND (execution_id = e.id))
+                     Filter: ((state = 'SCHEDULED'::text) AND (due_at < (statement_timestamp() - '00:00:30'::interval)))
+                     Rows Removed by Filter: 1
+                     Buffers: shared hit=42
+ Planning:
+   Buffers: shared hit=501
+ Planning Time: 1.835 ms
+ Execution Time: 0.142 ms
+(21 rows)
+
+ cohort_rows 
+-------------
+        9075
+(1 row)
+

@@ -15,6 +15,7 @@ const props = defineProps<{
     active?: boolean;
     visited?: boolean;
     muted?: boolean;
+    observations?: { label: string; value: number }[];
     metrics?: {
       entered: number;
       waiting: number;
@@ -80,15 +81,23 @@ const label = (p: string) =>
       <span v-for="p in ports(data.kind)" :key="p" :class="p">{{ label(p) }}</span>
     </div>
     <div v-if="data.metrics" class="node-metrics">
-      <span
-        >Entered <strong>{{ data.metrics.entered }}</strong></span
-      ><span
-        >Waiting <strong>{{ data.metrics.waiting }}</strong></span
-      ><span
-        >Completed <strong>{{ data.metrics.completed }}</strong></span
-      ><span
-        >Failed <strong>{{ data.metrics.failed }}</strong></span
-      ><small>Skipped {{ data.metrics.skipped }} · Avg {{ data.metrics.average }}</small>
+      <template v-if="data.observations"
+        ><span v-for="item in data.observations" :key="item.label"
+          >{{ item.label }} <strong>{{ item.value }}</strong></span
+        ></template
+      ><template v-else
+        ><span
+          >Entered <strong>{{ data.metrics.entered }}</strong></span
+        ><span
+          >Waiting <strong>{{ data.metrics.waiting }}</strong></span
+        ><span
+          >Completed <strong>{{ data.metrics.completed }}</strong></span
+        ><span
+          >Failed <strong>{{ data.metrics.failed }}</strong></span
+        ><small
+          >Skipped {{ data.metrics.skipped }} · Avg {{ data.metrics.average }}</small
+        ></template
+      >
     </div>
     <Handle
       v-for="(p, i) in ports(data.kind)"

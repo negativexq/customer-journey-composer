@@ -12,6 +12,7 @@
   "dependencies": {
     "@dagrejs/dagre": "^3.1.3",
     "@xyflow/vue": "2.0.0-next.21",
+    "reka-ui": "^2.11.0",
     "vue": "^3.5.45"
   },
   "devDependencies": {
