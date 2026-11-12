@@ -14,6 +14,11 @@ Workspace business terminology can now be defined in Settings and reviewed again
 
 ## Verified locally — November 12, 2026
 
+**Latest broader audit:** five fresh paid business briefs produced valid graphs,
+but the subsequent behavior audit passed **22/29 checks**. Refund outcomes,
+profile-goal checks, missing fallbacks and an omitted-requirement approval gap
+need fixes. [Results, token usage and recorded outputs](docs/reports/semantic-live-five-2026-11-12.md).
+
 The core MVP flow works locally: **AI proposal → reviewed Apply → editable canvas →
 virtual-time tests → Test Inbox**. Persistent execution, controlled publishing,
 version isolation and monitoring also have recorded local integration/browser

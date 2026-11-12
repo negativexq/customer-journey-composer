@@ -326,3 +326,21 @@ curation preservation, approval blocking and foreign-key lock compatibility.
 Screenshots were inspected. Provider tests use deterministic fixtures for both
 provider names; no paid provider call or external deployment was made.
 [Setup, API, performance bounds and deliberate limits](SEMANTIC-LAYER.md).
+
+## Authorized five-brief paid audit — 2026-11-12
+
+After explicit user authorization, five fresh OpenAI gpt-6-luna generations used
+Turkish business briefs and workspace catalogs. All produced valid graphs; four
+passed grounding and opened isolated Drafts, while the ambiguous fifth stayed
+blocked. Seven provider attempts consumed 21,251 input + 19,900 output = 41,151
+reported tokens. The generation pipeline took 182.647 seconds. No live customer,
+execution, delivery or published version was created in these test workspaces.
+
+Unmodified workflow replays passed 22/29 independently specified sandbox checks.
+Observed failures: refund global exit incorrectly counts conversion; cart profile
+goal checks are absent before sends; a trial message lacks a fallback; a numeric
+threshold is approximate; and email opt-out cuts off an allowed SMS path. A
+separate no-LLM probe showed that confirming the fifth proposal's ambiguity allows
+approval even though a missing loyalty requirement was omitted as warning-only.
+These defects remain open; grounding is not proof of business completeness.
+[Full report and recorded fixtures](reports/semantic-live-five-2026-11-12.md).
