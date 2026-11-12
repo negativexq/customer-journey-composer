@@ -460,3 +460,22 @@ reported input/output tokens and 324.58 seconds generation time. No version was
 published and no live customer/execution/delivery was created. The correlation
 fix is still pending after this audit; these results do not label it implemented.
 [Evidence and limitations](reports/varied-journeys-2026-11-12.md).
+
+### Explicit entry-object goal correlation — implemented 2026-11-12
+
+Added optional typed correlation between entry-event and incoming goal-event
+identifiers, shared by runtime/simulator and enforced for waiters of that same
+goal event. Missing/empty/incompatible IDs fail closed. Original entry properties
+persist in sandbox state; production conditionally reads the existing indexed
+entry event. Legacy unconfigured versions keep their behavior. The editor exposes
+business-labeled scope/identifier selectors; semantic references validate both
+event scopes and compatible types; both provider contracts use composer.v4.
+Historical schemas/paid artifacts remain unchanged. No migration or new service.
+
+`make check`, isolated runtime/API PostgreSQL packages and all 74 desktop/mobile
+cases passed. Fifteen deterministic cart/invoice replay cases passed on separate
+reviewed corrections, including all historical extra inbox checks. One initial
+build-overlapped legacy lease-recovery test assertion failed before a fresh
+isolated package rerun passed; it was not suppressed. No new paid call after the
+ten-journey audit, publication, live execution or delivery was made by the replay.
+Other channel/outcome/threshold/canvas findings remain open. [Evidence and limits](ENTRY-CORRELATION.md).

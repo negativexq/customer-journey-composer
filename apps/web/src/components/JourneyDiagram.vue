@@ -57,7 +57,9 @@ const showAll = ref(false);
   <section class="journey-diagram" aria-label="Journey plan">
     <div class="diagram-context">
       <p v-if="workflow.global_exit">
-        <strong>Global exit</strong> {{ workflow.global_exit.event_name }} → converted
+        <strong>Global exit</strong> {{ workflow.global_exit.event_name }} →
+        {{ workflow.global_exit.reason || 'converted' }}
+        <span v-if="workflow.global_exit.correlation"> · Matching entry object only</span>
       </p>
       <p>
         <strong>Reentry</strong>

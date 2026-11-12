@@ -37,7 +37,7 @@ func (s *sequence) Generate(context.Context, Request) (ProviderResult, error) {
 func TestSchemaArtifactAndCrossProviderSubset(t *testing.T) {
 	want, _ := json.MarshalIndent(Schema("journey"), "", "  ")
 	want = append(want, '\n')
-	got, err := os.ReadFile("../../../../docs/schemas/composer.v3.json")
+	got, err := os.ReadFile("../../../../docs/schemas/composer.v4.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -223,6 +223,26 @@ func TestIncompleteProviderResponseIsNeverAProposal(t *testing.T) {
 			var external *ProviderError
 			if !errors.As(err, &external) || external.Code != "provider_output_incomplete" {
 				t.Fatal("incomplete response accepted", err)
+			}
+		})
+	}
+}
+
+func TestCorrelatedExitSharedProviderSchema(t *testing.T) {
+	var document map[string]any
+	_ = json.Unmarshal([]byte(validOutput), &document)
+	document["workflow"].(map[string]any)["global_exit"] = map[string]any{"event_name": "purchase_completed", "reason": "converted", "filters": nil, "correlation": map[string]any{"entry_path": "event.properties.cart_id", "event_path": "event.properties.paid_cart_id"}}
+	raw, _ := json.Marshal(document)
+	for _, name := range []string{"claude", "openai"} {
+		t.Run(name, func(t *testing.T) {
+			provider := &sequence{outputs: []string{string(raw)}}
+			c, err := New(map[string]Provider{name: provider})
+			if err != nil {
+				t.Fatal(err)
+			}
+			p, err := c.Compose(context.Background(), Input{Provider: name, Action: "generate", Prompt: "Convert only the entry cart", Workflow: workflow.Workflow{SchemaVersion: 1}})
+			if err != nil || p.Workflow.GlobalExit == nil || p.Workflow.GlobalExit.Correlation == nil || p.Workflow.GlobalExit.Correlation.EventPath != "event.properties.paid_cart_id" {
+				t.Fatal(p, err)
 			}
 		})
 	}

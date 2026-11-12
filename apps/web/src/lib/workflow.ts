@@ -50,6 +50,7 @@ export type Workflow = {
     event_name: string;
     reason?: 'converted' | 'completed' | 'condition_not_met' | 'manually_cancelled';
     filters?: Rule;
+    correlation?: { entry_path: string; event_path: string };
   };
   reentry?: { mode: string; cooldown_seconds?: number };
 };

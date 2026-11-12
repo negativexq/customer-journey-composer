@@ -12,19 +12,20 @@ import (
 // applyEvent runs while the customer row is locked. Event and timeout updates
 // share that same lock and execution row; a cancelled claim cannot later win.
 func applyEvent(ctx context.Context, tx pgx.Tx, workspace string, event Event, data map[string]any, now time.Time) error {
-	rows, err := tx.Query(ctx, `SELECT e.id::text,v.workflow FROM journey_executions e JOIN journey_versions v ON v.id=e.version_id JOIN customer_events entry_event ON entry_event.workspace_id=e.workspace_id AND entry_event.event_id=e.entry_event_id WHERE e.workspace_id=$1 AND e.customer_id=$2 AND e.exit_event_name=$3 AND entry_event.occurred_at<=$4 AND e.state IN ('RUNNING','WAITING') ORDER BY e.id FOR UPDATE OF e`, workspace, event.CustomerID, event.EventName, event.OccurredAt)
+	rows, err := tx.Query(ctx, `SELECT e.id::text,v.workflow,CASE WHEN v.workflow#>>'{global_exit,correlation,entry_path}' IS NOT NULL THEN entry_event.properties ELSE '{}'::jsonb END FROM journey_executions e JOIN journey_versions v ON v.id=e.version_id JOIN customer_events entry_event ON entry_event.workspace_id=e.workspace_id AND entry_event.event_id=e.entry_event_id WHERE e.workspace_id=$1 AND e.customer_id=$2 AND e.exit_event_name=$3 AND entry_event.occurred_at<=$4 AND e.state IN ('RUNNING','WAITING') ORDER BY e.id FOR UPDATE OF e`, workspace, event.CustomerID, event.EventName, event.OccurredAt)
 	if err != nil {
 		return err
 	}
 	type exit struct {
-		id   string
-		spec workflow.Workflow
+		id    string
+		spec  workflow.Workflow
+		entry map[string]any
 	}
 	exits := []exit{}
 	for rows.Next() {
 		var x exit
 		var b []byte
-		if err := rows.Scan(&x.id, &b); err != nil {
+		if err := rows.Scan(&x.id, &b, &x.entry); err != nil {
 			rows.Close()
 			return err
 		}
@@ -40,7 +41,7 @@ func applyEvent(ctx context.Context, tx pgx.Tx, workspace string, event Event, d
 		return err
 	}
 	for _, x := range exits {
-		if x.spec.GlobalExit == nil || (x.spec.GlobalExit.Filters != nil && !workflow.Evaluate(*x.spec.GlobalExit.Filters, data)) {
+		if x.spec.GlobalExit == nil || !x.spec.GlobalExit.MatchesEntry(x.entry, event.Properties) || (x.spec.GlobalExit.Filters != nil && !workflow.Evaluate(*x.spec.GlobalExit.Filters, data)) {
 			continue
 		}
 		if _, err := tx.Exec(ctx, `UPDATE journey_executions SET state='EXITED',exit_reason=$4,completed_at=$2,updated_at=$2,context=context||jsonb_build_object('exit_event_id',$3::text) WHERE id=$1`, x.id, now, event.EventID, x.spec.GlobalExit.ExitOutcome()); err != nil {
@@ -62,19 +63,20 @@ func applyEvent(ctx context.Context, tx pgx.Tx, workspace string, event Event, d
 			return err
 		}
 	}
-	rows, err = tx.Query(ctx, `SELECT w.execution_id::text,w.node_id,v.workflow FROM event_waiters w JOIN journey_executions e ON e.id=w.execution_id JOIN journey_versions v ON v.id=e.version_id WHERE w.workspace_id=$1 AND w.customer_id=$2 AND w.event_name=$3 AND w.state='WAITING' AND e.state='WAITING' AND e.current_node_id=w.node_id AND w.deadline>=$4 AND w.created_at<=$5 ORDER BY w.execution_id FOR UPDATE OF w,e`, workspace, event.CustomerID, event.EventName, now, event.OccurredAt)
+	rows, err = tx.Query(ctx, `SELECT w.execution_id::text,w.node_id,v.workflow,CASE WHEN v.workflow#>>'{global_exit,correlation,entry_path}' IS NOT NULL THEN (SELECT properties FROM customer_events source WHERE source.workspace_id=e.workspace_id AND source.event_id=e.entry_event_id) ELSE '{}'::jsonb END FROM event_waiters w JOIN journey_executions e ON e.id=w.execution_id JOIN journey_versions v ON v.id=e.version_id WHERE w.workspace_id=$1 AND w.customer_id=$2 AND w.event_name=$3 AND w.state='WAITING' AND e.state='WAITING' AND e.current_node_id=w.node_id AND w.deadline>=$4 AND w.created_at<=$5 ORDER BY w.execution_id FOR UPDATE OF w,e`, workspace, event.CustomerID, event.EventName, now, event.OccurredAt)
 	if err != nil {
 		return err
 	}
 	type waiter struct {
 		execution, node string
 		spec            workflow.Workflow
+		entry           map[string]any
 	}
 	waiters := []waiter{}
 	for rows.Next() {
 		var x waiter
 		var b []byte
-		if err := rows.Scan(&x.execution, &x.node, &b); err != nil {
+		if err := rows.Scan(&x.execution, &x.node, &b, &x.entry); err != nil {
 			rows.Close()
 			return err
 		}
@@ -92,6 +94,11 @@ func applyEvent(ctx context.Context, tx pgx.Tx, workspace string, event Event, d
 	for _, x := range waiters {
 		node, ok := x.spec.Node(x.node)
 		if !ok {
+			continue
+		}
+		// An explicitly scoped journey goal cannot be bypassed by a waiter for
+		// that same event. Other wait events retain their own filter semantics.
+		if goal := x.spec.GlobalExit; goal != nil && goal.EventName == event.EventName && !goal.MatchesEntry(x.entry, event.Properties) {
 			continue
 		}
 		if node.Config.Filters != nil && !workflow.Evaluate(*node.Config.Filters, data) {

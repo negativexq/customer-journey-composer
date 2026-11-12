@@ -196,6 +196,10 @@ func visit(w *workflow.Workflow, fn func(Reference) string) {
 		scope := w.GlobalExit.EventName
 		event(&w.GlobalExit.EventName)
 		rules(w.GlobalExit.Filters, scope)
+		if c := w.GlobalExit.Correlation; c != nil {
+			path(&c.EntryPath, entry)
+			path(&c.EventPath, scope)
+		}
 	}
 }
 func clone(w workflow.Workflow) workflow.Workflow {
@@ -421,6 +425,21 @@ func typeMismatches(w workflow.Workflow, entries map[string]Entry) map[string]bo
 	}
 	if w.GlobalExit != nil {
 		rules(w.GlobalExit.Filters, w.GlobalExit.EventName)
+		if c := w.GlobalExit.Correlation; c != nil {
+			aKey, bKey := Key("event_field", entry, c.EntryPath), Key("event_field", w.GlobalExit.EventName, c.EventPath)
+			a, aOK := entries[aKey]
+			b, bOK := entries[bKey]
+			if aOK && a.DataType != "string" && a.DataType != "number" {
+				bad[aKey] = true
+			}
+			if bOK && b.DataType != "string" && b.DataType != "number" {
+				bad[bKey] = true
+			}
+			if aOK && bOK && a.DataType != b.DataType {
+				bad[aKey] = true
+				bad[bKey] = true
+			}
+		}
 	}
 	return bad
 }

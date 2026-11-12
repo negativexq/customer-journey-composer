@@ -11,6 +11,8 @@ import LiveMonitor from './LiveMonitor.vue';
 import AnalyticsView from './AnalyticsView.vue';
 import AppIcon from './ui/AppIcon.vue';
 import StatusBadge from './ui/StatusBadge.vue';
+import ScopeSelect from './ui/ScopeSelect.vue';
+import type { DataEntry } from '../lib/data-catalog';
 import type { Workflow, Issue } from '../lib/workflow';
 import type { InspectionKind } from '../lib/navigation';
 const props = defineProps<{
@@ -49,18 +51,69 @@ const exitEvent = ref(draft.value.global_exit?.event_name || '');
 const exitReason = ref<NonNullable<Workflow['global_exit']>['reason']>(
   draft.value.global_exit?.reason || 'converted',
 );
+const exitScope = ref(draft.value.global_exit?.correlation ? 'entry' : 'customer');
+const exitEntryPath = ref(draft.value.global_exit?.correlation?.entry_path || '');
+const exitIncomingPath = ref(draft.value.global_exit?.correlation?.event_path || '');
+const exitFields = ref<DataEntry[]>([]);
+const exitFieldsError = ref('');
+let exitFieldsLoaded = false;
+async function loadExitFields() {
+  if (!metadata.value?.open || exitFieldsLoaded) return;
+  try {
+    exitFields.value = await api('/data-catalog');
+    exitFieldsLoaded = true;
+    exitFieldsError.value = '';
+  } catch {
+    exitFieldsError.value =
+      'Workspace fields could not be loaded. Close and reopen settings to retry.';
+  }
+}
+function correlationOptions(eventName: string, saved: string) {
+  const options = exitFields.value
+    .filter(
+      (e) =>
+        e.enabled &&
+        e.kind === 'event_field' &&
+        e.event_name === eventName &&
+        ['string', 'number'].includes(e.data_type),
+    )
+    .map((e) => ({ value: e.path!, label: e.label }));
+  if (saved && !options.some((o) => o.value === saved))
+    options.push({ value: saved, label: 'Saved field: ' + saved });
+  return [{ value: 'all', label: 'Choose an identifier' }, ...options];
+}
+const entryIdentityOptions = computed(() =>
+  correlationOptions(
+    draft.value.nodes.find((n) => n.type === 'event_trigger')?.config.event_name || '',
+    exitEntryPath.value,
+  ),
+);
+const incomingIdentityOptions = computed(() =>
+  correlationOptions(exitEvent.value, exitIncomingPath.value),
+);
 const reentryMode = ref(draft.value.reentry?.mode || 'after_completion');
 const cooldown = ref(draft.value.reentry?.cooldown_seconds || 86400);
-watch([exitEvent, exitReason, reentryMode, cooldown], () => {
-  if (applying) return;
-  draft.value.global_exit = exitEvent.value
-    ? { ...draft.value.global_exit, event_name: exitEvent.value, reason: exitReason.value }
-    : undefined;
-  draft.value.reentry = {
-    mode: reentryMode.value,
-    ...(reentryMode.value === 'cooldown' ? { cooldown_seconds: cooldown.value } : {}),
-  };
-});
+watch(
+  [exitEvent, exitReason, reentryMode, cooldown, exitScope, exitEntryPath, exitIncomingPath],
+  () => {
+    if (applying) return;
+    draft.value.global_exit = exitEvent.value
+      ? {
+          ...draft.value.global_exit,
+          event_name: exitEvent.value,
+          reason: exitReason.value,
+          correlation:
+            exitScope.value === 'entry'
+              ? { entry_path: exitEntryPath.value, event_path: exitIncomingPath.value }
+              : undefined,
+        }
+      : undefined;
+    draft.value.reentry = {
+      mode: reentryMode.value,
+      ...(reentryMode.value === 'cooldown' ? { cooldown_seconds: cooldown.value } : {}),
+    };
+  },
+);
 const tab = ref(props.activeTab || 'Builder');
 const showAI = ref(draft.value.nodes.length === 0);
 const metadata = ref<HTMLDetailsElement>();
@@ -88,6 +141,9 @@ async function applyProposal(proposal: { workflow: Workflow; name: string; descr
   description.value = proposal.description;
   exitEvent.value = draft.value.global_exit?.event_name || '';
   exitReason.value = draft.value.global_exit?.reason || 'converted';
+  exitScope.value = draft.value.global_exit?.correlation ? 'entry' : 'customer';
+  exitEntryPath.value = draft.value.global_exit?.correlation?.entry_path || '';
+  exitIncomingPath.value = draft.value.global_exit?.correlation?.event_path || '';
   reentryMode.value = draft.value.reentry?.mode || 'after_completion';
   cooldown.value = draft.value.reentry?.cooldown_seconds || 86400;
   issues.value = [];
@@ -413,7 +469,7 @@ function back() {
     </div>
   </div>
   <p v-if="error" role="alert" class="inline-alert error-alert">{{ error }}</p>
-  <details ref="metadata" class="journey-settings">
+  <details ref="metadata" class="journey-settings" @toggle="loadExitFields">
     <summary>
       <span><AppIcon name="settings" :size="15" />Journey settings</span
       ><span class="journey-settings-summary"
@@ -442,7 +498,41 @@ function back() {
           <option value="condition_not_met">No longer eligible</option>
           <option value="manually_cancelled">Cancelled</option>
         </select></label
-      ><label
+      >
+      <ScopeSelect
+        v-model="exitScope"
+        label="Exit matching"
+        :disabled="readonly || !exitEvent"
+        :options="[
+          { value: 'customer', label: 'Any matching event from this customer' },
+          { value: 'entry', label: 'Only the object that started this journey' },
+        ]"
+      />
+      <template v-if="exitScope === 'entry' && exitEvent">
+        <p>
+          Match the incoming event identifier to the identifier recorded at entry. Missing or
+          different identifiers do not end the journey.
+        </p>
+        <ScopeSelect
+          :model-value="exitEntryPath || 'all'"
+          label="Entry identifier"
+          :options="entryIdentityOptions"
+          :disabled="readonly"
+          @update:model-value="exitEntryPath = $event === 'all' ? '' : $event"
+        />
+        <ScopeSelect
+          :model-value="exitIncomingPath || 'all'"
+          label="Incoming identifier"
+          :options="incomingIdentityOptions"
+          :disabled="readonly"
+          @update:model-value="exitIncomingPath = $event === 'all' ? '' : $event"
+        />
+        <p v-if="exitFieldsError" role="alert">{{ exitFieldsError }}</p>
+        <p v-else-if="entryIdentityOptions.length === 1 || incomingIdentityOptions.length === 1">
+          Define identifier fields in Settings → Workspace data.
+        </p>
+      </template>
+      <label
         >Re-entry policy<select v-model="reentryMode" :disabled="readonly">
           <option value="once">Only once</option>
           <option value="after_completion">After previous execution ends</option>

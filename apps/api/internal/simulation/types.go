@@ -130,6 +130,7 @@ type SandboxState struct {
 	Execution       int               `json:"execution"`
 	EnrollmentCount int               `json:"enrollment_count"`
 	LastEntryAt     *time.Time        `json:"last_entry_at,omitempty"`
+	EntryProperties map[string]any    `json:"entry_properties,omitempty"`
 	EntryOccurredAt time.Time         `json:"entry_occurred_at"`
 	Customer        map[string]any    `json:"customer"`
 	Context         map[string]any    `json:"context"`

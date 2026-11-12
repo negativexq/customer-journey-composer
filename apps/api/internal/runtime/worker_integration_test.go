@@ -321,3 +321,52 @@ func TestRefundExitOutcomeIsVersionedAndNeverSchedulesMessages(t *testing.T) {
 		t.Fatal(pending, err)
 	}
 }
+
+func TestGlobalExitCorrelatesEntryPropertiesAndPreservesTimers(t *testing.T) {
+	ctx, pool, workspace, journey, _, spec := fixture(t)
+	clock := &testClock{now: time.Now().UTC().Truncate(time.Microsecond)}
+	spec.GlobalExit = &workflow.ExitCriteria{EventName: "purchase_completed", Correlation: &workflow.EventCorrelation{EntryPath: "event.properties.cart_id", EventPath: "event.properties.purchased_cart_id"}}
+	spec.Nodes = append(spec.Nodes, workflow.Node{ID: "delay", Type: "wait", Label: "Wait", Config: workflow.Config{DurationSeconds: 7200}}, workflow.Node{ID: "await", Type: "wait_event", Label: "Await matching purchase", Config: workflow.Config{EventName: "purchase_completed", TimeoutSeconds: 3600}})
+	spec.Edges = []workflow.Edge{{ID: "a", Source: "start", Target: "delay", Port: "started"}, {ID: "b", Source: "delay", Target: "await", Port: "completed"}, {ID: "c", Source: "await", Target: "done", Port: "matched"}, {ID: "d", Source: "await", Target: "done", Port: "timeout"}}
+	publishTest(t, ctx, pool, workspace, journey, spec)
+	out, err := Ingest(ctx, pool, workspace, Event{EventID: testID(), CustomerID: "cust_test", EventName: "cart_updated", OccurredAt: clock.Now(), Properties: map[string]any{"cart_id": "A"}}, clock.Now())
+	if err != nil || len(out.Executions) != 1 {
+		t.Fatal(out, err)
+	}
+	id := out.Executions[0]
+	worker := NewWorker(pool, clock)
+	drain(t, ctx, worker)
+	for _, properties := range []map[string]any{{"purchased_cart_id": "B"}, {}, {"purchased_cart_id": nil}, {"purchased_cart_id": ""}} {
+		if _, err = Ingest(ctx, pool, workspace, Event{EventID: testID(), CustomerID: "cust_test", EventName: "purchase_completed", OccurredAt: clock.Now(), Properties: properties}, clock.Now()); err != nil {
+			t.Fatal(err)
+		}
+		if got := executionState(t, ctx, pool, id); got != "WAITING" {
+			t.Fatal("unrelated purchase terminated execution", got)
+		}
+	}
+	var scheduled int
+	if err = pool.QueryRow(ctx, `SELECT count(*) FROM scheduled_jobs WHERE execution_id=$1 AND state='SCHEDULED'`, id).Scan(&scheduled); err != nil || scheduled != 1 {
+		t.Fatal("timer lost", scheduled, err)
+	}
+	clock.Advance(2 * time.Hour)
+	drain(t, ctx, worker)
+	if _, err = Ingest(ctx, pool, workspace, Event{EventID: testID(), CustomerID: "cust_test", EventName: "purchase_completed", OccurredAt: clock.Now(), Properties: map[string]any{"purchased_cart_id": "B"}}, clock.Now()); err != nil {
+		t.Fatal(err)
+	}
+	drain(t, ctx, worker)
+	if got := executionState(t, ctx, pool, id); got != "WAITING" {
+		t.Fatal("unrelated goal matched waiter", got)
+	}
+	if _, err = Ingest(ctx, pool, workspace, Event{EventID: testID(), CustomerID: "cust_test", EventName: "purchase_completed", OccurredAt: clock.Now(), Properties: map[string]any{"purchased_cart_id": "A"}}, clock.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if got := executionState(t, ctx, pool, id); got != "EXITED" {
+		t.Fatal(got)
+	}
+	clock.Advance(3 * time.Hour)
+	drain(t, ctx, worker)
+	var reason string
+	if err = pool.QueryRow(ctx, `SELECT exit_reason FROM journey_executions WHERE id=$1`, id).Scan(&reason); err != nil || reason != "converted" {
+		t.Fatal(reason, err)
+	}
+}

@@ -321,7 +321,7 @@ func onEvent(spec workflow.Workflow, scenario Scenario, s *State, event Event, i
 	}
 	s.trace("event", "", "ACCEPTED: "+event.EventName)
 	data := engine.ContextData(s.Customer, eventData(event), s.Context)
-	if s.Active && spec.GlobalExit != nil && spec.GlobalExit.EventName == event.EventName && !event.OccurredAt.Before(s.EntryOccurredAt) && (spec.GlobalExit.Filters == nil || workflow.Evaluate(*spec.GlobalExit.Filters, data)) {
+	if s.Active && spec.GlobalExit != nil && spec.GlobalExit.EventName == event.EventName && spec.GlobalExit.MatchesEntry(s.EntryProperties, event.Properties) && !event.OccurredAt.Before(s.EntryOccurredAt) && (spec.GlobalExit.Filters == nil || workflow.Evaluate(*spec.GlobalExit.Filters, data)) {
 		s.Status = "EXITED"
 		s.ExitReason = spec.GlobalExit.ExitOutcome()
 		s.Active = false
@@ -332,6 +332,9 @@ func onEvent(spec workflow.Workflow, scenario Scenario, s *State, event Event, i
 	if s.Active {
 		node, _ := spec.Node(s.CurrentNodeID)
 		if node.Type == "wait_event" && node.Config.EventName == event.EventName {
+			if goal := spec.GlobalExit; goal != nil && goal.EventName == event.EventName && !goal.MatchesEntry(s.EntryProperties, event.Properties) {
+				return nil
+			}
 			index := stepIndex(s, s.Execution, node.ID)
 			if index >= 0 {
 				step := &s.Steps[index]
@@ -381,6 +384,7 @@ func onEvent(spec workflow.Workflow, scenario Scenario, s *State, event Event, i
 		at := s.Now
 		s.LastEntryAt = &at
 		s.EntryOccurredAt = event.OccurredAt
+		s.EntryProperties = event.Properties
 		s.Status = "RUNNING"
 		s.ExitReason = ""
 		s.Active = true

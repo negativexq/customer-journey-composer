@@ -165,3 +165,74 @@ func TestExplicitGlobalCancellationDoesNotConvert(t *testing.T) {
 		})
 	}
 }
+
+func TestGlobalExitUsesOriginalEntryIdentityAcrossPersistence(t *testing.T) {
+	for _, tc := range []struct {
+		name, entry, paid string
+		want              string
+		messages          int
+	}{
+		{"matching", "A", "A", "converted", 0}, {"other_cart", "A", "B", "completed", 1},
+		{"missing_incoming", "A", "", "completed", 1}, {"missing_entry", "", "A", "completed", 1},
+		{"both_missing", "", "", "completed", 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := cart()
+			w.Nodes = []workflow.Node{w.Nodes[0], w.Nodes[1], w.Nodes[3], w.Nodes[6]}
+			w.Edges = []workflow.Edge{{ID: "a", Source: "start", Target: "delay", Port: "started"}, {ID: "b", Source: "delay", Target: "email", Port: "completed"}, {ID: "c", Source: "email", Target: "done", Port: "next"}}
+			w.GlobalExit.Correlation = &workflow.EventCorrelation{EntryPath: "event.properties.cart_id", EventPath: "event.properties.cart_id"}
+			input := scenario()
+			input.Entry.Properties = map[string]any{}
+			if tc.entry != "" {
+				input.Entry.Properties["cart_id"] = tc.entry
+			}
+			paid := map[string]any{}
+			if tc.paid != "" {
+				paid["cart_id"] = tc.paid
+			}
+			input.Events = []TimedEvent{{AfterSeconds: 3600, Event: Event{EventID: "paid", EventName: "purchase_completed", Properties: paid}}}
+			input.Assertions = []Assertion{{Type: "exit_reason", Expected: tc.want}, {Type: "message_count", Channel: "email", Expected: tc.messages}}
+			state, spec, in, err := New(w, input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err = Advance(spec, in, &state, "advance", 1800); err != nil {
+				t.Fatal(err)
+			}
+			raw, _ := json.Marshal(state)
+			state = State{}
+			if err = json.Unmarshal(raw, &state); err != nil {
+				t.Fatal(err)
+			}
+			// Current/resume events cannot replace the immutable enrollment identity.
+			state.CurrentEvent = map[string]any{"properties": map[string]any{"cart_id": "B"}}
+			if err = Advance(spec, in, &state, "complete", 0); err != nil {
+				t.Fatal(err)
+			}
+			if state.Result != "PASS" {
+				t.Fatal(state.ExitReason, state.Assertions)
+			}
+		})
+	}
+}
+
+func TestCorrelatedGoalAlsoScopesWaitForThatEvent(t *testing.T) {
+	for _, id := range []string{"A", "B"} {
+		t.Run(id, func(t *testing.T) {
+			w := cart()
+			w.GlobalExit.Correlation = &workflow.EventCorrelation{EntryPath: "event.properties.cart_id", EventPath: "event.properties.cart_id"}
+			input := scenario()
+			input.Entry.Properties = map[string]any{"cart_id": "A"}
+			input.Events = []TimedEvent{{AfterSeconds: 10800, Event: Event{EventID: "purchase", EventName: "purchase_completed", Properties: map[string]any{"cart_id": id}}}}
+			reason, sms := "completed", 1
+			if id == "A" {
+				reason, sms = "converted", 0
+			}
+			input.Assertions = []Assertion{{Type: "exit_reason", Expected: reason}, {Type: "message_count", Channel: "email", Expected: 1}, {Type: "message_count", Channel: "sms", Expected: sms}}
+			state := complete(t, w, input)
+			if state.Result != "PASS" {
+				t.Fatal(state.Assertions)
+			}
+		})
+	}
+}

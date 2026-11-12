@@ -149,3 +149,13 @@ runtime records. Execution occupancy, branch transitions and node delivery/reaso
 facts feed one shared read-only canvas and bounded record drilldowns. Live polls
 omit exact historical distinct membership; reporting can request it explicitly.
 [Projection/query contract and measured read-plan limits](design/journey-observability-implementation.md).
+
+### Explicit entry-object goal matching
+
+Optional global-exit correlation compares an incoming event property with the
+persisted entry event property. The same pure identity helper is used by production
+and simulation; goal waiters also honor an explicitly scoped goal. Existing
+customer/execution fences remain in place and unconfigured legacy snapshots retain
+customer-wide behavior. Conditional indexed entry-event reads need no migration
+or extra per-execution round trip. Composer v4 and workspace metadata expose the
+same contract to both providers and human review. [Semantics, tests and limits](ENTRY-CORRELATION.md).

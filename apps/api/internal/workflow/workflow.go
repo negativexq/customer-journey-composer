@@ -56,10 +56,15 @@ type Edge struct {
 	Target string `json:"target"`
 	Port   string `json:"port"`
 }
+type EventCorrelation struct {
+	EntryPath string `json:"entry_path" maxLength:"200"`
+	EventPath string `json:"event_path" maxLength:"200"`
+}
 type ExitCriteria struct {
-	Reason    string `json:"reason,omitempty" enum:"converted,completed,condition_not_met,manually_cancelled"`
-	EventName string `json:"event_name"`
-	Filters   *Rule  `json:"filters,omitempty"`
+	Correlation *EventCorrelation `json:"correlation,omitempty"`
+	Reason      string            `json:"reason,omitempty" enum:"converted,completed,condition_not_met,manually_cancelled"`
+	EventName   string            `json:"event_name"`
+	Filters     *Rule             `json:"filters,omitempty"`
 }
 type Reentry struct {
 	Mode            string `json:"mode" enum:"once,after_completion,cooldown"`
@@ -291,6 +296,11 @@ func Validate(w Workflow) []Issue {
 		}
 		if !eventName.MatchString(w.GlobalExit.EventName) {
 			add("", "global_exit", "Valid exit event name required")
+		}
+		if c := w.GlobalExit.Correlation; c != nil {
+			if !validCorrelationPath(c.EntryPath) || !validCorrelationPath(c.EventPath) {
+				add("", "global_exit.correlation", "Choose valid entry and incoming event property paths")
+			}
 		}
 		if w.GlobalExit.Filters != nil {
 			if err := validateRule(*w.GlobalExit.Filters, 0); err != nil {

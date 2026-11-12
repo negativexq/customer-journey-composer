@@ -7,7 +7,7 @@ import (
 	"slices"
 )
 
-const SchemaVersion = "composer.v3"
+const SchemaVersion = "composer.v4"
 
 type schema = map[string]any
 
@@ -66,7 +66,7 @@ func Schema(kind string) schema {
 	for _, kind := range []string{"event_trigger", "wait", "wait_event", "condition", "email", "sms", "update_attribute", "exit"} {
 		variants = append(variants, object(schema{"id": text(), "type": enumeration(kind), "label": text(), "position": object(schema{"x": schema{"type": "number"}, "y": schema{"type": "number"}}), "config": configs[kind]}))
 	}
-	flow := object(schema{"schema_version": schema{"type": "integer", "enum": []int{1}}, "nodes": array(schema{"anyOf": variants}), "edges": array(object(schema{"id": text(), "source": text(), "target": text(), "port": enumeration("started", "completed", "matched", "timeout", "true", "false", "next")})), "global_exit": nullable(object(schema{"event_name": text(), "reason": enumeration("converted", "completed", "condition_not_met", "manually_cancelled"), "filters": reference("MaybeRule")})), "reentry": nullable(object(schema{"mode": enumeration("once", "after_completion", "cooldown"), "cooldown_seconds": schema{"type": "integer"}}))})
+	flow := object(schema{"schema_version": schema{"type": "integer", "enum": []int{1}}, "nodes": array(schema{"anyOf": variants}), "edges": array(object(schema{"id": text(), "source": text(), "target": text(), "port": enumeration("started", "completed", "matched", "timeout", "true", "false", "next")})), "global_exit": nullable(object(schema{"correlation": nullable(object(schema{"entry_path": text(), "event_path": text()})), "event_name": text(), "reason": enumeration("converted", "completed", "condition_not_met", "manually_cancelled"), "filters": reference("MaybeRule")})), "reentry": nullable(object(schema{"mode": enumeration("once", "after_completion", "cooldown"), "cooldown_seconds": schema{"type": "integer"}}))})
 	root := object(schema{"name": text(), "description": text(), "workflow": flow, "explanation": text(), "warnings": array(text())})
 	root["$defs"] = defs
 	return root

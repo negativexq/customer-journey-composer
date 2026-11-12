@@ -1,0 +1,4557 @@
+{
+  "started_at": "2026-11-12T17:50:33.381Z",
+  "llm_calls": 0,
+  "manual_changes": "Only explicit global-exit identity correlation; invoice adds the previously omitted scoped goal exit.",
+  "journeys": [
+    {
+      "id": "cart",
+      "journey_id": "ff2bece9-9e1d-4d12-9b28-73c533804c01",
+      "workflow": {
+        "schema_version": 1,
+        "nodes": [
+          {
+            "id": "trigger",
+            "type": "event_trigger",
+            "label": "Terk edilmiş sepet: en az 50 EUR",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "config": {
+              "event_name": "demo_cart_abandoned",
+              "filters": {
+                "logic": "and",
+                "rules": [
+                  {
+                    "path": "event.properties.amount",
+                    "operator": "greater_than",
+                    "value": 49.99
+                  },
+                  {
+                    "path": "event.properties.currency",
+                    "operator": "equals",
+                    "value": "EUR"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "already_purchased",
+            "type": "condition",
+            "label": "Bu sepet satın alınmış mı?",
+            "position": {
+              "x": 200,
+              "y": 0
+            },
+            "config": {
+              "rule": {
+                "path": "customer.attributes.cart_purchased",
+                "operator": "equals",
+                "value": true
+              }
+            }
+          },
+          {
+            "id": "converted_exit",
+            "type": "exit",
+            "label": "Dönüşüm — sepet satın alındı",
+            "position": {
+              "x": 400,
+              "y": -100
+            },
+            "config": {
+              "reason": "converted"
+            }
+          },
+          {
+            "id": "any_permission",
+            "type": "condition",
+            "label": "En az bir iletişim izni var mı?",
+            "position": {
+              "x": 400,
+              "y": 100
+            },
+            "config": {
+              "rule": {
+                "logic": "or",
+                "rules": [
+                  {
+                    "path": "customer.consents.email",
+                    "operator": "equals",
+                    "value": true
+                  },
+                  {
+                    "path": "customer.consents.sms",
+                    "operator": "equals",
+                    "value": true
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "ineligible_exit",
+            "type": "exit",
+            "label": "İletişim izni yok — uygun değil",
+            "position": {
+              "x": 600,
+              "y": 200
+            },
+            "config": {
+              "reason": "condition_not_met"
+            }
+          },
+          {
+            "id": "wait_one_hour",
+            "type": "wait",
+            "label": "1 saat bekle",
+            "position": {
+              "x": 600,
+              "y": 0
+            },
+            "config": {
+              "duration_seconds": 3600,
+              "timezone": "UTC"
+            }
+          },
+          {
+            "id": "purchased_after_one_hour",
+            "type": "condition",
+            "label": "Güncel sepet satın alınmış mı?",
+            "position": {
+              "x": 800,
+              "y": 0
+            },
+            "config": {
+              "rule": {
+                "path": "customer.attributes.cart_purchased",
+                "operator": "equals",
+                "value": true
+              }
+            }
+          },
+          {
+            "id": "email_permission",
+            "type": "condition",
+            "label": "E-posta izni var mı?",
+            "position": {
+              "x": 1000,
+              "y": 100
+            },
+            "config": {
+              "rule": {
+                "path": "customer.consents.email",
+                "operator": "equals",
+                "value": true
+              }
+            }
+          },
+          {
+            "id": "reminder_email",
+            "type": "email",
+            "label": "Sepet hatırlatma e-postası",
+            "position": {
+              "x": 1200,
+              "y": 0
+            },
+            "config": {
+              "subject": "Sepetiniz sizi bekliyor",
+              "preheader": "Sepetinizdeki ürünler sizi bekliyor.",
+              "html": "<p>Merhaba {{ customer.attributes.first_name }},</p><p>{{ event.properties.amount_display }} sepetinizde sizi bekliyor. Alışverişinizi tamamlamak için <a href=\"https://example.com/cart\">sepetinize dönün</a>.</p>",
+              "text": "Merhaba {{ customer.attributes.first_name }}, {{ event.properties.amount_display }} sepetinizde sizi bekliyor. Alışverişinizi tamamlamak için https://example.com/cart adresinden sepetinize dönün.",
+              "fallbacks": {
+                "customer.attributes.first_name": "Merhaba",
+                "event.properties.amount_display": "sepetinizdeki ürünler"
+              }
+            }
+          },
+          {
+            "id": "wait_24_hours",
+            "type": "wait",
+            "label": "24 saat daha bekle",
+            "position": {
+              "x": 1400,
+              "y": 100
+            },
+            "config": {
+              "duration_seconds": 86400,
+              "timezone": "UTC"
+            }
+          },
+          {
+            "id": "purchased_after_24_hours",
+            "type": "condition",
+            "label": "Güncel sepet satın alınmış mı?",
+            "position": {
+              "x": 1600,
+              "y": 100
+            },
+            "config": {
+              "rule": {
+                "path": "customer.attributes.cart_purchased",
+                "operator": "equals",
+                "value": true
+              }
+            }
+          },
+          {
+            "id": "sms_permission",
+            "type": "condition",
+            "label": "SMS izni var mı?",
+            "position": {
+              "x": 1800,
+              "y": 200
+            },
+            "config": {
+              "rule": {
+                "path": "customer.consents.sms",
+                "operator": "equals",
+                "value": true
+              }
+            }
+          },
+          {
+            "id": "discount_sms",
+            "type": "sms",
+            "label": "COMEBACK10 indirim SMS'i",
+            "position": {
+              "x": 2000,
+              "y": 100
+            },
+            "config": {
+              "text": "Merhaba {{ customer.attributes.first_name }}! {{ event.properties.amount_display }} sepetinizde sizi bekliyor. COMEBACK10 koduyla %10 indirim kazanmak için https://example.com/cart adresine dönün.",
+              "fallbacks": {
+                "customer.attributes.first_name": "Merhaba",
+                "event.properties.amount_display": "sepetinizdeki ürünler"
+              }
+            }
+          },
+          {
+            "id": "completed_exit",
+            "type": "exit",
+            "label": "Dönüşüm olmadan tamamlandı",
+            "position": {
+              "x": 2000,
+              "y": 300
+            },
+            "config": {
+              "reason": "completed"
+            }
+          },
+          {
+            "id": "wait_48_hours",
+            "type": "wait",
+            "label": "SMS sonrası 48 saat bekle",
+            "position": {
+              "x": 2200,
+              "y": 100
+            },
+            "config": {
+              "duration_seconds": 172800,
+              "timezone": "UTC"
+            }
+          },
+          {
+            "id": "purchased_after_48_hours",
+            "type": "condition",
+            "label": "Güncel sepet satın alınmış mı?",
+            "position": {
+              "x": 2400,
+              "y": 100
+            },
+            "config": {
+              "rule": {
+                "path": "customer.attributes.cart_purchased",
+                "operator": "equals",
+                "value": true
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "trigger",
+            "target": "already_purchased",
+            "port": "started"
+          },
+          {
+            "id": "e2",
+            "source": "already_purchased",
+            "target": "converted_exit",
+            "port": "true"
+          },
+          {
+            "id": "e3",
+            "source": "already_purchased",
+            "target": "any_permission",
+            "port": "false"
+          },
+          {
+            "id": "e4",
+            "source": "any_permission",
+            "target": "wait_one_hour",
+            "port": "true"
+          },
+          {
+            "id": "e5",
+            "source": "any_permission",
+            "target": "ineligible_exit",
+            "port": "false"
+          },
+          {
+            "id": "e6",
+            "source": "wait_one_hour",
+            "target": "purchased_after_one_hour",
+            "port": "completed"
+          },
+          {
+            "id": "e7",
+            "source": "purchased_after_one_hour",
+            "target": "converted_exit",
+            "port": "true"
+          },
+          {
+            "id": "e8",
+            "source": "purchased_after_one_hour",
+            "target": "email_permission",
+            "port": "false"
+          },
+          {
+            "id": "e9",
+            "source": "email_permission",
+            "target": "reminder_email",
+            "port": "true"
+          },
+          {
+            "id": "e10",
+            "source": "email_permission",
+            "target": "wait_24_hours",
+            "port": "false"
+          },
+          {
+            "id": "e11",
+            "source": "reminder_email",
+            "target": "wait_24_hours",
+            "port": "next"
+          },
+          {
+            "id": "e12",
+            "source": "wait_24_hours",
+            "target": "purchased_after_24_hours",
+            "port": "completed"
+          },
+          {
+            "id": "e13",
+            "source": "purchased_after_24_hours",
+            "target": "converted_exit",
+            "port": "true"
+          },
+          {
+            "id": "e14",
+            "source": "purchased_after_24_hours",
+            "target": "sms_permission",
+            "port": "false"
+          },
+          {
+            "id": "e15",
+            "source": "sms_permission",
+            "target": "discount_sms",
+            "port": "true"
+          },
+          {
+            "id": "e16",
+            "source": "sms_permission",
+            "target": "completed_exit",
+            "port": "false"
+          },
+          {
+            "id": "e17",
+            "source": "discount_sms",
+            "target": "wait_48_hours",
+            "port": "next"
+          },
+          {
+            "id": "e18",
+            "source": "wait_48_hours",
+            "target": "purchased_after_48_hours",
+            "port": "completed"
+          },
+          {
+            "id": "e19",
+            "source": "purchased_after_48_hours",
+            "target": "converted_exit",
+            "port": "true"
+          },
+          {
+            "id": "e20",
+            "source": "purchased_after_48_hours",
+            "target": "completed_exit",
+            "port": "false"
+          }
+        ],
+        "global_exit": {
+          "reason": "converted",
+          "event_name": "demo_purchase_completed",
+          "correlation": {
+            "entry_path": "event.properties.cart_id",
+            "event_path": "event.properties.cart_id"
+          }
+        },
+        "reentry": {
+          "mode": "cooldown",
+          "cooldown_seconds": 604800
+        }
+      },
+      "cases": [
+        {
+          "name": "Correlation regression · Edge 1 · Aynı entry event aynı anda iki kez",
+          "run_id": "9a916db6-1c5b-4a8e-a93d-6b77d4834d49",
+          "result": "PASS",
+          "hours": 73,
+          "expected_hours": 73,
+          "exit_reason": "completed",
+          "assertions": [
+            {
+              "assertion": {
+                "type": "enrollment_count",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "enrollment_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "email",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "sms",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "no_duplicate_delivery",
+                "expected": true
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "no_duplicate_delivery"
+            },
+            {
+              "assertion": {
+                "type": "exit_reason",
+                "expected": "completed"
+              },
+              "pass": true,
+              "actual": "completed",
+              "description": "exit_reason"
+            }
+          ],
+          "trace": [
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "event",
+              "message": "ACCEPTED: demo_cart_abandoned",
+              "execution": 0
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "entry",
+              "node_id": "trigger",
+              "message": "Customer enrolled",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "event",
+              "message": "DUPLICATE: edge_entry",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "trigger",
+              "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "already_purchased",
+              "message": "Entered Bu sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "condition",
+              "node_id": "already_purchased",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "any_permission",
+              "message": "Entered En az bir iletişim izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "condition",
+              "node_id": "any_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "wait_one_hour",
+              "message": "Entered 1 saat bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_one_hour",
+              "message": "Waiting until 2026-11-12T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_one_hour",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_one_hour",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "email_permission",
+              "message": "Entered E-posta izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "condition",
+              "node_id": "email_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "reminder_email",
+              "message": "Entered Sepet hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "message",
+              "node_id": "reminder_email",
+              "message": "SIMULATED: Sepet hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "wait_24_hours",
+              "message": "Entered 24 saat daha bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_24_hours",
+              "message": "Waiting until 2026-11-13T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "provider",
+              "node_id": "reminder_email",
+              "message": "Sandbox ACCEPTED",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_24_hours",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_24_hours",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "sms_permission",
+              "message": "Entered SMS izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "condition",
+              "node_id": "sms_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "discount_sms",
+              "message": "Entered COMEBACK10 indirim SMS'i",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "message",
+              "node_id": "discount_sms",
+              "message": "SIMULATED: COMEBACK10 indirim SMS'i",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "wait_48_hours",
+              "message": "Entered SMS sonrası 48 saat bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_48_hours",
+              "message": "Waiting until 2026-11-15T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "provider",
+              "node_id": "discount_sms",
+              "message": "Sandbox ACCEPTED",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_48_hours",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_48_hours",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "node",
+              "node_id": "completed_exit",
+              "message": "Entered Dönüşüm olmadan tamamlandı",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "exit",
+              "node_id": "completed_exit",
+              "message": "completed",
+              "execution": 1
+            }
+          ],
+          "extra_readback_checks": [
+            {
+              "check": "one_logical_message_per_execution_node",
+              "pass": true
+            },
+            {
+              "check": "virtual_completion_time",
+              "pass": true
+            },
+            {
+              "check": "duplicate_event_trace",
+              "pass": true
+            }
+          ]
+        },
+        {
+          "name": "Correlation regression · Edge 2 · Yedi gün sınırından bir saniye önce yeniden giriş",
+          "run_id": "38b22fab-c09e-4c45-9058-823e1442f353",
+          "result": "PASS",
+          "hours": 167.99972222222223,
+          "expected_hours": 167.99972222222223,
+          "exit_reason": "completed",
+          "assertions": [
+            {
+              "assertion": {
+                "type": "enrollment_count",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "enrollment_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "email",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "sms",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "no_duplicate_delivery",
+                "expected": true
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "no_duplicate_delivery"
+            },
+            {
+              "assertion": {
+                "type": "exit_reason",
+                "expected": "completed"
+              },
+              "pass": true,
+              "actual": "completed",
+              "description": "exit_reason"
+            }
+          ],
+          "trace": [
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "event",
+              "message": "ACCEPTED: demo_cart_abandoned",
+              "execution": 0
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "entry",
+              "node_id": "trigger",
+              "message": "Customer enrolled",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "trigger",
+              "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "already_purchased",
+              "message": "Entered Bu sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "condition",
+              "node_id": "already_purchased",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "any_permission",
+              "message": "Entered En az bir iletişim izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "condition",
+              "node_id": "any_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "wait_one_hour",
+              "message": "Entered 1 saat bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_one_hour",
+              "message": "Waiting until 2026-11-12T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_one_hour",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_one_hour",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "email_permission",
+              "message": "Entered E-posta izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "condition",
+              "node_id": "email_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "reminder_email",
+              "message": "Entered Sepet hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "message",
+              "node_id": "reminder_email",
+              "message": "SIMULATED: Sepet hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "wait_24_hours",
+              "message": "Entered 24 saat daha bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_24_hours",
+              "message": "Waiting until 2026-11-13T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "provider",
+              "node_id": "reminder_email",
+              "message": "Sandbox ACCEPTED",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_24_hours",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_24_hours",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "sms_permission",
+              "message": "Entered SMS izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "condition",
+              "node_id": "sms_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "discount_sms",
+              "message": "Entered COMEBACK10 indirim SMS'i",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "message",
+              "node_id": "discount_sms",
+              "message": "SIMULATED: COMEBACK10 indirim SMS'i",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "wait_48_hours",
+              "message": "Entered SMS sonrası 48 saat bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_48_hours",
+              "message": "Waiting until 2026-11-15T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "provider",
+              "node_id": "discount_sms",
+              "message": "Sandbox ACCEPTED",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_48_hours",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_48_hours",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "node",
+              "node_id": "completed_exit",
+              "message": "Entered Dönüşüm olmadan tamamlandı",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "exit",
+              "node_id": "completed_exit",
+              "message": "completed",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-19T11:59:59Z",
+              "kind": "event",
+              "message": "ACCEPTED: demo_cart_abandoned",
+              "execution": 1
+            }
+          ],
+          "extra_readback_checks": [
+            {
+              "check": "one_logical_message_per_execution_node",
+              "pass": true
+            },
+            {
+              "check": "virtual_completion_time",
+              "pass": true
+            }
+          ]
+        },
+        {
+          "name": "Correlation regression · Edge 3 · Tam yedi gün dolduğunda yeniden giriş",
+          "run_id": "bbb62504-43e6-4e4b-b05e-d3fd9e1c833a",
+          "result": "PASS",
+          "hours": 241,
+          "expected_hours": 241,
+          "exit_reason": "completed",
+          "assertions": [
+            {
+              "assertion": {
+                "type": "enrollment_count",
+                "expected": 2
+              },
+              "pass": true,
+              "actual": 2,
+              "description": "enrollment_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "email",
+                "expected": 2
+              },
+              "pass": true,
+              "actual": 2,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "sms",
+                "expected": 2
+              },
+              "pass": true,
+              "actual": 2,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "no_duplicate_delivery",
+                "expected": true
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "no_duplicate_delivery"
+            },
+            {
+              "assertion": {
+                "type": "exit_reason",
+                "expected": "completed"
+              },
+              "pass": true,
+              "actual": "completed",
+              "description": "exit_reason"
+            }
+          ],
+          "trace": [
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "event",
+              "message": "ACCEPTED: demo_cart_abandoned",
+              "execution": 0
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "entry",
+              "node_id": "trigger",
+              "message": "Customer enrolled",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "trigger",
+              "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "already_purchased",
+              "message": "Entered Bu sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "condition",
+              "node_id": "already_purchased",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "any_permission",
+              "message": "Entered En az bir iletişim izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "condition",
+              "node_id": "any_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "wait_one_hour",
+              "message": "Entered 1 saat bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_one_hour",
+              "message": "Waiting until 2026-11-12T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_one_hour",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_one_hour",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "email_permission",
+              "message": "Entered E-posta izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "condition",
+              "node_id": "email_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "reminder_email",
+              "message": "Entered Sepet hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "message",
+              "node_id": "reminder_email",
+              "message": "SIMULATED: Sepet hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "wait_24_hours",
+              "message": "Entered 24 saat daha bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_24_hours",
+              "message": "Waiting until 2026-11-13T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "provider",
+              "node_id": "reminder_email",
+              "message": "Sandbox ACCEPTED",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_24_hours",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_24_hours",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "sms_permission",
+              "message": "Entered SMS izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "condition",
+              "node_id": "sms_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "discount_sms",
+              "message": "Entered COMEBACK10 indirim SMS'i",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "message",
+              "node_id": "discount_sms",
+              "message": "SIMULATED: COMEBACK10 indirim SMS'i",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "wait_48_hours",
+              "message": "Entered SMS sonrası 48 saat bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_48_hours",
+              "message": "Waiting until 2026-11-15T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "provider",
+              "node_id": "discount_sms",
+              "message": "Sandbox ACCEPTED",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_48_hours",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_48_hours",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "node",
+              "node_id": "completed_exit",
+              "message": "Entered Dönüşüm olmadan tamamlandı",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "exit",
+              "node_id": "completed_exit",
+              "message": "completed",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-19T12:00:00Z",
+              "kind": "event",
+              "message": "ACCEPTED: demo_cart_abandoned",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-19T12:00:00Z",
+              "kind": "entry",
+              "node_id": "trigger",
+              "message": "Customer enrolled",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-19T12:00:00Z",
+              "kind": "node",
+              "node_id": "trigger",
+              "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-19T12:00:00Z",
+              "kind": "node",
+              "node_id": "already_purchased",
+              "message": "Entered Bu sepet satın alınmış mı?",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-19T12:00:00Z",
+              "kind": "condition",
+              "node_id": "already_purchased",
+              "message": "Condition false",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-19T12:00:00Z",
+              "kind": "node",
+              "node_id": "any_permission",
+              "message": "Entered En az bir iletişim izni var mı?",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-19T12:00:00Z",
+              "kind": "condition",
+              "node_id": "any_permission",
+              "message": "Condition true",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-19T12:00:00Z",
+              "kind": "node",
+              "node_id": "wait_one_hour",
+              "message": "Entered 1 saat bekle",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-19T12:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_one_hour",
+              "message": "Waiting until 2026-11-19T13:00:00Z",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-19T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_one_hour",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-19T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_one_hour",
+              "message": "Condition false",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-19T13:00:00Z",
+              "kind": "node",
+              "node_id": "email_permission",
+              "message": "Entered E-posta izni var mı?",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-19T13:00:00Z",
+              "kind": "condition",
+              "node_id": "email_permission",
+              "message": "Condition true",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-19T13:00:00Z",
+              "kind": "node",
+              "node_id": "reminder_email",
+              "message": "Entered Sepet hatırlatma e-postası",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-19T13:00:00Z",
+              "kind": "message",
+              "node_id": "reminder_email",
+              "message": "SIMULATED: Sepet hatırlatma e-postası",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-19T13:00:00Z",
+              "kind": "node",
+              "node_id": "wait_24_hours",
+              "message": "Entered 24 saat daha bekle",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-19T13:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_24_hours",
+              "message": "Waiting until 2026-11-20T13:00:00Z",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-19T13:00:00Z",
+              "kind": "provider",
+              "node_id": "reminder_email",
+              "message": "Sandbox ACCEPTED",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-20T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_24_hours",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-20T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_24_hours",
+              "message": "Condition false",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-20T13:00:00Z",
+              "kind": "node",
+              "node_id": "sms_permission",
+              "message": "Entered SMS izni var mı?",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-20T13:00:00Z",
+              "kind": "condition",
+              "node_id": "sms_permission",
+              "message": "Condition true",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-20T13:00:00Z",
+              "kind": "node",
+              "node_id": "discount_sms",
+              "message": "Entered COMEBACK10 indirim SMS'i",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-20T13:00:00Z",
+              "kind": "message",
+              "node_id": "discount_sms",
+              "message": "SIMULATED: COMEBACK10 indirim SMS'i",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-20T13:00:00Z",
+              "kind": "node",
+              "node_id": "wait_48_hours",
+              "message": "Entered SMS sonrası 48 saat bekle",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-20T13:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_48_hours",
+              "message": "Waiting until 2026-11-22T13:00:00Z",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-20T13:00:00Z",
+              "kind": "provider",
+              "node_id": "discount_sms",
+              "message": "Sandbox ACCEPTED",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-22T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_48_hours",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-22T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_48_hours",
+              "message": "Condition false",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-22T13:00:00Z",
+              "kind": "node",
+              "node_id": "completed_exit",
+              "message": "Entered Dönüşüm olmadan tamamlandı",
+              "execution": 2
+            },
+            {
+              "at": "2026-11-22T13:00:00Z",
+              "kind": "exit",
+              "node_id": "completed_exit",
+              "message": "completed",
+              "execution": 2
+            }
+          ],
+          "extra_readback_checks": [
+            {
+              "check": "one_logical_message_per_execution_node",
+              "pass": true
+            },
+            {
+              "check": "virtual_completion_time",
+              "pass": true
+            }
+          ]
+        },
+        {
+          "name": "Correlation regression · Edge 4 · Satın alma ile bir saatlik timer aynı anda",
+          "run_id": "54f00b3e-8538-450b-821a-e00e658fa770",
+          "result": "PASS",
+          "hours": 1,
+          "expected_hours": 1,
+          "exit_reason": "converted",
+          "assertions": [
+            {
+              "assertion": {
+                "type": "enrollment_count",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "enrollment_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "email",
+                "expected": 0
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "sms",
+                "expected": 0
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "no_duplicate_delivery",
+                "expected": true
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "no_duplicate_delivery"
+            },
+            {
+              "assertion": {
+                "type": "exit_reason",
+                "expected": "converted"
+              },
+              "pass": true,
+              "actual": "converted",
+              "description": "exit_reason"
+            }
+          ],
+          "trace": [
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "event",
+              "message": "ACCEPTED: demo_cart_abandoned",
+              "execution": 0
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "entry",
+              "node_id": "trigger",
+              "message": "Customer enrolled",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "trigger",
+              "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "already_purchased",
+              "message": "Entered Bu sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "condition",
+              "node_id": "already_purchased",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "any_permission",
+              "message": "Entered En az bir iletişim izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "condition",
+              "node_id": "any_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "wait_one_hour",
+              "message": "Entered 1 saat bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_one_hour",
+              "message": "Waiting until 2026-11-12T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "event",
+              "message": "ACCEPTED: demo_purchase_completed",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "exit",
+              "node_id": "wait_one_hour",
+              "message": "Global exit: converted",
+              "execution": 1
+            }
+          ],
+          "extra_readback_checks": [
+            {
+              "check": "one_logical_message_per_execution_node",
+              "pass": true
+            },
+            {
+              "check": "virtual_completion_time",
+              "pass": true
+            },
+            {
+              "check": "no_message_records_at_boundary",
+              "pass": true
+            }
+          ]
+        },
+        {
+          "name": "Correlation regression · Edge 5 · Email retry beklerken izin geri çekilir",
+          "run_id": "4a045cc5-32eb-4b52-8ace-f6605a2dd3be",
+          "result": "PASS",
+          "hours": 25,
+          "expected_hours": 25,
+          "exit_reason": "completed",
+          "assertions": [
+            {
+              "assertion": {
+                "type": "enrollment_count",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "enrollment_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "email",
+                "expected": 0
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "sms",
+                "expected": 0
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "no_duplicate_delivery",
+                "expected": true
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "no_duplicate_delivery"
+            },
+            {
+              "assertion": {
+                "type": "exit_reason",
+                "expected": "completed"
+              },
+              "pass": true,
+              "actual": "completed",
+              "description": "exit_reason"
+            }
+          ],
+          "trace": [
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "event",
+              "message": "ACCEPTED: demo_cart_abandoned",
+              "execution": 0
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "entry",
+              "node_id": "trigger",
+              "message": "Customer enrolled",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "trigger",
+              "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "already_purchased",
+              "message": "Entered Bu sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "condition",
+              "node_id": "already_purchased",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "any_permission",
+              "message": "Entered En az bir iletişim izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "condition",
+              "node_id": "any_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "wait_one_hour",
+              "message": "Entered 1 saat bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_one_hour",
+              "message": "Waiting until 2026-11-12T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_one_hour",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_one_hour",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "email_permission",
+              "message": "Entered E-posta izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "condition",
+              "node_id": "email_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "reminder_email",
+              "message": "Entered Sepet hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "message",
+              "node_id": "reminder_email",
+              "message": "SIMULATED: Sepet hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "wait_24_hours",
+              "message": "Entered 24 saat daha bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_24_hours",
+              "message": "Waiting until 2026-11-13T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "provider",
+              "node_id": "reminder_email",
+              "message": "Sandbox RETRY",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:01Z",
+              "kind": "attributes",
+              "message": "Sandbox profile updated",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_24_hours",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_24_hours",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "sms_permission",
+              "message": "Entered SMS izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "condition",
+              "node_id": "sms_permission",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "completed_exit",
+              "message": "Entered Dönüşüm olmadan tamamlandı",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "exit",
+              "node_id": "completed_exit",
+              "message": "completed",
+              "execution": 1
+            }
+          ],
+          "extra_readback_checks": [
+            {
+              "check": "one_logical_message_per_execution_node",
+              "pass": true
+            },
+            {
+              "check": "virtual_completion_time",
+              "pass": true
+            },
+            {
+              "check": "retry_stops_on_consent_revocation",
+              "pass": true
+            }
+          ]
+        },
+        {
+          "name": "Correlation regression · Edge 6 · Ad ve biçimlendirilmiş tutar eksik",
+          "run_id": "3a992cb0-7bd5-4e08-9815-3945d4128e9d",
+          "result": "PASS",
+          "hours": 73,
+          "expected_hours": 73,
+          "exit_reason": "completed",
+          "assertions": [
+            {
+              "assertion": {
+                "type": "enrollment_count",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "enrollment_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "email",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "sms",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "no_duplicate_delivery",
+                "expected": true
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "no_duplicate_delivery"
+            },
+            {
+              "assertion": {
+                "type": "exit_reason",
+                "expected": "completed"
+              },
+              "pass": true,
+              "actual": "completed",
+              "description": "exit_reason"
+            }
+          ],
+          "trace": [
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "event",
+              "message": "ACCEPTED: demo_cart_abandoned",
+              "execution": 0
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "entry",
+              "node_id": "trigger",
+              "message": "Customer enrolled",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "trigger",
+              "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "already_purchased",
+              "message": "Entered Bu sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "condition",
+              "node_id": "already_purchased",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "any_permission",
+              "message": "Entered En az bir iletişim izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "condition",
+              "node_id": "any_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "wait_one_hour",
+              "message": "Entered 1 saat bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_one_hour",
+              "message": "Waiting until 2026-11-12T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_one_hour",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_one_hour",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "email_permission",
+              "message": "Entered E-posta izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "condition",
+              "node_id": "email_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "reminder_email",
+              "message": "Entered Sepet hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "message",
+              "node_id": "reminder_email",
+              "message": "SIMULATED: Sepet hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "wait_24_hours",
+              "message": "Entered 24 saat daha bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_24_hours",
+              "message": "Waiting until 2026-11-13T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "provider",
+              "node_id": "reminder_email",
+              "message": "Sandbox ACCEPTED",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_24_hours",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_24_hours",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "sms_permission",
+              "message": "Entered SMS izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "condition",
+              "node_id": "sms_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "discount_sms",
+              "message": "Entered COMEBACK10 indirim SMS'i",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "message",
+              "node_id": "discount_sms",
+              "message": "SIMULATED: COMEBACK10 indirim SMS'i",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "wait_48_hours",
+              "message": "Entered SMS sonrası 48 saat bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_48_hours",
+              "message": "Waiting until 2026-11-15T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "provider",
+              "node_id": "discount_sms",
+              "message": "Sandbox ACCEPTED",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_48_hours",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_48_hours",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "node",
+              "node_id": "completed_exit",
+              "message": "Entered Dönüşüm olmadan tamamlandı",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "exit",
+              "node_id": "completed_exit",
+              "message": "completed",
+              "execution": 1
+            }
+          ],
+          "extra_readback_checks": [
+            {
+              "check": "one_logical_message_per_execution_node",
+              "pass": true
+            },
+            {
+              "check": "virtual_completion_time",
+              "pass": true
+            },
+            {
+              "check": "fallbacks_render_without_unresolved_variables",
+              "pass": true
+            }
+          ]
+        },
+        {
+          "name": "Correlation regression · Edge 7 · Tutar yeterli ama para birimi USD",
+          "run_id": "6b5defd2-80c8-40f9-a14c-0e7c53b81bff",
+          "result": "PASS",
+          "hours": 0,
+          "expected_hours": 0,
+          "assertions": [
+            {
+              "assertion": {
+                "type": "enrollment_count",
+                "expected": 0
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "enrollment_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "email",
+                "expected": 0
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "sms",
+                "expected": 0
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "no_duplicate_delivery",
+                "expected": true
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "no_duplicate_delivery"
+            }
+          ],
+          "trace": [
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "event",
+              "message": "ACCEPTED: demo_cart_abandoned",
+              "execution": 0
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "entry",
+              "node_id": "trigger",
+              "message": "Entry filters did not match",
+              "execution": 0
+            }
+          ],
+          "extra_readback_checks": [
+            {
+              "check": "one_logical_message_per_execution_node",
+              "pass": true
+            },
+            {
+              "check": "virtual_completion_time",
+              "pass": true
+            }
+          ]
+        },
+        {
+          "name": "Correlation regression · Edge 8 · Email izni var ama adres yok",
+          "run_id": "6455d539-51c0-4e03-96a0-e2627ef834bc",
+          "result": "PASS",
+          "hours": 73,
+          "expected_hours": 73,
+          "exit_reason": "completed",
+          "assertions": [
+            {
+              "assertion": {
+                "type": "enrollment_count",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "enrollment_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "email",
+                "expected": 0
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "sms",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "no_duplicate_delivery",
+                "expected": true
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "no_duplicate_delivery"
+            },
+            {
+              "assertion": {
+                "type": "exit_reason",
+                "expected": "completed"
+              },
+              "pass": true,
+              "actual": "completed",
+              "description": "exit_reason"
+            }
+          ],
+          "trace": [
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "event",
+              "message": "ACCEPTED: demo_cart_abandoned",
+              "execution": 0
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "entry",
+              "node_id": "trigger",
+              "message": "Customer enrolled",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "trigger",
+              "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "already_purchased",
+              "message": "Entered Bu sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "condition",
+              "node_id": "already_purchased",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "any_permission",
+              "message": "Entered En az bir iletişim izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "condition",
+              "node_id": "any_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "wait_one_hour",
+              "message": "Entered 1 saat bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_one_hour",
+              "message": "Waiting until 2026-11-12T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_one_hour",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_one_hour",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "email_permission",
+              "message": "Entered E-posta izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "condition",
+              "node_id": "email_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "reminder_email",
+              "message": "Entered Sepet hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "message",
+              "node_id": "reminder_email",
+              "message": "BLOCKED: Sepet hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "wait_24_hours",
+              "message": "Entered 24 saat daha bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_24_hours",
+              "message": "Waiting until 2026-11-13T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_24_hours",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_24_hours",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "sms_permission",
+              "message": "Entered SMS izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "condition",
+              "node_id": "sms_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "discount_sms",
+              "message": "Entered COMEBACK10 indirim SMS'i",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "message",
+              "node_id": "discount_sms",
+              "message": "SIMULATED: COMEBACK10 indirim SMS'i",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "wait_48_hours",
+              "message": "Entered SMS sonrası 48 saat bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_48_hours",
+              "message": "Waiting until 2026-11-15T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "provider",
+              "node_id": "discount_sms",
+              "message": "Sandbox ACCEPTED",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_48_hours",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_48_hours",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "node",
+              "node_id": "completed_exit",
+              "message": "Entered Dönüşüm olmadan tamamlandı",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "exit",
+              "node_id": "completed_exit",
+              "message": "completed",
+              "execution": 1
+            }
+          ],
+          "extra_readback_checks": [
+            {
+              "check": "one_logical_message_per_execution_node",
+              "pass": true
+            },
+            {
+              "check": "virtual_completion_time",
+              "pass": true
+            },
+            {
+              "check": "missing_recipient_blocked_without_provider_attempt",
+              "pass": true
+            }
+          ]
+        },
+        {
+          "name": "Correlation regression · Edge 9 · Başka sepet için gelen satın alma",
+          "run_id": "6aa7b6a5-183a-4f10-a181-6c7957c64738",
+          "result": "PASS",
+          "hours": 73,
+          "expected_hours": 73,
+          "exit_reason": "completed",
+          "assertions": [
+            {
+              "assertion": {
+                "type": "enrollment_count",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "enrollment_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "email",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "sms",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "no_duplicate_delivery",
+                "expected": true
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "no_duplicate_delivery"
+            },
+            {
+              "assertion": {
+                "type": "exit_reason",
+                "expected": "completed"
+              },
+              "pass": true,
+              "actual": "completed",
+              "description": "exit_reason"
+            }
+          ],
+          "trace": [
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "event",
+              "message": "ACCEPTED: demo_cart_abandoned",
+              "execution": 0
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "entry",
+              "node_id": "trigger",
+              "message": "Customer enrolled",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "trigger",
+              "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "already_purchased",
+              "message": "Entered Bu sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "condition",
+              "node_id": "already_purchased",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "any_permission",
+              "message": "Entered En az bir iletişim izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "condition",
+              "node_id": "any_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "wait_one_hour",
+              "message": "Entered 1 saat bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_one_hour",
+              "message": "Waiting until 2026-11-12T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_one_hour",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_one_hour",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "email_permission",
+              "message": "Entered E-posta izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "condition",
+              "node_id": "email_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "reminder_email",
+              "message": "Entered Sepet hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "message",
+              "node_id": "reminder_email",
+              "message": "SIMULATED: Sepet hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "wait_24_hours",
+              "message": "Entered 24 saat daha bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_24_hours",
+              "message": "Waiting until 2026-11-13T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "provider",
+              "node_id": "reminder_email",
+              "message": "Sandbox ACCEPTED",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T14:00:00Z",
+              "kind": "event",
+              "message": "ACCEPTED: demo_purchase_completed",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_24_hours",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_24_hours",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "sms_permission",
+              "message": "Entered SMS izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "condition",
+              "node_id": "sms_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "discount_sms",
+              "message": "Entered COMEBACK10 indirim SMS'i",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "message",
+              "node_id": "discount_sms",
+              "message": "SIMULATED: COMEBACK10 indirim SMS'i",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "wait_48_hours",
+              "message": "Entered SMS sonrası 48 saat bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_48_hours",
+              "message": "Waiting until 2026-11-15T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "provider",
+              "node_id": "discount_sms",
+              "message": "Sandbox ACCEPTED",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_48_hours",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_48_hours",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "node",
+              "node_id": "completed_exit",
+              "message": "Entered Dönüşüm olmadan tamamlandı",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "exit",
+              "node_id": "completed_exit",
+              "message": "completed",
+              "execution": 1
+            }
+          ],
+          "extra_readback_checks": [
+            {
+              "check": "one_logical_message_per_execution_node",
+              "pass": true
+            },
+            {
+              "check": "virtual_completion_time",
+              "pass": true
+            }
+          ]
+        },
+        {
+          "name": "Correlation regression · Edge 10 · Provider sonucu belirsiz: 408",
+          "run_id": "910b387f-fc96-4d0d-8155-7f652e3195e3",
+          "result": "PASS",
+          "hours": 73,
+          "expected_hours": 73,
+          "exit_reason": "completed",
+          "assertions": [
+            {
+              "assertion": {
+                "type": "enrollment_count",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "enrollment_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "email",
+                "expected": 0
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "sms",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "no_duplicate_delivery",
+                "expected": true
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "no_duplicate_delivery"
+            },
+            {
+              "assertion": {
+                "type": "exit_reason",
+                "expected": "completed"
+              },
+              "pass": true,
+              "actual": "completed",
+              "description": "exit_reason"
+            }
+          ],
+          "trace": [
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "event",
+              "message": "ACCEPTED: demo_cart_abandoned",
+              "execution": 0
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "entry",
+              "node_id": "trigger",
+              "message": "Customer enrolled",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "trigger",
+              "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "already_purchased",
+              "message": "Entered Bu sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "condition",
+              "node_id": "already_purchased",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "any_permission",
+              "message": "Entered En az bir iletişim izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "condition",
+              "node_id": "any_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "node",
+              "node_id": "wait_one_hour",
+              "message": "Entered 1 saat bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T12:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_one_hour",
+              "message": "Waiting until 2026-11-12T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_one_hour",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_one_hour",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "email_permission",
+              "message": "Entered E-posta izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "condition",
+              "node_id": "email_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "reminder_email",
+              "message": "Entered Sepet hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "message",
+              "node_id": "reminder_email",
+              "message": "SIMULATED: Sepet hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "node",
+              "node_id": "wait_24_hours",
+              "message": "Entered 24 saat daha bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_24_hours",
+              "message": "Waiting until 2026-11-13T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T13:00:00Z",
+              "kind": "provider",
+              "node_id": "reminder_email",
+              "message": "Sandbox UNKNOWN",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_24_hours",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_24_hours",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "sms_permission",
+              "message": "Entered SMS izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "condition",
+              "node_id": "sms_permission",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "discount_sms",
+              "message": "Entered COMEBACK10 indirim SMS'i",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "message",
+              "node_id": "discount_sms",
+              "message": "SIMULATED: COMEBACK10 indirim SMS'i",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "node",
+              "node_id": "wait_48_hours",
+              "message": "Entered SMS sonrası 48 saat bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_48_hours",
+              "message": "Waiting until 2026-11-15T13:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T13:00:00Z",
+              "kind": "provider",
+              "node_id": "discount_sms",
+              "message": "Sandbox ACCEPTED",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "node",
+              "node_id": "purchased_after_48_hours",
+              "message": "Entered Güncel sepet satın alınmış mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "condition",
+              "node_id": "purchased_after_48_hours",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "node",
+              "node_id": "completed_exit",
+              "message": "Entered Dönüşüm olmadan tamamlandı",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T13:00:00Z",
+              "kind": "exit",
+              "node_id": "completed_exit",
+              "message": "completed",
+              "execution": 1
+            }
+          ],
+          "extra_readback_checks": [
+            {
+              "check": "one_logical_message_per_execution_node",
+              "pass": true
+            },
+            {
+              "check": "virtual_completion_time",
+              "pass": true
+            },
+            {
+              "check": "unknown_result_not_automatically_retried",
+              "pass": true
+            }
+          ]
+        }
+      ],
+      "publish_check": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/ResultStruct { Ready bool \"json:\\\"ready\\\"\"; Issues ListGateIssue \"json:\\\"issues\\\"\"; Policy string \"json:\\\"policy\\\"\" }Body.json",
+        "ready": true,
+        "issues": [],
+        "policy": "Consent is enforced for every send. Workspace frequency caps apply. Global exit: true. Publishing creates an immutable version."
+      }
+    },
+    {
+      "id": "invoice",
+      "journey_id": "1adc9310-eb34-4898-a00e-8875ac66ce07",
+      "workflow": {
+        "schema_version": 1,
+        "nodes": [
+          {
+            "id": "trigger",
+            "type": "event_trigger",
+            "label": "Fatura ödemesi başarısız",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "config": {
+              "event_name": "audit_payment_failed"
+            }
+          },
+          {
+            "id": "check_entry_paid",
+            "type": "condition",
+            "label": "Girişte fatura ödenmiş mi?",
+            "position": {
+              "x": 200,
+              "y": 0
+            },
+            "config": {
+              "rule": {
+                "logic": "and",
+                "rules": [
+                  {
+                    "path": "customer.attributes.invoice_paid",
+                    "operator": "equals",
+                    "value": true
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "exit_entry_paid",
+            "type": "exit",
+            "label": "Girişte zaten ödenmiş",
+            "position": {
+              "x": 400,
+              "y": -100
+            },
+            "config": {
+              "reason": "converted"
+            }
+          },
+          {
+            "id": "check_no_channel",
+            "type": "condition",
+            "label": "İzin verilen kanal yok mu?",
+            "position": {
+              "x": 400,
+              "y": 100
+            },
+            "config": {
+              "rule": {
+                "logic": "and",
+                "rules": [
+                  {
+                    "path": "customer.consents.email",
+                    "operator": "not_equals",
+                    "value": true
+                  },
+                  {
+                    "path": "customer.consents.sms",
+                    "operator": "not_equals",
+                    "value": true
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "exit_no_channel",
+            "type": "exit",
+            "label": "Uygun kanal izni yok",
+            "position": {
+              "x": 600,
+              "y": 0
+            },
+            "config": {
+              "reason": "condition_not_met"
+            }
+          },
+          {
+            "id": "check_email_consent",
+            "type": "condition",
+            "label": "E-posta izni var mı?",
+            "position": {
+              "x": 600,
+              "y": 200
+            },
+            "config": {
+              "rule": {
+                "logic": "and",
+                "rules": [
+                  {
+                    "path": "customer.consents.email",
+                    "operator": "equals",
+                    "value": true
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "send_email",
+            "type": "email",
+            "label": "Ödeme hatırlatma e-postası",
+            "position": {
+              "x": 800,
+              "y": 100
+            },
+            "config": {
+              "subject": "Ödemenizi kontrol edin",
+              "preheader": "Ödemenizi kontrol etmenizi hatırlatıyoruz.",
+              "html": "<p>Merhaba {{ customer.attributes.first_name }},</p><p>Ödeme işleminiz tamamlanamadı. Lütfen ödemenizi kontrol edip tekrar deneyin.</p><p><a href=\"https://example.com/demo\">Ödemeyi kontrol et</a></p>",
+              "text": "Merhaba {{ customer.attributes.first_name }},\nÖdeme işleminiz tamamlanamadı. Lütfen ödemenizi kontrol edip tekrar deneyin: https://example.com/demo",
+              "fallbacks": {
+                "customer.attributes.first_name": "değerli müşterimiz"
+              }
+            }
+          },
+          {
+            "id": "wait_24h",
+            "type": "wait",
+            "label": "24 saat bekle",
+            "position": {
+              "x": 1000,
+              "y": 200
+            },
+            "config": {
+              "duration_seconds": 86400,
+              "timezone": "UTC"
+            }
+          },
+          {
+            "id": "check_paid_24h",
+            "type": "condition",
+            "label": "24 saat sonra ödenmiş mi?",
+            "position": {
+              "x": 1200,
+              "y": 200
+            },
+            "config": {
+              "rule": {
+                "logic": "and",
+                "rules": [
+                  {
+                    "path": "customer.attributes.invoice_paid",
+                    "operator": "equals",
+                    "value": true
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "exit_paid_24h",
+            "type": "exit",
+            "label": "24 saat içinde ödendi",
+            "position": {
+              "x": 1400,
+              "y": 100
+            },
+            "config": {
+              "reason": "converted"
+            }
+          },
+          {
+            "id": "check_sms_consent",
+            "type": "condition",
+            "label": "SMS izni var mı?",
+            "position": {
+              "x": 1400,
+              "y": 300
+            },
+            "config": {
+              "rule": {
+                "logic": "and",
+                "rules": [
+                  {
+                    "path": "customer.consents.sms",
+                    "operator": "equals",
+                    "value": true
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "send_sms",
+            "type": "sms",
+            "label": "Ödeme hatırlatma SMS'i",
+            "position": {
+              "x": 1600,
+              "y": 200
+            },
+            "config": {
+              "text": "Merhaba {{ customer.attributes.first_name }}, ödemeniz hâlâ tamamlanmadı. Kontrol etmek için: https://example.com/demo",
+              "fallbacks": {
+                "customer.attributes.first_name": "değerli müşterimiz"
+              }
+            }
+          },
+          {
+            "id": "wait_48h",
+            "type": "wait",
+            "label": "48 saat daha bekle",
+            "position": {
+              "x": 1800,
+              "y": 300
+            },
+            "config": {
+              "duration_seconds": 172800,
+              "timezone": "UTC"
+            }
+          },
+          {
+            "id": "check_paid_72h",
+            "type": "condition",
+            "label": "72 saat sonra ödenmiş mi?",
+            "position": {
+              "x": 2000,
+              "y": 300
+            },
+            "config": {
+              "rule": {
+                "logic": "and",
+                "rules": [
+                  {
+                    "path": "customer.attributes.invoice_paid",
+                    "operator": "equals",
+                    "value": true
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "exit_paid_72h",
+            "type": "exit",
+            "label": "72 saat içinde ödendi",
+            "position": {
+              "x": 2200,
+              "y": 200
+            },
+            "config": {
+              "reason": "converted"
+            }
+          },
+          {
+            "id": "exit_unpaid_72h",
+            "type": "exit",
+            "label": "72 saat sonunda ödenmedi",
+            "position": {
+              "x": 2200,
+              "y": 400
+            },
+            "config": {
+              "reason": "completed"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "trigger",
+            "target": "check_entry_paid",
+            "port": "started"
+          },
+          {
+            "id": "e2",
+            "source": "check_entry_paid",
+            "target": "exit_entry_paid",
+            "port": "true"
+          },
+          {
+            "id": "e3",
+            "source": "check_entry_paid",
+            "target": "check_no_channel",
+            "port": "false"
+          },
+          {
+            "id": "e4",
+            "source": "check_no_channel",
+            "target": "exit_no_channel",
+            "port": "true"
+          },
+          {
+            "id": "e5",
+            "source": "check_no_channel",
+            "target": "check_email_consent",
+            "port": "false"
+          },
+          {
+            "id": "e6",
+            "source": "check_email_consent",
+            "target": "send_email",
+            "port": "true"
+          },
+          {
+            "id": "e7",
+            "source": "check_email_consent",
+            "target": "wait_24h",
+            "port": "false"
+          },
+          {
+            "id": "e8",
+            "source": "send_email",
+            "target": "wait_24h",
+            "port": "next"
+          },
+          {
+            "id": "e9",
+            "source": "wait_24h",
+            "target": "check_paid_24h",
+            "port": "completed"
+          },
+          {
+            "id": "e10",
+            "source": "check_paid_24h",
+            "target": "exit_paid_24h",
+            "port": "true"
+          },
+          {
+            "id": "e11",
+            "source": "check_paid_24h",
+            "target": "check_sms_consent",
+            "port": "false"
+          },
+          {
+            "id": "e12",
+            "source": "check_sms_consent",
+            "target": "send_sms",
+            "port": "true"
+          },
+          {
+            "id": "e13",
+            "source": "check_sms_consent",
+            "target": "wait_48h",
+            "port": "false"
+          },
+          {
+            "id": "e14",
+            "source": "send_sms",
+            "target": "wait_48h",
+            "port": "next"
+          },
+          {
+            "id": "e15",
+            "source": "wait_48h",
+            "target": "check_paid_72h",
+            "port": "completed"
+          },
+          {
+            "id": "e16",
+            "source": "check_paid_72h",
+            "target": "exit_paid_72h",
+            "port": "true"
+          },
+          {
+            "id": "e17",
+            "source": "check_paid_72h",
+            "target": "exit_unpaid_72h",
+            "port": "false"
+          }
+        ],
+        "reentry": {
+          "mode": "once"
+        },
+        "global_exit": {
+          "event_name": "audit_invoice_paid",
+          "reason": "converted",
+          "correlation": {
+            "entry_path": "event.properties.invoice_id",
+            "event_path": "event.properties.invoice_id"
+          }
+        }
+      },
+      "cases": [
+        {
+          "name": "Correlation regression · A · Ödeme yapılmaz",
+          "run_id": "c6aa52e0-6fd0-45ce-aa6a-e934834bee45",
+          "result": "PASS",
+          "hours": 72,
+          "expected_hours": 72,
+          "exit_reason": "completed",
+          "assertions": [
+            {
+              "assertion": {
+                "type": "enrollment_count",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "enrollment_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "email",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "sms",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "no_duplicate_delivery",
+                "expected": true
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "no_duplicate_delivery"
+            },
+            {
+              "assertion": {
+                "type": "exit_reason",
+                "expected": "completed"
+              },
+              "pass": true,
+              "actual": "completed",
+              "description": "exit_reason"
+            }
+          ],
+          "trace": [
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "event",
+              "message": "ACCEPTED: audit_payment_failed",
+              "execution": 0
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "entry",
+              "node_id": "trigger",
+              "message": "Customer enrolled",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "trigger",
+              "message": "Entered Fatura ödemesi başarısız",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_entry_paid",
+              "message": "Entered Girişte fatura ödenmiş mi?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_entry_paid",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_no_channel",
+              "message": "Entered İzin verilen kanal yok mu?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_no_channel",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_email_consent",
+              "message": "Entered E-posta izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_email_consent",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "send_email",
+              "message": "Entered Ödeme hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "message",
+              "node_id": "send_email",
+              "message": "SIMULATED: Ödeme hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "wait_24h",
+              "message": "Entered 24 saat bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_24h",
+              "message": "Waiting until 2026-11-13T10:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "provider",
+              "node_id": "send_email",
+              "message": "Sandbox ACCEPTED",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_paid_24h",
+              "message": "Entered 24 saat sonra ödenmiş mi?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_paid_24h",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_sms_consent",
+              "message": "Entered SMS izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_sms_consent",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "node",
+              "node_id": "send_sms",
+              "message": "Entered Ödeme hatırlatma SMS'i",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "message",
+              "node_id": "send_sms",
+              "message": "SIMULATED: Ödeme hatırlatma SMS'i",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "node",
+              "node_id": "wait_48h",
+              "message": "Entered 48 saat daha bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_48h",
+              "message": "Waiting until 2026-11-15T10:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "provider",
+              "node_id": "send_sms",
+              "message": "Sandbox ACCEPTED",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_paid_72h",
+              "message": "Entered 72 saat sonra ödenmiş mi?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_paid_72h",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T10:00:00Z",
+              "kind": "node",
+              "node_id": "exit_unpaid_72h",
+              "message": "Entered 72 saat sonunda ödenmedi",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T10:00:00Z",
+              "kind": "exit",
+              "node_id": "exit_unpaid_72h",
+              "message": "completed",
+              "execution": 1
+            }
+          ],
+          "extra_readback_checks": [
+            {
+              "check": "one_logical_message_per_execution_node",
+              "pass": true
+            }
+          ]
+        },
+        {
+          "name": "Correlation regression · B · Zaten ödenmiş fatura",
+          "run_id": "ae5930ce-a5b3-400b-b475-ab5caa5207e6",
+          "result": "PASS",
+          "hours": 0,
+          "expected_hours": 0,
+          "exit_reason": "converted",
+          "assertions": [
+            {
+              "assertion": {
+                "type": "enrollment_count",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "enrollment_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "email",
+                "expected": 0
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "sms",
+                "expected": 0
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "no_duplicate_delivery",
+                "expected": true
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "no_duplicate_delivery"
+            },
+            {
+              "assertion": {
+                "type": "exit_reason",
+                "expected": "converted"
+              },
+              "pass": true,
+              "actual": "converted",
+              "description": "exit_reason"
+            }
+          ],
+          "trace": [
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "event",
+              "message": "ACCEPTED: audit_payment_failed",
+              "execution": 0
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "entry",
+              "node_id": "trigger",
+              "message": "Customer enrolled",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "trigger",
+              "message": "Entered Fatura ödemesi başarısız",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_entry_paid",
+              "message": "Entered Girişte fatura ödenmiş mi?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_entry_paid",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "exit_entry_paid",
+              "message": "Entered Girişte zaten ödenmiş",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "exit",
+              "node_id": "exit_entry_paid",
+              "message": "converted",
+              "execution": 1
+            }
+          ],
+          "extra_readback_checks": [
+            {
+              "check": "one_logical_message_per_execution_node",
+              "pass": true
+            }
+          ]
+        },
+        {
+          "name": "Correlation regression · C · Aynı fatura 12. saatte ödenir",
+          "run_id": "f79afd5d-4ea5-40dc-8e87-1e4a4cbb1e8b",
+          "result": "PASS",
+          "hours": 12,
+          "expected_hours": 12,
+          "exit_reason": "converted",
+          "assertions": [
+            {
+              "assertion": {
+                "type": "enrollment_count",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "enrollment_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "email",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "sms",
+                "expected": 0
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "no_duplicate_delivery",
+                "expected": true
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "no_duplicate_delivery"
+            },
+            {
+              "assertion": {
+                "type": "exit_reason",
+                "expected": "converted"
+              },
+              "pass": true,
+              "actual": "converted",
+              "description": "exit_reason"
+            }
+          ],
+          "trace": [
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "event",
+              "message": "ACCEPTED: audit_payment_failed",
+              "execution": 0
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "entry",
+              "node_id": "trigger",
+              "message": "Customer enrolled",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "trigger",
+              "message": "Entered Fatura ödemesi başarısız",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_entry_paid",
+              "message": "Entered Girişte fatura ödenmiş mi?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_entry_paid",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_no_channel",
+              "message": "Entered İzin verilen kanal yok mu?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_no_channel",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_email_consent",
+              "message": "Entered E-posta izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_email_consent",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "send_email",
+              "message": "Entered Ödeme hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "message",
+              "node_id": "send_email",
+              "message": "SIMULATED: Ödeme hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "wait_24h",
+              "message": "Entered 24 saat bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_24h",
+              "message": "Waiting until 2026-11-13T10:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "provider",
+              "node_id": "send_email",
+              "message": "Sandbox ACCEPTED",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T22:00:00Z",
+              "kind": "event",
+              "message": "ACCEPTED: audit_invoice_paid",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T22:00:00Z",
+              "kind": "exit",
+              "node_id": "wait_24h",
+              "message": "Global exit: converted",
+              "execution": 1
+            }
+          ],
+          "extra_readback_checks": [
+            {
+              "check": "one_logical_message_per_execution_node",
+              "pass": true
+            }
+          ]
+        },
+        {
+          "name": "Correlation regression · D · Farklı fatura ödenir",
+          "run_id": "32df9dae-a85f-4abb-9b55-08e570def69b",
+          "result": "PASS",
+          "hours": 72,
+          "expected_hours": 72,
+          "exit_reason": "completed",
+          "assertions": [
+            {
+              "assertion": {
+                "type": "enrollment_count",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "enrollment_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "email",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "sms",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "no_duplicate_delivery",
+                "expected": true
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "no_duplicate_delivery"
+            },
+            {
+              "assertion": {
+                "type": "exit_reason",
+                "expected": "completed"
+              },
+              "pass": true,
+              "actual": "completed",
+              "description": "exit_reason"
+            }
+          ],
+          "trace": [
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "event",
+              "message": "ACCEPTED: audit_payment_failed",
+              "execution": 0
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "entry",
+              "node_id": "trigger",
+              "message": "Customer enrolled",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "trigger",
+              "message": "Entered Fatura ödemesi başarısız",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_entry_paid",
+              "message": "Entered Girişte fatura ödenmiş mi?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_entry_paid",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_no_channel",
+              "message": "Entered İzin verilen kanal yok mu?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_no_channel",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_email_consent",
+              "message": "Entered E-posta izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_email_consent",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "send_email",
+              "message": "Entered Ödeme hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "message",
+              "node_id": "send_email",
+              "message": "SIMULATED: Ödeme hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "wait_24h",
+              "message": "Entered 24 saat bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_24h",
+              "message": "Waiting until 2026-11-13T10:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "provider",
+              "node_id": "send_email",
+              "message": "Sandbox ACCEPTED",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T22:00:00Z",
+              "kind": "event",
+              "message": "ACCEPTED: audit_invoice_paid",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_paid_24h",
+              "message": "Entered 24 saat sonra ödenmiş mi?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_paid_24h",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_sms_consent",
+              "message": "Entered SMS izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_sms_consent",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "node",
+              "node_id": "send_sms",
+              "message": "Entered Ödeme hatırlatma SMS'i",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "message",
+              "node_id": "send_sms",
+              "message": "SIMULATED: Ödeme hatırlatma SMS'i",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "node",
+              "node_id": "wait_48h",
+              "message": "Entered 48 saat daha bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_48h",
+              "message": "Waiting until 2026-11-15T10:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "provider",
+              "node_id": "send_sms",
+              "message": "Sandbox ACCEPTED",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_paid_72h",
+              "message": "Entered 72 saat sonra ödenmiş mi?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_paid_72h",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T10:00:00Z",
+              "kind": "node",
+              "node_id": "exit_unpaid_72h",
+              "message": "Entered 72 saat sonunda ödenmedi",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T10:00:00Z",
+              "kind": "exit",
+              "node_id": "exit_unpaid_72h",
+              "message": "completed",
+              "execution": 1
+            }
+          ],
+          "extra_readback_checks": [
+            {
+              "check": "one_logical_message_per_execution_node",
+              "pass": true
+            }
+          ]
+        },
+        {
+          "name": "Correlation regression · E · SMS izni yok",
+          "run_id": "04d8a84f-58e2-47dc-b8f0-11e64c689567",
+          "result": "PASS",
+          "hours": 72,
+          "expected_hours": 72,
+          "exit_reason": "completed",
+          "assertions": [
+            {
+              "assertion": {
+                "type": "enrollment_count",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "enrollment_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "email",
+                "expected": 1
+              },
+              "pass": true,
+              "actual": 1,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "message_count",
+                "channel": "sms",
+                "expected": 0
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "message_count"
+            },
+            {
+              "assertion": {
+                "type": "no_duplicate_delivery",
+                "expected": true
+              },
+              "pass": true,
+              "actual": 0,
+              "description": "no_duplicate_delivery"
+            },
+            {
+              "assertion": {
+                "type": "exit_reason",
+                "expected": "completed"
+              },
+              "pass": true,
+              "actual": "completed",
+              "description": "exit_reason"
+            }
+          ],
+          "trace": [
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "event",
+              "message": "ACCEPTED: audit_payment_failed",
+              "execution": 0
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "entry",
+              "node_id": "trigger",
+              "message": "Customer enrolled",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "trigger",
+              "message": "Entered Fatura ödemesi başarısız",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_entry_paid",
+              "message": "Entered Girişte fatura ödenmiş mi?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_entry_paid",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_no_channel",
+              "message": "Entered İzin verilen kanal yok mu?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_no_channel",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_email_consent",
+              "message": "Entered E-posta izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_email_consent",
+              "message": "Condition true",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "send_email",
+              "message": "Entered Ödeme hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "message",
+              "node_id": "send_email",
+              "message": "SIMULATED: Ödeme hatırlatma e-postası",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "node",
+              "node_id": "wait_24h",
+              "message": "Entered 24 saat bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_24h",
+              "message": "Waiting until 2026-11-13T10:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-12T10:00:00Z",
+              "kind": "provider",
+              "node_id": "send_email",
+              "message": "Sandbox ACCEPTED",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_paid_24h",
+              "message": "Entered 24 saat sonra ödenmiş mi?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_paid_24h",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_sms_consent",
+              "message": "Entered SMS izni var mı?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_sms_consent",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "node",
+              "node_id": "wait_48h",
+              "message": "Entered 48 saat daha bekle",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-13T10:00:00Z",
+              "kind": "wait",
+              "node_id": "wait_48h",
+              "message": "Waiting until 2026-11-15T10:00:00Z",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T10:00:00Z",
+              "kind": "node",
+              "node_id": "check_paid_72h",
+              "message": "Entered 72 saat sonra ödenmiş mi?",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T10:00:00Z",
+              "kind": "condition",
+              "node_id": "check_paid_72h",
+              "message": "Condition false",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T10:00:00Z",
+              "kind": "node",
+              "node_id": "exit_unpaid_72h",
+              "message": "Entered 72 saat sonunda ödenmedi",
+              "execution": 1
+            },
+            {
+              "at": "2026-11-15T10:00:00Z",
+              "kind": "exit",
+              "node_id": "exit_unpaid_72h",
+              "message": "completed",
+              "execution": 1
+            }
+          ],
+          "extra_readback_checks": [
+            {
+              "check": "one_logical_message_per_execution_node",
+              "pass": true
+            }
+          ]
+        }
+      ],
+      "publish_check": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/ResultStruct { Ready bool \"json:\\\"ready\\\"\"; Issues ListGateIssue \"json:\\\"issues\\\"\"; Policy string \"json:\\\"policy\\\"\" }Body.json",
+        "ready": true,
+        "issues": [],
+        "policy": "Consent is enforced for every send. Workspace frequency caps apply. Global exit: true. Publishing creates an immutable version."
+      }
+    }
+  ],
+  "isolation": {
+    "no_publication": true,
+    "no_live_executions": true,
+    "no_new_live_deliveries": true,
+    "original_paid_proposals_unchanged": true
+  },
+  "passed": 15,
+  "total": 15,
+  "finished_at": "2026-11-12T17:50:34.125Z",
+  "extra_readback_verified_at": "2026-11-12T17:52:09.019Z"
+}

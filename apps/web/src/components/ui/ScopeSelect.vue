@@ -27,7 +27,9 @@ const emit = defineEmits<{ 'update:modelValue': [string] }>();
     ><SelectTrigger class="scope-select-trigger" :aria-label="label"
       ><span
         ><small>{{ label }}</small
-        ><SelectValue /></span
+        ><SelectValue>{{
+          options.find((option) => option.value === (modelValue || 'all'))?.label
+        }}</SelectValue></span
       ><AppIcon name="down" :size="14" /></SelectTrigger
     ><SelectPortal
       ><SelectContent class="scope-select-content" position="popper" :side-offset="6" align="start"

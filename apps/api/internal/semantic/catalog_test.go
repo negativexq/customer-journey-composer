@@ -109,3 +109,40 @@ func TestConflictingFallbackMappingsAreRejectedInsteadOfChoosingRandomly(t *test
 		t.Fatal("conflicting fallbacks merged nondeterministically")
 	}
 }
+
+func TestCorrelationReferencesKeepBothEventScopes(t *testing.T) {
+	w := workflow.Workflow{Nodes: []workflow.Node{{Type: "event_trigger", Config: workflow.Config{EventName: "cart_started"}}}, GlobalExit: &workflow.ExitCriteria{EventName: "paid", Correlation: &workflow.EventCorrelation{EntryPath: "event.properties.cart_id", EventPath: "event.properties.order_id"}}}
+	refs := References(w)
+	keys := map[string]bool{}
+	for _, r := range refs {
+		keys[r.Key] = true
+	}
+	for _, key := range []string{Key("event_field", "cart_started", "event.properties.cart_id"), Key("event_field", "paid", "event.properties.order_id")} {
+		if !keys[key] {
+			t.Fatal("missing scoped identifier", key)
+		}
+	}
+	target := Entry{Kind: "event_field", EventName: "paid", Path: "event.properties.purchased_cart", Label: "Paid cart", DataType: "string", Enabled: true}
+	_ = target.Validate()
+	resolved, err := Resolve(w, []Entry{target}, []Binding{{Key("event_field", "paid", "event.properties.order_id"), target.Key}})
+	if err != nil || resolved.GlobalExit.Correlation.EventPath != target.Path || w.GlobalExit.Correlation.EventPath != "event.properties.order_id" {
+		t.Fatal(resolved, err)
+	}
+}
+
+func TestCorrelationCannotConfirmIncompatibleIdentifierTypes(t *testing.T) {
+	w := workflow.Workflow{Nodes: []workflow.Node{{Type: "event_trigger", Config: workflow.Config{EventName: "cart"}}}, GlobalExit: &workflow.ExitCriteria{EventName: "paid", Correlation: &workflow.EventCorrelation{EntryPath: "event.properties.id", EventPath: "event.properties.id"}}}
+	a := Entry{Kind: "event_field", EventName: "cart", Path: "event.properties.id", Label: "Entry cart", DataType: "string", Enabled: true}
+	_ = a.Validate()
+	b := Entry{Kind: "event_field", EventName: "paid", Path: "event.properties.id", Label: "Paid cart", DataType: "number", Enabled: true}
+	_ = b.Validate()
+	entries := []Entry{event("cart", "Cart"), event("paid", "Paid"), a, b}
+	if Analyze(w, entries, []string{a.Key, b.Key}).Ready {
+		t.Fatal("incompatible identity types were confirmed")
+	}
+	b.DataType = "string"
+	entries[3] = b
+	if !Analyze(w, entries, nil).Ready {
+		t.Fatal("matching catalog identities were rejected")
+	}
+}
