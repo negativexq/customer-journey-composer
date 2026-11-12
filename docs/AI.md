@@ -57,3 +57,9 @@ five blocked cases. The new failures show that a representative example does not
 cover alternative event paths or require the ineligible exit reason. Support was
 rejected after both attempts, with detailed validation diagnostics unavailable.
 Failing Test Lab cases blocked publication. [New findings and evidence](reports/five-new-journeys-2026-11-12.md).
+
+An authorized live v2 contract follow-up on those same five briefs passed all
+25 unchanged external cases, including variants not encoded as contract fixtures.
+Eight attempts used 49,594 tokens and 174.17 seconds of generation; three first
+candidates still failed workflow validation and needed repair. No graph edits,
+publication or real messaging. [Fresh outputs, comparison and limits](reports/scoped-contract-live-2026-11-13.md).

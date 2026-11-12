@@ -120,5 +120,9 @@ Local verification on November 13, 2026:
 The contract verifies the obligations actually declared and represented by its
 examples. It does not automatically extract a complete specification from arbitrary
 natural language or prove that all possible paths are covered. Human review and
-additional Test Lab exploration remain necessary. No fresh paid generation is
-claimed by this correction, and the earlier paid outputs/results remain unchanged.
+additional Test Lab exploration remain necessary. The correction was verified
+deterministically first; a subsequent explicitly authorized live OpenAI measurement
+passed 25/25 unchanged external cases with 49,594 reported tokens. Three requests
+still required repair. [Evidence and limits](reports/scoped-contract-live-2026-11-13.md).
+Earlier paid outputs/results remain unchanged; equivalent live Claude quality is
+not claimed.

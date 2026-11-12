@@ -546,3 +546,16 @@ failures remain unchanged; no fresh paid call in this correction.
 Final `make check`, isolated HTTP/PostgreSQL integration (85.999 s), all 78
 browser cases and local Docker readiness passed. Scoped form screenshot inspected.
 [Contract, compatibility, verification and limits](BEHAVIOR-CONTRACT-V2.md).
+
+### Authorized scoped-contract live measurement — 2026-11-13
+
+On source b70cbe1, five fresh OpenAI gpt-6-luna generations with human-reviewed v2
+contracts passed the prior 25 external cases unchanged: 25 PASS / 0 FAIL / 0 BLOCKED,
+versus previous 15 PASS / 5 FAIL / 5 BLOCKED. Seventeen business clauses were defined
+before generation; duplicate events, profile-only changes, cap and consent variants
+were also tested outside those fixtures. No per-journey production logic or manual
+graph changes. Eight attempts used 30,249 input + 19,345 output = 49,594 tokens;
+generation 174.17 s, total audit 216.34 s. Three initial candidates still required
+workflow repair (recorded category counts 2/1/2). All five workspaces had zero live
+records/jobs/versions by database readback. No publication or deployment.
+[Evidence, comparison and remaining limits](reports/scoped-contract-live-2026-11-13.md).

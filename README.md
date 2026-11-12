@@ -12,9 +12,15 @@ An AI-powered customer journey workspace with a visual builder, a persistent exe
 
 Workspace business terminology can now be defined in Settings and reviewed against AI-generated plans before approval. [Semantic layer: setup, safety and limits](docs/SEMANTIC-LAYER.md).
 
-## Verified locally — November 12, 2026
+## Verified locally — November 13, 2026
 
-**Latest five new journey types:** **15 PASS / 5 FAIL / 5 BLOCKED** out of 25
+**Latest scoped-contract measurement: 25/25 external cases passed** for five fresh
+journeys using business contract v2. Same briefs/cases as the earlier failures;
+no manual graph edits. **49,594 tokens**, **174.17 s** generation, **216.34 s** total.
+Three requests still needed repair.
+[Comparison, contracts, outputs and limits](docs/reports/scoped-contract-live-2026-11-13.md).
+
+**Previous five new journey types:** **15 PASS / 5 FAIL / 5 BLOCKED** out of 25
 planned cases. Membership and course journeys passed 5/5 each; stock and referral
 exposed alternative-path/outcome gaps, and support generation was rejected.
 **49,579 tokens**, **161.87 s** generation. Failed test cases blocked publication.
@@ -27,8 +33,8 @@ total. No manual workflow edits or publication.
 [Per-journey results, raw outputs and limits](docs/reports/reviewed-generation-2026-11-12.md).
 
 The shared [business contract now has explicit situation/event scope](docs/BEHAVIOR-CONTRACT-V2.md),
-alternative obligations and ineligible outcomes. This correction uses deterministic
-verification; it does not relabel the paid failures below as passing.
+alternative obligations and ineligible outcomes. Historical paid failures are
+preserved; the fresh v2 follow-up above is reported separately.
 
 General AI generation now requires independent, human-confirmed expected results.
 Wrong channels, terminal outcomes and numeric boundaries are checked before Apply
