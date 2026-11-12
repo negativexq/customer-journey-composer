@@ -152,6 +152,11 @@ func TestJourneyInsightsReconcileVersionCohortBranchesAndMessages(t *testing.T) 
 		}
 		return 0
 	}
+	var light map[string]any
+	json.Unmarshal(call("GET", "/journeys/"+j.ID+"/insights?version=1&days=0&include_unique=false", nil, 200), &light)
+	if light["unique_customers"] != nil {
+		t.Fatal("live polling performed exact historical distinct calculation")
+	}
 	one := read("1", "7")
 	two := read("2", "7")
 	all := read("0", "7")
@@ -185,12 +190,17 @@ func TestJourneyInsightsReconcileVersionCohortBranchesAndMessages(t *testing.T) 
 	}
 	// A late baseline must never replace a newer transition, and duplicate delivery
 	// snapshots must not create another logical send.
-	if _, err = pool.Exec(ctx, `INSERT INTO metric_queue(workspace_id,journey_id,version_id,cohort_at,deltas,snapshot,baseline) SELECT workspace_id,(snapshot->>'journey_id')::uuid,(snapshot->>'version_id')::uuid,now(),'[]',snapshot,true FROM metric_snapshot_facts WHERE source_id=$1`, delivery); err != nil {
+	if _, err = pool.Exec(ctx, `INSERT INTO metric_queue(workspace_id,journey_id,version_id,cohort_at,deltas,snapshot,baseline) SELECT workspace_id,(snapshot->>'journey_id')::uuid,(snapshot->>'version_id')::uuid,now(),'[]',jsonb_set(snapshot,'{values}',jsonb_build_array(metric_delta('channel','email','scheduled',1),metric_delta('channel','email','BLOCKED',1))),true FROM metric_snapshot_facts WHERE source_id=$1`, delivery); err != nil {
 		t.Fatal(err)
 	}
 	project()
-	if value(read("1", "7"), "channel", "email", "scheduled") != 1 {
+	if stale := read("1", "7"); value(stale, "channel", "email", "scheduled") != 1 || value(stale, "channel", "email", "ACCEPTED") != 1 || value(stale, "channel", "email", "BLOCKED") != 0 {
 		t.Fatal("baseline doubled send")
+	}
+	for _, m := range all.Metrics {
+		if m.Dimension == "node" || m.Dimension == "edge" {
+			t.Fatal("mixed path identities across versions")
+		}
 	}
 	call("GET", "/journeys/"+j.ID+"/insights?version=99", nil, 404)
 	var other Identity

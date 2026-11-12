@@ -374,3 +374,14 @@ counts. PostgreSQL API/analytics integration tests passed, including reconciliat
 version/workspace isolation, cohort boundaries, reason removal after retry and
 late-baseline idempotency. `make check` passed. No throughput benchmark is claimed
 for this new projection path; no paid AI call was made.
+
+## Live polling read cost and scope guards — 2026-11-12
+
+Live polling can omit the exact historical distinct-customer calculation; Analytics
+still requests it. Overdue reads start from due scheduled work with a stable query
+timestamp, backed by migration 0023's workspace/due index. All-version summaries
+exclude node/edge identities that would merge reused IDs across versions. API
+integration tests cover these read modes and verify that a stale baseline cannot
+restore an old blocked state over an accepted message. `make check`, the full
+PostgreSQL suite and the follow-up API suite passed locally. No larger-load latency
+or throughput result is claimed for this change.

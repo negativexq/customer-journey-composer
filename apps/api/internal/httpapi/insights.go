@@ -10,9 +10,10 @@ import (
 )
 
 type insightScope struct {
-	ID      string `path:"id" format:"uuid"`
-	Version int    `query:"version" default:"0" minimum:"0"`
-	Days    int    `query:"days" default:"30" minimum:"0" maximum:"90"`
+	ID            string `path:"id" format:"uuid"`
+	Version       int    `query:"version" default:"0" minimum:"0"`
+	Days          int    `query:"days" default:"30" minimum:"0" maximum:"90"`
+	IncludeUnique bool   `query:"include_unique" default:"true"`
 }
 
 func registerInsights(api huma.API, pool *pgxpool.Pool) {
@@ -31,27 +32,27 @@ func registerInsights(api huma.API, pool *pgxpool.Pool) {
 		}
 		// Aggregate facts are already entry-cohort scoped, including message outcomes.
 		return jsonRow[map[string]any](pool.QueryRow(ctx, `WITH scoped AS MATERIALIZED (
-   SELECT * FROM journey_cohort_metrics WHERE workspace_id=$1 AND journey_id=$2 AND cohort_day>=$3::date AND cohort_day<$4::date AND ($5='' OR version_id=NULLIF($5,'')::uuid)
+   SELECT * FROM journey_cohort_metrics WHERE workspace_id=$1 AND journey_id=$2 AND cohort_day>=$3::date AND cohort_day<$4::date AND ($5='' OR version_id=NULLIF($5,'')::uuid) AND ($5<>'' OR dimension IN ('execution','channel','channel_reason','exit_reason'))
   ) SELECT jsonb_build_object(
    'scope',jsonb_build_object('version',$6::int,'days',$7::int,'from',CASE WHEN $7::int=0 THEN NULL ELSE $3::timestamptz END,'until',$4::timestamptz,'basis','entry_cohort','timezone','UTC'),
    'metrics',COALESCE((SELECT jsonb_agg(to_jsonb(m)) FROM (SELECT dimension,dimension_key AS key,metric,sum(value) AS value FROM scoped GROUP BY 1,2,3)m),'[]'::jsonb),
    'daily',COALESCE((SELECT jsonb_agg(to_jsonb(d) ORDER BY d.day) FROM (SELECT cohort_day AS day,metric,sum(value) AS value FROM scoped WHERE dimension='execution' AND metric IN ('entries','converted') GROUP BY 1,2)d),'[]'::jsonb),
-   'unique_customers',(SELECT count(DISTINCT customer_id) FROM journey_cohort_members WHERE workspace_id=$1 AND journey_id=$2 AND cohort_day>=$3::date AND cohort_day<$4::date AND ($5='' OR version_id=NULLIF($5,'')::uuid)),
+   'unique_customers',CASE WHEN $9::boolean THEN (SELECT count(DISTINCT customer_id) FROM journey_cohort_members WHERE workspace_id=$1 AND journey_id=$2 AND cohort_day>=$3::date AND cohort_day<$4::date AND ($5='' OR version_id=NULLIF($5,'')::uuid)) ELSE NULL END,
    'coverage_complete',NOT EXISTS(SELECT 1 FROM metric_snapshot_backfill WHERE NOT complete),
    'projector_last_success',(SELECT last_success FROM metric_projection_health WHERE id),
    'updated_at',(SELECT processed_at FROM metric_watermarks WHERE workspace_id=$1),
    'source_at',(SELECT source_at FROM metric_watermarks WHERE workspace_id=$1),
    'queue_oldest_at',(SELECT created_at FROM metric_queue ORDER BY id LIMIT 1),
    'journey_status',$8::text,
-   'overdue',(SELECT count(*) FROM journey_executions e WHERE workspace_id=$1 AND journey_id=$2 AND state='WAITING' AND started_at>=$3 AND started_at<$4 AND ($5='' OR version_id=NULLIF($5,'')::uuid) AND $8::text IN ('Active','Sunset') AND EXISTS(SELECT 1 FROM scheduled_jobs j WHERE j.workspace_id=e.workspace_id AND j.execution_id=e.id AND j.state='SCHEDULED' AND j.due_at<clock_timestamp()-interval '30 seconds'))
-  )`, who(ctx).WorkspaceID, in.ID, from, until, version, in.Version, in.Days, status))
+   'overdue',(SELECT count(DISTINCT e.id) FROM scheduled_jobs q JOIN journey_executions e ON e.workspace_id=q.workspace_id AND e.id=q.execution_id WHERE q.workspace_id=$1 AND q.state='SCHEDULED' AND q.due_at<statement_timestamp()-interval '30 seconds' AND e.journey_id=$2 AND e.state='WAITING' AND e.started_at>=$3 AND e.started_at<$4 AND ($5='' OR e.version_id=NULLIF($5,'')::uuid) AND $8::text IN ('Active','Sunset'))
+  )`, who(ctx).WorkspaceID, in.ID, from, until, version, in.Version, in.Days, status, in.IncludeUnique))
 	})
 	huma.Get(api, "/api/v1/journeys/{id}/messages", func(ctx context.Context, in *struct {
 		ID       string    `path:"id" format:"uuid"`
 		Version  int       `query:"version" minimum:"0"`
 		Node     string    `query:"node_id" maxLength:"80"`
 		Channel  string    `query:"channel" enum:"email,sms"`
-		Status   string    `query:"status" enum:"SCHEDULED,CLAIMED,ACCEPTED,BLOCKED,SKIPPED,FAILED,CANCELLED,UNKNOWN"`
+		Status   string    `query:"status" enum:"SCHEDULED,CLAIMED,DISPATCHING,ACCEPTED,BLOCKED,SKIPPED,FAILED,CANCELLED,UNKNOWN"`
 		Reason   string    `query:"reason" maxLength:"160"`
 		From     time.Time `query:"from"`
 		Until    time.Time `query:"until"`
@@ -131,7 +132,7 @@ func executionScope(query string, args []any, version int, node, port, exit stri
 		}
 	}
 	if overdue {
-		query += ` AND state='WAITING' AND EXISTS(SELECT 1 FROM journeys j WHERE j.workspace_id=journey_executions.workspace_id AND j.id=journey_executions.journey_id AND j.status IN ('Active','Sunset')) AND EXISTS(SELECT 1 FROM scheduled_jobs j WHERE j.workspace_id=journey_executions.workspace_id AND j.execution_id=journey_executions.id AND j.state='SCHEDULED' AND j.due_at<clock_timestamp()-interval '30 seconds')`
+		query += ` AND state='WAITING' AND EXISTS(SELECT 1 FROM journeys j WHERE j.workspace_id=journey_executions.workspace_id AND j.id=journey_executions.journey_id AND j.status IN ('Active','Sunset')) AND EXISTS(SELECT 1 FROM scheduled_jobs j WHERE j.workspace_id=journey_executions.workspace_id AND j.execution_id=journey_executions.id AND j.state='SCHEDULED' AND j.due_at<statement_timestamp()-interval '30 seconds')`
 	}
 	return strings.TrimSpace(query), args
 }
