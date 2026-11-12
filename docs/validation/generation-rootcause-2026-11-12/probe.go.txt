@@ -1,0 +1,42 @@
+package ai
+
+import (
+ "context"
+ "encoding/json"
+ "testing"
+ "github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
+)
+
+// Audit probe: passing means the current validator accepts the named semantic
+// mismatch. This temporary probe is not a regression test for desired behavior.
+func TestAuditBusinessMismatchPassesWithoutAcceptanceContract(t *testing.T){
+ for _,kind:=range []string{"wrong_channel","wrong_outcome","approximate_threshold"}{t.Run(kind,func(t *testing.T){
+  var root map[string]any;_ = json.Unmarshal([]byte(validOutput),&root)
+  w:=root["workflow"].(map[string]any)
+  start:=w["nodes"].([]any)[0]
+  exit:=w["nodes"].([]any)[1].(map[string]any)
+  middle:=map[string]any{"id":"confirmation","type":"sms","label":"Confirmation email","position":map[string]any{"x":0,"y":200},"config":map[string]any{"text":"Your email confirmation","fallbacks":[]any{}}}
+  prompt:="Send one confirmation email, no SMS, then complete normally without conversion."
+  edges:=[]any{map[string]any{"id":"a","source":"start","target":"confirmation","port":"started"},map[string]any{"id":"b","source":"confirmation","target":"done","port":"next"}}
+  switch kind{
+  case "wrong_outcome":
+   middle["type"]="email";middle["config"]=map[string]any{"subject":"Confirmation","preheader":"","html":"","text":"Confirmation","fallbacks":[]any{}}
+   exit["config"]=map[string]any{"reason":"converted"}
+  case "approximate_threshold":
+   prompt="Only budgets of at least 10000 qualify; 9999.99 must not qualify."
+   middle["type"]="condition";middle["config"]=map[string]any{"rule":map[string]any{"path":"customer.attributes.budget","operator":"greater_than","value":9999}}
+   edges=[]any{edges[0],map[string]any{"id":"b","source":"confirmation","target":"done","port":"true"},map[string]any{"id":"c","source":"confirmation","target":"done","port":"false"}}
+  }
+  w["nodes"]=[]any{start,middle,exit};w["edges"]=edges
+  raw,_:=json.Marshal(root);provider:=&sequence{outputs:[]string{string(raw)}}
+  engine,err:=New(map[string]Provider{"openai":provider});if err!=nil{t.Fatal(err)}
+  p,err:=engine.Compose(context.Background(),Input{Provider:"openai",Action:"generate",Prompt:prompt,Workflow:workflow.Workflow{SchemaVersion:1,Nodes:[]workflow.Node{},Edges:[]workflow.Edge{}}})
+  if err!=nil{t.Fatalf("probe assumption changed: %v",err)}
+  if provider.calls!=1||!p.Generation.Attempts[0].Accepted{t.Fatal("candidate was repaired/rejected")}
+  if p.Workflow.Nodes[1].Type!=middle["type"]{t.Fatal("node type was transformed")}
+  t.Logf("CONFIRMED: %s accepted unchanged after one stub attempt despite contradictory brief",kind)
+ })}
+ exact:=workflow.Rule{Logic:"or",Rules:[]workflow.Rule{{Path:"event.properties.budget",Operator:"greater_than",Value:10000},{Path:"event.properties.budget",Operator:"equals",Value:10000}}}
+ for _,budget:=range []float64{9999.99,10000,10000.01}{if got:=workflow.Evaluate(exact,map[string]any{"event":map[string]any{"properties":map[string]any{"budget":budget}}});got!=(budget>=10000){t.Fatal("exact equivalent failed",budget)}}
+ t.Log("CONFIRMED: existing AND/OR rules can express the exact >= threshold")
+}

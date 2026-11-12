@@ -479,3 +479,14 @@ build-overlapped legacy lease-recovery test assertion failed before a fresh
 isolated package rerun passed; it was not suppressed. No new paid call after the
 ten-journey audit, publication, live execution or delivery was made by the replay.
 Other channel/outcome/threshold/canvas findings remain open. [Evidence and limits](ENTRY-CORRELATION.md).
+
+### Generation mismatch root-cause inspection — 2026-11-12
+
+Read-only code/fixture inspection plus a temporary unpaid Composer probe confirmed
+that wrong channel, wrong completion outcome and approximate numeric threshold
+candidates pass generic validation unchanged without an acceptance contract.
+Exact >= is representable with existing OR rules, although no direct inclusive
+operator exists. Fallback normalization does not rewrite channel/outcome/rules;
+layout initially trusts stored model coordinates. No behavior fix is claimed by
+this audit. The temporary test was removed; probe source/output remain as evidence.
+[Root causes, limits and scoped correction order](reports/generation-rootcause-2026-11-12.md).
