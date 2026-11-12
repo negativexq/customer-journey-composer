@@ -297,3 +297,32 @@ Validation: `make check` (including Go race tests and six script tests),
 Browser coverage includes onboarding-specific inputs, mismatched-event feedback,
 explicit suggested-case review and a passing isolated global-exit run. No paid
 provider call, external deployment, schema change or production query was added.
+
+## Workspace semantic layer — 2026-11-12
+
+Migration 0021 adds a workspace-scoped design-time data catalog. Settings supports
+business labels, aliases, meanings, scalar types, disabling definitions and explicit
+bounded discovery of recent event/profile schema. Discovery persists names/types,
+not customer values, and preserves curated metadata. Both Claude and OpenAI use
+server-loaded enabled definitions through the shared composer; an empty event
+catalog is rejected before provider calls. Derived `semantic.v1` reports identify
+missing/disabled references, ambiguous labels/aliases and type conflicts.
+
+Creation Review and the builder AI panel expose readable data mappings with
+collapsible technical details. Explicit choices rewrite rules, event names,
+variables and fallbacks together; conflicting merged fallbacks are rejected.
+Creation stores choices and resumes them after refresh; server approval recomputes
+grounding and blocks unresolved references. Scratch/manual authoring and immutable
+published workflows retain their existing behavior. No catalog query or AI call
+was added to ingestion, runtime, delivery or analytics. Workspace catalog writes
+use `FOR NO KEY UPDATE` to preserve runtime foreign-key lock compatibility.
+
+Local validation: `make check`, all 70 desktop/mobile browser cases and the full
+isolated PostgreSQL integration suite passed. The first full integration run hit
+the existing worker test's one-turn completion assertion under concurrent load;
+the entire suite passed on a repeat without that load. The dedicated catalog/API
+suite also passed with workspace/Viewer guards, discovery value exclusion,
+curation preservation, approval blocking and foreign-key lock compatibility.
+Screenshots were inspected. Provider tests use deterministic fixtures for both
+provider names; no paid provider call or external deployment was made.
+[Setup, API, performance bounds and deliberate limits](SEMANTIC-LAYER.md).

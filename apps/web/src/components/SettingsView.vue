@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DataCatalog from './DataCatalog.vue';
 import WorkspaceAdmin from './WorkspaceAdmin.vue';
 import { onMounted, ref } from 'vue';
 import { api } from '../lib/api';
@@ -71,6 +72,7 @@ onMounted(load);
   <div class="page-heading"><h1>Settings</h1></div>
   <p v-if="error" role="alert" class="error-message">{{ error }}</p>
   <p role="status">{{ notice }}</p>
+  <DataCatalog />
   <section class="panel">
     <h2>Messaging policy</h2>
     <p>Email uses your server's SMTP configuration. SMS uses the mock provider.</p>

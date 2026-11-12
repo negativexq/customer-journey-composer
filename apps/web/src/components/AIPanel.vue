@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { api, generationStream, type GenerationProgress } from '../lib/api';
 import GenerationStatus from './GenerationStatus.vue';
+import DataMappingReview from './DataMappingReview.vue';
 import JourneyDiagram from './JourneyDiagram.vue';
 import type { Workflow } from '../lib/workflow';
 const props = defineProps<{
@@ -99,6 +100,8 @@ async function useRecoveryBrief() {
 }
 const proposal = ref<Proposal>();
 const acknowledged = ref(false);
+const dataReady = ref(false);
+const confirmedReferences = ref<string[]>([]);
 const inspect = ref(false);
 let baseline = '';
 let controller: AbortController | undefined;
@@ -136,6 +139,8 @@ async function compose() {
   notice.value = '';
   proposal.value = undefined;
   acknowledged.value = false;
+  dataReady.value = false;
+  confirmedReferences.value = [];
   baseline = revising.value ? revisionBaseline : snapshot();
   controller?.abort();
   const request = new AbortController();
@@ -186,6 +191,7 @@ function apply() {
     revising.value ||
     !proposal.value ||
     stale.value ||
+    !dataReady.value ||
     (proposal.value.warnings.length && !acknowledged.value)
   )
     return;
@@ -365,6 +371,20 @@ onBeforeUnmount(() => {
           newer edits.
         </p></template
       >
+      <DataMappingReview
+        v-if="changed"
+        :workflow="proposal.workflow"
+        :confirmed="confirmedReferences"
+        :readonly="readonly"
+        @ready="dataReady = $event"
+        @resolved="
+          (workflow, confirmed) => {
+            proposal!.workflow = workflow;
+            confirmedReferences = confirmed;
+            acknowledged = false;
+          }
+        "
+      />
       <ul v-if="proposal.warnings.length">
         <li v-for="warning in proposal.warnings" :key="warning" class="warning-message">
           {{ warning }}
@@ -379,7 +399,11 @@ onBeforeUnmount(() => {
           v-if="changed"
           class="primary"
           :disabled="
-            readonly || revising || stale || (proposal.warnings.length > 0 && !acknowledged)
+            readonly ||
+            revising ||
+            stale ||
+            !dataReady ||
+            (proposal.warnings.length > 0 && !acknowledged)
           "
           @click="apply"
         >

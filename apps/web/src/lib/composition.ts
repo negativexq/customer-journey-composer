@@ -1,6 +1,8 @@
+import type { GroundingReport } from './data-catalog';
 import type { Workflow } from './workflow';
 import type { Journey } from './api';
 export type Proposal = {
+  grounding?: GroundingReport;
   action?: string;
   diff?: {
     added_nodes: string[];
@@ -21,6 +23,7 @@ export type Proposal = {
   };
 };
 export type CompositionState = {
+  confirmed_references?: string[];
   step: 'details' | 'method' | 'brief' | 'review' | 'builder';
   method?: 'ai' | 'scratch';
   provider?: 'openai' | 'claude';

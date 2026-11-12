@@ -13,15 +13,16 @@ import (
 )
 
 type CompositionState struct {
-	Step       string             `json:"step" enum:"details,method,brief,review,builder"`
-	Method     string             `json:"method,omitempty" enum:"ai,scratch"`
-	Provider   string             `json:"provider,omitempty" enum:"openai,claude"`
-	Contract   string             `json:"acceptance_contract,omitempty" enum:"cart-recovery-eur.v1"`
-	Brief      string             `json:"brief,omitempty" maxLength:"4000"`
-	Changes    string             `json:"changes,omitempty" maxLength:"4000"`
-	Editing    bool               `json:"editing,omitempty"`
-	Generating bool               `json:"generating,omitempty"`
-	Proposal   *composer.Proposal `json:"proposal,omitempty"`
+	ConfirmedReferences []string           `json:"confirmed_references,omitempty" maxItems:"500"`
+	Step                string             `json:"step" enum:"details,method,brief,review,builder"`
+	Method              string             `json:"method,omitempty" enum:"ai,scratch"`
+	Provider            string             `json:"provider,omitempty" enum:"openai,claude"`
+	Contract            string             `json:"acceptance_contract,omitempty" enum:"cart-recovery-eur.v1"`
+	Brief               string             `json:"brief,omitempty" maxLength:"4000"`
+	Changes             string             `json:"changes,omitempty" maxLength:"4000"`
+	Editing             bool               `json:"editing,omitempty"`
+	Generating          bool               `json:"generating,omitempty"`
+	Proposal            *composer.Proposal `json:"proposal,omitempty"`
 }
 type CompositionRecord struct {
 	Journey Journey          `json:"journey"`
@@ -140,6 +141,13 @@ func registerComposition(api huma.API, pool *pgxpool.Pool) {
 			}
 			if issues := messaging.ValidateWorkflow(state.Proposal.Workflow); len(issues) > 0 {
 				return nil, huma.Error422UnprocessableEntity("The proposal needs correction before approval")
+			}
+			var catalogWorkspace string
+			if err = tx.QueryRow(ctx, `SELECT id FROM workspaces WHERE id=$1 FOR SHARE`, who(ctx).WorkspaceID).Scan(&catalogWorkspace); err != nil {
+				return nil, dbError(err)
+			}
+			if err = groundingRequired(ctx, tx, state.Proposal.Workflow, state.ConfirmedReferences); err != nil {
+				return nil, err
 			}
 			draft = state.Proposal.Workflow
 		} else if state.Method != "scratch" {

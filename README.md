@@ -10,6 +10,8 @@ An AI-powered customer journey workspace with a visual builder, a persistent exe
 
 [Try locally](#run-locally) · [Product gallery](docs/images/README.md) · [Architecture](docs/ARCHITECTURE.md) · [CI](https://github.com/negativexq/customer-journey-composer/actions/workflows/ci.yml)
 
+Workspace business terminology can now be defined in Settings and reviewed against AI-generated plans before approval. [Semantic layer: setup, safety and limits](docs/SEMANTIC-LAYER.md).
+
 ## Verified locally — November 12, 2026
 
 The core MVP flow works locally: **AI proposal → reviewed Apply → editable canvas →

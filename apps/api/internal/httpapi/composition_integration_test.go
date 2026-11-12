@@ -90,6 +90,10 @@ func TestCompositionPersistsReviewAndApprovesAtomically(t *testing.T) {
 	json.Unmarshal(save(state, record.Journey.Revision, 200), &record)
 	call("POST", "/journeys/"+j.ID+"/composition/approve", map[string]any{"revision": record.Journey.Revision}, 422)
 	state.Editing = false
+	// Missing definitions cannot be bypassed by the approval endpoint.
+	json.Unmarshal(save(state, record.Journey.Revision, 200), &record)
+	call("POST", "/journeys/"+j.ID+"/composition/approve", map[string]any{"revision": record.Journey.Revision}, 422)
+	call("PUT", "/data-catalog", map[string]any{"entries": []map[string]any{{"kind": "event", "event_name": "user_registered", "label": "Customer registration", "data_type": "event", "aliases": []string{}, "enabled": true}}}, 200)
 	json.Unmarshal(save(state, record.Journey.Revision, 200), &record)
 	before := record.Journey.Revision
 	json.Unmarshal(call("POST", "/journeys/"+j.ID+"/composition/approve", map[string]any{"revision": before}, 200), &j)

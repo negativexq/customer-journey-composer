@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { DataEntry } from '../lib/data-catalog';
+import DataMappingReview from './DataMappingReview.vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { api, generationStream, type GenerationProgress, type Journey } from '../lib/api';
 import type { CompositionRecord, CompositionState, Proposal } from '../lib/composition';
@@ -21,6 +23,20 @@ const error = ref(''),
   saveError = ref(''),
   notice = ref(''),
   acknowledged = ref(false);
+const dataReady = ref(false);
+const catalogEvents = ref<number>();
+const catalogFields = ref(0);
+async function refreshVocabulary() {
+  try {
+    const entries = await api<DataEntry[]>('/data-catalog');
+    catalogEvents.value = entries.filter((e) => e.enabled && e.kind === 'event').length;
+    catalogFields.value = entries.filter((e) => e.enabled && e.kind !== 'event').length;
+  } catch (e) {
+    error.value = String(e);
+    catalogEvents.value = undefined;
+  }
+}
+
 const opening = ref(0),
   elapsed = ref(0),
   progress = ref<GenerationProgress>({ stage: 'sending' });
@@ -131,6 +147,7 @@ onMounted(async () => {
   await load();
   try {
     settings.value = await api('/settings/ai');
+    await refreshVocabulary();
     if (!state.value.provider)
       state.value.provider = settings.value?.default_provider === 'openai' ? 'openai' : 'claude';
   } catch (cause) {
@@ -204,6 +221,11 @@ async function example(index: number) {
 }
 async function compose() {
   if (generating.value || !configured.value || props.readonly) return;
+  await refreshVocabulary();
+  if (!catalogEvents.value) {
+    error.value = 'Define or discover workspace events in Settings → Workspace data first.';
+    return;
+  }
   const modifying = state.value.step === 'review';
   const prompt = (modifying ? state.value.changes : state.value.brief)?.trim();
   if (!prompt) return;
@@ -240,6 +262,8 @@ async function compose() {
     );
     progress.value = { stage: 'saving_review' };
     state.value.proposal = proposal;
+    state.value.confirmed_references = [];
+    dataReady.value = false;
     state.value.step = 'review';
     state.value.generating = false;
     state.value.editing = false;
@@ -264,7 +288,13 @@ async function changes() {
   await persist().catch(() => {});
 }
 async function approve() {
-  if (props.readonly || generating.value || saveError.value) return;
+  if (
+    props.readonly ||
+    generating.value ||
+    saveError.value ||
+    (state.value.method === 'ai' && !dataReady.value)
+  )
+    return;
   opening.value = 1;
   error.value = '';
   try {
@@ -441,6 +471,20 @@ async function back() {
           </button>
         </div>
       </section>
+      <div class="brief-vocabulary">
+        <p v-if="catalogEvents">
+          Using {{ catalogEvents }} workspace events and {{ catalogFields }} fields. Write your
+          brief in everyday language.
+        </p>
+        <p v-else class="warning-message">
+          Your workspace needs event definitions before AI can connect a brief to real data.
+        </p>
+        <p class="help-text">
+          An administrator can define or discover them in
+          <a href="/settings" target="_blank" rel="noopener">Settings → Workspace data</a>.
+        </p>
+        <button type="button" @click="refreshVocabulary">Refresh workspace data</button>
+      </div>
       <form @submit.prevent="compose">
         <label
           >Your brief<textarea
@@ -471,8 +515,8 @@ async function back() {
           This provider needs a server-side key and model before generation is available.
         </p>
         <p class="help-text">
-          Only the brief and workflow specification are sent. You review and approve the result
-          before it opens in the builder.
+          Your brief, workflow and workspace data definitions are sent. Customer values are
+          excluded. You review and approve the result before it opens in the builder.
         </p>
         <footer>
           <button type="button" @click="move('method')">Back</button
@@ -496,6 +540,20 @@ async function back() {
           <p>{{ state.brief }}</p>
         </details>
         <JourneyDiagram :workflow="state.proposal.workflow" />
+        <DataMappingReview
+          :workflow="state.proposal.workflow"
+          :confirmed="state.confirmed_references"
+          :readonly="readonly"
+          @ready="dataReady = $event"
+          @resolved="
+            (workflow, confirmed) => {
+              state.proposal!.workflow = workflow;
+              state.confirmed_references = confirmed;
+              acknowledged = false;
+              persist().catch(() => {});
+            }
+          "
+        />
       </div>
       <aside class="creation-surface review-decisions">
         <h2>Review & next steps</h2>
@@ -538,7 +596,7 @@ async function back() {
             flow, messages and assumptions</label
           ><button
             class="primary"
-            :disabled="readonly || !acknowledged || !!saveError"
+            :disabled="readonly || !acknowledged || !!saveError || !dataReady"
             @click="approve"
           >
             Approve & open builder</button

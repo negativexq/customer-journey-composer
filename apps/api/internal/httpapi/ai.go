@@ -37,6 +37,22 @@ func registerAI(api huma.API, pool *pgxpool.Pool) {
 		defer active.Delete(key)
 		request, cancel := context.WithTimeout(ctx, 85*time.Second)
 		defer cancel()
+		entries, catalogErr := loadDataCatalog(request, pool)
+		if catalogErr != nil {
+			return nil, catalogErr
+		}
+		if in.Body.Action != "explain_journey" && in.Body.Action != "explain_node" && in.Body.Action != "generate_message" && in.Body.Action != "improve_message" {
+			hasEvent := false
+			for _, entry := range entries {
+				if entry.Enabled && entry.Kind == "event" {
+					hasEvent = true
+				}
+			}
+			if !hasEvent {
+				return nil, huma.Error422UnprocessableEntity("Define or discover workspace events in Settings → Workspace data before generating a journey")
+			}
+		}
+		request = composer.WithCatalog(request, entries)
 		proposal, err := engine.Compose(request, in.Body)
 		if proposal.Generation != nil {
 			auditContext, auditCancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)

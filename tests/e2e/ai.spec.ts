@@ -76,6 +76,21 @@ async function setup(page: import('@playwright/test').Page) {
     },
   });
   const user = await signup.json();
+  await page.request.put('/api/v1/data-catalog', {
+    headers: { 'X-CSRF-Token': user.csrf_token },
+    data: {
+      entries: [
+        {
+          kind: 'event',
+          event_name: 'cart_updated',
+          label: 'Cart updated',
+          data_type: 'event',
+          aliases: [],
+          enabled: true,
+        },
+      ],
+    },
+  });
   const created = await page.request.post('/api/v1/journeys', {
     headers: { 'X-CSRF-Token': user.csrf_token },
     data: { name: 'AI draft' },
