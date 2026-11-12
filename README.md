@@ -14,7 +14,13 @@ Workspace business terminology can now be defined in Settings and reviewed again
 
 ## Verified locally — November 12, 2026
 
-**Latest paid follow-up: 25/25 behavior cases passed** across five fresh
+**Latest five new journey types:** **15 PASS / 5 FAIL / 5 BLOCKED** out of 25
+planned cases. Membership and course journeys passed 5/5 each; stock and referral
+exposed alternative-path/outcome gaps, and support generation was rejected.
+**49,579 tokens**, **161.87 s** generation. Failed test cases blocked publication.
+[Findings, outputs and limits](docs/reports/five-new-journeys-2026-11-12.md).
+
+**Previous paid follow-up: 25/25 behavior cases passed** across five fresh
 `composer.v5` journeys, compared with 16/25 for the same briefs/cases previously.
 Three automatic repairs; **47,572 tokens**, **155.92 s** generation, **183.51 s**
 total. No manual workflow edits or publication.

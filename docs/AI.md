@@ -49,3 +49,9 @@ A subsequent authorized fresh composer.v5 OpenAI follow-up passed 25/25 cases
 across five different journeys with 47,572 reported tokens; three requests needed
 automatic repair. [Outputs, comparison and limits](reports/reviewed-generation-2026-11-12.md).
 Live Claude quality and broader prompt coverage remain unverified.
+
+Five additional journey types subsequently produced 15 passing, five failing and
+five blocked cases. The new failures show that a representative example does not
+cover alternative event paths or require the ineligible exit reason. Support was
+rejected after both attempts, with detailed validation diagnostics unavailable.
+Failing Test Lab cases blocked publication. [New findings and evidence](reports/five-new-journeys-2026-11-12.md).

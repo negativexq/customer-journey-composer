@@ -98,3 +98,14 @@ follow-up passed 25/25 cases across five journey types (previously 16/25 for tho
 same inputs). Three requests needed one automatic repair. Total reported usage
 was 47,572 tokens and summed generation time 155.92 seconds. No workflow edits,
 publication or real messaging. [Raw outputs, comparison and limits](reports/reviewed-generation-2026-11-12.md).
+
+## Additional observed coverage gaps
+
+Five new live journey types yielded 15 PASS / 5 FAIL / 5 BLOCKED out of 25 planned
+cases. A stock timeout example with zero expected messages did not protect the
+positive event path; the model omitted email entirely and flagged the conflict.
+Referral numeric bounds worked, but ineligible paths used the wrong exit reason:
+negative probes currently enforce no message/conversion rather than a specific
+rejected outcome. Support generation failed both attempts; detailed per-attempt
+issues were not retained. Failed Test Lab cases blocked stock/referral publication.
+No correction is claimed by this audit. [Raw outputs and next correction scope](reports/five-new-journeys-2026-11-12.md).

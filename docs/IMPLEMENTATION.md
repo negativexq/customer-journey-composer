@@ -516,3 +516,16 @@ complete audit wall time 183.51 s. Final proposals were inspected, approved only
 Drafts and not manually edited. All five workspaces had zero published versions,
 live executions, customers or delivery jobs. This is one targeted local run;
 remaining catalog scope limitations are documented. [Evidence and limits](reports/reviewed-generation-2026-11-12.md).
+
+### Five additional live journey types — 2026-11-12
+
+User-authorized fresh stock, referral, support, membership and course briefs yielded
+15 PASS / 5 FAIL / 5 BLOCKED out of 25 planned cases. Four proposals generated;
+support was rejected after both validation attempts. Eight provider completions
+reported 28,784 input + 20,795 output = 49,579 tokens, including rejected generation.
+Generation totaled 161.87 s; full wall time 202.89 s. Stock omitted email on positive
+paths; referral used the wrong ineligible outcome. Their failing Test Lab cases
+blocked publication. Membership/course passed 5/5 each. Independent single-example
+coverage and missing rejection diagnostics remain open; no application fix claimed.
+All five workspaces had zero published versions, live executions, customers or
+jobs by actual database readback. [Evidence and limitations](reports/five-new-journeys-2026-11-12.md).
