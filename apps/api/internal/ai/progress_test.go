@@ -18,7 +18,7 @@ func TestProgressReportsActualRepairBoundariesForBothProviders(t *testing.T) {
 			}
 			var events []Progress
 			ctx := WithProgress(context.Background(), func(p Progress) { events = append(events, p) })
-			_, err = engine.Compose(ctx, Input{Provider: name, Action: "generate", Prompt: "Create", Workflow: workflow.Workflow{SchemaVersion: 1}})
+			_, err = engine.Compose(ctx, Input{BehaviorChecks: reviewedEmptyChecks(), Provider: name, Action: "generate", Prompt: "Create", Workflow: workflow.Workflow{SchemaVersion: 1}})
 			if err != nil {
 				t.Fatal(err)
 			}

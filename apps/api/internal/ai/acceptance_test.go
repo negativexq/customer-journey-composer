@@ -88,7 +88,7 @@ func TestAISchemaRejectsProseExitCodesButManualWorkflowAllowsThem(t *testing.T) 
 		t.Fatalf("manual custom exits were reinterpreted: %+v", issues)
 	}
 	c, _ := New(map[string]Provider{"openai": &sequence{outputs: []string{schemaFixture(t, "luna-recovery-2026-11-11.json")}}})
-	if _, err := c.Compose(context.Background(), Input{Provider: "openai", Action: "generate", Prompt: "Generate", Workflow: workflow.Workflow{SchemaVersion: 1}}); err == nil {
+	if _, err := c.Compose(context.Background(), Input{BehaviorChecks: reviewedEmptyChecks(), Provider: "openai", Action: "generate", Prompt: "Generate", Workflow: workflow.Workflow{SchemaVersion: 1}}); err == nil {
 		t.Fatal("AI prose exit code accepted")
 	}
 }

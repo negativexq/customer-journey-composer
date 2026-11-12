@@ -4,7 +4,11 @@ import { api, generationStream, type GenerationProgress } from '../lib/api';
 import GenerationStatus from './GenerationStatus.vue';
 import DataMappingReview from './DataMappingReview.vue';
 import JourneyDiagram from './JourneyDiagram.vue';
-import type { Workflow } from '../lib/workflow';
+import BehaviorChecksEditor from './BehaviorChecksEditor.vue';
+import BehaviorChecksSummary from './BehaviorChecksSummary.vue';
+import { behaviorChecksReady } from '../lib/behavior-checks';
+import { layoutGeneratedWorkflow } from '../lib/generated-layout';
+import type { Workflow, BehaviorChecks } from '../lib/workflow';
 const props = defineProps<{
   workflow: Workflow;
   name: string;
@@ -12,6 +16,7 @@ const props = defineProps<{
   readonly?: boolean;
 }>();
 type Diff = {
+  behavior_checks_changed?: boolean;
   metadata_changed: boolean;
   added_nodes: string[];
   removed_nodes: string[];
@@ -45,6 +50,11 @@ const status = ref<{
   default_provider: string;
   providers: Record<string, { configured: boolean; model: string }>;
 }>();
+const behaviorChecks = ref<BehaviorChecks | undefined>(
+  props.workflow.behavior_checks
+    ? JSON.parse(JSON.stringify(props.workflow.behavior_checks))
+    : undefined,
+);
 const acceptanceContract = ref(props.workflow.acceptance_contract || '');
 const provider = ref('claude');
 const action = ref(props.workflow.nodes.length ? 'modify' : 'generate');
@@ -105,7 +115,8 @@ const confirmedReferences = ref<string[]>([]);
 const inspect = ref(false);
 let baseline = '';
 let controller: AbortController | undefined;
-const snapshot = () => JSON.stringify([props.name, props.description, props.workflow]);
+const snapshot = () =>
+  JSON.stringify([props.name, props.description, props.workflow, behaviorChecks.value]);
 const stale = computed(() => !!proposal.value && baseline !== snapshot());
 const configured = computed(
   () => !!status.value?.enabled && !!status.value.providers[provider.value]?.configured,
@@ -126,6 +137,16 @@ function label(id: string) {
 async function compose() {
   if (busy.value || props.readonly || !configured.value || (revising.value && !prompt.value.trim()))
     return;
+  if (
+    !['explain_journey', 'explain_node', 'improve_message', 'generate_message'].includes(
+      action.value,
+    ) &&
+    !acceptanceContract.value &&
+    !behaviorChecksReady(behaviorChecks.value)
+  ) {
+    error.value = 'Review the independent behavior checks before generating.';
+    return;
+  }
   busy.value = true;
   progress.value = { stage: 'sending' };
   elapsed.value = 0;
@@ -147,6 +168,7 @@ async function compose() {
   controller = request;
   try {
     const input = {
+      behavior_checks: acceptanceContract.value ? undefined : behaviorChecks.value,
       provider: provider.value,
       acceptance_contract: acceptanceContract.value || undefined,
       action: revising.value ? 'modify' : action.value,
@@ -171,6 +193,15 @@ async function compose() {
       request.signal,
     );
     if (!request.signal.aborted) {
+      if (
+        !['explain_journey', 'explain_node', 'improve_message', 'generate_message'].includes(
+          action.value,
+        )
+      )
+        result.workflow = layoutGeneratedWorkflow(
+          result.workflow,
+          action.value === 'generate' ? undefined : props.workflow,
+        );
       proposal.value = result;
       revising.value = false;
       revisionBase.value = undefined;
@@ -185,9 +216,10 @@ async function compose() {
     broadcast();
   }
 }
-function apply() {
+async function apply() {
   if (
     props.readonly ||
+    busy.value ||
     revising.value ||
     !proposal.value ||
     stale.value ||
@@ -195,9 +227,34 @@ function apply() {
     (proposal.value.warnings.length && !acknowledged.value)
   )
     return;
-  emit('apply', JSON.parse(JSON.stringify(proposal.value)));
-  proposal.value = undefined;
-  notice.value = 'Proposal applied to the draft. Publish remains a separate action.';
+  busy.value = true;
+  error.value = '';
+  try {
+    const candidate: Proposal = JSON.parse(JSON.stringify(proposal.value));
+    if (!['improve_message', 'generate_message'].includes(action.value)) {
+      if (!acceptanceContract.value) candidate.workflow.behavior_checks = behaviorChecks.value;
+      const result = await api<{ valid: boolean; issues: { message: string }[] }>(
+        '/workflows/validate',
+        'POST',
+        candidate.workflow,
+      );
+      if (!result.valid) {
+        error.value = result.issues.map((issue) => issue.message).join(' · ');
+        return;
+      }
+      if (stale.value) {
+        error.value = 'The draft or expectations changed. Review a fresh proposal.';
+        return;
+      }
+    }
+    emit('apply', candidate);
+    proposal.value = undefined;
+    notice.value = 'Proposal applied to the draft. Publish remains a separate action.';
+  } catch (cause) {
+    error.value = String(cause);
+  } finally {
+    busy.value = false;
+  }
 }
 function discard() {
   revising.value = false;
@@ -277,6 +334,14 @@ onBeforeUnmount(() => {
         </select></label
       >
     </details>
+    <BehaviorChecksEditor
+      v-if="
+        !acceptanceContract &&
+        !['explain_journey', 'explain_node', 'improve_message', 'generate_message'].includes(action)
+      "
+      v-model="behaviorChecks"
+      :disabled="busy || readonly"
+    />
     <label
       >{{ revising ? 'What should change?' : 'What should happen?'
       }}<textarea
@@ -287,8 +352,8 @@ onBeforeUnmount(() => {
         :disabled="busy || readonly"
       /></label
     ><small
-      >Only your prompt and draft are sent. Live customer profiles and event payloads are never
-      attached.</small
+      >Your prompt, draft and reviewed expected results are sent. Synthetic example values and live
+      customer records are excluded.</small
     ><button
       class="primary"
       :disabled="busy || readonly || !configured || (needsNode && !nodeID)"
@@ -303,6 +368,7 @@ onBeforeUnmount(() => {
     <section v-if="proposal" class="ai-proposal">
       <h3>Review proposal</h3>
       <p>Proposed plan · not applied or published</p>
+      <BehaviorChecksSummary :checks="proposal.workflow.behavior_checks" />
       <JourneyDiagram :workflow="proposal.workflow" />
       <p v-if="proposal.generation" class="help-text">
         Provider attempts: {{ proposal.generation.attempts.length }}.
@@ -358,6 +424,7 @@ onBeforeUnmount(() => {
           <p>
             Changed messages: {{ proposal.diff.changed_messages.map(label).join(', ') || 'None' }}
           </p>
+          <p v-if="proposal.diff.behavior_checks_changed">Independent behavior checks changed</p>
           <p v-if="proposal.diff.edges_changed">Connections changed</p>
           <p v-if="proposal.diff.exit_changed">Global exit changed</p>
           <p v-if="proposal.diff.reentry_changed">Re-entry policy changed</p>

@@ -8,6 +8,10 @@ import { briefExamples } from '../lib/brief-examples';
 import GenerationStatus from './GenerationStatus.vue';
 import JourneyDiagram from './JourneyDiagram.vue';
 import AppIcon from './ui/AppIcon.vue';
+import BehaviorChecksEditor from './BehaviorChecksEditor.vue';
+import BehaviorChecksSummary from './BehaviorChecksSummary.vue';
+import { behaviorChecksReady, blankBehaviorChecks } from '../lib/behavior-checks';
+import { layoutGeneratedWorkflow } from '../lib/generated-layout';
 const props = defineProps<{ journey?: Journey; readonly?: boolean }>();
 const emit = defineEmits<{ saved: [Journey]; open: [Journey]; back: [] }>();
 const current = ref(props.journey);
@@ -214,6 +218,14 @@ async function example(index: number) {
     } else {
       state.value.brief = sample.brief;
       state.value.acceptance_contract = undefined;
+      state.value.behavior_checks = sample.expectations
+        ? {
+            ...blankBehaviorChecks(),
+            email_count: sample.expectations.emails,
+            sms_count: sample.expectations.sms,
+            duration_seconds: sample.expectations.hours * 3600,
+          }
+        : undefined;
     }
   } catch (cause) {
     error.value = String(cause);
@@ -224,6 +236,10 @@ async function compose() {
   await refreshVocabulary();
   if (!catalogEvents.value) {
     error.value = 'Define or discover workspace events in Settings → Workspace data first.';
+    return;
+  }
+  if (!state.value.acceptance_contract && !behaviorChecksReady(state.value.behavior_checks)) {
+    error.value = 'Review the independent behavior checks before generating.';
     return;
   }
   const modifying = state.value.step === 'review';
@@ -245,6 +261,7 @@ async function compose() {
     const proposal = await generationStream<Proposal>(
       modifying ? '/ai/journeys/modify' : '/ai/journeys/generate',
       {
+        behavior_checks: state.value.acceptance_contract ? undefined : state.value.behavior_checks,
         provider: state.value.provider,
         acceptance_contract: state.value.acceptance_contract,
         action: modifying ? 'modify' : 'generate',
@@ -261,6 +278,10 @@ async function compose() {
       controller.signal,
     );
     progress.value = { stage: 'saving_review' };
+    proposal.workflow = layoutGeneratedWorkflow(
+      proposal.workflow,
+      modifying ? state.value.proposal?.workflow : undefined,
+    );
     state.value.proposal = proposal;
     state.value.confirmed_references = [];
     dataReady.value = false;
@@ -295,6 +316,8 @@ async function approve() {
     (state.value.method === 'ai' && !dataReady.value)
   )
     return;
+  // Review is unmounted while opening. Require its fresh data check before retrying.
+  dataReady.value = false;
   opening.value = 1;
   error.value = '';
   try {
@@ -511,6 +534,11 @@ async function back() {
             </select></label
           >
         </details>
+        <BehaviorChecksEditor
+          v-if="!state.acceptance_contract"
+          v-model="state.behavior_checks"
+          :disabled="readonly || generating"
+        />
         <p v-if="settings && !configured" class="warning-message">
           This provider needs a server-side key and model before generation is available.
         </p>
@@ -520,7 +548,15 @@ async function back() {
         </p>
         <footer>
           <button type="button" @click="move('method')">Back</button
-          ><button class="primary" :disabled="readonly || !configured || !state.brief?.trim()">
+          ><button
+            class="primary"
+            :disabled="
+              readonly ||
+              !configured ||
+              !state.brief?.trim() ||
+              (!state.acceptance_contract && !behaviorChecksReady(state.behavior_checks))
+            "
+          >
             Generate plan <AppIcon name="arrow" :size="16" />
           </button>
         </footer>
@@ -539,6 +575,14 @@ async function back() {
           <summary>View original brief</summary>
           <p>{{ state.brief }}</p>
         </details>
+        <BehaviorChecksEditor
+          v-if="state.editing && !state.acceptance_contract"
+          v-model="state.behavior_checks"
+          :disabled="readonly || generating"
+        />
+        <BehaviorChecksSummary
+          :checks="state.behavior_checks || state.proposal.workflow.behavior_checks"
+        />
         <JourneyDiagram :workflow="state.proposal.workflow" />
         <DataMappingReview
           :workflow="state.proposal.workflow"

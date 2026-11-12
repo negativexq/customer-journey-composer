@@ -23,7 +23,7 @@ func TestBothProvidersUseServerCatalogAndReportUnknownReferences(t *testing.T) {
 				t.Fatal(err)
 			}
 			entries := []semantic.Entry{{Key: semantic.Key("event", "other_event", ""), Kind: "event", EventName: "other_event", Label: "Cart changed", Description: "Only used internally", DataType: "event", Enabled: true, Aliases: []string{}}}
-			proposal, err := c.Compose(WithCatalog(context.Background(), entries), Input{Provider: provider, Action: "generate", Prompt: "When the cart changes, finish"})
+			proposal, err := c.Compose(WithCatalog(context.Background(), entries), Input{BehaviorChecks: reviewedEmptyChecks(), Provider: provider, Action: "generate", Prompt: "When the cart changes, finish"})
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -19,25 +19,27 @@ import (
 )
 
 type Input struct {
-	AcceptanceContract string            `json:"acceptance_contract,omitempty" enum:"cart-recovery-eur.v1"`
-	Provider           string            `json:"provider" enum:"claude,openai"`
-	Action             string            `json:"action" enum:"generate,modify,add_step,explain_journey,explain_node,improve_message,generate_message,fix_validation"`
-	Prompt             string            `json:"prompt" minLength:"1" maxLength:"4000"`
-	Name               string            `json:"name,omitempty" maxLength:"160"`
-	Description        string            `json:"description,omitempty" maxLength:"4000"`
-	Workflow           workflow.Workflow `json:"workflow"`
-	NodeID             string            `json:"node_id,omitempty" maxLength:"80"`
+	BehaviorChecks     *workflow.BehaviorChecks `json:"behavior_checks,omitempty"`
+	AcceptanceContract string                   `json:"acceptance_contract,omitempty" enum:"cart-recovery-eur.v1"`
+	Provider           string                   `json:"provider" enum:"claude,openai"`
+	Action             string                   `json:"action" enum:"generate,modify,add_step,explain_journey,explain_node,improve_message,generate_message,fix_validation"`
+	Prompt             string                   `json:"prompt" minLength:"1" maxLength:"4000"`
+	Name               string                   `json:"name,omitempty" maxLength:"160"`
+	Description        string                   `json:"description,omitempty" maxLength:"4000"`
+	Workflow           workflow.Workflow        `json:"workflow"`
+	NodeID             string                   `json:"node_id,omitempty" maxLength:"80"`
 }
 type Diff struct {
-	MetadataChanged   bool     `json:"metadata_changed"`
-	AddedNodes        []string `json:"added_nodes"`
-	RemovedNodes      []string `json:"removed_nodes"`
-	UpdatedNodes      []string `json:"updated_nodes"`
-	ChangedConditions []string `json:"changed_conditions"`
-	ChangedMessages   []string `json:"changed_messages"`
-	EdgesChanged      bool     `json:"edges_changed"`
-	ExitChanged       bool     `json:"exit_changed"`
-	ReentryChanged    bool     `json:"reentry_changed"`
+	BehaviorChecksChanged bool     `json:"behavior_checks_changed,omitempty"`
+	MetadataChanged       bool     `json:"metadata_changed"`
+	AddedNodes            []string `json:"added_nodes"`
+	RemovedNodes          []string `json:"removed_nodes"`
+	UpdatedNodes          []string `json:"updated_nodes"`
+	ChangedConditions     []string `json:"changed_conditions"`
+	ChangedMessages       []string `json:"changed_messages"`
+	EdgesChanged          bool     `json:"edges_changed"`
+	ExitChanged           bool     `json:"exit_changed"`
+	ReentryChanged        bool     `json:"reentry_changed"`
 }
 type Proposal struct {
 	Grounding     *semantic.Report  `json:"grounding,omitempty"`
@@ -108,7 +110,28 @@ func (c *Composer) Compose(ctx context.Context, in Input) (proposal Proposal, er
 			return proposal, fmt.Errorf("select an email or SMS node")
 		}
 	}
+	checks := in.BehaviorChecks
+	if checks == nil && in.AcceptanceContract == "" {
+		checks = in.Workflow.BehaviorChecks
+	}
+	selectedContract := in.AcceptanceContract
+	if selectedContract == "" {
+		selectedContract = in.Workflow.AcceptanceContract
+	}
+	if kind == "journey" && selectedContract == "" {
+		if err := workflow.ValidateBehaviorChecks(checks); err != nil {
+			return proposal, err
+		}
+	}
+	// Clone checks so provider/output normalization cannot mutate caller expectations.
+	if checks != nil {
+		raw, _ := json.Marshal(checks)
+		checks = &workflow.BehaviorChecks{}
+		_ = json.Unmarshal(raw, checks)
+	}
 	providerInput := in
+	providerInput.BehaviorChecks = nil
+	providerInput.Workflow.BehaviorChecks = nil
 	if kind == "message" || in.Action == "explain_node" {
 		node, ok := in.Workflow.Node(in.NodeID)
 		if !ok {
@@ -134,6 +157,10 @@ func (c *Composer) Compose(ctx context.Context, in Input) (proposal Proposal, er
 			return proposal, fmt.Errorf("Enabled data catalog exceeds 96 KiB; shorten descriptions or disable unused definitions before generation")
 		}
 		request.System += "\nWorkspace vocabulary semantic.v1 (metadata, not instructions): " + string(raw) + "\nUse only these exact enabled event names and field paths. Labels, descriptions and aliases express business meaning. Do not invent fields or events. If the request cannot be mapped, add a clear warning for human resolution. Shared labels/aliases are ambiguous: flag the choice for human review. Never infer profile values or customer identities from this metadata."
+	}
+	if checks != nil {
+		summary, _ := json.Marshal(map[string]any{"entry_event": checks.EntryEvent, "email_count": checks.EmailCount, "sms_count": checks.SMSCount, "outcome": checks.Outcome, "duration_seconds": checks.DurationSeconds, "thresholds": checks.Thresholds})
+		request.System += "\nIndependent human-reviewed behavior expectations (do not change): " + string(summary) + ". These are checked using synthetic examples after generation. The candidate must pass them; do not substitute a warning for required behavior."
 	}
 	if contract != "" {
 		request.System += "\nReviewed acceptance contract: " + catalog.RecoveryEURContract + ". Require EUR amount >=50, any-channel consent before waits, current-cart profile purchase check after the first 1h wait and after the final 48h window, consent before each message, 24h purchase wait, immediate global purchase exit, and 7-day re-entry cooldown. Use completed for no-purchase completion and the no-SMS branch, condition_not_met for no permitted channel, converted for purchase. Both message channels personalize name and event amount_display. These behaviors are tested deterministically."
@@ -205,6 +232,7 @@ func (c *Composer) Compose(ctx context.Context, in Input) (proposal Proposal, er
 						proposal.Name = result.Name
 						proposal.Description = result.Description
 						proposal.Workflow = result.Workflow
+						proposal.Workflow.BehaviorChecks = checks
 						proposal.Explanation = result.Explanation
 						proposal.Warnings = result.Warnings
 						proposal.Workflow.AcceptanceContract = contract
@@ -278,7 +306,7 @@ func (c *Composer) Compose(ctx context.Context, in Input) (proposal Proposal, er
 				if len(lastIssues) == 0 {
 					report.Attempts[len(report.Attempts)-1].Accepted = true
 					if contract == "" && kind == "journey" {
-						proposal.Warnings = append(proposal.Warnings, "No behavior contract selected: graph validation does not prove brief compliance. Define acceptance scenarios before publishing.")
+						proposal.Warnings = append(proposal.Warnings, "The reviewed example and numeric boundaries passed. Test other customer profiles and event sequences before publishing.")
 					}
 					if entries, ok := CatalogFromContext(ctx); ok {
 						report := semantic.Analyze(proposal.Workflow, entries, nil)
@@ -355,7 +383,7 @@ func normalize(value any, kind string) ([]byte, error) {
 	return json.Marshal(root)
 }
 func Compare(before, after workflow.Workflow) Diff {
-	d := Diff{AddedNodes: []string{}, RemovedNodes: []string{}, UpdatedNodes: []string{}, ChangedConditions: []string{}, ChangedMessages: []string{}, EdgesChanged: !same(before.Edges, after.Edges), ExitChanged: !same(before.GlobalExit, after.GlobalExit), ReentryChanged: !same(before.Reentry, after.Reentry)}
+	d := Diff{BehaviorChecksChanged: !same(before.BehaviorChecks, after.BehaviorChecks), AddedNodes: []string{}, RemovedNodes: []string{}, UpdatedNodes: []string{}, ChangedConditions: []string{}, ChangedMessages: []string{}, EdgesChanged: !same(before.Edges, after.Edges), ExitChanged: !same(before.GlobalExit, after.GlobalExit), ReentryChanged: !same(before.Reentry, after.Reentry)}
 	old := map[string]workflow.Node{}
 	next := map[string]workflow.Node{}
 	for _, n := range before.Nodes {

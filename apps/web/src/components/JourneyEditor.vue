@@ -12,6 +12,8 @@ import AnalyticsView from './AnalyticsView.vue';
 import AppIcon from './ui/AppIcon.vue';
 import StatusBadge from './ui/StatusBadge.vue';
 import ScopeSelect from './ui/ScopeSelect.vue';
+import BehaviorChecksEditor from './BehaviorChecksEditor.vue';
+import { blankBehaviorChecks } from '../lib/behavior-checks';
 import type { DataEntry } from '../lib/data-catalog';
 import type { Workflow, Issue } from '../lib/workflow';
 import type { InspectionKind } from '../lib/navigation';
@@ -546,6 +548,18 @@ function back() {
           :disabled="readonly"
       /></label>
     </section>
+    <BehaviorChecksEditor
+      v-if="draft.behavior_checks"
+      v-model="draft.behavior_checks"
+      :disabled="readonly"
+    />
+    <button
+      v-else-if="!readonly"
+      type="button"
+      @click="draft.behavior_checks = blankBehaviorChecks()"
+    >
+      Add independent behavior checks
+    </button>
   </details>
   <nav class="detail-tabs journey-tabs">
     <button

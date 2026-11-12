@@ -9,20 +9,23 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	composer "github.com/negativexq/customer-journey-composer/apps/api/internal/ai"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/catalog"
 	"github.com/negativexq/customer-journey-composer/apps/api/internal/messaging"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
 )
 
 type CompositionState struct {
-	ConfirmedReferences []string           `json:"confirmed_references,omitempty" maxItems:"500"`
-	Step                string             `json:"step" enum:"details,method,brief,review,builder"`
-	Method              string             `json:"method,omitempty" enum:"ai,scratch"`
-	Provider            string             `json:"provider,omitempty" enum:"openai,claude"`
-	Contract            string             `json:"acceptance_contract,omitempty" enum:"cart-recovery-eur.v1"`
-	Brief               string             `json:"brief,omitempty" maxLength:"4000"`
-	Changes             string             `json:"changes,omitempty" maxLength:"4000"`
-	Editing             bool               `json:"editing,omitempty"`
-	Generating          bool               `json:"generating,omitempty"`
-	Proposal            *composer.Proposal `json:"proposal,omitempty"`
+	BehaviorChecks      *workflow.BehaviorChecks `json:"behavior_checks,omitempty"`
+	ConfirmedReferences []string                 `json:"confirmed_references,omitempty" maxItems:"500"`
+	Step                string                   `json:"step" enum:"details,method,brief,review,builder"`
+	Method              string                   `json:"method,omitempty" enum:"ai,scratch"`
+	Provider            string                   `json:"provider,omitempty" enum:"openai,claude"`
+	Contract            string                   `json:"acceptance_contract,omitempty" enum:"cart-recovery-eur.v1"`
+	Brief               string                   `json:"brief,omitempty" maxLength:"4000"`
+	Changes             string                   `json:"changes,omitempty" maxLength:"4000"`
+	Editing             bool                     `json:"editing,omitempty"`
+	Generating          bool                     `json:"generating,omitempty"`
+	Proposal            *composer.Proposal       `json:"proposal,omitempty"`
 }
 type CompositionRecord struct {
 	Journey Journey          `json:"journey"`
@@ -84,10 +87,19 @@ func registerComposition(api huma.API, pool *pgxpool.Pool) {
 			return nil, huma.Error422UnprocessableEntity("Review requires a proposal")
 		}
 		if state.Proposal != nil {
+			// Draft review remains editable even when business expectations fail.
+			// Approval and publication revalidate the independent expectations.
 			if issues := messaging.ValidateWorkflow(state.Proposal.Workflow); len(issues) > 0 {
 				return nil, huma.Error422UnprocessableEntity("The proposed workflow is not valid")
 			}
 		}
+		if state.BehaviorChecks != nil {
+			raw, _ := json.Marshal(state.BehaviorChecks)
+			if len(raw) > 16384 || len(state.BehaviorChecks.Inputs) > 50 || len(state.BehaviorChecks.Thresholds) > 4 {
+				return nil, huma.Error422UnprocessableEntity("Independent checks exceed the draft limits")
+			}
+		}
+
 		raw, err := json.Marshal(state)
 		if err != nil || len(raw) > 900000 {
 			return nil, huma.Error422UnprocessableEntity("Composition exceeds the size limit")
@@ -139,7 +151,13 @@ func registerComposition(api huma.API, pool *pgxpool.Pool) {
 			if state.Step != "review" || state.Proposal == nil || state.Editing || state.Generating {
 				return nil, huma.Error422UnprocessableEntity("Review the completed proposal before approval")
 			}
-			if issues := messaging.ValidateWorkflow(state.Proposal.Workflow); len(issues) > 0 {
+			if state.Proposal.SchemaVersion == composer.SchemaVersion && state.Proposal.Workflow.BehaviorChecks == nil && state.BehaviorChecks == nil && state.Proposal.Workflow.AcceptanceContract == "" {
+				return nil, huma.Error422UnprocessableEntity("Independent behavior checks are required before approving this AI proposal")
+			}
+			if state.Contract == "" && state.BehaviorChecks != nil {
+				state.Proposal.Workflow.BehaviorChecks = state.BehaviorChecks
+			}
+			if issues := append(messaging.ValidateWorkflow(state.Proposal.Workflow), catalog.ValidateAcceptance(state.Proposal.Workflow)...); len(issues) > 0 {
 				return nil, huma.Error422UnprocessableEntity("The proposal needs correction before approval")
 			}
 			var catalogWorkspace string

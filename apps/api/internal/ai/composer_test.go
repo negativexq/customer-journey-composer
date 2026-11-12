@@ -83,7 +83,7 @@ func TestComposerRepairsAtMostOnceAndNeverMutatesInput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	in := Input{Provider: "claude", Action: "generate", Prompt: "Build cart recovery", Name: "Draft", Workflow: workflow.Workflow{SchemaVersion: 1, Nodes: []workflow.Node{}, Edges: []workflow.Edge{}}}
+	in := Input{BehaviorChecks: reviewedEmptyChecks(), Provider: "claude", Action: "generate", Prompt: "Build cart recovery", Name: "Draft", Workflow: workflow.Workflow{SchemaVersion: 1, Nodes: []workflow.Node{}, Edges: []workflow.Edge{}}}
 	before, _ := json.Marshal(in)
 	proposal, err := composer.Compose(context.Background(), in)
 	if err != nil {
@@ -110,13 +110,13 @@ func TestRejectsUnknownTypesInvalidJSONAndRefusals(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := composer.Compose(context.Background(), Input{Provider: "claude", Action: "generate", Prompt: "Test"}); err == nil || provider.calls != 2 {
+		if _, err := composer.Compose(context.Background(), Input{BehaviorChecks: reviewedEmptyChecks(), Provider: "claude", Action: "generate", Prompt: "Test"}); err == nil || provider.calls != 2 {
 			t.Fatal("malformed model output accepted")
 		}
 	}
 	provider := &sequence{err: &ProviderError{Code: "provider_refusal"}}
 	composer, _ := New(map[string]Provider{"openai": provider})
-	_, err := composer.Compose(context.Background(), Input{Provider: "openai", Action: "generate", Prompt: "Test"})
+	_, err := composer.Compose(context.Background(), Input{BehaviorChecks: reviewedEmptyChecks(), Provider: "openai", Action: "generate", Prompt: "Test"})
 	if err == nil || provider.calls != 1 {
 		t.Fatal("refusal must not be repaired", provider.calls)
 	}
@@ -125,7 +125,7 @@ func TestMessageGenerationPreservesPartialDraftAndNormalizesFallbacks(t *testing
 	provider := &sequence{outputs: []string{`{"subject":"Hello {{ customer.first_name }}","preheader":"Welcome","html":"<p>Welcome</p>","text":"Welcome","fallbacks":[{"path":"customer.first_name","value":"friend"}],"explanation":"A welcome draft.","warnings":[]}`}}
 	composer, _ := New(map[string]Provider{"claude": provider})
 	flow := workflow.Workflow{SchemaVersion: 1, Nodes: []workflow.Node{{ID: "message", Type: "email", Label: "Draft", Config: workflow.Config{Subject: "Old", Text: "Old"}}}, Edges: []workflow.Edge{}}
-	proposal, err := composer.Compose(context.Background(), Input{Provider: "claude", Action: "improve_message", Prompt: "Improve welcome", Workflow: flow, NodeID: "message"})
+	proposal, err := composer.Compose(context.Background(), Input{BehaviorChecks: reviewedEmptyChecks(), Provider: "claude", Action: "improve_message", Prompt: "Improve welcome", Workflow: flow, NodeID: "message"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,12 +196,12 @@ func TestCancellationAndLongRetryAfterDoNotCreateExtraRequests(t *testing.T) {
 	composer, _ := New(map[string]Provider{"openai": provider})
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if _, err := composer.Compose(ctx, Input{Provider: "openai", Action: "generate", Prompt: "Test"}); err == nil || provider.calls != 0 {
+	if _, err := composer.Compose(ctx, Input{BehaviorChecks: reviewedEmptyChecks(), Provider: "openai", Action: "generate", Prompt: "Test"}); err == nil || provider.calls != 0 {
 		t.Fatal("cancelled request reached provider")
 	}
 	limited := &sequence{err: &ProviderError{Code: "provider_http_error", Status: 429, Temporary: true, RetryAfter: 30 * time.Second}}
 	composer, _ = New(map[string]Provider{"openai": limited})
-	if _, err := composer.Compose(context.Background(), Input{Provider: "openai", Action: "generate", Prompt: "Test"}); err == nil || limited.calls != 1 {
+	if _, err := composer.Compose(context.Background(), Input{BehaviorChecks: reviewedEmptyChecks(), Provider: "openai", Action: "generate", Prompt: "Test"}); err == nil || limited.calls != 1 {
 		t.Fatal("long Retry-After was ignored")
 	}
 }
@@ -240,7 +240,7 @@ func TestCorrelatedExitSharedProviderSchema(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			p, err := c.Compose(context.Background(), Input{Provider: name, Action: "generate", Prompt: "Convert only the entry cart", Workflow: workflow.Workflow{SchemaVersion: 1}})
+			p, err := c.Compose(context.Background(), Input{BehaviorChecks: reviewedEmptyChecks(), Provider: name, Action: "generate", Prompt: "Convert only the entry cart", Workflow: workflow.Workflow{SchemaVersion: 1}})
 			if err != nil || p.Workflow.GlobalExit == nil || p.Workflow.GlobalExit.Correlation == nil || p.Workflow.GlobalExit.Correlation.EventPath != "event.properties.paid_cart_id" {
 				t.Fatal(p, err)
 			}

@@ -71,12 +71,13 @@ type Reentry struct {
 	CooldownSeconds int64  `json:"cooldown_seconds,omitempty"`
 }
 type Workflow struct {
-	AcceptanceContract string        `json:"acceptance_contract,omitempty" enum:"cart-recovery-eur.v1"`
-	SchemaVersion      int           `json:"schema_version" minimum:"1" maximum:"1"`
-	Nodes              []Node        `json:"nodes" maxItems:"100"`
-	Edges              []Edge        `json:"edges" maxItems:"200"`
-	GlobalExit         *ExitCriteria `json:"global_exit,omitempty"`
-	Reentry            *Reentry      `json:"reentry,omitempty"`
+	BehaviorChecks     *BehaviorChecks `json:"behavior_checks,omitempty"`
+	AcceptanceContract string          `json:"acceptance_contract,omitempty" enum:"cart-recovery-eur.v1"`
+	SchemaVersion      int             `json:"schema_version" minimum:"1" maximum:"1"`
+	Nodes              []Node          `json:"nodes" maxItems:"100"`
+	Edges              []Edge          `json:"edges" maxItems:"200"`
+	GlobalExit         *ExitCriteria   `json:"global_exit,omitempty"`
+	Reentry            *Reentry        `json:"reentry,omitempty"`
 }
 type Issue struct {
 	NodeID  string `json:"node_id,omitempty"`
@@ -109,6 +110,11 @@ func Ports(kind string) []string {
 func Validate(w Workflow) []Issue {
 	issues := []Issue{}
 	add := func(id, field, message string) { issues = append(issues, Issue{id, field, message}) }
+	if w.BehaviorChecks != nil {
+		if err := ValidateBehaviorChecks(w.BehaviorChecks); err != nil {
+			add("", "behavior_checks", err.Error())
+		}
+	}
 	if w.SchemaVersion != 1 {
 		add("", "schema_version", "Only schema version 1 is supported")
 	}

@@ -15,11 +15,11 @@ Docker gives AI credentials only to the API, and SMTP credentials only to the de
 
 ## Versioned output and validation
 
-[composer.v1.json](schemas/composer.v1.json) is the shared journey output contract. Tests compare its content to the Go schema generator. Generate it with:
+[composer.v5.json](schemas/composer.v5.json) is the shared journey output contract. Tests compare its content to the Go schema generator. Generate it with:
 
 ```sh
 cd apps/api
-go run ./cmd/schema > ../../docs/schemas/composer.v1.json
+go run ./cmd/schema > ../../docs/schemas/composer.v5.json
 cd ../..
 npm run fmt
 ```
@@ -34,8 +34,16 @@ The response includes added/removed/updated nodes, condition/message changes, co
 
 The panel captures the current draft, shows the proposal and warnings, and offers Apply/Discard. Warnings require acknowledgement. If the human edits the draft while a proposal is open, Apply is disabled until the proposal is discarded/regenerated. Apply updates the editable draft and its ordinary revision-guarded autosave. Publish remains a separate Admin action.
 
-## Verification status
+## Independent behavior and verification
 
-No live LLM request has been made, as explicitly requested by the user. Automated tests use local HTTP fixtures to verify both provider wire contracts, strict schema handling, malformed/unsupported outputs, one-repair limits, refusals, input immutability and fallback normalization. Browser tests use clearly named contract fixtures to verify discard, acknowledgement, apply, stale-proposal rejection and absence of automatic publication.
+General graph generation requires human-confirmed behavior checks or the curated
+acceptance contract before a provider call. Expected channel counts, outcome,
+optional duration and exact eligibility boundaries are validated with pure
+simulation and rechecked on Apply/approval/publication. Synthetic example values
+are stripped from provider input. [Contract, API change and limits](BEHAVIOR-CHECKS.md).
 
-Live model access, schema acceptance by the actual provider, natural-language quality, model-specific latency and the final live prompt-to-journey demonstration remain deferred. Enable and evaluate those only when live LLM testing is requested; deterministic tests and normal development do not require API keys.
+Automated tests use local provider fixtures; no deterministic suite calls paid
+providers. Earlier user-authorized live OpenAI audits and their original failures
+are preserved in the [varied-journey report](reports/varied-journeys-2026-11-12.md).
+The current composer.v5 correction has deterministic evidence, not a fresh paid
+model evaluation. Live Claude quality and broader prompt coverage remain unverified.

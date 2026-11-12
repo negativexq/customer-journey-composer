@@ -23,7 +23,7 @@ func TestUsageIncludesRejectedCandidateAndSuccessfulRepair(t *testing.T) {
 	}))
 	defer server.Close()
 	c, _ := New(map[string]Provider{"openai": &HTTPProvider{Kind: "openai", Key: "fixture-only", Model: "requested-model", BaseURL: server.URL, Client: server.Client()}})
-	p, err := c.Compose(context.Background(), Input{Provider: "openai", Action: "generate", Prompt: "No customer data", Workflow: workflow.Workflow{SchemaVersion: 1, Nodes: []workflow.Node{}, Edges: []workflow.Edge{}}})
+	p, err := c.Compose(context.Background(), Input{BehaviorChecks: reviewedEmptyChecks(), Provider: "openai", Action: "generate", Prompt: "No customer data", Workflow: workflow.Workflow{SchemaVersion: 1, Nodes: []workflow.Node{}, Edges: []workflow.Edge{}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestFailedCompositionStillReturnsAttemptUsage(t *testing.T) {
 	}))
 	defer server.Close()
 	c, _ := New(map[string]Provider{"openai": &HTTPProvider{Kind: "openai", Key: "fixture-only", Model: "model", BaseURL: server.URL, Client: server.Client()}})
-	p, err := c.Compose(context.Background(), Input{Provider: "openai", Action: "generate", Prompt: "Generate"})
+	p, err := c.Compose(context.Background(), Input{BehaviorChecks: reviewedEmptyChecks(), Provider: "openai", Action: "generate", Prompt: "Generate"})
 	if err == nil || p.Generation == nil || p.Generation.Usage == nil || p.Generation.Usage.InputTokens != 20 || len(p.Generation.Attempts) != 2 {
 		t.Fatal("failed attempts were not accounted for", err, p.Generation)
 	}

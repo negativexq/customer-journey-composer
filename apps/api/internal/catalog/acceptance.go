@@ -56,14 +56,19 @@ func RecoveryEURAcceptanceCases() []simulation.Scenario {
 	personal.Entry.Properties["amount"] = 123.45
 	personal.Entry.Properties["amount_display"] = "123.45"
 	cases = append(cases, personal)
+	fractional := fresh("Reject fractional amount below EUR 50")
+	fractional.Entry.Properties["amount"] = 49.995
+	fractional.Assertions = append(base(), simulation.Assertion{Type: "enrollment_count", Expected: 0}, simulation.Assertion{Type: "no_message"})
+	cases = append(cases, fractional)
 	return cases
 }
 
 // ValidateAcceptance is used at proposal review/validation/publication, never in
 // the live worker. Arbitrary workflows without a selected contract stay editable.
 func ValidateAcceptance(w workflow.Workflow) []workflow.Issue {
+	independent := ValidateBehavior(w)
 	if w.AcceptanceContract == "" {
-		return nil
+		return independent
 	}
 	if w.AcceptanceContract != RecoveryEURContract {
 		return []workflow.Issue{{Field: "acceptance_contract", Message: "Unknown behavior contract"}}
@@ -71,7 +76,7 @@ func ValidateAcceptance(w workflow.Workflow) []workflow.Issue {
 	if len(workflow.Validate(w)) > 0 {
 		return nil
 	} // Graph validator supplies actionable issues first.
-	issues := []workflow.Issue{}
+	issues := independent
 	for i, scenario := range RecoveryEURAcceptanceCases() {
 		state, spec, input, err := simulation.New(w, scenario)
 		if err == nil {

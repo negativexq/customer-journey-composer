@@ -5730,3 +5730,58 @@ fieldset.scenario-form {
     display: none;
   }
 }
+
+.behavior-checks {
+  padding: 16px;
+  margin: 16px 0;
+}
+.behavior-checks h3,
+.behavior-checks h4 {
+  margin: 0 0 8px;
+}
+.behavior-checks fieldset {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+.behavior-checks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+.behavior-threshold-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 8px;
+  align-items: end;
+  margin: 10px 0;
+}
+.behavior-checks details {
+  margin: 14px 0;
+}
+.behavior-checks .behavior-confirm {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.behavior-confirm input {
+  width: auto;
+}
+@media (max-width: 700px) {
+  .behavior-threshold-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.behavior-checks-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  margin: 12px 0;
+  font-size: 13px;
+}

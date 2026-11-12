@@ -41,7 +41,19 @@ export type Step = {
   position: { x: number; y: number };
   config: Config;
 };
+export type BehaviorChecks = {
+  version: 1;
+  confirmed: boolean;
+  entry_event: string;
+  inputs: Record<string, string | number | boolean | null>;
+  email_count?: number;
+  sms_count?: number;
+  outcome: 'completed' | 'converted' | 'condition_not_met' | 'manually_cancelled';
+  duration_seconds?: number;
+  thresholds: { path: string; operator: string; value: number }[];
+};
 export type Workflow = {
+  behavior_checks?: BehaviorChecks;
   acceptance_contract?: string;
   schema_version: 1;
   nodes: Step[];

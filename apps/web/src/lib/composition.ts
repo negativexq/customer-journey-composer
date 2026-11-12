@@ -1,5 +1,5 @@
 import type { GroundingReport } from './data-catalog';
-import type { Workflow } from './workflow';
+import type { Workflow, BehaviorChecks } from './workflow';
 import type { Journey } from './api';
 export type Proposal = {
   grounding?: GroundingReport;
@@ -23,6 +23,7 @@ export type Proposal = {
   };
 };
 export type CompositionState = {
+  behavior_checks?: BehaviorChecks;
   confirmed_references?: string[];
   step: 'details' | 'method' | 'brief' | 'review' | 'builder';
   method?: 'ai' | 'scratch';

@@ -14,6 +14,11 @@ Workspace business terminology can now be defined in Settings and reviewed again
 
 ## Verified locally — November 12, 2026
 
+General AI generation now requires independent, human-confirmed expected results.
+Wrong channels, terminal outcomes and numeric boundaries are checked before Apply
+and Publish; new graphs receive deterministic canvas layout.
+[Behavior checks, recorded regressions and limits](docs/BEHAVIOR-CHECKS.md).
+
 **Latest varied-journey audit:** ten new paid briefs across ten journey types
 passed **41/50 behavior cases**. Four journeys exposed wrong channels, wrong
 completion outcomes, imprecise thresholds or missing invoice correlation.

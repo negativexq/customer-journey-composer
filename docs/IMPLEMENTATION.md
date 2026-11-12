@@ -490,3 +490,18 @@ operator exists. Fallback normalization does not rewrite channel/outcome/rules;
 layout initially trusts stored model coordinates. No behavior fix is claimed by
 this audit. The temporary test was removed; probe source/output remain as evidence.
 [Root causes, limits and scoped correction order](reports/generation-rootcause-2026-11-12.md).
+
+### Independent reviewed expectations and layout — 2026-11-12
+
+Added composer.v5 exact inclusive numeric comparisons and independent human-confirmed
+channel/outcome/time/eligibility checks for general AI graph actions. The server
+checks them with bounded pure simulation, repairs at most once and rejects remaining
+mismatches. Creation approval, Apply, validation and publication enforce saved
+expectations. Synthetic profile values are excluded from provider requests.
+Creation saves partial expectations; updates require confirmation. Newly generated
+graphs receive deterministic layout; modifications preserve existing node positions.
+
+Recorded original webinar/loyalty/lead outputs fail the new checks, while separate
+reviewed corrections pass. Original paid audit results remain unchanged. Final `make check`, isolated PostgreSQL HTTP integration and all 76 desktop/mobile
+browser cases passed; local Docker services were rebuilt and ready. No new
+paid request or external deployment. [Behavior, limits and verification](BEHAVIOR-CHECKS.md).

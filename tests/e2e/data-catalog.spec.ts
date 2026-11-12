@@ -1,3 +1,4 @@
+import { confirmEmptyBehavior } from './helpers/behavior';
 import { randomBytes } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 test('business brief mappings require workspace definitions and resume after explicit choices', async ({
@@ -112,6 +113,7 @@ test('business brief mappings require workspace definitions and resume after exp
   await page
     .getByLabel('Your brief', { exact: true })
     .fill('When a customer registers, check whether their account is active.');
+  await confirmEmptyBehavior(page);
   await page.getByRole('button', { name: 'Generate plan', exact: false }).click();
   const mappings = page.getByRole('region', { name: 'Data used by this plan' });
   await expect(mappings).toContainText('Not connected');

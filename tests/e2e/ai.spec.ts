@@ -1,3 +1,4 @@
+import { confirmEmptyBehavior, workflowContent } from './helpers/behavior';
 import { randomBytes } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 const workflow = {
@@ -116,6 +117,7 @@ async function setup(page: import('@playwright/test').Page) {
   );
   await page.goto('/');
   await page.getByRole('button', { name: 'AI draft', exact: false }).click();
+  await confirmEmptyBehavior(page);
   return journey;
 }
 test('AI proposal requires review and applies only after human approval', async ({ page }) => {
@@ -244,6 +246,7 @@ async function startGuided(page: import('@playwright/test').Page, name: string) 
   await expect(
     page.getByRole('heading', { name: 'Describe the journey', exact: true }),
   ).toBeVisible();
+  await confirmEmptyBehavior(page);
   return page.url().split('/').at(-1)!;
 }
 test('creation is a page and resumes a saved brief without making a model request', async ({
@@ -302,7 +305,7 @@ test('review resumes and accepts a correction before approval opens the canvas',
   revised.workflow.nodes[1]!.label = 'Reviewed completion';
   await page.route('**/api/v1/ai/journeys/modify/stream', (route) => {
     const input = route.request().postDataJSON();
-    expect(input.workflow).toEqual(fixture.workflow);
+    expect(workflowContent(input.workflow)).toEqual(workflowContent(fixture.workflow));
     expect(input.prompt).toBe('Rename the exit');
     return route.fulfill({
       contentType: 'text/event-stream',
@@ -337,7 +340,7 @@ test('review resumes and accepts a correction before approval opens the canvas',
   const saved = await (await page.request.get(`/api/v1/journeys/${id}`)).json();
   expect(saved.creation_step).toBe('builder');
   expect(saved.status).toBe('Draft');
-  expect(saved.draft).toEqual(revised.workflow);
+  expect(workflowContent(saved.draft)).toEqual(workflowContent(revised.workflow));
 });
 test('failed approval retains review and retries without generation', async ({ page }) => {
   await startGuided(page, 'Approval retry');
