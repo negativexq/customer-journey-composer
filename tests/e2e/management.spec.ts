@@ -20,7 +20,8 @@ test('creates a workspace and persists a journey across login sessions', async (
     .getByRole('button', { name: 'New journey', exact: true })
     .click();
   await page.getByLabel('Journey name').fill('Customer onboarding');
-  await page.getByRole('button', { name: 'Create journey', exact: true }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Start from scratch', exact: false }).click();
   await expect(page.getByRole('heading', { name: 'Customer onboarding' })).toBeVisible();
   await page.getByLabel('More journey actions').click();
   await page.getByRole('button', { name: 'Journey settings', exact: true }).click();

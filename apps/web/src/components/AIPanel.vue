@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { api, generationStream, type GenerationProgress } from '../lib/api';
 import GenerationStatus from './GenerationStatus.vue';
+import JourneyDiagram from './JourneyDiagram.vue';
 import type { Workflow } from '../lib/workflow';
 const props = defineProps<{
   workflow: Workflow;
@@ -47,6 +48,24 @@ const acceptanceContract = ref(props.workflow.acceptance_contract || '');
 const provider = ref('claude');
 const action = ref(props.workflow.nodes.length ? 'modify' : 'generate');
 const prompt = ref('');
+const revising = ref(false);
+const revisionBase = ref<Proposal>();
+let revisionBaseline = '';
+let previousPrompt = '';
+function requestChanges() {
+  if (!proposal.value || stale.value) return;
+  revisionBase.value = proposal.value;
+  revisionBaseline = baseline;
+  previousPrompt = prompt.value;
+  prompt.value = '';
+  revising.value = true;
+}
+function cancelChanges() {
+  revising.value = false;
+  if (revisionBase.value) proposal.value = revisionBase.value;
+  revisionBase.value = undefined;
+  prompt.value = previousPrompt;
+}
 const nodeID = ref('');
 const busy = ref(false);
 const error = ref('');
@@ -102,7 +121,8 @@ function label(id: string) {
   );
 }
 async function compose() {
-  if (props.readonly || !configured.value) return;
+  if (busy.value || props.readonly || !configured.value || (revising.value && !prompt.value.trim()))
+    return;
   busy.value = true;
   progress.value = { stage: 'sending' };
   elapsed.value = 0;
@@ -116,7 +136,7 @@ async function compose() {
   notice.value = '';
   proposal.value = undefined;
   acknowledged.value = false;
-  baseline = snapshot();
+  baseline = revising.value ? revisionBaseline : snapshot();
   controller?.abort();
   const request = new AbortController();
   controller = request;
@@ -124,16 +144,16 @@ async function compose() {
     const input = {
       provider: provider.value,
       acceptance_contract: acceptanceContract.value || undefined,
-      action: action.value,
+      action: revising.value ? 'modify' : action.value,
       prompt: prompt.value.trim() || action.value.replaceAll('_', ' '),
       name: props.name,
       description: props.description,
-      workflow: props.workflow,
+      workflow: revisionBase.value?.workflow || props.workflow,
       node_id: nodeID.value || undefined,
     };
     const path = ['improve_message', 'generate_message'].includes(action.value)
       ? '/ai/messages/generate'
-      : action.value === 'generate'
+      : !revising.value && action.value === 'generate'
         ? '/ai/journeys/generate'
         : '/ai/journeys/modify';
     const result = await generationStream<Proposal>(
@@ -145,7 +165,11 @@ async function compose() {
       },
       request.signal,
     );
-    if (!request.signal.aborted) proposal.value = result;
+    if (!request.signal.aborted) {
+      proposal.value = result;
+      revising.value = false;
+      revisionBase.value = undefined;
+    }
   } catch (cause) {
     error.value = request.signal.aborted
       ? 'Cancellation requested. Your draft is unchanged; the provider may already have processed the request.'
@@ -157,13 +181,21 @@ async function compose() {
   }
 }
 function apply() {
-  if (!proposal.value || stale.value || (proposal.value.warnings.length && !acknowledged.value))
+  if (
+    props.readonly ||
+    revising.value ||
+    !proposal.value ||
+    stale.value ||
+    (proposal.value.warnings.length && !acknowledged.value)
+  )
     return;
   emit('apply', JSON.parse(JSON.stringify(proposal.value)));
   proposal.value = undefined;
   notice.value = 'Proposal applied to the draft. Publish remains a separate action.';
 }
 function discard() {
+  revising.value = false;
+  revisionBase.value = undefined;
   proposal.value = undefined;
   notice.value = 'Proposal discarded. Your draft is unchanged.';
 }
@@ -197,45 +229,51 @@ onBeforeUnmount(() => {
       </button>
       <p>1h email · 24h SMS window · 48h follow-up</p>
     </div>
-    <label
-      >Provider<select v-model="provider" :disabled="busy">
-        <option value="claude">Claude</option>
-        <option value="openai">OpenAI</option>
-      </select></label
-    >
     <p v-if="status && !configured" class="warning-message">
       Live generation is disabled or the selected provider needs a server-side API key and model.
       Manual editing and tests remain available.
     </p>
-    <label
-      >Behavior contract<select
-        v-model="acceptanceContract"
-        :disabled="busy || readonly || !!workflow.acceptance_contract"
+    <details open class="composer-options">
+      <summary>AI options</summary>
+      <label
+        >Provider<select v-model="provider" :disabled="busy">
+          <option value="claude">Claude</option>
+          <option value="openai">OpenAI</option>
+        </select></label
       >
-        <option value="">General workflow — manual acceptance tests</option>
-        <option value="cart-recovery-eur.v1">EUR cart recovery — validated behavior</option>
-      </select></label
-    >
+
+      <label
+        >Behavior contract<select
+          v-model="acceptanceContract"
+          :disabled="busy || readonly || !!workflow.acceptance_contract"
+        >
+          <option value="">General workflow — manual acceptance tests</option>
+          <option value="cart-recovery-eur.v1">EUR cart recovery — validated behavior</option>
+        </select></label
+      >
+      <label v-if="!revising"
+        >Action<select v-model="action" :disabled="busy">
+          <option value="generate">Generate Journey</option>
+          <option value="modify">Modify Journey</option>
+          <option value="add_step">Add Step</option>
+          <option value="explain_journey">Explain Journey</option>
+          <option value="explain_node">Explain Node</option>
+          <option value="improve_message">Improve Message</option>
+          <option value="generate_message">Generate Message</option>
+          <option value="fix_validation">Fix Validation Errors</option>
+        </select></label
+      ><label v-if="needsNode"
+        >Selected node<select v-model="nodeID">
+          <option value="">Choose a node</option>
+          <option v-for="node in workflow.nodes" :key="node.id" :value="node.id">
+            {{ node.label }}
+          </option>
+        </select></label
+      >
+    </details>
     <label
-      >Action<select v-model="action" :disabled="busy">
-        <option value="generate">Generate Journey</option>
-        <option value="modify">Modify Journey</option>
-        <option value="add_step">Add Step</option>
-        <option value="explain_journey">Explain Journey</option>
-        <option value="explain_node">Explain Node</option>
-        <option value="improve_message">Improve Message</option>
-        <option value="generate_message">Generate Message</option>
-        <option value="fix_validation">Fix Validation Errors</option>
-      </select></label
-    ><label v-if="needsNode"
-      >Selected node<select v-model="nodeID">
-        <option value="">Choose a node</option>
-        <option v-for="node in workflow.nodes" :key="node.id" :value="node.id">
-          {{ node.label }}
-        </option>
-      </select></label
-    ><label
-      >What should happen?<textarea
+      >{{ revising ? 'What should change?' : 'What should happen?'
+      }}<textarea
         v-model="prompt"
         rows="6"
         maxlength="4000"
@@ -250,13 +288,16 @@ onBeforeUnmount(() => {
       :disabled="busy || readonly || !configured || (needsNode && !nodeID)"
       @click="compose"
     >
-      {{ busy ? 'Composing proposal…' : 'Compose proposal' }}
+      {{ busy ? 'Composing proposal…' : revising ? 'Update proposal' : 'Compose proposal' }}
     </button>
+    <button v-if="revising && !busy" type="button" @click="cancelChanges">Cancel changes</button>
     <GenerationStatus v-if="busy" :progress="progress" :elapsed="elapsed" @cancel="cancel" />
     <p v-if="error" role="alert" class="error-message">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
     <section v-if="proposal" class="ai-proposal">
       <h3>Review proposal</h3>
+      <p>Proposed plan · not applied or published</p>
+      <JourneyDiagram :workflow="proposal.workflow" />
       <p v-if="proposal.generation" class="help-text">
         Provider attempts: {{ proposal.generation.attempts.length }}.
         <template v-if="proposal.generation.usage"
@@ -337,11 +378,15 @@ onBeforeUnmount(() => {
         <button
           v-if="changed"
           class="primary"
-          :disabled="stale || (proposal.warnings.length > 0 && !acknowledged)"
+          :disabled="
+            readonly || revising || stale || (proposal.warnings.length > 0 && !acknowledged)
+          "
           @click="apply"
         >
           Apply proposal</button
-        ><button @click="discard">Discard proposal</button>
+        ><button v-if="changed" type="button" :disabled="readonly || stale" @click="requestChanges">
+          Request changes</button
+        ><button :disabled="readonly" @click="discard">Discard proposal</button>
       </div>
     </section>
   </aside>

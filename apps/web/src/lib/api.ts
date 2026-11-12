@@ -29,6 +29,7 @@ export type Identity = {
   csrf_token: string;
 };
 export type Journey = {
+  creation_step?: string;
   id: string;
   name: string;
   description: string;

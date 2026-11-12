@@ -21,7 +21,7 @@ import AnalyticsView from './components/AnalyticsView.vue';
 import TemplatesView from './components/TemplatesView.vue';
 import OverviewDashboard from './components/OverviewDashboard.vue';
 import AppIcon from './components/ui/AppIcon.vue';
-import CreateJourneyDialog from './components/ui/CreateJourneyDialog.vue';
+import JourneyCreation from './components/JourneyCreation.vue';
 const identity = ref<Identity>();
 const loading = ref(true);
 const accessUnavailable = ref(false);
@@ -47,7 +47,7 @@ const selected = ref<Journey>();
 const journeys = ref<Journey[]>([]);
 const journeyFilter = computed(() => route.value.status || '');
 const error = ref('');
-const showCreate = ref(false);
+
 const readOnly = computed(() => identity.value?.role === 'Viewer');
 const navGroups = computed(() => [
   {
@@ -203,9 +203,11 @@ async function openID(id: string) {
   searchDialog.value?.close();
   await go({ page: 'Journeys', journeyID: id, tab: 'Builder' });
 }
-function created(j: Journey) {
+async function created(j: Journey) {
   selected.value = j;
-  void go({ page: 'Journeys', journeyID: j.id, tab: 'Builder' });
+  await go({ page: 'Journeys', journeyID: j.id, tab: 'Builder' });
+  await nextTick();
+
   void refresh();
 }
 function browseJourneys(status: string) {
@@ -365,6 +367,18 @@ onErrorCaptured((cause) => {
           <p>Your page is preserved. Retry when the connection is available.</p>
           <button @click="applyRoute({ ...route })">Retry journey</button>
         </section>
+        <JourneyCreation
+          v-else-if="
+            route.create ||
+            (selected && selected.creation_step && selected.creation_step !== 'builder')
+          "
+          :key="selected?.id || 'new'"
+          :journey="selected"
+          :readonly="readOnly || selected?.status === 'Archived'"
+          @open="created"
+          @back="navigate('Journeys')"
+          @saved="if (route.journeyID === $event.id) selected = $event;"
+        />
         <JourneyEditor
           v-else-if="selected"
           :key="selected.id"
@@ -390,7 +404,7 @@ onErrorCaptured((cause) => {
           :readonly="readOnly"
           @open="open"
           @filter="go({ page: 'Journeys', status: $event })"
-          @create="showCreate = true"
+          @create="go({ page: 'Journeys', create: true })"
           @templates="navigate('Templates')"
         /><TemplatesView
           v-else-if="page === 'Templates'"
@@ -419,7 +433,7 @@ onErrorCaptured((cause) => {
           :name="identity.name"
           :readonly="readOnly"
           :journeys="journeys"
-          @create="showCreate = true"
+          @create="go({ page: 'Journeys', create: true })"
           @templates="navigate('Templates')"
           @open="openID"
           @browse="browseJourneys"
@@ -430,11 +444,6 @@ onErrorCaptured((cause) => {
         </footer>
       </main>
     </div>
-    <CreateJourneyDialog
-      v-model="showCreate"
-      @created="created"
-      @templates="navigate('Templates')"
-    />
     <dialog
       ref="searchDialog"
       class="search-dialog"

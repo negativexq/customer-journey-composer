@@ -19,6 +19,7 @@ const tabs: Record<string, string> = {
 const statuses = ['Draft', 'Active', 'Paused', 'Sunset', 'Completed', 'Archived'];
 export type InspectionKind = 'event' | 'execution' | 'message';
 export type WorkspaceRoute = {
+  create?: boolean;
   customerID?: string;
   executionID?: string;
   deliveryID?: string;
@@ -43,6 +44,7 @@ export function readRoute(url: URL): WorkspaceRoute {
       ? { inspect: inspect as InspectionKind, record }
       : {};
   const path = url.pathname.replace(/\/+$/, '') || '/';
+  if (path === '/journeys/new') return { page: 'Journeys', create: true };
   const journey = path.match(/^\/journeys\/([0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})$/i);
   if (journey) {
     return {
@@ -67,6 +69,7 @@ export function readRoute(url: URL): WorkspaceRoute {
 export function routeURL(route: WorkspaceRoute): string {
   let path = pages[route.page] || '/';
   const params = new URLSearchParams();
+  if (route.page === 'Journeys' && route.create) return '/journeys/new';
   if (route.page === 'Journeys' && route.journeyID) {
     path += '/' + encodeURIComponent(route.journeyID);
     if (route.tab && route.tab !== 'Builder' && tabs[route.tab]) params.set('tab', tabs[route.tab]);

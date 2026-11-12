@@ -168,7 +168,14 @@ onMounted(() => void load());
                   </div>
                 </div>
               </td>
-              <td><StatusBadge :status="j.status" /></td>
+              <td>
+                <StatusBadge :status="j.status" /><small
+                  v-if="j.creation_step && j.creation_step !== 'builder'"
+                  class="table-subtext"
+                  >Continue:
+                  {{ j.creation_step === 'method' ? 'creation method' : j.creation_step }}</small
+                >
+              </td>
               <td>
                 <div class="journey-counts">
                   <span

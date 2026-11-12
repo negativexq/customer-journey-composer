@@ -5,6 +5,7 @@ const props = defineProps<{ progress: GenerationProgress; elapsed: number; compa
 defineEmits<{ cancel: [] }>();
 const stages: Record<string, string> = {
   sending: 'Sending your brief',
+  saving_review: 'Saving your plan for review',
   accepted: 'Request received',
   generating: 'Waiting for the AI provider',
   validating: 'Checking workflow and messages',
@@ -22,7 +23,7 @@ const elapsedLabel = computed(
       ><time aria-label="Elapsed time">{{ elapsedLabel }} elapsed</time>
     </div>
     <div class="generation-activity" aria-hidden="true"><span /></div>
-    <p class="generation-current" role="status">
+    <p class="generation-current" :role="compact ? undefined : 'status'">
       {{ stages[progress.stage] || 'Waiting for proposal'
       }}<span v-if="progress.attempt"> · attempt {{ progress.attempt }}</span>
     </p>

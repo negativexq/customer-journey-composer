@@ -26,6 +26,13 @@ type gateReader interface {
 
 func publishIssues(ctx context.Context, db gateReader, id string, w workflow.Workflow) ([]gateIssue, error) {
 	issues := []gateIssue{}
+	var creation string
+	if err := db.QueryRow(ctx, `SELECT creation_step FROM journeys WHERE workspace_id=$1 AND id=$2`, who(ctx).WorkspaceID, id).Scan(&creation); err != nil {
+		return nil, dbError(err)
+	}
+	if creation != "builder" {
+		return []gateIssue{{"creation_review", "Finish reviewing the creation proposal before publishing"}}, nil
+	}
 	for _, i := range append(messaging.ValidateWorkflow(w), catalog.ValidateAcceptance(w)...) {
 		issues = append(issues, gateIssue{"workflow", i.Message})
 	}

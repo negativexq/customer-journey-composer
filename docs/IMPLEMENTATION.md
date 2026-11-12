@@ -253,3 +253,15 @@ progress hooks; no extra model request is introduced. Local `make check` passes;
 flush, disconnect cancellation and repair boundaries for both provider names.
 A full disk initially prevented verification; clearing the reproducible Go build
 cache allowed the checks to pass. No paid provider call was made for this slice.
+
+## Resumable creation workspace — 2026-11-12
+
+Replaced the creation popup with Details → Method → Brief → Review → Builder.
+Migration 0020 stores brief/proposal state separately from list/analytics paths;
+revisions fence autosave and atomic approval. Brief/Review reopen at the saved
+step; interrupted generation does not automatically resubmit. Four examples,
+single submitted-brief display, real generation feedback, box-and-arrow review,
+correction briefs and approval preparation are implemented. Approval opens an
+editable Draft and does not publish. `make check`, complete PostgreSQL integration
+suites and all 60 desktop/mobile E2E cases pass locally. Screenshots were inspected;
+no new paid call was made. [Behavior, persistence and evidence](design/creation-workspace.md).

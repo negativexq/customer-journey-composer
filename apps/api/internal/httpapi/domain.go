@@ -45,16 +45,17 @@ type credentials struct {
 	}
 }
 type Journey struct {
-	ID          string          `json:"id"`
-	Name        string          `json:"name"`
-	Description string          `json:"description"`
-	Tags        []string        `json:"tags"`
-	Status      string          `json:"status"`
-	Draft       json.RawMessage `json:"draft"`
-	Revision    int             `json:"revision"`
-	UpdatedAt   time.Time       `json:"updated_at"`
-	Version     *int            `json:"version,omitempty"`
-	Stats       *struct {
+	CreationStep string          `json:"creation_step"`
+	ID           string          `json:"id"`
+	Name         string          `json:"name"`
+	Description  string          `json:"description"`
+	Tags         []string        `json:"tags"`
+	Status       string          `json:"status"`
+	Draft        json.RawMessage `json:"draft"`
+	Revision     int             `json:"revision"`
+	UpdatedAt    time.Time       `json:"updated_at"`
+	Version      *int            `json:"version,omitempty"`
+	Stats        *struct {
 		Entries   int64 `json:"entries"`
 		Active    int64 `json:"active"`
 		Completed int64 `json:"completed"`
@@ -66,9 +67,10 @@ type journeyID struct {
 }
 type journeyWrite struct {
 	Body struct {
-		Name        string   `json:"name" minLength:"1" maxLength:"160"`
-		Description string   `json:"description,omitempty" maxLength:"4000"`
-		Tags        []string `json:"tags,omitempty" maxItems:"20"`
+		CreationStep string   `json:"creation_step,omitempty" enum:"method,builder"`
+		Name         string   `json:"name" minLength:"1" maxLength:"160"`
+		Description  string   `json:"description,omitempty" maxLength:"4000"`
+		Tags         []string `json:"tags,omitempty" maxItems:"20"`
 	}
 }
 type draftWrite struct {
@@ -291,7 +293,7 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 		if in.Body.Tags == nil {
 			in.Body.Tags = []string{}
 		}
-		return jsonRow[Journey](pool.QueryRow(ctx, `INSERT INTO journeys(workspace_id,name,description,tags) VALUES($1,$2,$3,$4) RETURNING to_jsonb(journeys)-'workspace_id'`, who(ctx).WorkspaceID, strings.TrimSpace(in.Body.Name), in.Body.Description, in.Body.Tags))
+		return jsonRow[Journey](pool.QueryRow(ctx, `INSERT INTO journeys(workspace_id,name,description,tags,creation_step) VALUES($1,$2,$3,$4,COALESCE(NULLIF($5,''),'builder')) RETURNING to_jsonb(journeys)-'workspace_id'`, who(ctx).WorkspaceID, strings.TrimSpace(in.Body.Name), in.Body.Description, in.Body.Tags, in.Body.CreationStep))
 	})
 	huma.Get(api, "/api/v1/journeys", func(ctx context.Context, in *journeyListInput) (*Result[[]Journey], error) {
 		return listJourneys(ctx, pool, in)
@@ -312,7 +314,7 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 		if in.Body.Tags == nil {
 			in.Body.Tags = []string{}
 		}
-		result, err := jsonRow[Journey](pool.QueryRow(ctx, `UPDATE journeys SET name=$3,description=$4,tags=$5,draft=$6,revision=revision+1,updated_at=now() WHERE workspace_id=$1 AND id=$2 AND revision=$7 AND status<>'Archived' RETURNING to_jsonb(journeys)-'workspace_id'`, who(ctx).WorkspaceID, in.ID, strings.TrimSpace(in.Body.Name), in.Body.Description, in.Body.Tags, in.Body.Draft, in.Body.Revision))
+		result, err := jsonRow[Journey](pool.QueryRow(ctx, `UPDATE journeys SET name=$3,description=$4,tags=$5,draft=$6,revision=revision+1,updated_at=now() WHERE workspace_id=$1 AND id=$2 AND revision=$7 AND status<>'Archived' AND creation_step='builder' RETURNING to_jsonb(journeys)-'workspace_id'`, who(ctx).WorkspaceID, in.ID, strings.TrimSpace(in.Body.Name), in.Body.Description, in.Body.Tags, in.Body.Draft, in.Body.Revision))
 		if err != nil {
 			var exists bool
 			_ = pool.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM journeys WHERE workspace_id=$1 AND id=$2)", who(ctx).WorkspaceID, in.ID).Scan(&exists)
@@ -338,6 +340,7 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 	registerCustomers(api, pool)
 	registerExecutions(api, pool)
 	registerMessages(api, pool)
+	registerComposition(api, pool)
 	registerAI(api, pool)
 	registerTesting(api, pool)
 	registerInbox(api, pool)
