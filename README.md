@@ -14,6 +14,12 @@ Workspace business terminology can now be defined in Settings and reviewed again
 
 ## Verified locally — November 12, 2026
 
+**Latest paid follow-up: 25/25 behavior cases passed** across five fresh
+`composer.v5` journeys, compared with 16/25 for the same briefs/cases previously.
+Three automatic repairs; **47,572 tokens**, **155.92 s** generation, **183.51 s**
+total. No manual workflow edits or publication.
+[Per-journey results, raw outputs and limits](docs/reports/reviewed-generation-2026-11-12.md).
+
 General AI generation now requires independent, human-confirmed expected results.
 Wrong channels, terminal outcomes and numeric boundaries are checked before Apply
 and Publish; new graphs receive deterministic canvas layout.

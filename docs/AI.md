@@ -45,5 +45,7 @@ are stripped from provider input. [Contract, API change and limits](BEHAVIOR-CHE
 Automated tests use local provider fixtures; no deterministic suite calls paid
 providers. Earlier user-authorized live OpenAI audits and their original failures
 are preserved in the [varied-journey report](reports/varied-journeys-2026-11-12.md).
-The current composer.v5 correction has deterministic evidence, not a fresh paid
-model evaluation. Live Claude quality and broader prompt coverage remain unverified.
+A subsequent authorized fresh composer.v5 OpenAI follow-up passed 25/25 cases
+across five different journeys with 47,572 reported tokens; three requests needed
+automatic repair. [Outputs, comparison and limits](reports/reviewed-generation-2026-11-12.md).
+Live Claude quality and broader prompt coverage remain unverified.

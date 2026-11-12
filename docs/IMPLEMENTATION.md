@@ -505,3 +505,14 @@ Recorded original webinar/loyalty/lead outputs fail the new checks, while separa
 reviewed corrections pass. Original paid audit results remain unchanged. Final `make check`, isolated PostgreSQL HTTP integration and all 76 desktop/mobile
 browser cases passed; local Docker services were rebuilt and ready. No new
 paid request or external deployment. [Behavior, limits and verification](BEHAVIOR-CHECKS.md).
+
+### Authorized live composer.v5 measurement — 2026-11-12
+
+Fresh paid OpenAI gpt-6-luna generation of webinar, loyalty, lead, invoice recovery
+and activation journeys passed 25/25 unchanged sandbox cases (previously 16/25 for
+these five briefs). Eight provider attempts include three bounded automatic repairs;
+usage 26,709 input + 20,863 output = 47,572 tokens. Generation totaled 155.92 s;
+complete audit wall time 183.51 s. Final proposals were inspected, approved only as
+Drafts and not manually edited. All five workspaces had zero published versions,
+live executions, customers or delivery jobs. This is one targeted local run;
+remaining catalog scope limitations are documented. [Evidence and limits](reports/reviewed-generation-2026-11-12.md).

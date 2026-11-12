@@ -90,3 +90,11 @@ Verification completed locally on November 12, 2026:
 No new paid provider call was made for this correction. These tests do not claim a
 fresh live `composer.v5` generation, equivalent live Claude quality, hosted CI
 success or an external deployment.
+
+## Subsequent authorized live measurement
+
+After the deterministic correction, a fresh user-authorized OpenAI composer.v5
+follow-up passed 25/25 cases across five journey types (previously 16/25 for those
+same inputs). Three requests needed one automatic repair. Total reported usage
+was 47,572 tokens and summed generation time 155.92 seconds. No workflow edits,
+publication or real messaging. [Raw outputs, comparison and limits](reports/reviewed-generation-2026-11-12.md).
