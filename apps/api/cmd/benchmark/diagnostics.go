@@ -47,10 +47,7 @@ func probeReads(ctx context.Context, client *http.Client, base, journey string) 
 	ctx, cancel := context.WithCancel(ctx)
 	p := &readProbe{samples: map[string][]float64{}, failures: map[string]int{}, stop: cancel, done: make(chan struct{})}
 	p.phase.Store("ingestion")
-	paths := []struct{ name, path string }{
-		{"overview", "/overview"}, {"analytics", "/analytics?days=30"}, {"journey_list", "/journeys?limit=50"},
-		{"customer_track", "/journeys/" + journey + "/executions?customer_id=bench_000001"}, {"entries_24h", "/overview/entries-24h"},
-	}
+	paths := observationRoutes(journey)
 	go func() {
 		defer close(p.done)
 		ticker := time.NewTicker(200 * time.Millisecond)
