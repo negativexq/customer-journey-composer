@@ -1,0 +1,5843 @@
+{
+  "started_at": "2026-11-12T17:01:32.643Z",
+  "provider": "openai",
+  "generation_requests": 1,
+  "published": false,
+  "cases": [
+    {
+      "name": "A · Satın alma yok: email ve SMS",
+      "run_id": "9137af62-f2b6-4006-a9ba-97b16eca80bb",
+      "scenario": {
+        "name": "A · Satın alma yok: email ve SMS",
+        "start_time": "2026-11-12T10:00:00Z",
+        "customer": {
+          "customer_id": "llm_brief_alex",
+          "email": "alex@example.invalid",
+          "phone": "+15005550006",
+          "attributes": {
+            "first_name": "Alex",
+            "cart_purchased": false
+          },
+          "consents": {
+            "email": true,
+            "sms": true
+          }
+        },
+        "entry_event": {
+          "event_id": "llm_entry",
+          "event_name": "demo_cart_abandoned",
+          "properties": {
+            "cart_id": "LLM-DEMO-1",
+            "amount": 89.9,
+            "amount_display": "89,90 EUR",
+            "currency": "EUR"
+          }
+        },
+        "frequency_limit": 10,
+        "frequency_window_seconds": 86400,
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1
+          },
+          {
+            "type": "exit_reason",
+            "expected": "completed"
+          }
+        ]
+      },
+      "result": "PASS",
+      "engine_result": "PASS",
+      "expected_hours": 73,
+      "actual_hours": 73,
+      "exit_reason": "completed",
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "enrollment_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "completed"
+          },
+          "pass": true,
+          "actual": "completed",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [
+        {
+          "id": "84f8d505-c7f8-44a1-9f6f-dd1f1725312a",
+          "channel": "sms",
+          "status": "SIMULATED",
+          "node": "COMEBACK10 indirim SMS'i",
+          "message": {
+            "channel": "sms",
+            "encoding": "Unicode",
+            "html": "",
+            "links": [],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "event.properties.amount_display": "89,90 EUR"
+            },
+            "preheader": "",
+            "segments": 3,
+            "subject": "",
+            "text": "Merhaba Alex! 89,90 EUR sepetinizde sizi bekliyor. COMEBACK10 koduyla %10 indirim kazanmak için https://example.com/cart adresine dönün.",
+            "to": "+15005550006",
+            "units": 136,
+            "warnings": []
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        },
+        {
+          "id": "822013bf-b5c2-4c70-824c-9afc792db140",
+          "channel": "email",
+          "status": "SIMULATED",
+          "node": "Sepet hatırlatma e-postası",
+          "message": {
+            "channel": "email",
+            "encoding": "",
+            "html": "<p>Merhaba Alex,</p><p>89,90 EUR sepetinizde sizi bekliyor. Alışverişinizi tamamlamak için <a href=\"https://example.com/cart\" rel=\"nofollow\">sepetinize dönün</a>.</p>",
+            "links": ["https://example.com/cart"],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "event.properties.amount_display": "89,90 EUR"
+            },
+            "preheader": "Sepetinizdeki ürünler sizi bekliyor.",
+            "segments": 0,
+            "subject": "Sepetiniz sizi bekliyor",
+            "text": "Merhaba Alex, 89,90 EUR sepetinizde sizi bekliyor. Alışverişinizi tamamlamak için https://example.com/cart adresinden sepetinize dönün.",
+            "to": "alex@example.invalid",
+            "units": 0,
+            "warnings": ["HTML was sanitized; unsupported markup or attributes were removed"]
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ],
+      "trace": [
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "event",
+          "message": "ACCEPTED: demo_cart_abandoned",
+          "execution": 0
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "entry",
+          "node_id": "trigger",
+          "message": "Customer enrolled",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "trigger",
+          "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "already_purchased",
+          "message": "Entered Bu sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "already_purchased",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "any_permission",
+          "message": "Entered En az bir iletişim izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "any_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "wait_one_hour",
+          "message": "Entered 1 saat bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_one_hour",
+          "message": "Waiting until 2026-11-12T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "purchased_after_one_hour",
+          "message": "Entered Güncel sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "condition",
+          "node_id": "purchased_after_one_hour",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "email_permission",
+          "message": "Entered E-posta izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "condition",
+          "node_id": "email_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "reminder_email",
+          "message": "Entered Sepet hatırlatma e-postası",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "message",
+          "node_id": "reminder_email",
+          "message": "SIMULATED: Sepet hatırlatma e-postası",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "wait_24_hours",
+          "message": "Entered 24 saat daha bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_24_hours",
+          "message": "Waiting until 2026-11-13T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "provider",
+          "node_id": "reminder_email",
+          "message": "Sandbox ACCEPTED",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "purchased_after_24_hours",
+          "message": "Entered Güncel sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "condition",
+          "node_id": "purchased_after_24_hours",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "sms_permission",
+          "message": "Entered SMS izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "condition",
+          "node_id": "sms_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "discount_sms",
+          "message": "Entered COMEBACK10 indirim SMS'i",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "message",
+          "node_id": "discount_sms",
+          "message": "SIMULATED: COMEBACK10 indirim SMS'i",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "wait_48_hours",
+          "message": "Entered SMS sonrası 48 saat bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_48_hours",
+          "message": "Waiting until 2026-11-15T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "provider",
+          "node_id": "discount_sms",
+          "message": "Sandbox ACCEPTED",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-15T11:00:00Z",
+          "kind": "node",
+          "node_id": "purchased_after_48_hours",
+          "message": "Entered Güncel sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-15T11:00:00Z",
+          "kind": "condition",
+          "node_id": "purchased_after_48_hours",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-15T11:00:00Z",
+          "kind": "node",
+          "node_id": "completed_exit",
+          "message": "Entered Dönüşüm olmadan tamamlandı",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-15T11:00:00Z",
+          "kind": "exit",
+          "node_id": "completed_exit",
+          "message": "completed",
+          "execution": 1
+        }
+      ],
+      "steps": [
+        {
+          "execution": 1,
+          "node_id": "trigger",
+          "label": "Terk edilmiş sepet: en az 50 EUR",
+          "type": "event_trigger",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "started"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "already_purchased",
+          "label": "Bu sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "any_permission",
+          "label": "En az bir iletişim izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_one_hour",
+          "label": "1 saat bekle",
+          "type": "wait",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "deadline": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "completed"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "purchased_after_one_hour",
+          "label": "Güncel sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "email_permission",
+          "label": "E-posta izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "reminder_email",
+          "label": "Sepet hatırlatma e-postası",
+          "type": "email",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "next"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_24_hours",
+          "label": "24 saat daha bekle",
+          "type": "wait",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "deadline": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "completed"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "purchased_after_24_hours",
+          "label": "Güncel sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "sms_permission",
+          "label": "SMS izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "discount_sms",
+          "label": "COMEBACK10 indirim SMS'i",
+          "type": "sms",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "next"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_48_hours",
+          "label": "SMS sonrası 48 saat bekle",
+          "type": "wait",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-15T11:00:00Z",
+          "deadline": "2026-11-15T11:00:00Z",
+          "output": {
+            "port": "completed"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "purchased_after_48_hours",
+          "label": "Güncel sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-15T11:00:00Z",
+          "completed_at": "2026-11-15T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "completed_exit",
+          "label": "Dönüşüm olmadan tamamlandı",
+          "type": "exit",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-15T11:00:00Z",
+          "completed_at": "2026-11-15T11:00:00Z",
+          "output": {
+            "exit_reason": "completed"
+          }
+        }
+      ],
+      "seconds": 0.026765958000003594
+    },
+    {
+      "name": "B · 30 dakikada satın alma: mesaj yok",
+      "run_id": "dca57423-2894-4cfc-bca5-c1d9e0951ddf",
+      "scenario": {
+        "name": "B · 30 dakikada satın alma: mesaj yok",
+        "start_time": "2026-11-12T10:00:00Z",
+        "customer": {
+          "customer_id": "llm_brief_alex",
+          "email": "alex@example.invalid",
+          "phone": "+15005550006",
+          "attributes": {
+            "first_name": "Alex",
+            "cart_purchased": false
+          },
+          "consents": {
+            "email": true,
+            "sms": true
+          }
+        },
+        "entry_event": {
+          "event_id": "llm_entry",
+          "event_name": "demo_cart_abandoned",
+          "properties": {
+            "cart_id": "LLM-DEMO-1",
+            "amount": 89.9,
+            "amount_display": "89,90 EUR",
+            "currency": "EUR"
+          }
+        },
+        "frequency_limit": 10,
+        "frequency_window_seconds": 86400,
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 0
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          },
+          {
+            "type": "exit_reason",
+            "expected": "converted"
+          }
+        ],
+        "events": [
+          {
+            "after_seconds": 1800,
+            "event": {
+              "event_id": "llm_purchase",
+              "event_name": "demo_purchase_completed",
+              "properties": {
+                "cart_id": "LLM-DEMO-1"
+              }
+            }
+          }
+        ]
+      },
+      "result": "PASS",
+      "engine_result": "PASS",
+      "expected_hours": 0.5,
+      "actual_hours": 0.5,
+      "exit_reason": "converted",
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "enrollment_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "converted"
+          },
+          "pass": true,
+          "actual": "converted",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [],
+      "trace": [
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "event",
+          "message": "ACCEPTED: demo_cart_abandoned",
+          "execution": 0
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "entry",
+          "node_id": "trigger",
+          "message": "Customer enrolled",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "trigger",
+          "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "already_purchased",
+          "message": "Entered Bu sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "already_purchased",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "any_permission",
+          "message": "Entered En az bir iletişim izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "any_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "wait_one_hour",
+          "message": "Entered 1 saat bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_one_hour",
+          "message": "Waiting until 2026-11-12T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:30:00Z",
+          "kind": "event",
+          "message": "ACCEPTED: demo_purchase_completed",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:30:00Z",
+          "kind": "exit",
+          "node_id": "wait_one_hour",
+          "message": "Global exit: converted",
+          "execution": 1
+        }
+      ],
+      "steps": [
+        {
+          "execution": 1,
+          "node_id": "trigger",
+          "label": "Terk edilmiş sepet: en az 50 EUR",
+          "type": "event_trigger",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "started"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "already_purchased",
+          "label": "Bu sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "any_permission",
+          "label": "En az bir iletişim izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_one_hour",
+          "label": "1 saat bekle",
+          "type": "wait",
+          "state": "SKIPPED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:30:00Z",
+          "deadline": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "completed",
+            "wait_until": "2026-11-12T11:00:00Z"
+          }
+        }
+      ],
+      "seconds": 0.006960000000006403
+    },
+    {
+      "name": "C · Email sonrası satın alma: SMS yok",
+      "run_id": "69fbbf5e-db10-45a6-bc2c-f90137e78212",
+      "scenario": {
+        "name": "C · Email sonrası satın alma: SMS yok",
+        "start_time": "2026-11-12T10:00:00Z",
+        "customer": {
+          "customer_id": "llm_brief_alex",
+          "email": "alex@example.invalid",
+          "phone": "+15005550006",
+          "attributes": {
+            "first_name": "Alex",
+            "cart_purchased": false
+          },
+          "consents": {
+            "email": true,
+            "sms": true
+          }
+        },
+        "entry_event": {
+          "event_id": "llm_entry",
+          "event_name": "demo_cart_abandoned",
+          "properties": {
+            "cart_id": "LLM-DEMO-1",
+            "amount": 89.9,
+            "amount_display": "89,90 EUR",
+            "currency": "EUR"
+          }
+        },
+        "frequency_limit": 10,
+        "frequency_window_seconds": 86400,
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          },
+          {
+            "type": "exit_reason",
+            "expected": "converted"
+          }
+        ],
+        "events": [
+          {
+            "after_seconds": 7200,
+            "event": {
+              "event_id": "llm_purchase",
+              "event_name": "demo_purchase_completed",
+              "properties": {
+                "cart_id": "LLM-DEMO-1"
+              }
+            }
+          }
+        ]
+      },
+      "result": "PASS",
+      "engine_result": "PASS",
+      "expected_hours": 2,
+      "actual_hours": 2,
+      "exit_reason": "converted",
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "enrollment_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "converted"
+          },
+          "pass": true,
+          "actual": "converted",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [
+        {
+          "id": "ca371e3c-5afa-416f-8aa9-4b08c2af4260",
+          "channel": "email",
+          "status": "SIMULATED",
+          "node": "Sepet hatırlatma e-postası",
+          "message": {
+            "channel": "email",
+            "encoding": "",
+            "html": "<p>Merhaba Alex,</p><p>89,90 EUR sepetinizde sizi bekliyor. Alışverişinizi tamamlamak için <a href=\"https://example.com/cart\" rel=\"nofollow\">sepetinize dönün</a>.</p>",
+            "links": ["https://example.com/cart"],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "event.properties.amount_display": "89,90 EUR"
+            },
+            "preheader": "Sepetinizdeki ürünler sizi bekliyor.",
+            "segments": 0,
+            "subject": "Sepetiniz sizi bekliyor",
+            "text": "Merhaba Alex, 89,90 EUR sepetinizde sizi bekliyor. Alışverişinizi tamamlamak için https://example.com/cart adresinden sepetinize dönün.",
+            "to": "alex@example.invalid",
+            "units": 0,
+            "warnings": ["HTML was sanitized; unsupported markup or attributes were removed"]
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ],
+      "trace": [
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "event",
+          "message": "ACCEPTED: demo_cart_abandoned",
+          "execution": 0
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "entry",
+          "node_id": "trigger",
+          "message": "Customer enrolled",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "trigger",
+          "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "already_purchased",
+          "message": "Entered Bu sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "already_purchased",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "any_permission",
+          "message": "Entered En az bir iletişim izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "any_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "wait_one_hour",
+          "message": "Entered 1 saat bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_one_hour",
+          "message": "Waiting until 2026-11-12T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "purchased_after_one_hour",
+          "message": "Entered Güncel sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "condition",
+          "node_id": "purchased_after_one_hour",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "email_permission",
+          "message": "Entered E-posta izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "condition",
+          "node_id": "email_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "reminder_email",
+          "message": "Entered Sepet hatırlatma e-postası",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "message",
+          "node_id": "reminder_email",
+          "message": "SIMULATED: Sepet hatırlatma e-postası",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "wait_24_hours",
+          "message": "Entered 24 saat daha bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_24_hours",
+          "message": "Waiting until 2026-11-13T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "provider",
+          "node_id": "reminder_email",
+          "message": "Sandbox ACCEPTED",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T12:00:00Z",
+          "kind": "event",
+          "message": "ACCEPTED: demo_purchase_completed",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T12:00:00Z",
+          "kind": "exit",
+          "node_id": "wait_24_hours",
+          "message": "Global exit: converted",
+          "execution": 1
+        }
+      ],
+      "steps": [
+        {
+          "execution": 1,
+          "node_id": "trigger",
+          "label": "Terk edilmiş sepet: en az 50 EUR",
+          "type": "event_trigger",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "started"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "already_purchased",
+          "label": "Bu sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "any_permission",
+          "label": "En az bir iletişim izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_one_hour",
+          "label": "1 saat bekle",
+          "type": "wait",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "deadline": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "completed"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "purchased_after_one_hour",
+          "label": "Güncel sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "email_permission",
+          "label": "E-posta izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "reminder_email",
+          "label": "Sepet hatırlatma e-postası",
+          "type": "email",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "next"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_24_hours",
+          "label": "24 saat daha bekle",
+          "type": "wait",
+          "state": "SKIPPED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T12:00:00Z",
+          "deadline": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "completed",
+            "wait_until": "2026-11-13T11:00:00Z"
+          }
+        }
+      ],
+      "seconds": 0.01195075000000361
+    },
+    {
+      "name": "D · Email izni yok: SMS yolu korunur",
+      "run_id": "f62542ca-fd4e-440e-b672-fa7d6b20326f",
+      "scenario": {
+        "name": "D · Email izni yok: SMS yolu korunur",
+        "start_time": "2026-11-12T10:00:00Z",
+        "customer": {
+          "customer_id": "llm_brief_alex",
+          "email": "alex@example.invalid",
+          "phone": "+15005550006",
+          "attributes": {
+            "first_name": "Alex",
+            "cart_purchased": false
+          },
+          "consents": {
+            "email": false,
+            "sms": true
+          }
+        },
+        "entry_event": {
+          "event_id": "llm_entry",
+          "event_name": "demo_cart_abandoned",
+          "properties": {
+            "cart_id": "LLM-DEMO-1",
+            "amount": 89.9,
+            "amount_display": "89,90 EUR",
+            "currency": "EUR"
+          }
+        },
+        "frequency_limit": 10,
+        "frequency_window_seconds": 86400,
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 0
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1
+          },
+          {
+            "type": "exit_reason",
+            "expected": "completed"
+          }
+        ]
+      },
+      "result": "PASS",
+      "engine_result": "PASS",
+      "expected_hours": 73,
+      "actual_hours": 73,
+      "exit_reason": "completed",
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "enrollment_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "completed"
+          },
+          "pass": true,
+          "actual": "completed",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [
+        {
+          "id": "580a90ac-4763-4679-9d5e-4e7b433c360c",
+          "channel": "sms",
+          "status": "SIMULATED",
+          "node": "COMEBACK10 indirim SMS'i",
+          "message": {
+            "channel": "sms",
+            "encoding": "Unicode",
+            "html": "",
+            "links": [],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "event.properties.amount_display": "89,90 EUR"
+            },
+            "preheader": "",
+            "segments": 3,
+            "subject": "",
+            "text": "Merhaba Alex! 89,90 EUR sepetinizde sizi bekliyor. COMEBACK10 koduyla %10 indirim kazanmak için https://example.com/cart adresine dönün.",
+            "to": "+15005550006",
+            "units": 136,
+            "warnings": []
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ],
+      "trace": [
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "event",
+          "message": "ACCEPTED: demo_cart_abandoned",
+          "execution": 0
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "entry",
+          "node_id": "trigger",
+          "message": "Customer enrolled",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "trigger",
+          "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "already_purchased",
+          "message": "Entered Bu sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "already_purchased",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "any_permission",
+          "message": "Entered En az bir iletişim izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "any_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "wait_one_hour",
+          "message": "Entered 1 saat bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_one_hour",
+          "message": "Waiting until 2026-11-12T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "purchased_after_one_hour",
+          "message": "Entered Güncel sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "condition",
+          "node_id": "purchased_after_one_hour",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "email_permission",
+          "message": "Entered E-posta izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "condition",
+          "node_id": "email_permission",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "wait_24_hours",
+          "message": "Entered 24 saat daha bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_24_hours",
+          "message": "Waiting until 2026-11-13T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "purchased_after_24_hours",
+          "message": "Entered Güncel sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "condition",
+          "node_id": "purchased_after_24_hours",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "sms_permission",
+          "message": "Entered SMS izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "condition",
+          "node_id": "sms_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "discount_sms",
+          "message": "Entered COMEBACK10 indirim SMS'i",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "message",
+          "node_id": "discount_sms",
+          "message": "SIMULATED: COMEBACK10 indirim SMS'i",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "wait_48_hours",
+          "message": "Entered SMS sonrası 48 saat bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_48_hours",
+          "message": "Waiting until 2026-11-15T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "provider",
+          "node_id": "discount_sms",
+          "message": "Sandbox ACCEPTED",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-15T11:00:00Z",
+          "kind": "node",
+          "node_id": "purchased_after_48_hours",
+          "message": "Entered Güncel sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-15T11:00:00Z",
+          "kind": "condition",
+          "node_id": "purchased_after_48_hours",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-15T11:00:00Z",
+          "kind": "node",
+          "node_id": "completed_exit",
+          "message": "Entered Dönüşüm olmadan tamamlandı",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-15T11:00:00Z",
+          "kind": "exit",
+          "node_id": "completed_exit",
+          "message": "completed",
+          "execution": 1
+        }
+      ],
+      "steps": [
+        {
+          "execution": 1,
+          "node_id": "trigger",
+          "label": "Terk edilmiş sepet: en az 50 EUR",
+          "type": "event_trigger",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "started"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "already_purchased",
+          "label": "Bu sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "any_permission",
+          "label": "En az bir iletişim izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_one_hour",
+          "label": "1 saat bekle",
+          "type": "wait",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "deadline": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "completed"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "purchased_after_one_hour",
+          "label": "Güncel sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "email_permission",
+          "label": "E-posta izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_24_hours",
+          "label": "24 saat daha bekle",
+          "type": "wait",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "deadline": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "completed"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "purchased_after_24_hours",
+          "label": "Güncel sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "sms_permission",
+          "label": "SMS izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "discount_sms",
+          "label": "COMEBACK10 indirim SMS'i",
+          "type": "sms",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "next"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_48_hours",
+          "label": "SMS sonrası 48 saat bekle",
+          "type": "wait",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-15T11:00:00Z",
+          "deadline": "2026-11-15T11:00:00Z",
+          "output": {
+            "port": "completed"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "purchased_after_48_hours",
+          "label": "Güncel sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-15T11:00:00Z",
+          "completed_at": "2026-11-15T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "completed_exit",
+          "label": "Dönüşüm olmadan tamamlandı",
+          "type": "exit",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-15T11:00:00Z",
+          "completed_at": "2026-11-15T11:00:00Z",
+          "output": {
+            "exit_reason": "completed"
+          }
+        }
+      ],
+      "seconds": 0.011356458999987808
+    },
+    {
+      "name": "E · SMS izni yok: yalnızca email",
+      "run_id": "93ca2557-b3e3-4c72-9313-239bfc2c9fb0",
+      "scenario": {
+        "name": "E · SMS izni yok: yalnızca email",
+        "start_time": "2026-11-12T10:00:00Z",
+        "customer": {
+          "customer_id": "llm_brief_alex",
+          "email": "alex@example.invalid",
+          "phone": "+15005550006",
+          "attributes": {
+            "first_name": "Alex",
+            "cart_purchased": false
+          },
+          "consents": {
+            "email": true,
+            "sms": false
+          }
+        },
+        "entry_event": {
+          "event_id": "llm_entry",
+          "event_name": "demo_cart_abandoned",
+          "properties": {
+            "cart_id": "LLM-DEMO-1",
+            "amount": 89.9,
+            "amount_display": "89,90 EUR",
+            "currency": "EUR"
+          }
+        },
+        "frequency_limit": 10,
+        "frequency_window_seconds": 86400,
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          },
+          {
+            "type": "exit_reason",
+            "expected": "completed"
+          }
+        ]
+      },
+      "result": "PASS",
+      "engine_result": "PASS",
+      "expected_hours": 25,
+      "actual_hours": 25,
+      "exit_reason": "completed",
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "enrollment_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "completed"
+          },
+          "pass": true,
+          "actual": "completed",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [
+        {
+          "id": "d167ec90-3e2f-400d-a50c-2ce1fde96ecd",
+          "channel": "email",
+          "status": "SIMULATED",
+          "node": "Sepet hatırlatma e-postası",
+          "message": {
+            "channel": "email",
+            "encoding": "",
+            "html": "<p>Merhaba Alex,</p><p>89,90 EUR sepetinizde sizi bekliyor. Alışverişinizi tamamlamak için <a href=\"https://example.com/cart\" rel=\"nofollow\">sepetinize dönün</a>.</p>",
+            "links": ["https://example.com/cart"],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "event.properties.amount_display": "89,90 EUR"
+            },
+            "preheader": "Sepetinizdeki ürünler sizi bekliyor.",
+            "segments": 0,
+            "subject": "Sepetiniz sizi bekliyor",
+            "text": "Merhaba Alex, 89,90 EUR sepetinizde sizi bekliyor. Alışverişinizi tamamlamak için https://example.com/cart adresinden sepetinize dönün.",
+            "to": "alex@example.invalid",
+            "units": 0,
+            "warnings": ["HTML was sanitized; unsupported markup or attributes were removed"]
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ],
+      "trace": [
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "event",
+          "message": "ACCEPTED: demo_cart_abandoned",
+          "execution": 0
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "entry",
+          "node_id": "trigger",
+          "message": "Customer enrolled",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "trigger",
+          "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "already_purchased",
+          "message": "Entered Bu sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "already_purchased",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "any_permission",
+          "message": "Entered En az bir iletişim izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "any_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "wait_one_hour",
+          "message": "Entered 1 saat bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_one_hour",
+          "message": "Waiting until 2026-11-12T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "purchased_after_one_hour",
+          "message": "Entered Güncel sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "condition",
+          "node_id": "purchased_after_one_hour",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "email_permission",
+          "message": "Entered E-posta izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "condition",
+          "node_id": "email_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "reminder_email",
+          "message": "Entered Sepet hatırlatma e-postası",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "message",
+          "node_id": "reminder_email",
+          "message": "SIMULATED: Sepet hatırlatma e-postası",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "wait_24_hours",
+          "message": "Entered 24 saat daha bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_24_hours",
+          "message": "Waiting until 2026-11-13T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "provider",
+          "node_id": "reminder_email",
+          "message": "Sandbox ACCEPTED",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "purchased_after_24_hours",
+          "message": "Entered Güncel sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "condition",
+          "node_id": "purchased_after_24_hours",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "sms_permission",
+          "message": "Entered SMS izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "condition",
+          "node_id": "sms_permission",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "completed_exit",
+          "message": "Entered Dönüşüm olmadan tamamlandı",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "exit",
+          "node_id": "completed_exit",
+          "message": "completed",
+          "execution": 1
+        }
+      ],
+      "steps": [
+        {
+          "execution": 1,
+          "node_id": "trigger",
+          "label": "Terk edilmiş sepet: en az 50 EUR",
+          "type": "event_trigger",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "started"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "already_purchased",
+          "label": "Bu sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "any_permission",
+          "label": "En az bir iletişim izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_one_hour",
+          "label": "1 saat bekle",
+          "type": "wait",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "deadline": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "completed"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "purchased_after_one_hour",
+          "label": "Güncel sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "email_permission",
+          "label": "E-posta izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "reminder_email",
+          "label": "Sepet hatırlatma e-postası",
+          "type": "email",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "next"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_24_hours",
+          "label": "24 saat daha bekle",
+          "type": "wait",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "deadline": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "completed"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "purchased_after_24_hours",
+          "label": "Güncel sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "sms_permission",
+          "label": "SMS izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "completed_exit",
+          "label": "Dönüşüm olmadan tamamlandı",
+          "type": "exit",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "output": {
+            "exit_reason": "completed"
+          }
+        }
+      ],
+      "seconds": 0.009319084000002477
+    },
+    {
+      "name": "F · Hiçbir kanal izni yok: anında çıkış",
+      "run_id": "6bce87b3-5030-4db0-a99b-e1a317e7c884",
+      "scenario": {
+        "name": "F · Hiçbir kanal izni yok: anında çıkış",
+        "start_time": "2026-11-12T10:00:00Z",
+        "customer": {
+          "customer_id": "llm_brief_alex",
+          "email": "alex@example.invalid",
+          "phone": "+15005550006",
+          "attributes": {
+            "first_name": "Alex",
+            "cart_purchased": false
+          },
+          "consents": {
+            "email": false,
+            "sms": false
+          }
+        },
+        "entry_event": {
+          "event_id": "llm_entry",
+          "event_name": "demo_cart_abandoned",
+          "properties": {
+            "cart_id": "LLM-DEMO-1",
+            "amount": 89.9,
+            "amount_display": "89,90 EUR",
+            "currency": "EUR"
+          }
+        },
+        "frequency_limit": 10,
+        "frequency_window_seconds": 86400,
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 0
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          },
+          {
+            "type": "exit_reason",
+            "expected": "condition_not_met"
+          }
+        ]
+      },
+      "result": "PASS",
+      "engine_result": "PASS",
+      "expected_hours": 0,
+      "actual_hours": 0,
+      "exit_reason": "condition_not_met",
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "enrollment_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "condition_not_met"
+          },
+          "pass": true,
+          "actual": "condition_not_met",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [],
+      "trace": [
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "event",
+          "message": "ACCEPTED: demo_cart_abandoned",
+          "execution": 0
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "entry",
+          "node_id": "trigger",
+          "message": "Customer enrolled",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "trigger",
+          "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "already_purchased",
+          "message": "Entered Bu sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "already_purchased",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "any_permission",
+          "message": "Entered En az bir iletişim izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "any_permission",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "ineligible_exit",
+          "message": "Entered İletişim izni yok — uygun değil",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "exit",
+          "node_id": "ineligible_exit",
+          "message": "condition_not_met",
+          "execution": 1
+        }
+      ],
+      "steps": [
+        {
+          "execution": 1,
+          "node_id": "trigger",
+          "label": "Terk edilmiş sepet: en az 50 EUR",
+          "type": "event_trigger",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "started"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "already_purchased",
+          "label": "Bu sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "any_permission",
+          "label": "En az bir iletişim izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "ineligible_exit",
+          "label": "İletişim izni yok — uygun değil",
+          "type": "exit",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "exit_reason": "condition_not_met"
+          }
+        }
+      ],
+      "seconds": 0.007438624999995227
+    },
+    {
+      "name": "G · Önceden satın alınmış sepet",
+      "run_id": "5cc74703-9738-4683-8f04-ecf3d0b7ba44",
+      "scenario": {
+        "name": "G · Önceden satın alınmış sepet",
+        "start_time": "2026-11-12T10:00:00Z",
+        "customer": {
+          "customer_id": "llm_brief_alex",
+          "email": "alex@example.invalid",
+          "phone": "+15005550006",
+          "attributes": {
+            "first_name": "Alex",
+            "cart_purchased": true
+          },
+          "consents": {
+            "email": true,
+            "sms": true
+          }
+        },
+        "entry_event": {
+          "event_id": "llm_entry",
+          "event_name": "demo_cart_abandoned",
+          "properties": {
+            "cart_id": "LLM-DEMO-1",
+            "amount": 89.9,
+            "amount_display": "89,90 EUR",
+            "currency": "EUR"
+          }
+        },
+        "frequency_limit": 10,
+        "frequency_window_seconds": 86400,
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 0
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          },
+          {
+            "type": "exit_reason",
+            "expected": "converted"
+          }
+        ]
+      },
+      "result": "PASS",
+      "engine_result": "PASS",
+      "expected_hours": 0,
+      "actual_hours": 0,
+      "exit_reason": "converted",
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "enrollment_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "converted"
+          },
+          "pass": true,
+          "actual": "converted",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [],
+      "trace": [
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "event",
+          "message": "ACCEPTED: demo_cart_abandoned",
+          "execution": 0
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "entry",
+          "node_id": "trigger",
+          "message": "Customer enrolled",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "trigger",
+          "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "already_purchased",
+          "message": "Entered Bu sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "already_purchased",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "converted_exit",
+          "message": "Entered Dönüşüm — sepet satın alındı",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "exit",
+          "node_id": "converted_exit",
+          "message": "converted",
+          "execution": 1
+        }
+      ],
+      "steps": [
+        {
+          "execution": 1,
+          "node_id": "trigger",
+          "label": "Terk edilmiş sepet: en az 50 EUR",
+          "type": "event_trigger",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "started"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "already_purchased",
+          "label": "Bu sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "converted_exit",
+          "label": "Dönüşüm — sepet satın alındı",
+          "type": "exit",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "exit_reason": "converted"
+          }
+        }
+      ],
+      "seconds": 0.013338124999994762
+    },
+    {
+      "name": "H · 49,995 EUR: giriş yapılmamalı",
+      "run_id": "52823b44-8c86-4a47-83f3-e15d728f527d",
+      "scenario": {
+        "name": "H · 49,995 EUR: giriş yapılmamalı",
+        "start_time": "2026-11-12T10:00:00Z",
+        "customer": {
+          "customer_id": "llm_brief_alex",
+          "email": "alex@example.invalid",
+          "phone": "+15005550006",
+          "attributes": {
+            "first_name": "Alex",
+            "cart_purchased": false
+          },
+          "consents": {
+            "email": true,
+            "sms": true
+          }
+        },
+        "entry_event": {
+          "event_id": "llm_entry",
+          "event_name": "demo_cart_abandoned",
+          "properties": {
+            "cart_id": "LLM-DEMO-1",
+            "amount": 49.995,
+            "amount_display": "89,90 EUR",
+            "currency": "EUR"
+          }
+        },
+        "frequency_limit": 10,
+        "frequency_window_seconds": 86400,
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          {
+            "type": "enrollment_count",
+            "expected": 0
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 0
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          }
+        ]
+      },
+      "result": "FAIL",
+      "engine_result": "FAIL",
+      "expected_hours": 0,
+      "actual_hours": 73,
+      "exit_reason": "completed",
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "enrollment_count",
+            "expected": 0
+          },
+          "pass": false,
+          "actual": 1,
+          "description": "enrollment_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 0
+          },
+          "pass": false,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          },
+          "pass": false,
+          "actual": 1,
+          "description": "message_count"
+        }
+      ],
+      "messages": [
+        {
+          "id": "81944404-8546-43a4-8d23-045176506262",
+          "channel": "email",
+          "status": "SIMULATED",
+          "node": "Sepet hatırlatma e-postası",
+          "message": {
+            "channel": "email",
+            "encoding": "",
+            "html": "<p>Merhaba Alex,</p><p>89,90 EUR sepetinizde sizi bekliyor. Alışverişinizi tamamlamak için <a href=\"https://example.com/cart\" rel=\"nofollow\">sepetinize dönün</a>.</p>",
+            "links": ["https://example.com/cart"],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "event.properties.amount_display": "89,90 EUR"
+            },
+            "preheader": "Sepetinizdeki ürünler sizi bekliyor.",
+            "segments": 0,
+            "subject": "Sepetiniz sizi bekliyor",
+            "text": "Merhaba Alex, 89,90 EUR sepetinizde sizi bekliyor. Alışverişinizi tamamlamak için https://example.com/cart adresinden sepetinize dönün.",
+            "to": "alex@example.invalid",
+            "units": 0,
+            "warnings": ["HTML was sanitized; unsupported markup or attributes were removed"]
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        },
+        {
+          "id": "578e594c-a35f-4297-a65f-0f2d4d7610ad",
+          "channel": "sms",
+          "status": "SIMULATED",
+          "node": "COMEBACK10 indirim SMS'i",
+          "message": {
+            "channel": "sms",
+            "encoding": "Unicode",
+            "html": "",
+            "links": [],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "event.properties.amount_display": "89,90 EUR"
+            },
+            "preheader": "",
+            "segments": 3,
+            "subject": "",
+            "text": "Merhaba Alex! 89,90 EUR sepetinizde sizi bekliyor. COMEBACK10 koduyla %10 indirim kazanmak için https://example.com/cart adresine dönün.",
+            "to": "+15005550006",
+            "units": 136,
+            "warnings": []
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ],
+      "trace": [
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "event",
+          "message": "ACCEPTED: demo_cart_abandoned",
+          "execution": 0
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "entry",
+          "node_id": "trigger",
+          "message": "Customer enrolled",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "trigger",
+          "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "already_purchased",
+          "message": "Entered Bu sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "already_purchased",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "any_permission",
+          "message": "Entered En az bir iletişim izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "any_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "wait_one_hour",
+          "message": "Entered 1 saat bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_one_hour",
+          "message": "Waiting until 2026-11-12T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "purchased_after_one_hour",
+          "message": "Entered Güncel sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "condition",
+          "node_id": "purchased_after_one_hour",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "email_permission",
+          "message": "Entered E-posta izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "condition",
+          "node_id": "email_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "reminder_email",
+          "message": "Entered Sepet hatırlatma e-postası",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "message",
+          "node_id": "reminder_email",
+          "message": "SIMULATED: Sepet hatırlatma e-postası",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "wait_24_hours",
+          "message": "Entered 24 saat daha bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_24_hours",
+          "message": "Waiting until 2026-11-13T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "provider",
+          "node_id": "reminder_email",
+          "message": "Sandbox ACCEPTED",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "purchased_after_24_hours",
+          "message": "Entered Güncel sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "condition",
+          "node_id": "purchased_after_24_hours",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "sms_permission",
+          "message": "Entered SMS izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "condition",
+          "node_id": "sms_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "discount_sms",
+          "message": "Entered COMEBACK10 indirim SMS'i",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "message",
+          "node_id": "discount_sms",
+          "message": "SIMULATED: COMEBACK10 indirim SMS'i",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "wait_48_hours",
+          "message": "Entered SMS sonrası 48 saat bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_48_hours",
+          "message": "Waiting until 2026-11-15T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "provider",
+          "node_id": "discount_sms",
+          "message": "Sandbox ACCEPTED",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-15T11:00:00Z",
+          "kind": "node",
+          "node_id": "purchased_after_48_hours",
+          "message": "Entered Güncel sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-15T11:00:00Z",
+          "kind": "condition",
+          "node_id": "purchased_after_48_hours",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-15T11:00:00Z",
+          "kind": "node",
+          "node_id": "completed_exit",
+          "message": "Entered Dönüşüm olmadan tamamlandı",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-15T11:00:00Z",
+          "kind": "exit",
+          "node_id": "completed_exit",
+          "message": "completed",
+          "execution": 1
+        }
+      ],
+      "steps": [
+        {
+          "execution": 1,
+          "node_id": "trigger",
+          "label": "Terk edilmiş sepet: en az 50 EUR",
+          "type": "event_trigger",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "started"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "already_purchased",
+          "label": "Bu sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "any_permission",
+          "label": "En az bir iletişim izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_one_hour",
+          "label": "1 saat bekle",
+          "type": "wait",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "deadline": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "completed"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "purchased_after_one_hour",
+          "label": "Güncel sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "email_permission",
+          "label": "E-posta izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "reminder_email",
+          "label": "Sepet hatırlatma e-postası",
+          "type": "email",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "next"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_24_hours",
+          "label": "24 saat daha bekle",
+          "type": "wait",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "deadline": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "completed"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "purchased_after_24_hours",
+          "label": "Güncel sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "sms_permission",
+          "label": "SMS izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "discount_sms",
+          "label": "COMEBACK10 indirim SMS'i",
+          "type": "sms",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "next"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_48_hours",
+          "label": "SMS sonrası 48 saat bekle",
+          "type": "wait",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-15T11:00:00Z",
+          "deadline": "2026-11-15T11:00:00Z",
+          "output": {
+            "port": "completed"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "purchased_after_48_hours",
+          "label": "Güncel sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-15T11:00:00Z",
+          "completed_at": "2026-11-15T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "completed_exit",
+          "label": "Dönüşüm olmadan tamamlandı",
+          "type": "exit",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-15T11:00:00Z",
+          "completed_at": "2026-11-15T11:00:00Z",
+          "output": {
+            "exit_reason": "completed"
+          }
+        }
+      ],
+      "seconds": 0.017342125000010127
+    },
+    {
+      "name": "I · Tam 50 EUR: giriş yapılmalı",
+      "run_id": "9bc0fc5c-aebc-4aad-b040-d53d82c43528",
+      "scenario": {
+        "name": "I · Tam 50 EUR: giriş yapılmalı",
+        "start_time": "2026-11-12T10:00:00Z",
+        "customer": {
+          "customer_id": "llm_brief_alex",
+          "email": "alex@example.invalid",
+          "phone": "+15005550006",
+          "attributes": {
+            "first_name": "Alex",
+            "cart_purchased": false
+          },
+          "consents": {
+            "email": true,
+            "sms": true
+          }
+        },
+        "entry_event": {
+          "event_id": "llm_entry",
+          "event_name": "demo_cart_abandoned",
+          "properties": {
+            "cart_id": "LLM-DEMO-1",
+            "amount": 50,
+            "amount_display": "89,90 EUR",
+            "currency": "EUR"
+          }
+        },
+        "frequency_limit": 10,
+        "frequency_window_seconds": 86400,
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1
+          },
+          {
+            "type": "exit_reason",
+            "expected": "completed"
+          }
+        ]
+      },
+      "result": "PASS",
+      "engine_result": "PASS",
+      "expected_hours": 73,
+      "actual_hours": 73,
+      "exit_reason": "completed",
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "enrollment_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "completed"
+          },
+          "pass": true,
+          "actual": "completed",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [
+        {
+          "id": "498cc49a-3268-428c-93b1-1bb8bab7478a",
+          "channel": "email",
+          "status": "SIMULATED",
+          "node": "Sepet hatırlatma e-postası",
+          "message": {
+            "channel": "email",
+            "encoding": "",
+            "html": "<p>Merhaba Alex,</p><p>89,90 EUR sepetinizde sizi bekliyor. Alışverişinizi tamamlamak için <a href=\"https://example.com/cart\" rel=\"nofollow\">sepetinize dönün</a>.</p>",
+            "links": ["https://example.com/cart"],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "event.properties.amount_display": "89,90 EUR"
+            },
+            "preheader": "Sepetinizdeki ürünler sizi bekliyor.",
+            "segments": 0,
+            "subject": "Sepetiniz sizi bekliyor",
+            "text": "Merhaba Alex, 89,90 EUR sepetinizde sizi bekliyor. Alışverişinizi tamamlamak için https://example.com/cart adresinden sepetinize dönün.",
+            "to": "alex@example.invalid",
+            "units": 0,
+            "warnings": ["HTML was sanitized; unsupported markup or attributes were removed"]
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        },
+        {
+          "id": "3a9bc0c2-a714-482e-8dd1-235f0b0b1307",
+          "channel": "sms",
+          "status": "SIMULATED",
+          "node": "COMEBACK10 indirim SMS'i",
+          "message": {
+            "channel": "sms",
+            "encoding": "Unicode",
+            "html": "",
+            "links": [],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "event.properties.amount_display": "89,90 EUR"
+            },
+            "preheader": "",
+            "segments": 3,
+            "subject": "",
+            "text": "Merhaba Alex! 89,90 EUR sepetinizde sizi bekliyor. COMEBACK10 koduyla %10 indirim kazanmak için https://example.com/cart adresine dönün.",
+            "to": "+15005550006",
+            "units": 136,
+            "warnings": []
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ],
+      "trace": [
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "event",
+          "message": "ACCEPTED: demo_cart_abandoned",
+          "execution": 0
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "entry",
+          "node_id": "trigger",
+          "message": "Customer enrolled",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "trigger",
+          "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "already_purchased",
+          "message": "Entered Bu sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "already_purchased",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "any_permission",
+          "message": "Entered En az bir iletişim izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "any_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "wait_one_hour",
+          "message": "Entered 1 saat bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_one_hour",
+          "message": "Waiting until 2026-11-12T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "purchased_after_one_hour",
+          "message": "Entered Güncel sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "condition",
+          "node_id": "purchased_after_one_hour",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "email_permission",
+          "message": "Entered E-posta izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "condition",
+          "node_id": "email_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "reminder_email",
+          "message": "Entered Sepet hatırlatma e-postası",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "message",
+          "node_id": "reminder_email",
+          "message": "SIMULATED: Sepet hatırlatma e-postası",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "wait_24_hours",
+          "message": "Entered 24 saat daha bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_24_hours",
+          "message": "Waiting until 2026-11-13T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "provider",
+          "node_id": "reminder_email",
+          "message": "Sandbox ACCEPTED",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "purchased_after_24_hours",
+          "message": "Entered Güncel sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "condition",
+          "node_id": "purchased_after_24_hours",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "sms_permission",
+          "message": "Entered SMS izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "condition",
+          "node_id": "sms_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "discount_sms",
+          "message": "Entered COMEBACK10 indirim SMS'i",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "message",
+          "node_id": "discount_sms",
+          "message": "SIMULATED: COMEBACK10 indirim SMS'i",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "wait_48_hours",
+          "message": "Entered SMS sonrası 48 saat bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_48_hours",
+          "message": "Waiting until 2026-11-15T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "provider",
+          "node_id": "discount_sms",
+          "message": "Sandbox ACCEPTED",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-15T11:00:00Z",
+          "kind": "node",
+          "node_id": "purchased_after_48_hours",
+          "message": "Entered Güncel sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-15T11:00:00Z",
+          "kind": "condition",
+          "node_id": "purchased_after_48_hours",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-15T11:00:00Z",
+          "kind": "node",
+          "node_id": "completed_exit",
+          "message": "Entered Dönüşüm olmadan tamamlandı",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-15T11:00:00Z",
+          "kind": "exit",
+          "node_id": "completed_exit",
+          "message": "completed",
+          "execution": 1
+        }
+      ],
+      "steps": [
+        {
+          "execution": 1,
+          "node_id": "trigger",
+          "label": "Terk edilmiş sepet: en az 50 EUR",
+          "type": "event_trigger",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "started"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "already_purchased",
+          "label": "Bu sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "any_permission",
+          "label": "En az bir iletişim izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_one_hour",
+          "label": "1 saat bekle",
+          "type": "wait",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "deadline": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "completed"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "purchased_after_one_hour",
+          "label": "Güncel sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "email_permission",
+          "label": "E-posta izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "reminder_email",
+          "label": "Sepet hatırlatma e-postası",
+          "type": "email",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "next"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_24_hours",
+          "label": "24 saat daha bekle",
+          "type": "wait",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "deadline": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "completed"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "purchased_after_24_hours",
+          "label": "Güncel sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "sms_permission",
+          "label": "SMS izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "discount_sms",
+          "label": "COMEBACK10 indirim SMS'i",
+          "type": "sms",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "next"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_48_hours",
+          "label": "SMS sonrası 48 saat bekle",
+          "type": "wait",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-15T11:00:00Z",
+          "deadline": "2026-11-15T11:00:00Z",
+          "output": {
+            "port": "completed"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "purchased_after_48_hours",
+          "label": "Güncel sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-15T11:00:00Z",
+          "completed_at": "2026-11-15T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "completed_exit",
+          "label": "Dönüşüm olmadan tamamlandı",
+          "type": "exit",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-15T11:00:00Z",
+          "completed_at": "2026-11-15T11:00:00Z",
+          "output": {
+            "exit_reason": "completed"
+          }
+        }
+      ],
+      "seconds": 0.012194000000003143
+    },
+    {
+      "name": "J · Profil 24. saatte satın alındı: SMS yok",
+      "run_id": "3c740a5e-adea-4e5c-b39d-aac8b706d633",
+      "scenario": {
+        "name": "J · Profil 24. saatte satın alındı: SMS yok",
+        "start_time": "2026-11-12T10:00:00Z",
+        "customer": {
+          "customer_id": "llm_brief_alex",
+          "email": "alex@example.invalid",
+          "phone": "+15005550006",
+          "attributes": {
+            "first_name": "Alex",
+            "cart_purchased": false
+          },
+          "consents": {
+            "email": true,
+            "sms": true
+          }
+        },
+        "entry_event": {
+          "event_id": "llm_entry",
+          "event_name": "demo_cart_abandoned",
+          "properties": {
+            "cart_id": "LLM-DEMO-1",
+            "amount": 89.9,
+            "amount_display": "89,90 EUR",
+            "currency": "EUR"
+          }
+        },
+        "frequency_limit": 10,
+        "frequency_window_seconds": 86400,
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          },
+          {
+            "type": "exit_reason",
+            "expected": "converted"
+          }
+        ],
+        "attribute_changes": [
+          {
+            "after_seconds": 86400,
+            "attributes": {
+              "cart_purchased": true
+            }
+          }
+        ]
+      },
+      "result": "PASS",
+      "engine_result": "PASS",
+      "expected_hours": 25,
+      "actual_hours": 25,
+      "exit_reason": "converted",
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "enrollment_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 0
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "converted"
+          },
+          "pass": true,
+          "actual": "converted",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [
+        {
+          "id": "65106cde-f18f-4a1f-80cf-7f44ca98500f",
+          "channel": "email",
+          "status": "SIMULATED",
+          "node": "Sepet hatırlatma e-postası",
+          "message": {
+            "channel": "email",
+            "encoding": "",
+            "html": "<p>Merhaba Alex,</p><p>89,90 EUR sepetinizde sizi bekliyor. Alışverişinizi tamamlamak için <a href=\"https://example.com/cart\" rel=\"nofollow\">sepetinize dönün</a>.</p>",
+            "links": ["https://example.com/cart"],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "event.properties.amount_display": "89,90 EUR"
+            },
+            "preheader": "Sepetinizdeki ürünler sizi bekliyor.",
+            "segments": 0,
+            "subject": "Sepetiniz sizi bekliyor",
+            "text": "Merhaba Alex, 89,90 EUR sepetinizde sizi bekliyor. Alışverişinizi tamamlamak için https://example.com/cart adresinden sepetinize dönün.",
+            "to": "alex@example.invalid",
+            "units": 0,
+            "warnings": ["HTML was sanitized; unsupported markup or attributes were removed"]
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ],
+      "trace": [
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "event",
+          "message": "ACCEPTED: demo_cart_abandoned",
+          "execution": 0
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "entry",
+          "node_id": "trigger",
+          "message": "Customer enrolled",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "trigger",
+          "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "already_purchased",
+          "message": "Entered Bu sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "already_purchased",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "any_permission",
+          "message": "Entered En az bir iletişim izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "any_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "wait_one_hour",
+          "message": "Entered 1 saat bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_one_hour",
+          "message": "Waiting until 2026-11-12T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "purchased_after_one_hour",
+          "message": "Entered Güncel sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "condition",
+          "node_id": "purchased_after_one_hour",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "email_permission",
+          "message": "Entered E-posta izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "condition",
+          "node_id": "email_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "reminder_email",
+          "message": "Entered Sepet hatırlatma e-postası",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "message",
+          "node_id": "reminder_email",
+          "message": "SIMULATED: Sepet hatırlatma e-postası",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "wait_24_hours",
+          "message": "Entered 24 saat daha bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_24_hours",
+          "message": "Waiting until 2026-11-13T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "provider",
+          "node_id": "reminder_email",
+          "message": "Sandbox ACCEPTED",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T10:00:00Z",
+          "kind": "attributes",
+          "message": "Sandbox profile updated",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "purchased_after_24_hours",
+          "message": "Entered Güncel sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "condition",
+          "node_id": "purchased_after_24_hours",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "converted_exit",
+          "message": "Entered Dönüşüm — sepet satın alındı",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "exit",
+          "node_id": "converted_exit",
+          "message": "converted",
+          "execution": 1
+        }
+      ],
+      "steps": [
+        {
+          "execution": 1,
+          "node_id": "trigger",
+          "label": "Terk edilmiş sepet: en az 50 EUR",
+          "type": "event_trigger",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "started"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "already_purchased",
+          "label": "Bu sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "any_permission",
+          "label": "En az bir iletişim izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_one_hour",
+          "label": "1 saat bekle",
+          "type": "wait",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "deadline": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "completed"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "purchased_after_one_hour",
+          "label": "Güncel sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "email_permission",
+          "label": "E-posta izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "reminder_email",
+          "label": "Sepet hatırlatma e-postası",
+          "type": "email",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "next"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_24_hours",
+          "label": "24 saat daha bekle",
+          "type": "wait",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "deadline": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "completed"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "purchased_after_24_hours",
+          "label": "Güncel sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "converted_exit",
+          "label": "Dönüşüm — sepet satın alındı",
+          "type": "exit",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "output": {
+            "exit_reason": "converted"
+          }
+        }
+      ],
+      "seconds": 0.009803958000004059
+    },
+    {
+      "name": "K · Email provider 429 → 500 → başarı",
+      "run_id": "0fd3c738-2c8e-4d5e-8ec9-393fcd13c330",
+      "scenario": {
+        "name": "K · Email provider 429 → 500 → başarı",
+        "start_time": "2026-11-12T10:00:00Z",
+        "customer": {
+          "customer_id": "llm_brief_alex",
+          "email": "alex@example.invalid",
+          "phone": "+15005550006",
+          "attributes": {
+            "first_name": "Alex",
+            "cart_purchased": false
+          },
+          "consents": {
+            "email": true,
+            "sms": true
+          }
+        },
+        "entry_event": {
+          "event_id": "llm_entry",
+          "event_name": "demo_cart_abandoned",
+          "properties": {
+            "cart_id": "LLM-DEMO-1",
+            "amount": 89.9,
+            "amount_display": "89,90 EUR",
+            "currency": "EUR"
+          }
+        },
+        "frequency_limit": 10,
+        "frequency_window_seconds": 86400,
+        "assertions": [
+          {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1
+          },
+          {
+            "type": "exit_reason",
+            "expected": "completed"
+          }
+        ],
+        "fault_channel": "email",
+        "provider_faults": [429, 500, 200]
+      },
+      "result": "PASS",
+      "engine_result": "PASS",
+      "actual_hours": 73,
+      "exit_reason": "completed",
+      "assertions": [
+        {
+          "assertion": {
+            "type": "no_duplicate_delivery",
+            "expected": true
+          },
+          "pass": true,
+          "actual": 0,
+          "description": "no_duplicate_delivery"
+        },
+        {
+          "assertion": {
+            "type": "enrollment_count",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "enrollment_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "email",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "message_count",
+            "channel": "sms",
+            "expected": 1
+          },
+          "pass": true,
+          "actual": 1,
+          "description": "message_count"
+        },
+        {
+          "assertion": {
+            "type": "exit_reason",
+            "expected": "completed"
+          },
+          "pass": true,
+          "actual": "completed",
+          "description": "exit_reason"
+        }
+      ],
+      "messages": [
+        {
+          "id": "8f0847fb-eefb-4708-b15e-0004afffd10c",
+          "channel": "email",
+          "status": "SIMULATED",
+          "node": "Sepet hatırlatma e-postası",
+          "message": {
+            "channel": "email",
+            "encoding": "",
+            "html": "<p>Merhaba Alex,</p><p>89,90 EUR sepetinizde sizi bekliyor. Alışverişinizi tamamlamak için <a href=\"https://example.com/cart\" rel=\"nofollow\">sepetinize dönün</a>.</p>",
+            "links": ["https://example.com/cart"],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "event.properties.amount_display": "89,90 EUR"
+            },
+            "preheader": "Sepetinizdeki ürünler sizi bekliyor.",
+            "segments": 0,
+            "subject": "Sepetiniz sizi bekliyor",
+            "text": "Merhaba Alex, 89,90 EUR sepetinizde sizi bekliyor. Alışverişinizi tamamlamak için https://example.com/cart adresinden sepetinize dönün.",
+            "to": "alex@example.invalid",
+            "units": 0,
+            "warnings": ["HTML was sanitized; unsupported markup or attributes were removed"]
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        },
+        {
+          "id": "7eb34ee4-8df9-4233-a0ed-753648119e96",
+          "channel": "sms",
+          "status": "SIMULATED",
+          "node": "COMEBACK10 indirim SMS'i",
+          "message": {
+            "channel": "sms",
+            "encoding": "Unicode",
+            "html": "",
+            "links": [],
+            "missing_attributes": [],
+            "personalization_values": {
+              "customer.attributes.first_name": "Alex",
+              "event.properties.amount_display": "89,90 EUR"
+            },
+            "preheader": "",
+            "segments": 3,
+            "subject": "",
+            "text": "Merhaba Alex! 89,90 EUR sepetinizde sizi bekliyor. COMEBACK10 koduyla %10 indirim kazanmak için https://example.com/cart adresine dönün.",
+            "to": "+15005550006",
+            "units": 136,
+            "warnings": []
+          },
+          "decision": {
+            "consent": true,
+            "eligible": true,
+            "frequency_cap": true,
+            "reason": "eligible"
+          }
+        }
+      ],
+      "trace": [
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "event",
+          "message": "ACCEPTED: demo_cart_abandoned",
+          "execution": 0
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "entry",
+          "node_id": "trigger",
+          "message": "Customer enrolled",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "trigger",
+          "message": "Entered Terk edilmiş sepet: en az 50 EUR",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "already_purchased",
+          "message": "Entered Bu sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "already_purchased",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "any_permission",
+          "message": "Entered En az bir iletişim izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "condition",
+          "node_id": "any_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "node",
+          "node_id": "wait_one_hour",
+          "message": "Entered 1 saat bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T10:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_one_hour",
+          "message": "Waiting until 2026-11-12T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "purchased_after_one_hour",
+          "message": "Entered Güncel sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "condition",
+          "node_id": "purchased_after_one_hour",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "email_permission",
+          "message": "Entered E-posta izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "condition",
+          "node_id": "email_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "reminder_email",
+          "message": "Entered Sepet hatırlatma e-postası",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "message",
+          "node_id": "reminder_email",
+          "message": "SIMULATED: Sepet hatırlatma e-postası",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "node",
+          "node_id": "wait_24_hours",
+          "message": "Entered 24 saat daha bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_24_hours",
+          "message": "Waiting until 2026-11-13T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:00Z",
+          "kind": "provider",
+          "node_id": "reminder_email",
+          "message": "Sandbox RETRY",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:02Z",
+          "kind": "provider",
+          "node_id": "reminder_email",
+          "message": "Sandbox RETRY",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-12T11:00:06Z",
+          "kind": "provider",
+          "node_id": "reminder_email",
+          "message": "Sandbox ACCEPTED",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "purchased_after_24_hours",
+          "message": "Entered Güncel sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "condition",
+          "node_id": "purchased_after_24_hours",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "sms_permission",
+          "message": "Entered SMS izni var mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "condition",
+          "node_id": "sms_permission",
+          "message": "Condition true",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "discount_sms",
+          "message": "Entered COMEBACK10 indirim SMS'i",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "message",
+          "node_id": "discount_sms",
+          "message": "SIMULATED: COMEBACK10 indirim SMS'i",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "node",
+          "node_id": "wait_48_hours",
+          "message": "Entered SMS sonrası 48 saat bekle",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "wait",
+          "node_id": "wait_48_hours",
+          "message": "Waiting until 2026-11-15T11:00:00Z",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-13T11:00:00Z",
+          "kind": "provider",
+          "node_id": "discount_sms",
+          "message": "Sandbox ACCEPTED",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-15T11:00:00Z",
+          "kind": "node",
+          "node_id": "purchased_after_48_hours",
+          "message": "Entered Güncel sepet satın alınmış mı?",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-15T11:00:00Z",
+          "kind": "condition",
+          "node_id": "purchased_after_48_hours",
+          "message": "Condition false",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-15T11:00:00Z",
+          "kind": "node",
+          "node_id": "completed_exit",
+          "message": "Entered Dönüşüm olmadan tamamlandı",
+          "execution": 1
+        },
+        {
+          "at": "2026-11-15T11:00:00Z",
+          "kind": "exit",
+          "node_id": "completed_exit",
+          "message": "completed",
+          "execution": 1
+        }
+      ],
+      "steps": [
+        {
+          "execution": 1,
+          "node_id": "trigger",
+          "label": "Terk edilmiş sepet: en az 50 EUR",
+          "type": "event_trigger",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "started"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "already_purchased",
+          "label": "Bu sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "any_permission",
+          "label": "En az bir iletişim izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T10:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_one_hour",
+          "label": "1 saat bekle",
+          "type": "wait",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T10:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "deadline": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "completed"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "purchased_after_one_hour",
+          "label": "Güncel sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "email_permission",
+          "label": "E-posta izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "reminder_email",
+          "label": "Sepet hatırlatma e-postası",
+          "type": "email",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-12T11:00:00Z",
+          "output": {
+            "port": "next"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_24_hours",
+          "label": "24 saat daha bekle",
+          "type": "wait",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-12T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "deadline": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "completed"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "purchased_after_24_hours",
+          "label": "Güncel sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "sms_permission",
+          "label": "SMS izni var mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "true",
+            "condition": true
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "discount_sms",
+          "label": "COMEBACK10 indirim SMS'i",
+          "type": "sms",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-13T11:00:00Z",
+          "output": {
+            "port": "next"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "wait_48_hours",
+          "label": "SMS sonrası 48 saat bekle",
+          "type": "wait",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-13T11:00:00Z",
+          "completed_at": "2026-11-15T11:00:00Z",
+          "deadline": "2026-11-15T11:00:00Z",
+          "output": {
+            "port": "completed"
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "purchased_after_48_hours",
+          "label": "Güncel sepet satın alınmış mı?",
+          "type": "condition",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-15T11:00:00Z",
+          "completed_at": "2026-11-15T11:00:00Z",
+          "output": {
+            "port": "false",
+            "condition": false
+          }
+        },
+        {
+          "execution": 1,
+          "node_id": "completed_exit",
+          "label": "Dönüşüm olmadan tamamlandı",
+          "type": "exit",
+          "state": "SUCCEEDED",
+          "started_at": "2026-11-15T11:00:00Z",
+          "completed_at": "2026-11-15T11:00:00Z",
+          "output": {
+            "exit_reason": "completed"
+          }
+        }
+      ],
+      "seconds": 0.01061875000000873
+    }
+  ],
+  "brief": "Sepetinde en az 50 EUR değerinde ürün bırakıp satın almayan müşterileri geri kazanmak istiyorum. Müşterinin bu sepeti zaten satın alınmışsa mesaj göndermeden başarılı tamamla. Hiçbir iletişim kanalına izin yoksa hemen uygun değil olarak sonlandır.\nBir saat bekle; güncel satın alma bilgisine tekrar bak. Satın almamış ve e-posta izni varsa müşterinin adını ve sepet tutarını kullanarak hatırlatma e-postası gönder. E-posta izni yoksa bu mesajı atla ama izinli SMS yoluna devam et.\n24 saat daha bekle; güncel satın alma bilgisine tekrar bak. Hâlâ satın almamış ve SMS izni varsa COMEBACK10 koduyla yüzde 10 indirim sunan kişiselleştirilmiş SMS gönder. SMS izni yoksa dönüşümsüz tamamla. SMS gönderilirse 48 saat daha bekle ve güncel satın alma bilgisine göre başarılı ya da dönüşümsüz tamamla.\nSatın alma olayı hangi aşamada gelirse gelsin kalan adımları hemen durdur ve dönüşüm olarak say. Aynı müşteri yedi gün dolmadan yeniden giremesin. Eksik ad ve tutarda anlamlı yedek metin kullan. Sepete dönüş adresi şimdilik https://example.com/cart; yayından önce gerçek adresin ve indirim kodunun doğrulanması gerektiğini belirt. Mesajlar Türkçe olsun.",
+  "model": "gpt-6-luna",
+  "schema": "composer.v3",
+  "catalog": [
+    {
+      "key": "customer_field::customer.email",
+      "kind": "customer_field",
+      "path": "customer.email",
+      "label": "email",
+      "data_type": "string",
+      "aliases": [],
+      "enabled": true,
+      "source": "system"
+    },
+    {
+      "key": "customer_field::customer.phone",
+      "kind": "customer_field",
+      "path": "customer.phone",
+      "label": "phone",
+      "data_type": "string",
+      "aliases": [],
+      "enabled": true,
+      "source": "system"
+    },
+    {
+      "key": "customer_field::customer.locale",
+      "kind": "customer_field",
+      "path": "customer.locale",
+      "label": "locale",
+      "data_type": "string",
+      "aliases": [],
+      "enabled": true,
+      "source": "system"
+    },
+    {
+      "key": "customer_field::customer.timezone",
+      "kind": "customer_field",
+      "path": "customer.timezone",
+      "label": "timezone",
+      "data_type": "string",
+      "aliases": [],
+      "enabled": true,
+      "source": "system"
+    },
+    {
+      "key": "customer_field::customer.external_id",
+      "kind": "customer_field",
+      "path": "customer.external_id",
+      "label": "external id",
+      "data_type": "string",
+      "aliases": [],
+      "enabled": true,
+      "source": "system"
+    },
+    {
+      "key": "customer_field::customer.customer_id",
+      "kind": "customer_field",
+      "path": "customer.customer_id",
+      "label": "customer id",
+      "data_type": "string",
+      "aliases": [],
+      "enabled": true,
+      "source": "system"
+    },
+    {
+      "key": "customer_field::customer.consents.email",
+      "kind": "customer_field",
+      "path": "customer.consents.email",
+      "label": "consents / email",
+      "data_type": "boolean",
+      "aliases": [],
+      "enabled": true,
+      "source": "system"
+    },
+    {
+      "key": "customer_field::customer.consents.sms",
+      "kind": "customer_field",
+      "path": "customer.consents.sms",
+      "label": "consents / sms",
+      "data_type": "boolean",
+      "aliases": [],
+      "enabled": true,
+      "source": "system"
+    },
+    {
+      "key": "customer_field::customer.attributes.activated",
+      "kind": "customer_field",
+      "path": "customer.attributes.activated",
+      "label": "activated",
+      "data_type": "boolean",
+      "aliases": [],
+      "enabled": true,
+      "source": "observed"
+    },
+    {
+      "key": "customer_field::customer.attributes.cart_amount",
+      "kind": "customer_field",
+      "path": "customer.attributes.cart_amount",
+      "label": "cart amount",
+      "data_type": "number",
+      "aliases": [],
+      "enabled": true,
+      "source": "observed"
+    },
+    {
+      "key": "customer_field::customer.attributes.cart_purchased",
+      "kind": "customer_field",
+      "path": "customer.attributes.cart_purchased",
+      "label": "Bu sepet satın alındı mı",
+      "description": "Yalnızca güncel sepete ait satın alma durumu; önceki başka siparişler anlamına gelmez.",
+      "data_type": "boolean",
+      "aliases": [],
+      "enabled": true,
+      "source": "declared"
+    },
+    {
+      "key": "customer_field::customer.attributes.demo",
+      "kind": "customer_field",
+      "path": "customer.attributes.demo",
+      "label": "demo",
+      "data_type": "boolean",
+      "aliases": [],
+      "enabled": true,
+      "source": "observed"
+    },
+    {
+      "key": "customer_field::customer.attributes.first_name",
+      "kind": "customer_field",
+      "path": "customer.attributes.first_name",
+      "label": "Müşterinin adı",
+      "data_type": "string",
+      "aliases": [],
+      "enabled": true,
+      "source": "declared"
+    },
+    {
+      "key": "customer_field::customer.attributes.inactive",
+      "kind": "customer_field",
+      "path": "customer.attributes.inactive",
+      "label": "inactive",
+      "data_type": "boolean",
+      "aliases": [],
+      "enabled": true,
+      "source": "observed"
+    },
+    {
+      "key": "customer_field::customer.attributes.last_name",
+      "kind": "customer_field",
+      "path": "customer.attributes.last_name",
+      "label": "last name",
+      "data_type": "string",
+      "aliases": [],
+      "enabled": true,
+      "source": "observed"
+    },
+    {
+      "key": "customer_field::customer.attributes.plan",
+      "kind": "customer_field",
+      "path": "customer.attributes.plan",
+      "label": "plan",
+      "data_type": "string",
+      "aliases": [],
+      "enabled": true,
+      "source": "observed"
+    },
+    {
+      "key": "customer_field::customer.attributes.purchased",
+      "kind": "customer_field",
+      "path": "customer.attributes.purchased",
+      "label": "purchased",
+      "data_type": "boolean",
+      "aliases": [],
+      "enabled": true,
+      "source": "observed"
+    },
+    {
+      "key": "customer_field::customer.attributes.total_orders",
+      "kind": "customer_field",
+      "path": "customer.attributes.total_orders",
+      "label": "total orders",
+      "data_type": "number",
+      "aliases": [],
+      "enabled": true,
+      "source": "observed"
+    },
+    {
+      "key": "event:demo_activation_completed:",
+      "kind": "event",
+      "event_name": "demo_activation_completed",
+      "label": "demo activation completed",
+      "data_type": "event",
+      "aliases": [],
+      "enabled": true,
+      "source": "observed"
+    },
+    {
+      "key": "event:demo_cart_abandoned:",
+      "kind": "event",
+      "event_name": "demo_cart_abandoned",
+      "label": "Sepet terk edildi",
+      "data_type": "event",
+      "aliases": [],
+      "enabled": true,
+      "source": "declared"
+    },
+    {
+      "key": "event:demo_customer_inactive:",
+      "kind": "event",
+      "event_name": "demo_customer_inactive",
+      "label": "demo customer inactive",
+      "data_type": "event",
+      "aliases": [],
+      "enabled": true,
+      "source": "observed"
+    },
+    {
+      "key": "event:demo_post_purchase:",
+      "kind": "event",
+      "event_name": "demo_post_purchase",
+      "label": "demo post purchase",
+      "data_type": "event",
+      "aliases": [],
+      "enabled": true,
+      "source": "observed"
+    },
+    {
+      "key": "event:demo_purchase_completed:",
+      "kind": "event",
+      "event_name": "demo_purchase_completed",
+      "label": "Satın alma tamamlandı",
+      "data_type": "event",
+      "aliases": [],
+      "enabled": true,
+      "source": "declared"
+    },
+    {
+      "key": "event:demo_user_registered:",
+      "kind": "event",
+      "event_name": "demo_user_registered",
+      "label": "demo user registered",
+      "data_type": "event",
+      "aliases": [],
+      "enabled": true,
+      "source": "observed"
+    },
+    {
+      "key": "event_field:demo_cart_abandoned:event.properties.amount",
+      "kind": "event_field",
+      "event_name": "demo_cart_abandoned",
+      "path": "event.properties.amount",
+      "label": "Sepet tutarı",
+      "data_type": "number",
+      "aliases": [],
+      "enabled": true,
+      "source": "declared"
+    },
+    {
+      "key": "event_field:demo_cart_abandoned:event.properties.amount_display",
+      "kind": "event_field",
+      "event_name": "demo_cart_abandoned",
+      "path": "event.properties.amount_display",
+      "label": "Biçimlendirilmiş sepet tutarı",
+      "data_type": "string",
+      "aliases": [],
+      "enabled": true,
+      "source": "declared"
+    },
+    {
+      "key": "event_field:demo_cart_abandoned:event.properties.cart_id",
+      "kind": "event_field",
+      "event_name": "demo_cart_abandoned",
+      "path": "event.properties.cart_id",
+      "label": "cart id",
+      "data_type": "string",
+      "aliases": [],
+      "enabled": true,
+      "source": "declared"
+    },
+    {
+      "key": "event_field:demo_cart_abandoned:event.properties.currency",
+      "kind": "event_field",
+      "event_name": "demo_cart_abandoned",
+      "path": "event.properties.currency",
+      "label": "Sepetin para birimi",
+      "data_type": "string",
+      "aliases": [],
+      "enabled": true,
+      "source": "declared"
+    },
+    {
+      "key": "event_field:demo_purchase_completed:event.properties.amount",
+      "kind": "event_field",
+      "event_name": "demo_purchase_completed",
+      "path": "event.properties.amount",
+      "label": "Sepet tutarı",
+      "data_type": "number",
+      "aliases": [],
+      "enabled": true,
+      "source": "declared"
+    },
+    {
+      "key": "event_field:demo_purchase_completed:event.properties.cart_id",
+      "kind": "event_field",
+      "event_name": "demo_purchase_completed",
+      "path": "event.properties.cart_id",
+      "label": "cart id",
+      "data_type": "string",
+      "aliases": [],
+      "enabled": true,
+      "source": "declared"
+    },
+    {
+      "key": "event_field:demo_purchase_completed:event.properties.currency",
+      "kind": "event_field",
+      "event_name": "demo_purchase_completed",
+      "path": "event.properties.currency",
+      "label": "Sepetin para birimi",
+      "data_type": "string",
+      "aliases": [],
+      "enabled": true,
+      "source": "declared"
+    }
+  ],
+  "catalog_setup": "Discovered only local field names/types, labeled existing demo mappings; customer values not sent to the model.",
+  "journey_id": "df88e290-d6e0-489a-bea8-8b42f1c843d1",
+  "url": "http://localhost:5173/journeys/df88e290-d6e0-489a-bea8-8b42f1c843d1",
+  "before_live_delivery_count": 50,
+  "generation_seconds": 33.90318245899999,
+  "generation": {
+    "attempts": [
+      {
+        "provider": "openai",
+        "requested_model": "gpt-6-luna",
+        "model": "gpt-6-luna",
+        "request_id": "req_b5af0c49307945718c3a0c5f36a826cf",
+        "duration_ms": 33889,
+        "http_status": 200,
+        "usage": {
+          "input_tokens": 3489,
+          "output_tokens": 3367,
+          "reasoning_tokens": 1484,
+          "cached_input_tokens": 0,
+          "cache_creation_tokens": 3486
+        },
+        "provider_succeeded": true,
+        "accepted": true
+      }
+    ],
+    "usage": {
+      "input_tokens": 3489,
+      "output_tokens": 3367,
+      "reasoning_tokens": 1484,
+      "cached_input_tokens": 0,
+      "cache_creation_tokens": 3486
+    }
+  },
+  "proposal": {
+    "$schema": "http://127.0.0.1:8090/api/schemas/Proposal.json",
+    "grounding": {
+      "version": "semantic.v1",
+      "ready": true,
+      "mappings": [
+        {
+          "reference": {
+            "key": "customer_field::customer.attributes.cart_purchased",
+            "kind": "customer_field",
+            "path": "customer.attributes.cart_purchased"
+          },
+          "label": "Bu sepet satın alındı mı",
+          "status": "matched",
+          "candidates": [
+            {
+              "key": "customer_field::customer.attributes.cart_purchased",
+              "kind": "customer_field",
+              "path": "customer.attributes.cart_purchased",
+              "label": "Bu sepet satın alındı mı",
+              "description": "Yalnızca güncel sepete ait satın alma durumu; önceki başka siparişler anlamına gelmez.",
+              "data_type": "boolean",
+              "aliases": [],
+              "enabled": true,
+              "source": "declared"
+            }
+          ]
+        },
+        {
+          "reference": {
+            "key": "customer_field::customer.attributes.first_name",
+            "kind": "customer_field",
+            "path": "customer.attributes.first_name"
+          },
+          "label": "Müşterinin adı",
+          "status": "matched",
+          "candidates": [
+            {
+              "key": "customer_field::customer.attributes.first_name",
+              "kind": "customer_field",
+              "path": "customer.attributes.first_name",
+              "label": "Müşterinin adı",
+              "data_type": "string",
+              "aliases": [],
+              "enabled": true,
+              "source": "declared"
+            }
+          ]
+        },
+        {
+          "reference": {
+            "key": "customer_field::customer.consents.email",
+            "kind": "customer_field",
+            "path": "customer.consents.email"
+          },
+          "label": "consents / email",
+          "status": "matched",
+          "candidates": [
+            {
+              "key": "customer_field::customer.consents.email",
+              "kind": "customer_field",
+              "path": "customer.consents.email",
+              "label": "consents / email",
+              "data_type": "boolean",
+              "aliases": [],
+              "enabled": true,
+              "source": "system"
+            }
+          ]
+        },
+        {
+          "reference": {
+            "key": "customer_field::customer.consents.sms",
+            "kind": "customer_field",
+            "path": "customer.consents.sms"
+          },
+          "label": "consents / sms",
+          "status": "matched",
+          "candidates": [
+            {
+              "key": "customer_field::customer.consents.sms",
+              "kind": "customer_field",
+              "path": "customer.consents.sms",
+              "label": "consents / sms",
+              "data_type": "boolean",
+              "aliases": [],
+              "enabled": true,
+              "source": "system"
+            }
+          ]
+        },
+        {
+          "reference": {
+            "key": "event:demo_cart_abandoned:",
+            "kind": "event",
+            "event_name": "demo_cart_abandoned"
+          },
+          "label": "Sepet terk edildi",
+          "status": "matched",
+          "candidates": [
+            {
+              "key": "event:demo_cart_abandoned:",
+              "kind": "event",
+              "event_name": "demo_cart_abandoned",
+              "label": "Sepet terk edildi",
+              "data_type": "event",
+              "aliases": [],
+              "enabled": true,
+              "source": "declared"
+            }
+          ]
+        },
+        {
+          "reference": {
+            "key": "event:demo_purchase_completed:",
+            "kind": "event",
+            "event_name": "demo_purchase_completed"
+          },
+          "label": "Satın alma tamamlandı",
+          "status": "matched",
+          "candidates": [
+            {
+              "key": "event:demo_purchase_completed:",
+              "kind": "event",
+              "event_name": "demo_purchase_completed",
+              "label": "Satın alma tamamlandı",
+              "data_type": "event",
+              "aliases": [],
+              "enabled": true,
+              "source": "declared"
+            }
+          ]
+        },
+        {
+          "reference": {
+            "key": "event_field:demo_cart_abandoned:event.properties.amount",
+            "kind": "event_field",
+            "event_name": "demo_cart_abandoned",
+            "path": "event.properties.amount"
+          },
+          "label": "Sepet tutarı",
+          "status": "matched",
+          "candidates": [
+            {
+              "key": "event_field:demo_cart_abandoned:event.properties.amount",
+              "kind": "event_field",
+              "event_name": "demo_cart_abandoned",
+              "path": "event.properties.amount",
+              "label": "Sepet tutarı",
+              "data_type": "number",
+              "aliases": [],
+              "enabled": true,
+              "source": "declared"
+            }
+          ]
+        },
+        {
+          "reference": {
+            "key": "event_field:demo_cart_abandoned:event.properties.amount_display",
+            "kind": "event_field",
+            "event_name": "demo_cart_abandoned",
+            "path": "event.properties.amount_display"
+          },
+          "label": "Biçimlendirilmiş sepet tutarı",
+          "status": "matched",
+          "candidates": [
+            {
+              "key": "event_field:demo_cart_abandoned:event.properties.amount_display",
+              "kind": "event_field",
+              "event_name": "demo_cart_abandoned",
+              "path": "event.properties.amount_display",
+              "label": "Biçimlendirilmiş sepet tutarı",
+              "data_type": "string",
+              "aliases": [],
+              "enabled": true,
+              "source": "declared"
+            }
+          ]
+        },
+        {
+          "reference": {
+            "key": "event_field:demo_cart_abandoned:event.properties.currency",
+            "kind": "event_field",
+            "event_name": "demo_cart_abandoned",
+            "path": "event.properties.currency"
+          },
+          "label": "Sepetin para birimi",
+          "status": "matched",
+          "candidates": [
+            {
+              "key": "event_field:demo_cart_abandoned:event.properties.currency",
+              "kind": "event_field",
+              "event_name": "demo_cart_abandoned",
+              "path": "event.properties.currency",
+              "label": "Sepetin para birimi",
+              "data_type": "string",
+              "aliases": [],
+              "enabled": true,
+              "source": "declared"
+            }
+          ]
+        }
+      ]
+    },
+    "generation": {
+      "attempts": [
+        {
+          "provider": "openai",
+          "requested_model": "gpt-6-luna",
+          "model": "gpt-6-luna",
+          "request_id": "req_b5af0c49307945718c3a0c5f36a826cf",
+          "duration_ms": 33889,
+          "http_status": 200,
+          "usage": {
+            "input_tokens": 3489,
+            "output_tokens": 3367,
+            "reasoning_tokens": 1484,
+            "cached_input_tokens": 0,
+            "cache_creation_tokens": 3486
+          },
+          "provider_succeeded": true,
+          "accepted": true
+        }
+      ],
+      "usage": {
+        "input_tokens": 3489,
+        "output_tokens": 3367,
+        "reasoning_tokens": 1484,
+        "cached_input_tokens": 0,
+        "cache_creation_tokens": 3486
+      }
+    },
+    "schema_version": "composer.v3",
+    "name": "Sepet Geri Kazanım — Canlı Brief Testi",
+    "description": "En az 50 EUR tutarındaki terk edilmiş sepetler için, mevcut sepet satın alma durumunu ve izinleri kontrol ederek Türkçe e-posta ve SMS hatırlatmaları gönderir.",
+    "workflow": {
+      "schema_version": 1,
+      "nodes": [
+        {
+          "id": "trigger",
+          "type": "event_trigger",
+          "label": "Terk edilmiş sepet: en az 50 EUR",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "config": {
+            "event_name": "demo_cart_abandoned",
+            "filters": {
+              "logic": "and",
+              "rules": [
+                {
+                  "path": "event.properties.amount",
+                  "operator": "greater_than",
+                  "value": 49.99
+                },
+                {
+                  "path": "event.properties.currency",
+                  "operator": "equals",
+                  "value": "EUR"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "already_purchased",
+          "type": "condition",
+          "label": "Bu sepet satın alınmış mı?",
+          "position": {
+            "x": 200,
+            "y": 0
+          },
+          "config": {
+            "rule": {
+              "path": "customer.attributes.cart_purchased",
+              "operator": "equals",
+              "value": true
+            }
+          }
+        },
+        {
+          "id": "converted_exit",
+          "type": "exit",
+          "label": "Dönüşüm — sepet satın alındı",
+          "position": {
+            "x": 400,
+            "y": -100
+          },
+          "config": {
+            "reason": "converted"
+          }
+        },
+        {
+          "id": "any_permission",
+          "type": "condition",
+          "label": "En az bir iletişim izni var mı?",
+          "position": {
+            "x": 400,
+            "y": 100
+          },
+          "config": {
+            "rule": {
+              "logic": "or",
+              "rules": [
+                {
+                  "path": "customer.consents.email",
+                  "operator": "equals",
+                  "value": true
+                },
+                {
+                  "path": "customer.consents.sms",
+                  "operator": "equals",
+                  "value": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "ineligible_exit",
+          "type": "exit",
+          "label": "İletişim izni yok — uygun değil",
+          "position": {
+            "x": 600,
+            "y": 200
+          },
+          "config": {
+            "reason": "condition_not_met"
+          }
+        },
+        {
+          "id": "wait_one_hour",
+          "type": "wait",
+          "label": "1 saat bekle",
+          "position": {
+            "x": 600,
+            "y": 0
+          },
+          "config": {
+            "duration_seconds": 3600,
+            "timezone": "UTC"
+          }
+        },
+        {
+          "id": "purchased_after_one_hour",
+          "type": "condition",
+          "label": "Güncel sepet satın alınmış mı?",
+          "position": {
+            "x": 800,
+            "y": 0
+          },
+          "config": {
+            "rule": {
+              "path": "customer.attributes.cart_purchased",
+              "operator": "equals",
+              "value": true
+            }
+          }
+        },
+        {
+          "id": "email_permission",
+          "type": "condition",
+          "label": "E-posta izni var mı?",
+          "position": {
+            "x": 1000,
+            "y": 100
+          },
+          "config": {
+            "rule": {
+              "path": "customer.consents.email",
+              "operator": "equals",
+              "value": true
+            }
+          }
+        },
+        {
+          "id": "reminder_email",
+          "type": "email",
+          "label": "Sepet hatırlatma e-postası",
+          "position": {
+            "x": 1200,
+            "y": 0
+          },
+          "config": {
+            "subject": "Sepetiniz sizi bekliyor",
+            "preheader": "Sepetinizdeki ürünler sizi bekliyor.",
+            "html": "<p>Merhaba {{ customer.attributes.first_name }},</p><p>{{ event.properties.amount_display }} sepetinizde sizi bekliyor. Alışverişinizi tamamlamak için <a href=\"https://example.com/cart\">sepetinize dönün</a>.</p>",
+            "text": "Merhaba {{ customer.attributes.first_name }}, {{ event.properties.amount_display }} sepetinizde sizi bekliyor. Alışverişinizi tamamlamak için https://example.com/cart adresinden sepetinize dönün.",
+            "fallbacks": {
+              "customer.attributes.first_name": "Merhaba",
+              "event.properties.amount_display": "sepetinizdeki ürünler"
+            }
+          }
+        },
+        {
+          "id": "wait_24_hours",
+          "type": "wait",
+          "label": "24 saat daha bekle",
+          "position": {
+            "x": 1400,
+            "y": 100
+          },
+          "config": {
+            "duration_seconds": 86400,
+            "timezone": "UTC"
+          }
+        },
+        {
+          "id": "purchased_after_24_hours",
+          "type": "condition",
+          "label": "Güncel sepet satın alınmış mı?",
+          "position": {
+            "x": 1600,
+            "y": 100
+          },
+          "config": {
+            "rule": {
+              "path": "customer.attributes.cart_purchased",
+              "operator": "equals",
+              "value": true
+            }
+          }
+        },
+        {
+          "id": "sms_permission",
+          "type": "condition",
+          "label": "SMS izni var mı?",
+          "position": {
+            "x": 1800,
+            "y": 200
+          },
+          "config": {
+            "rule": {
+              "path": "customer.consents.sms",
+              "operator": "equals",
+              "value": true
+            }
+          }
+        },
+        {
+          "id": "discount_sms",
+          "type": "sms",
+          "label": "COMEBACK10 indirim SMS'i",
+          "position": {
+            "x": 2000,
+            "y": 100
+          },
+          "config": {
+            "text": "Merhaba {{ customer.attributes.first_name }}! {{ event.properties.amount_display }} sepetinizde sizi bekliyor. COMEBACK10 koduyla %10 indirim kazanmak için https://example.com/cart adresine dönün.",
+            "fallbacks": {
+              "customer.attributes.first_name": "Merhaba",
+              "event.properties.amount_display": "sepetinizdeki ürünler"
+            }
+          }
+        },
+        {
+          "id": "completed_exit",
+          "type": "exit",
+          "label": "Dönüşüm olmadan tamamlandı",
+          "position": {
+            "x": 2000,
+            "y": 300
+          },
+          "config": {
+            "reason": "completed"
+          }
+        },
+        {
+          "id": "wait_48_hours",
+          "type": "wait",
+          "label": "SMS sonrası 48 saat bekle",
+          "position": {
+            "x": 2200,
+            "y": 100
+          },
+          "config": {
+            "duration_seconds": 172800,
+            "timezone": "UTC"
+          }
+        },
+        {
+          "id": "purchased_after_48_hours",
+          "type": "condition",
+          "label": "Güncel sepet satın alınmış mı?",
+          "position": {
+            "x": 2400,
+            "y": 100
+          },
+          "config": {
+            "rule": {
+              "path": "customer.attributes.cart_purchased",
+              "operator": "equals",
+              "value": true
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "trigger",
+          "target": "already_purchased",
+          "port": "started"
+        },
+        {
+          "id": "e2",
+          "source": "already_purchased",
+          "target": "converted_exit",
+          "port": "true"
+        },
+        {
+          "id": "e3",
+          "source": "already_purchased",
+          "target": "any_permission",
+          "port": "false"
+        },
+        {
+          "id": "e4",
+          "source": "any_permission",
+          "target": "wait_one_hour",
+          "port": "true"
+        },
+        {
+          "id": "e5",
+          "source": "any_permission",
+          "target": "ineligible_exit",
+          "port": "false"
+        },
+        {
+          "id": "e6",
+          "source": "wait_one_hour",
+          "target": "purchased_after_one_hour",
+          "port": "completed"
+        },
+        {
+          "id": "e7",
+          "source": "purchased_after_one_hour",
+          "target": "converted_exit",
+          "port": "true"
+        },
+        {
+          "id": "e8",
+          "source": "purchased_after_one_hour",
+          "target": "email_permission",
+          "port": "false"
+        },
+        {
+          "id": "e9",
+          "source": "email_permission",
+          "target": "reminder_email",
+          "port": "true"
+        },
+        {
+          "id": "e10",
+          "source": "email_permission",
+          "target": "wait_24_hours",
+          "port": "false"
+        },
+        {
+          "id": "e11",
+          "source": "reminder_email",
+          "target": "wait_24_hours",
+          "port": "next"
+        },
+        {
+          "id": "e12",
+          "source": "wait_24_hours",
+          "target": "purchased_after_24_hours",
+          "port": "completed"
+        },
+        {
+          "id": "e13",
+          "source": "purchased_after_24_hours",
+          "target": "converted_exit",
+          "port": "true"
+        },
+        {
+          "id": "e14",
+          "source": "purchased_after_24_hours",
+          "target": "sms_permission",
+          "port": "false"
+        },
+        {
+          "id": "e15",
+          "source": "sms_permission",
+          "target": "discount_sms",
+          "port": "true"
+        },
+        {
+          "id": "e16",
+          "source": "sms_permission",
+          "target": "completed_exit",
+          "port": "false"
+        },
+        {
+          "id": "e17",
+          "source": "discount_sms",
+          "target": "wait_48_hours",
+          "port": "next"
+        },
+        {
+          "id": "e18",
+          "source": "wait_48_hours",
+          "target": "purchased_after_48_hours",
+          "port": "completed"
+        },
+        {
+          "id": "e19",
+          "source": "purchased_after_48_hours",
+          "target": "converted_exit",
+          "port": "true"
+        },
+        {
+          "id": "e20",
+          "source": "purchased_after_48_hours",
+          "target": "completed_exit",
+          "port": "false"
+        }
+      ],
+      "global_exit": {
+        "reason": "converted",
+        "event_name": "demo_purchase_completed"
+      },
+      "reentry": {
+        "mode": "cooldown",
+        "cooldown_seconds": 604800
+      }
+    },
+    "explanation": "Sepet terk edilme olayı en az 50 EUR ise akış başlar. Sepet zaten satın alınmışsa dönüşüm olarak tamamlanır; e-posta ve SMS izni de yoksa uygun değil olarak sonlanır. Bir saat sonra satın alma ve e-posta izni kontrol edilir; e-posta izni yoksa e-posta atlanır. Ardından 24 saat sonra satın alma ve SMS izni kontrol edilir. İzinli SMS gönderilirse 48 saat sonra satın alma durumu yeniden kontrol edilir. Satın alma olayı akışın herhangi bir noktasında dönüşüm olarak kaydedilir ve kalan adımları durdurur.",
+    "warnings": [
+      "Sepete dönüş adresi https://example.com/cart olarak kullanıldı; yayından önce gerçek adresi doğrulayın.",
+      "COMEBACK10 indirim kodunu ve yüzde 10 indirim koşullarını yayından önce doğrulayın.",
+      "E-posta ve SMS gönderimi için kanal sağlayıcısı/dağıtım ayarları belirtilmedi; yayından önce doğrulayın.",
+      "Satın alma olayı müşteri için akışın herhangi bir aşamasında gelirse dönüşüm sayılır; olayın yalnızca bu terk edilmiş sepete ait olduğunu ayırt eden bir eşleştirme filtresi tanımlanmadı.",
+      "No behavior contract selected: graph validation does not prove brief compliance. Define acceptance scenarios before publishing."
+    ],
+    "diff": {
+      "metadata_changed": true,
+      "added_nodes": [
+        "already_purchased",
+        "any_permission",
+        "completed_exit",
+        "converted_exit",
+        "discount_sms",
+        "email_permission",
+        "ineligible_exit",
+        "purchased_after_24_hours",
+        "purchased_after_48_hours",
+        "purchased_after_one_hour",
+        "reminder_email",
+        "sms_permission",
+        "trigger",
+        "wait_24_hours",
+        "wait_48_hours",
+        "wait_one_hour"
+      ],
+      "removed_nodes": [],
+      "updated_nodes": [],
+      "changed_conditions": [],
+      "changed_messages": [],
+      "edges_changed": true,
+      "exit_changed": true,
+      "reentry_changed": true
+    },
+    "action": "generate"
+  },
+  "review_revision": 3,
+  "stage": "complete",
+  "validation": {
+    "$schema": "http://127.0.0.1:8090/api/schemas/Validation.json",
+    "valid": true,
+    "issues": []
+  },
+  "isolation": {
+    "draft": true,
+    "no_published_versions": true,
+    "no_live_executions": true,
+    "no_new_live_deliveries": true,
+    "unmodified_model_workflow": true
+  },
+  "publish_check": {
+    "$schema": "http://127.0.0.1:8090/api/schemas/ResultStruct { Ready bool \"json:\\\"ready\\\"\"; Issues ListGateIssue \"json:\\\"issues\\\"\"; Policy string \"json:\\\"policy\\\"\" }Body.json",
+    "ready": false,
+    "issues": [
+      {
+        "code": "test_failed",
+        "message": "1 acceptance scenarios failed; replay and pass each case before publishing"
+      }
+    ],
+    "policy": "Consent is enforced for every send. Workspace frequency caps apply. Global exit: true. Publishing creates an immutable version."
+  },
+  "passed": 10,
+  "total": 11,
+  "total_seconds": 82.497490667
+}

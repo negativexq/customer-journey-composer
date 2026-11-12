@@ -14,6 +14,11 @@ Workspace business terminology can now be defined in Settings and reviewed again
 
 ## Verified locally — November 12, 2026
 
+**Latest single-brief trial:** a fresh `composer.v3` generation in business language
+passed **10/11 sandbox scenarios**. The model approximated “at least 50 EUR” as
+`> 49.99`; the fractional boundary failed and publication was blocked. One provider
+attempt used **6,856 tokens** in **33.90 s**. [Brief, output, screenshots and results](docs/reports/live-brief-cart-2026-11-12.md).
+
 **Latest broader audit:** five fresh paid business briefs produced valid graphs,
 but the subsequent behavior audit passed **22/29 checks**. Refund outcomes,
 profile-goal checks, missing fallbacks and an omitted-requirement approval gap

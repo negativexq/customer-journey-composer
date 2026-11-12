@@ -419,3 +419,16 @@ polling interval after delivery completion. This identifies queue drain cost and
 common-branch people lookup as follow-ups; it does not claim saturation capacity
 or a controlled improvement against older runs.
 [Method, raw data, query plans and limits](JOURNEY-OBSERVABILITY-PERFORMANCE.md).
+
+### Fresh live brief evaluation — 2026-11-12
+
+A user-authorized paid `gpt-6-luna` request against composer.v3 generated an
+unmodified 16-node/20-edge cart journey in the local demo workspace. Existing
+workspace metadata was explicitly discovered/labeled before generation; the brief
+used business language. One attempt took 33.90 seconds and reported 3,489 input
+plus 3,367 output tokens. Ten of eleven sandbox cases passed. The 49.995-EUR case
+reproduced the model's `>49.99` approximation of a >=50 requirement and failed;
+publication was correctly blocked by that failed acceptance run. The draft and
+sandbox evidence remain available; there is no published version, live execution
+or new live delivery. No graph patch or additional paid repair was made.
+[Full findings and recorded artifacts](reports/live-brief-cart-2026-11-12.md).
