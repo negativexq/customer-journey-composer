@@ -1,0 +1,63 @@
+{
+  "captured_at": "2026-11-12T21:56:05.080Z",
+  "source_commit": "a60e975667c8c9845b8e66001e96d9da2451b43e",
+  "viewport": {
+    "width": 1600,
+    "height": 1050
+  },
+  "device_scale_factor": 2,
+  "synthetic_data": true,
+  "recorded_workflow": "docs/validation/scoped-contract-live-2026-11-13/result.json#stock",
+  "generation": "Local SSE replay of the recorded proposal; no live provider call",
+  "presentation_metadata": "Human-authored demo journey name/description; graph and contract from the recorded run",
+  "screenshots": [
+    {
+      "file": "docs/images/creation/method.png",
+      "width": 3200,
+      "height": 2100,
+      "bytes": 206755
+    },
+    {
+      "file": "docs/images/creation/brief.png",
+      "width": 3200,
+      "height": 2100,
+      "bytes": 407381
+    },
+    {
+      "file": "docs/images/creation/contract.png",
+      "width": 3200,
+      "height": 2100,
+      "bytes": 338734
+    },
+    {
+      "file": "docs/images/creation/generating.png",
+      "width": 3200,
+      "height": 2100,
+      "bytes": 331941
+    },
+    {
+      "file": "docs/images/creation/review.png",
+      "width": 3200,
+      "height": 2100,
+      "bytes": 458652
+    },
+    {
+      "file": "docs/images/creation/review-diagram.png",
+      "width": 3200,
+      "height": 2100,
+      "bytes": 374898
+    },
+    {
+      "file": "docs/images/creation/canvas-start.png",
+      "width": 3200,
+      "height": 2100,
+      "bytes": 337807
+    },
+    {
+      "file": "docs/images/creation/canvas-focus.png",
+      "width": 3200,
+      "height": 2100,
+      "bytes": 449446
+    }
+  ]
+}

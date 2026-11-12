@@ -1,115 +1,47 @@
 # Customer Journey Composer
 
-**Design the journey. Test every decision. Stay in control.**
-
-An AI-powered customer journey workspace with a visual builder, a persistent execution engine and a virtual-time Test Lab. Describe a customer experience, review the proposed workflow, preview its messages and follow each customer after publishing.
+Turn a customer experience brief into a visual journey you can review, test,
+publish and follow customer by customer. Claude and OpenAI propose the workflow;
+your team controls what is applied and activated.
 
 **AI-generated · Human-approved · Deterministically executed**
 
-![Journey Builder with an editable recovery workflow and contextual inspector](docs/images/journey-builder.png)
+**Describe → Review → Build → Test → Publish → Observe**
 
-[Try locally](#run-locally) · [Product gallery](docs/images/README.md) · [Architecture](docs/ARCHITECTURE.md) · [CI](https://github.com/negativexq/customer-journey-composer/actions/workflows/ci.yml)
+[Run locally](#run-locally) · [Product gallery](docs/images/README.md) ·
+[Live validation](docs/reports/scoped-contract-live-2026-11-13.md) · [Architecture](docs/ARCHITECTURE.md)
 
-Workspace business terminology can now be defined in Settings and reviewed against AI-generated plans before approval. [Semantic layer: setup, safety and limits](docs/SEMANTIC-LAYER.md).
+## What you can do
 
-## Verified locally — November 13, 2026
+| Capability                | In the product                                                                                                                                      |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Create with AI**        | Turn a natural-language brief into editable steps with Claude or OpenAI. Review scoped business expectations, changes and warnings before applying. |
+| **Build visually**        | Connect triggers, conditions, waits, email/SMS, profile updates and exits. Edit step settings, insert branches, undo changes and autosave.          |
+| **Test days in seconds**  | Advance a virtual clock, inject events and provider failures, and check expected outcomes in an isolated Test Lab.                                  |
+| **Preview every message** | Personalize as a customer and inspect email/SMS, consent decisions, blocked sends and attempts in Test Inbox.                                       |
+| **Run durable journeys**  | Start from real customer events. Persist waits and progress, deduplicate logical actions and recover after worker restarts.                         |
+| **Follow every outcome**  | Track customer paths, inspect node/message breakdowns and compare conversions by published version and entry cohort.                                |
 
-**Latest scoped-contract measurement: 25/25 external cases passed** for five fresh
-journeys using business contract v2. Same briefs/cases as the earlier failures;
-no manual graph edits. **49,594 tokens**, **174.17 s** generation, **216.34 s** total.
-Three requests still needed repair.
-[Comparison, contracts, outputs and limits](docs/reports/scoped-contract-live-2026-11-13.md).
+![Visual journey builder with typed steps, connected branches and a contextual inspector](docs/images/journey-builder.png)
 
-**Previous five new journey types:** **15 PASS / 5 FAIL / 5 BLOCKED** out of 25
-planned cases. Membership and course journeys passed 5/5 each; stock and referral
-exposed alternative-path/outcome gaps, and support generation was rejected.
-**49,579 tokens**, **161.87 s** generation. Failed test cases blocked publication.
-[Findings, outputs and limits](docs/reports/five-new-journeys-2026-11-12.md).
-
-**Previous paid follow-up: 25/25 behavior cases passed** across five fresh
-`composer.v5` journeys, compared with 16/25 for the same briefs/cases previously.
-Three automatic repairs; **47,572 tokens**, **155.92 s** generation, **183.51 s**
-total. No manual workflow edits or publication.
-[Per-journey results, raw outputs and limits](docs/reports/reviewed-generation-2026-11-12.md).
-
-The shared [business contract now has explicit situation/event scope](docs/BEHAVIOR-CONTRACT-V2.md),
-alternative obligations and ineligible outcomes. Historical paid failures are
-preserved; the fresh v2 follow-up above is reported separately.
-
-General AI generation now requires independent, human-confirmed expected results.
-Wrong channels, terminal outcomes and numeric boundaries are checked before Apply
-and Publish; new graphs receive deterministic canvas layout.
-[Behavior checks, recorded regressions and limits](docs/BEHAVIOR-CHECKS.md).
-
-**Latest varied-journey audit:** ten new paid briefs across ten journey types
-passed **41/50 behavior cases**. Four journeys exposed wrong channels, wrong
-completion outcomes, imprecise thresholds or missing invoice correlation.
-[Briefs, results and 70,076-token accounting](docs/reports/varied-journeys-2026-11-12.md).
-
-Entry-object matching is now available for cart/invoice goals, with explicit
-human configuration and composer.v4 support. Separate corrected drafts passed
-**15/15 deterministic regressions**; original paid outputs stay preserved.
-[Implementation, evidence and remaining limits](docs/ENTRY-CORRELATION.md).
-
-**Latest single-brief trial:** a fresh `composer.v3` generation in business language
-passed **10/11 sandbox scenarios**. The model approximated “at least 50 EUR” as
-`> 49.99`; the fractional boundary failed and publication was blocked. One provider
-attempt used **6,856 tokens** in **33.90 s**. [Brief, output, screenshots and results](docs/reports/live-brief-cart-2026-11-12.md).
-
-A follow-up ran **10 additional edge cases** on that same output: **9/10 passed**.
-An unrelated cart purchase incorrectly converted the journey; duplicate events,
-cooldown boundaries, consent revocation and ambiguous-provider no-retry checks
-passed in the sandbox. [Edge-case findings and traces](docs/reports/live-cart-edges-2026-11-12.md).
-
-**Latest broader audit:** five fresh paid business briefs produced valid graphs,
-but the subsequent behavior audit passed **22/29 checks**. Refund outcomes,
-profile-goal checks, missing fallbacks and an omitted-requirement approval gap
-need fixes. [Results, token usage and recorded outputs](docs/reports/semantic-live-five-2026-11-12.md).
-
-The core MVP flow works locally: **AI proposal → reviewed Apply → editable canvas →
-virtual-time tests → Test Inbox**. Persistent execution, controlled publishing,
-version isolation and monitoring also have recorded local integration/browser
-verification. [Product validation report and evidence](docs/PRODUCT-VALIDATION.md).
-
-Two fresh live OpenAI `gpt-6-luna` generations were applied without manual graph
-edits and tested through the application:
-
-| Live generation                | Sandbox scenarios | Provider attempts             | Total tokens | Composer time | Report                                                                            |
-| ------------------------------ | ----------------- | ----------------------------- | ------------ | ------------- | --------------------------------------------------------------------------------- |
-| Abandoned cart recovery        | **10/10 PASS**    | 2, including automatic repair | 13,751       | 47.169s       | [Brief, output and results](docs/validation/luna-live-2026-11-12/README.md)       |
-| SaaS onboarding and activation | **10/10 PASS**    | 1                             | 6,095        | 38.219s       | [Brief, output and results](docs/validation/luna-onboarding-2026-11-12/README.md) |
-
-These live-generation trials remained **Draft** and used simulated messages.
-They verify the recorded outputs and scenarios; they do not establish production
-readiness, real channel delivery or equivalent live Claude results. No external
-deployment was performed.
-
-## From customer event to customer experience
-
-| Workspace              | What you can do                                                                                                                 |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| **Journey Builder**    | Connect triggers, conditions, waits, email/SMS and exits. Insert steps on a branch, edit in context and undo changes.           |
-| **AI Composer**        | Use Claude or OpenAI to propose a typed workflow or message. Inspect the diff and assumptions before applying it.               |
-| **Preview & Test Lab** | Preview as a customer, fast-forward hours or days, inject events and provider failures, and check expected outcomes.            |
-| **Test Inbox**         | Inspect the exact rendered email or SMS, personalization, consent decision and provider attempts for each test run.             |
-| **Live Monitor**       | Track a customer on their published version. Inspect the current step, wait deadline, transition history and message decisions. |
-| **Analytics**          | Compare entries, conversions and channel outcomes using persisted execution data and indexed projections.                       |
-
-A published workflow is an immutable snapshot. Existing customers continue on the version they entered; editing a draft does not silently change their journey.
+Workspace business terminology maps your event and field names to labels used in
+AI review. Published versions stay immutable: existing customers continue on the
+version they entered while you edit a new draft.
 
 ## Review the plan before opening the canvas
 
 New journeys follow **Details → Creation method → Brief → Review → Builder**.
-Start from scratch or use one of four editable example briefs. During generation,
-see the actual processing stage and elapsed time. Review a simple diagram,
-request changes, then approve the plan to open an editable draft.
+Start from scratch or use one of four editable example briefs. Define scoped
+business expectations for initial conditions, event sequences and outcomes.
+During generation, see the processing stage and elapsed time. Review the contract
+and diagram, request changes, then approve the plan to open an editable draft.
 
 Brief and Review drafts reopen at their saved step, including after a refresh.
 Approval and publishing remain separate actions.
 
-![Journey creation review with a simple diagram, alternate paths and explicit approval](docs/images/creation/review.png)
+![Journey review with scoped business obligations and explicit approval](docs/images/creation/review.png)
 
-[Brief and examples](docs/images/creation/brief.png) · [Generation feedback](docs/images/creation/generating.png) · [Creation and persistence details](docs/design/creation-workspace.md)
+[Brief and examples](docs/images/creation/brief.png) · [Business contract](docs/images/creation/contract.png) · [Generation feedback](docs/images/creation/generating.png) · [Review diagram](docs/images/creation/review-diagram.png) · [Creation details](docs/design/creation-workspace.md)
 
 ## Fast-forward before you send
 
@@ -131,14 +63,35 @@ Rendered email and SMS appear beside their source journey, customer, simulated t
 
 Follow live node counts and customer paths, then compare journey and channel outcomes. Provider acceptance is reported separately from conversion; it is not presented as confirmed delivery.
 
-![Analytics populated by synthetic customers processed through the local execution engine](docs/images/analytics.png)
+![Journey analytics with version and cohort filters, outcomes and persisted synthetic execution data](docs/images/journey-observability/analytics.png)
 
-**About these screenshots:** all contacts and activity are synthetic demo data. Live demo actions use mock SMS; email previews are isolated simulations. Counts come from stored records, and the demo does not invent historical trends, email opens or click rates. Original gallery images are captured at **3200 × 2100**. The creation and canvas follow-up captures use a **1440 × 1040** viewport at 1.5 scale (**2160 × 1560** output), with recorded workflow fixtures and local simulated generation progress. No UI values or geometry were substituted. [Capture details](docs/SHOWCASE.md).
+**About these screenshots:** refreshed November 13, 2026 from the running local
+application at **3200 × 2100**. Contacts and activity are fictional; counts come
+from stored records. Creation screens use the recorded passing stock workflow
+with a local generation replay, not a new paid request. The application renders
+its normal UI, including warnings and human approval. [Capture methods and manifests](docs/SHOWCASE.md).
 
 Individual journeys now share version/cohort filters, readable path metrics and
 node → people/messages → customer-trace drilldowns. Select and Tabs use Reka UI.
 [Behavior, verification and limits](docs/design/journey-observability-implementation.md) ·
 [Updated journey observation screenshots](docs/images/journey-observability/README.md).
+
+## Verified locally — November 13, 2026
+
+**Five fresh OpenAI journeys passed 25/25 external behavior cases** using the
+shared scoped business contract. Same briefs/cases as the prior failing audit;
+no manual graph edits. **49,594 tokens**, **174.17 s** generation, **216.34 s** total.
+Three requests needed automatic repair. [Results, raw outputs and limits](docs/reports/scoped-contract-live-2026-11-13.md).
+
+The local application also passed **78/78 desktop/mobile browser cases**, quality
+checks and isolated HTTP/PostgreSQL integration. AI proposals remain drafts until
+reviewed; publishing is a separate action. [Business contract v2](docs/BEHAVIOR-CONTRACT-V2.md)
+· [Product validation](docs/PRODUCT-VALIDATION.md).
+
+These results cover the recorded outputs and scenarios, not arbitrary brief
+compliance or equivalent live Claude quality. Earlier failures and follow-ups stay
+available in the [validation history](docs/reports/README.md). No external deployment
+was performed.
 
 ## Run locally
 
@@ -193,7 +146,7 @@ External provider outcomes can be ambiguous; the system preserves that state rat
 
 The Vue Flow preview version is explicitly pinned to `2.0.0-next.21`. Email uses an SMTP adapter with Mailpit for local tests; SMS uses a mock adapter in the MVP. Claude and OpenAI share a versioned workflow schema and proposal interface.
 
-Two explicitly authorized live OpenAI trials are recorded above; broader live-provider evaluation remains deferred. Deterministic provider-contract, validation, approval and simulation tests run without paid model requests. AI never applies or publishes a proposal automatically. [AI configuration](docs/AI.md).
+Authorized live OpenAI audits are indexed in the [validation history](docs/reports/README.md). Live Claude quality remains unverified. Deterministic provider-contract, validation, approval and simulation tests run without paid model requests. AI never applies or publishes a proposal automatically. [AI configuration](docs/AI.md).
 
 ```sh
 make install
@@ -203,7 +156,7 @@ make test-e2e
 make test-recovery
 ```
 
-The latest recorded local browser run passed **64/64 desktop/mobile scenarios**, including real canvas connections, branch insertion/undo, access recovery, sandbox isolation, customer tracking and dark-OS/light-canvas behavior. Database integration tests use isolated PostgreSQL containers. Hosted CI also checks dependencies and application images.
+The latest recorded local browser run passed **78/78 desktop/mobile scenarios**, including real canvas connections, branch insertion/undo, access recovery, sandbox isolation, customer tracking and dark-OS/light-canvas behavior. Database integration tests use isolated PostgreSQL containers. Hosted CI also checks dependencies and application images.
 
 Measured 10,000-execution workloads, raw results and limitations are available in the [performance reports](docs/PERFORMANCE.md), [operational follow-up](docs/OPERATIONS-PERFORMANCE.md), [bounded-turn analysis](docs/BOUNDED-TURNS.md), [scheduler transaction tradeoffs](docs/SCHEDULER-LOCKS.md) and [latest queue/timer follow-up](docs/QUEUE-FOLLOWUP.md). They describe their own source revisions and matched baselines; they are not universal latency promises.
 

@@ -1,6 +1,6 @@
 {
-  "captured_at": "2026-11-11T02:04:32.775Z",
-  "source_commit": "6617f9e664ff6ba29fe6026895c9fdad0e4da9d9",
+  "captured_at": "2026-11-12T21:56:00.356Z",
+  "source_commit": "a60e975667c8c9845b8e66001e96d9da2451b43e",
   "source_dirty": true,
   "synthetic_data": true,
   "viewport": {
@@ -15,61 +15,79 @@
       "file": "docs/images/overview.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 438476
+      "bytes": 449792
     },
     {
       "file": "docs/images/journeys.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 411820
+      "bytes": 418191
     },
     {
       "file": "docs/images/journey-builder.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 401103
+      "bytes": 420525
     },
     {
       "file": "docs/images/test-lab.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 442335
+      "bytes": 465984
     },
     {
       "file": "docs/images/test-inbox-email.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 361744
+      "bytes": 361918
     },
     {
       "file": "docs/images/test-inbox-sms.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 416160
+      "bytes": 415383
     },
     {
       "file": "docs/images/live-monitor.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 332375
+      "bytes": 470355
+    },
+    {
+      "file": "docs/images/journey-observability/node-breakdown.png",
+      "width": 3200,
+      "height": 2100,
+      "bytes": 463191
+    },
+    {
+      "file": "docs/images/journey-observability/customer-path.png",
+      "width": 3200,
+      "height": 2100,
+      "bytes": 465229
+    },
+    {
+      "file": "docs/images/journey-observability/analytics.png",
+      "width": 3200,
+      "height": 2100,
+      "bytes": 367436
     },
     {
       "file": "docs/images/analytics.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 297006
+      "bytes": 307084
     },
     {
       "file": "docs/images/customers.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 398103
+      "bytes": 398223
     },
     {
       "file": "docs/images/publish-review.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 461468
+      "bytes": 476456
     }
   ],
   "live_entries_before": 72,

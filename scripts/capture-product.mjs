@@ -81,12 +81,19 @@ try {
   await expect(page.getByRole('complementary', { name: 'Step settings' })).toBeVisible();
   await shot('journey-builder');
   await open(`/journeys/${demo.canonicalJourneyId}?tab=preview-test&view=test-lab`);
+  const creating = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/v1/test-runs') &&
+      response.request().method() === 'POST' &&
+      response.ok(),
+  );
   await page.getByRole('button', { name: 'Create test run', exact: true }).click();
+  const inboxRunId = (await (await creating).json()).id;
   await page.getByRole('button', { name: 'Run to completion', exact: true }).click();
   await expect(page.getByTestId('test-result')).toHaveText('PASS');
   await shot('test-lab');
   await open('/test-inbox');
-  await page.getByLabel('Test run', { exact: true }).selectOption(demo.inboxRunId);
+  await page.getByLabel('Test run', { exact: true }).selectOption(inboxRunId);
   await expect(page.locator('.inbox-row')).toHaveCount(2);
   await page.locator('.inbox-row').filter({ hasText: 'EMAIL' }).click();
   await expect(
@@ -105,6 +112,21 @@ try {
     'showcase_customer_041',
   );
   await shot('live-monitor');
+  await page.getByRole('button', { name: 'Close customer journey', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Step', exact: true }).click();
+  await page.getByRole('option', { name: 'Welcome aboard', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Step breakdown' })).toBeVisible();
+  await shot('journey-observability/node-breakdown');
+  await open(
+    `/journeys/${demo.welcomeJourneyId}?tab=live-monitor&execution=${demo.monitorExecutionId}`,
+  );
+  await expect(page.getByRole('region', { name: 'Execution details' })).toContainText(
+    'showcase_customer_041',
+  );
+  await shot('journey-observability/customer-path');
+  await open(`/journeys/${demo.welcomeJourneyId}?tab=analytics`);
+  await expect(page.getByRole('heading', { name: 'Journey outcomes', exact: true })).toBeVisible();
+  await shot('journey-observability/analytics');
   await open('/analytics');
   await page.getByRole('button', { name: 'Trend period: Last 30 days', exact: true }).click();
   await page.getByRole('option', { name: /Last 7 days/ }).click();
@@ -129,7 +151,9 @@ try {
   )?.value;
   expect(manifest.live_entries_after).toBe(manifest.live_entries_before);
   await writeFile(directory + '/manifest.json', JSON.stringify(manifest, null, 2) + '\n');
-  console.log(`Saved ${manifest.screenshots.length} real application screenshots at 3200 × 2100.`);
+  console.log(
+    `Saved ${manifest.screenshots.length} current application screenshots at 3200 × 2100.`,
+  );
 } finally {
   await browser.close();
 }

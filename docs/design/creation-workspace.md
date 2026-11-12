@@ -73,14 +73,22 @@ local state. In-flight/unsaved work has a browser unload warning.
 
 ## Screenshots
 
-Captured from the running application at 1440 × 1040 CSS pixels, scale 1.5
-(2160 × 1560 output). Fictional isolated workspace. Generation lifecycle is a
-local streamed fixture; the workflow is a recorded Trial Conversion graph,
-not a newly generated provider response. No UI text or geometry was substituted.
+Refreshed November 13, 2026 at 1600 × 1050 CSS pixels, scale 2 (3200 × 2100).
+The fictional workspace uses the recorded passing stock workflow and scoped v2
+contract. Generation lifecycle is a local streamed replay, not a new provider call.
+The demo journey name/description are prepared metadata; normal application
+layout, reference checks and approval render the graph. The result remains Draft.
 
 [Brief and examples](../images/creation/brief.png) ·
+[Scoped contract](../images/creation/contract.png) ·
 [Generation feedback](../images/creation/generating.png) ·
-[Review diagram](../images/creation/review.png)
+[Review and expected outcomes](../images/creation/review.png) ·
+[Path diagram](../images/creation/review-diagram.png) ·
+[Gallery and manifest](../images/creation/README.md).
+
+The 60-case verification above belongs to the initial creation implementation.
+The later shared-contract correction passed 78/78 desktop/mobile cases;
+[scope and evidence](../BEHAVIOR-CONTRACT-V2.md).
 
 ## Canvas readability follow-up
 
@@ -101,10 +109,10 @@ dependency or runtime behavior was introduced.
 [Readable initial canvas](../images/creation/canvas-start.png) ·
 [Selected connections and navigation](../images/creation/canvas-focus.png)
 
-The final complete browser suite passes **64/64** desktop/mobile cases, including
+At this earlier canvas follow-up, the complete browser suite passed **64/64** desktop/mobile cases, including
 short exit navigation without graph mutation, Auto layout undo and failed
 composition restore without overwriting a saved brief. `make check` passes again.
 The earlier complete PostgreSQL integration run remains applicable: this
 follow-up changes frontend presentation only. No additional paid model call was
 made. The earlier 60-case result above records the creation slice before these
-four additional browser cases.
+four additional browser cases. The later shared-contract run reached **78/78**; see the verification link above.

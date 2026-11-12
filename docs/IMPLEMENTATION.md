@@ -559,3 +559,14 @@ generation 174.17 s, total audit 216.34 s. Three initial candidates still requir
 workflow repair (recorded category counts 2/1/2). All five workspaces had zero live
 records/jobs/versions by database readback. No publication or deployment.
 [Evidence, comparison and remaining limits](reports/scoped-contract-live-2026-11-13.md).
+
+### Product documentation and screenshot refresh — 2026-11-13
+
+Refreshed 21 native 3200 × 2100 captures from the current local UI: 13 main product/
+observation views and eight creation/review/canvas views. Creation replays the
+recorded passing stock output with its v2 contract through local SSE; no new paid
+call or publication. Fixed the capture tool's optional historical Inbox run
+assumption by selecting its newly created sandbox run. Production entries remained
+72 before/after capture. README leads with six product capabilities and the create → test → publish → observe
+flow, followed by current 25/25 live evidence and 78-case browser verification; older audits remain linked
+from the validation index. Capture commands, manifests and gallery notes are current.

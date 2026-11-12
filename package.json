@@ -19,7 +19,9 @@
     "test:e2e": "playwright test",
     "commitlint": "node scripts/check-commits.mjs",
     "demo:seed": "node scripts/seed-product-demo.mjs",
-    "screenshots": "node scripts/capture-product.mjs"
+    "screenshots": "node scripts/capture-product.mjs && node scripts/capture-creation.mjs",
+    "screenshots:product": "node scripts/capture-product.mjs",
+    "screenshots:creation": "node scripts/capture-creation.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

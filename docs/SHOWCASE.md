@@ -13,7 +13,7 @@ Live showcase actions use **mock SMS only**. Email previews are produced in the 
 
 The cart demo uses short real-time waits so it settles locally in seconds. The separate **Abandoned Cart · €50+** draft retains the original 1-hour / 24-hour / 48-hour specification and five A–E virtual-clock scenarios. Long-running onboarding, win-back and follow-up examples populate customer tracking and lifecycle views. Paused and sunset journeys retain their durable work.
 
-Counts and channel outcomes come from stored execution and delivery records, not substituted UI values. Live analytics excludes sandbox runs. Demo activity is created at the actual current time; the screenshots do not invent historical trends, email opens or click rates. Re-running a completed seed preserves the same fixture identities; two repeated runs were verified to retain 54 demo profiles and 72 demo executions.
+Counts and channel outcomes come from stored execution and delivery records, not substituted UI values. Live analytics excludes sandbox runs. Demo activity is created at the actual current time; the screenshots do not invent historical trends, email opens or click rates. Reused fixtures retain their original event times, so the last-24-hour count can be zero while all-time totals remain populated. Re-running a completed seed preserves the same fixture identities; two repeated runs were verified to retain 54 demo profiles and 72 demo executions.
 
 ## Capture the product
 
@@ -25,7 +25,23 @@ npm run screenshots
 
 The capture script uses the running local web/API stack, signs into the prefilled development demo account, seeds missing fixtures and exercises actual UI controls. Screenshots are 3200 × 2100 PNG files (1600 × 1050 viewport at 2× device scale). Animations and the text caret are disabled only for capture; UI data and content are unchanged.
 
-It captures Overview, Journeys, Builder with its inspector, Test Lab, email/SMS Inbox previews, Live Monitor, Analytics, Customers and publish review. Capturing Test Lab creates one additional isolated sandbox run. The script verifies that production entry counts remain unchanged while taking the screenshots. It opens and acknowledges publish review without activating the original recovery draft.
+The main gallery captures Overview, Journeys, Builder with its inspector, Test Lab,
+email/SMS Inbox previews, Live Monitor, node/customer drilldowns, per-journey and
+workspace Analytics, Customers and publish review: 13 images. Capturing Test Lab
+creates one additional isolated sandbox run. The Inbox is selected from that fresh
+run, rather than an optional historical run ID. The script verifies that production entry counts remain unchanged while taking the screenshots. It opens and acknowledges publish review without activating the original recovery draft.
+
+The creation gallery captures eight more screens in a fictional isolated workspace:
+method choice, brief, scoped contract, generation feedback, contract/path review and
+builder start/focus. It replays the recorded passing stock proposal using a local
+SSE server; new provider requests are blocked. Its demo name/description are
+human-authored metadata. Normal application layout and review/approval are exercised;
+the journey stays Draft. No new paid generation or publication occurs.
+
+Run either gallery independently with `npm run screenshots:product` or
+`npm run screenshots:creation`. The complete `npm run screenshots` command captures
+all 21 native PNGs at 3200 × 2100. The current refresh is November 13, 2026.
+[Product manifest](images/manifest.json) · [Creation manifest](images/creation/manifest.json).
 
 Images and capture metadata are saved under `docs/images`. `.tmp/product-demo.json` contains only local fixture IDs and counts; passwords, cookies and CSRF tokens are never written. An alternate local setup can set `CJC_API_URL` and `CJC_WEB_URL`; non-loopback origins and credential-bearing URLs are rejected.
 

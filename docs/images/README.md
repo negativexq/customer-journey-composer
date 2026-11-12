@@ -1,6 +1,6 @@
 # Product gallery
 
-Real application captures at **3200 × 2100** (2× display scale). All customers are fictional. Counts come from persisted local demo activity; live actions use mock SMS, while email previews use isolated simulations. No historical activity or open/click rates are invented.
+Refreshed November 13, 2026. Real application captures at **3200 × 2100** (2× display scale). All customers are fictional. Counts come from persisted local demo activity; live actions use mock SMS, while email previews use isolated simulations. No historical activity or open/click rates are invented.
 
 [Run the demo or reproduce these captures](../SHOWCASE.md) · [Capture manifest](manifest.json) · [Project README](../../README.md)
 
@@ -21,6 +21,18 @@ Compact journey management with draft, active, paused and sunset examples.
 Searchable Elements, branch insertion and a contextual step inspector on a light canvas.
 
 ![Recovery journey in the visual builder](journey-builder.png)
+
+## AI creation and scoped review
+
+A dedicated brief page, per-situation business expectations, visible generation
+progress and human approval before the editable canvas. Generation in these
+captures is a local replay of a recorded passing output, with no paid call.
+
+![Review of a scoped business contract before opening the builder](creation/review.png)
+
+[Brief](creation/brief.png) · [Contract editor](creation/contract.png) ·
+[Generation feedback](creation/generating.png) · [Path diagram](creation/review-diagram.png)
+· [Creation gallery and manifest](creation/README.md).
 
 ## Test Lab
 
@@ -46,9 +58,19 @@ An enrolled customer waiting on their immutable published workflow version.
 
 ![Live Monitor with a tracked customer](live-monitor.png)
 
-## Analytics
+## Journey analytics and drilldowns
 
-Entries, conversions and channel outcomes from the local execution engine. The demo is created on the actual current day, so earlier dates remain empty.
+Published-version/cohort reporting, node outcomes and customer execution paths.
+
+![Per-journey analytics with real persisted demo outcomes](journey-observability/analytics.png)
+
+[Node breakdown](journey-observability/node-breakdown.png) ·
+[Customer path](journey-observability/customer-path.png) ·
+[Observation capture details](journey-observability/README.md).
+
+## Workspace analytics
+
+Entries, conversions and channel outcomes from the local execution engine. Activity appears on the days the seed actually ran. Reused fixtures retain their original timestamps.
 
 ![Analytics with real synthetic execution totals](analytics.png)
 
