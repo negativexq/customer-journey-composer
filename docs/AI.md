@@ -36,11 +36,13 @@ The panel captures the current draft, shows the proposal and warnings, and offer
 
 ## Independent behavior and verification
 
-General graph generation requires human-confirmed behavior checks or the curated
+General graph generation requires a human-confirmed [scoped behavior contract](BEHAVIOR-CONTRACT-V2.md) (or a saved v1 example) or the curated
 acceptance contract before a provider call. Expected channel counts, outcome,
 optional duration and exact eligibility boundaries are validated with pure
-simulation and rechecked on Apply/approval/publication. Synthetic example values
-are stripped from provider input. [Contract, API change and limits](BEHAVIOR-CHECKS.md).
+simulation and rechecked on Apply/approval/publication. Private example values and event payloads
+are stripped from provider input; explicitly reviewed predicates and event
+relationships describe each clause to the model. Legacy counters are not global
+requirements. Rejected attempts retain only bounded validation category counts. [Contract, API change and limits](BEHAVIOR-CHECKS.md).
 
 Automated tests use local provider fixtures; no deterministic suite calls paid
 providers. Earlier user-authorized live OpenAI audits and their original failures

@@ -38,7 +38,7 @@ func TestSemanticMismatchTriggersBoundedRepair(t *testing.T) {
 	p := &sequence{outputs: []string{string(bad), string(fixed)}}
 	c, _ := New(map[string]Provider{"openai": p})
 	result, err := c.Compose(context.Background(), Input{BehaviorChecks: checks, Provider: "openai", Action: "generate", Prompt: "Send one email and complete normally"})
-	if err != nil || p.calls != 2 || result.Workflow.Nodes[1].Type != "email" || result.Workflow.BehaviorChecks == nil {
+	if err != nil || p.calls != 2 || result.Workflow.Nodes[1].Type != "email" || result.Workflow.BehaviorChecks == nil || result.Generation.Attempts[0].Validation == nil || result.Generation.Attempts[0].Validation.Behavior == 0 {
 		t.Fatal(result, err, p.calls)
 	}
 	p = &sequence{outputs: []string{string(bad)}}

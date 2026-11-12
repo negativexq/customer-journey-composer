@@ -5785,3 +5785,27 @@ fieldset.scenario-form {
   margin: 12px 0;
   font-size: 13px;
 }
+
+.contract-alternative {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.contract-alternative .surface {
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+.contract-event {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.contract-clause-list {
+  display: grid;
+  gap: 8px;
+  padding-left: 18px;
+}
+.contract-clause-list li > span {
+  display: block;
+}

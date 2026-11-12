@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -25,11 +26,18 @@ func setInput(data map[string]any, path string, value any) {
 	m[parts[len(parts)-1]] = value
 }
 func BehaviorExample(c *workflow.BehaviorChecks) simulation.Scenario {
-	data := map[string]any{"customer": map[string]any{"customer_id": "behavior_check", "email": "preview@example.invalid", "phone": "+15005550006", "attributes": map[string]any{"first_name": "Sample"}, "consents": map[string]any{"email": true, "sms": true}}, "event": map[string]any{"properties": map[string]any{}}}
-	for p, v := range c.Inputs {
-		setInput(data, p, v)
+	return behaviorScenario(c, c.Cases()[0])
+}
+func behaviorScenario(c *workflow.BehaviorChecks, clause workflow.BehaviorCase) simulation.Scenario {
+	data := workflow.BehaviorCaseData(c, clause)
+	scenario := simulation.Scenario{Name: clause.Name, StartTime: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), Customer: data["customer"].(map[string]any), Entry: simulation.Event{EventID: "behavior_entry", EventName: c.EntryEvent, Properties: data["event"].(map[string]any)["properties"].(map[string]any)}, FrequencyLimit: 1000, FrequencyWindowSeconds: 86400}
+	if scenario.Name == "" {
+		scenario.Name = "Private representative example"
 	}
-	return simulation.Scenario{Name: "Independent eligible example", StartTime: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), Customer: data["customer"].(map[string]any), Entry: simulation.Event{EventID: "behavior_entry", EventName: c.EntryEvent, Properties: data["event"].(map[string]any)["properties"].(map[string]any)}, FrequencyLimit: 1000, FrequencyWindowSeconds: 86400}
+	for i, e := range clause.Events {
+		scenario.Events = append(scenario.Events, simulation.TimedEvent{AfterSeconds: e.AfterSeconds, Event: simulation.Event{EventID: fmt.Sprintf("behavior_followup_%d", i), EventName: e.EventName, Properties: e.Payload()}})
+	}
+	return scenario
 }
 
 // ValidateBehavior is bounded, pure simulation. Expected values come from a
@@ -61,13 +69,14 @@ func ValidateBehavior(w workflow.Workflow) []workflow.Issue {
 	candidate := w
 	candidate.BehaviorChecks = nil // avoid validating metadata inside each simulation
 	issues := []workflow.Issue{}
-	run := func(input simulation.Scenario, eligible bool, label string) {
+	run := func(input simulation.Scenario, expected workflow.BehaviorCase, eligible bool, field, label string) {
+		add := func(key, message string) { issues = append(issues, issue(field+key, label+": "+message)) }
 		state, spec, in, err := simulation.New(candidate, input)
 		if err == nil {
 			err = simulation.Advance(spec, in, &state, "complete", 0)
 		}
 		if err != nil || state.Status == "FAILED" {
-			issues = append(issues, issue("scenario", label+": simulation did not complete safely"))
+			add("scenario", "simulation did not complete safely")
 			return
 		}
 		email, sms := 0, 0
@@ -83,24 +92,48 @@ func ValidateBehavior(w workflow.Workflow) []workflow.Issue {
 		}
 		if !eligible {
 			if email+sms > 0 || state.ExitReason == "converted" {
-				issues = append(issues, issue("threshold", label+": ineligible input produced a message or conversion"))
+				add("threshold", "ineligible input produced a message or conversion")
+			}
+			if c.Version == 2 {
+				if state.ExitReason != c.IneligibleOutcome {
+					add("ineligible_outcome", "ineligible outcome differs from the reviewed contract")
+				}
+				before, _ := json.Marshal(input.Customer["attributes"])
+				after, _ := json.Marshal(state.Customer["attributes"])
+				if !bytes.Equal(before, after) {
+					add("threshold", "ineligible input changed customer attributes")
+				}
 			}
 			return
 		}
-		if email != *c.EmailCount {
-			issues = append(issues, issue("email_count", fmt.Sprintf("%s: expected %d accepted email messages, got %d", label, *c.EmailCount, email)))
+		if email != *expected.EmailCount {
+			add("email_count", fmt.Sprintf("expected %d accepted email messages, got %d", *expected.EmailCount, email))
 		}
-		if sms != *c.SMSCount {
-			issues = append(issues, issue("sms_count", fmt.Sprintf("%s: expected %d accepted SMS messages, got %d", label, *c.SMSCount, sms)))
+		if sms != *expected.SMSCount {
+			add("sms_count", fmt.Sprintf("expected %d accepted SMS messages, got %d", *expected.SMSCount, sms))
 		}
-		if state.ExitReason != c.Outcome {
-			issues = append(issues, issue("outcome", fmt.Sprintf("%s: expected %s, got %s", label, c.Outcome, state.ExitReason)))
+		if state.ExitReason != expected.Outcome {
+			add("outcome", fmt.Sprintf("expected %s, got %s", expected.Outcome, state.ExitReason))
 		}
-		if c.DurationSeconds != nil && state.Now.Sub(in.StartTime) != time.Duration(*c.DurationSeconds)*time.Second {
-			issues = append(issues, issue("duration", "Virtual completion time differs from the reviewed expectation"))
+		if expected.DurationSeconds != nil && state.Now.Sub(in.StartTime) != time.Duration(*expected.DurationSeconds)*time.Second {
+			add("duration", "virtual completion time differs from the reviewed expectation")
+		}
+		for path, want := range expected.ExpectedAttributes {
+			got, _ := workflow.Lookup(map[string]any{"customer": state.Customer}, "customer.attributes."+path)
+			a, _ := json.Marshal(got)
+			b, _ := json.Marshal(want)
+			if !bytes.Equal(a, b) {
+				add("attributes", "expected customer attribute update did not occur")
+			}
 		}
 	}
-	run(base, true, "Eligible example")
+	for i, clause := range c.Cases() {
+		field := ""
+		if i > 0 {
+			field = fmt.Sprintf("alternatives.%d.", i-1)
+		}
+		run(behaviorScenario(c, clause), clause, true, field, fmt.Sprintf("Clause %d", i+1))
+	}
 	for _, t := range c.Thresholds {
 		for _, value := range []float64{math.Nextafter(t.Value, math.Inf(-1)), t.Value, math.Nextafter(t.Value, math.Inf(1))} {
 			raw, _ := json.Marshal(base)
@@ -108,8 +141,11 @@ func ValidateBehavior(w workflow.Workflow) []workflow.Issue {
 			_ = json.Unmarshal(raw, &input)
 			data := map[string]any{"customer": input.Customer, "event": map[string]any{"properties": input.Entry.Properties}}
 			setInput(data, t.Path, value)
-			eligible := workflow.Evaluate(workflow.Rule{Path: t.Path, Operator: t.Operator, Value: t.Value}, data)
-			run(input, eligible, fmt.Sprintf("Threshold %s %s %g", t.Path, t.Operator, t.Value))
+			eligible := true
+			for _, bound := range c.Thresholds {
+				eligible = eligible && workflow.Evaluate(workflow.Rule{Path: bound.Path, Operator: bound.Operator, Value: bound.Value}, data)
+			}
+			run(input, c.Cases()[0], eligible, "", fmt.Sprintf("Threshold %s %s %g", t.Path, t.Operator, t.Value))
 		}
 	}
 	return issues[:min(20, len(issues))]

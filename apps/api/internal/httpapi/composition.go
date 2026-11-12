@@ -95,7 +95,7 @@ func registerComposition(api huma.API, pool *pgxpool.Pool) {
 		}
 		if state.BehaviorChecks != nil {
 			raw, _ := json.Marshal(state.BehaviorChecks)
-			if len(raw) > 16384 || len(state.BehaviorChecks.Inputs) > 50 || len(state.BehaviorChecks.Thresholds) > 4 {
+			if len(raw) > 16384 || len(state.BehaviorChecks.Inputs) > 50 || len(state.BehaviorChecks.Thresholds) > 4 || len(state.BehaviorChecks.Alternatives) > 7 {
 				return nil, huma.Error422UnprocessableEntity("Independent checks exceed the draft limits")
 			}
 		}

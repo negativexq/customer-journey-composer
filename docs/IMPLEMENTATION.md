@@ -529,3 +529,20 @@ blocked publication. Membership/course passed 5/5 each. Independent single-examp
 coverage and missing rejection diagnostics remain open; no application fix claimed.
 All five workspaces had zero published versions, live executions, customers or
 jobs by actual database readback. [Evidence and limitations](reports/five-new-journeys-2026-11-12.md).
+
+### Shared scoped business contract v2 — 2026-11-13
+
+Replaced ambiguous global interpretation of representative counts with a versioned
+human-owned clause contract: initial predicates, channel consent, timed events,
+identity relationships and per-situation outcomes. Alternative clauses use the
+same validator for arbitrary supported journey types; no new named journey/audit
+special cases. V2 eligibility explicitly requires the rejected outcome and no
+attribute mutation. Contradictory identical examples fail before a provider call.
+Private examples/payloads stay local; both adapters receive scoped public rules.
+Rejected attempts retain bounded diagnostic category counts rather than private
+candidate/message data. New UI forms use v2; v1 requires explicit upgrade and
+confirmation. No migration or additional runtime/analytics query. Historical paid
+failures remain unchanged; no fresh paid call in this correction.
+Final `make check`, isolated HTTP/PostgreSQL integration (85.999 s), all 78
+browser cases and local Docker readiness passed. Scoped form screenshot inspected.
+[Contract, compatibility, verification and limits](BEHAVIOR-CONTRACT-V2.md).

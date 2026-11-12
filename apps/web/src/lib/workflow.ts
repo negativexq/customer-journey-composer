@@ -42,7 +42,7 @@ export type Step = {
   config: Config;
 };
 export type BehaviorChecks = {
-  version: 1;
+  version: 1 | 2;
   confirmed: boolean;
   entry_event: string;
   inputs: Record<string, string | number | boolean | null>;
@@ -51,7 +51,32 @@ export type BehaviorChecks = {
   outcome: 'completed' | 'converted' | 'condition_not_met' | 'manually_cancelled';
   duration_seconds?: number;
   thresholds: { path: string; operator: string; value: number }[];
+  case_name?: string;
+  conditions?: Rule[];
+  consents?: Record<string, boolean>;
+  events?: BehaviorEvent[];
+  expected_attributes?: Record<string, string | number | boolean | null>;
+  ineligible_outcome?: 'completed' | 'condition_not_met' | 'manually_cancelled';
+  alternatives?: BehaviorCase[];
 };
+export type BehaviorEvent = {
+  entry_binding?: { entry_path: string; event_path: string; operator: 'equals' | 'not_equals' };
+  event_name: string;
+  after_seconds: number;
+  properties?: Record<string, string | number | boolean | null>;
+};
+export type BehaviorCase = Pick<
+  BehaviorChecks,
+  | 'conditions'
+  | 'inputs'
+  | 'consents'
+  | 'events'
+  | 'expected_attributes'
+  | 'email_count'
+  | 'sms_count'
+  | 'outcome'
+  | 'duration_seconds'
+> & { name: string };
 export type Workflow = {
   behavior_checks?: BehaviorChecks;
   acceptance_contract?: string;

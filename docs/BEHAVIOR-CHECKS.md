@@ -1,5 +1,10 @@
 # Independent journey behavior checks
 
+Newly created contracts now use [scoped business contract v2](BEHAVIOR-CONTRACT-V2.md).
+The single-example behavior below describes v1 and its historical evidence.
+V2 adds explicit situation/event scope, alternative obligations, exact rejected
+outcomes and bounded rejection diagnostics; existing v1 snapshots remain unchanged.
+
 The varied-journey audit found structurally valid workflows with the wrong
 message channel, completion outcome or numeric boundary. Graph validity alone
 cannot establish that a workflow follows its brief. Original paid results remain

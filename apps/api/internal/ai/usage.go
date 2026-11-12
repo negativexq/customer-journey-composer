@@ -18,8 +18,18 @@ type ProviderResult struct {
 	HTTPStatus     int    `json:"http_status,omitempty"`
 	Usage          *Usage `json:"usage"`
 }
+
+// Bounded diagnostic counters contain no prompts, candidates, node labels,
+// customer values or arbitrary provider strings.
+type ValidationSummary struct {
+	Schema   int `json:"schema"`
+	Workflow int `json:"workflow"`
+	Message  int `json:"message"`
+	Behavior int `json:"behavior"`
+}
 type Attempt struct {
-	Provider string `json:"provider"`
+	Validation *ValidationSummary `json:"validation,omitempty"`
+	Provider   string             `json:"provider"`
 	ProviderResult
 	ProviderSucceeded bool   `json:"provider_succeeded"`
 	Accepted          bool   `json:"accepted"`

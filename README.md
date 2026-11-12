@@ -26,6 +26,10 @@ Three automatic repairs; **47,572 tokens**, **155.92 s** generation, **183.51 s*
 total. No manual workflow edits or publication.
 [Per-journey results, raw outputs and limits](docs/reports/reviewed-generation-2026-11-12.md).
 
+The shared [business contract now has explicit situation/event scope](docs/BEHAVIOR-CONTRACT-V2.md),
+alternative obligations and ineligible outcomes. This correction uses deterministic
+verification; it does not relabel the paid failures below as passing.
+
 General AI generation now requires independent, human-confirmed expected results.
 Wrong channels, terminal outcomes and numeric boundaries are checked before Apply
 and Publish; new graphs receive deterministic canvas layout.
