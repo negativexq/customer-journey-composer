@@ -355,3 +355,22 @@ Composer v3 adds this outcome to both providers' structured schema; the v2 artif
 remains available. `make check` and the isolated PostgreSQL runtime suite passed,
 including cancellation during a wait and cancellation of pending jobs. No paid
 AI call or external deployment was made.
+
+## Journey breakdown projections and scoped APIs — 2026-11-12
+
+Migration 0022 adds asynchronous entry-cohort snapshots for executions, node visits,
+branch transitions and logical message outcomes/reasons. The projector coalesces
+per-source snapshots and atomically replaces prior contributions; retries do not
+inflate entries or logical sends. A bounded cursor backfill gives historical data
+an explicit incomplete state. Baselines cannot overwrite newer transitions and
+never lock runtime source rows. Exact period unique-customer counts use a narrow
+membership table rather than adding daily distinct counts. Existing lifetime APIs
+remain compatible. Projection heartbeat is separate from source activity.
+
+New journey insights and message drilldowns share version and entry-cohort scope;
+execution lists accept version/node/branch/current-position/outcome/time filters
+and retain keyset pagination. Paused journeys are excluded from overdue-wait
+counts. PostgreSQL API/analytics integration tests passed, including reconciliation,
+version/workspace isolation, cohort boundaries, reason removal after retry and
+late-baseline idempotency. `make check` passed. No throughput benchmark is claimed
+for this new projection path; no paid AI call was made.

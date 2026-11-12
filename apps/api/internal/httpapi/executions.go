@@ -32,6 +32,15 @@ func registerExecutions(api huma.API, pool *pgxpool.Pool) {
 	})
 	huma.Get(api, "/api/v1/journeys/{id}/executions", func(ctx context.Context, in *struct {
 		ID         string    `path:"id" format:"uuid"`
+		Version    int       `query:"version" minimum:"0"`
+		Node       string    `query:"node_id" maxLength:"80"`
+		Port       string    `query:"port" enum:"started,completed,matched,timeout,true,false,next"`
+		Current    bool      `query:"current"`
+		Active     bool      `query:"active"`
+		Overdue    bool      `query:"overdue"`
+		ExitReason string    `query:"exit_reason" maxLength:"80"`
+		From       time.Time `query:"from"`
+		Until      time.Time `query:"until"`
 		CustomerID string    `query:"customer_id" maxLength:"128"`
 		State      string    `query:"state" enum:"RUNNING,WAITING,COMPLETED,EXITED,FAILED,CANCELLED"`
 		Limit      int       `query:"limit" default:"50" minimum:"1" maximum:"200"`
@@ -40,6 +49,13 @@ func registerExecutions(api huma.API, pool *pgxpool.Pool) {
 	}) (*Result[[]map[string]any], error) {
 		args := []any{who(ctx).WorkspaceID, in.ID}
 		query := `SELECT id,journey_id,version_id,customer_id,entry_event_id,current_node_id,state,exit_reason,started_at,updated_at,completed_at FROM journey_executions WHERE workspace_id=$1 AND journey_id=$2`
+		if in.Port != "" && in.Node == "" {
+			return nil, huma.Error422UnprocessableEntity("A branch filter requires a node")
+		}
+		query, args = executionScope(query, args, in.Version, in.Node, in.Port, in.ExitReason, in.Current, in.Overdue, in.From, in.Until)
+		if in.Active {
+			query += ` AND state IN ('RUNNING','WAITING')`
+		}
 		if in.CustomerID != "" {
 			args = append(args, in.CustomerID)
 			query += fmt.Sprintf(` AND customer_id=$%d`, len(args))

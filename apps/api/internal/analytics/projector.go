@@ -30,6 +30,9 @@ func Drain(ctx context.Context, pool *pgxpool.Pool) (int, error) {
 	if err = tx.QueryRow(ctx, `SELECT pg_try_advisory_xact_lock(716294803)`).Scan(&locked); err != nil || !locked {
 		return 0, err
 	}
+	if err = enqueueBackfill(ctx, tx); err != nil {
+		return 0, err
+	}
 	var batch []byte
 	err = tx.QueryRow(ctx, `WITH claimed AS (SELECT id FROM metric_queue ORDER BY id LIMIT 1000 FOR UPDATE SKIP LOCKED),removed AS (DELETE FROM metric_queue q USING claimed c WHERE q.id=c.id RETURNING q.*) SELECT COALESCE(jsonb_agg(to_jsonb(r)),'[]'::jsonb) FROM removed r`).Scan(&batch)
 	if err != nil {
@@ -40,8 +43,14 @@ func Drain(ctx context.Context, pool *pgxpool.Pool) (int, error) {
 		return 0, err
 	}
 	n := len(rows)
+	if _, err = tx.Exec(ctx, `INSERT INTO metric_projection_health(id,last_success) VALUES(true,clock_timestamp()) ON CONFLICT(id) DO UPDATE SET last_success=EXCLUDED.last_success`); err != nil {
+		return 0, err
+	}
 	if n == 0 {
 		return 0, tx.Commit(ctx)
+	}
+	if _, err = tx.Exec(ctx, projectSnapshots, batch); err != nil {
+		return 0, err
 	}
 	_, err = tx.Exec(ctx, `WITH candidates AS (SELECT workspace_id,journey_id,customer_id FROM `+batchRows+` WHERE customer_id IS NOT NULL UNION SELECT workspace_id,'00000000-0000-0000-0000-000000000000'::uuid,customer_id FROM `+batchRows+` WHERE customer_id IS NOT NULL), added AS (INSERT INTO metric_customers SELECT * FROM candidates ON CONFLICT DO NOTHING RETURNING workspace_id,journey_id) INSERT INTO metric_totals(workspace_id,journey_id,version_id,dimension,dimension_key,metric,value) SELECT workspace_id,journey_id,'00000000-0000-0000-0000-000000000000','execution','','unique_customers',count(*) FROM added GROUP BY workspace_id,journey_id ON CONFLICT(workspace_id,journey_id,version_id,dimension,dimension_key,metric) DO UPDATE SET value=metric_totals.value+excluded.value`, batch)
 	if err != nil {
