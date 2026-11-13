@@ -2,34 +2,55 @@ import { chromium, expect } from '@playwright/test';
 import { randomBytes } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { mkdir, stat, writeFile } from 'node:fs/promises';
+import { showcaseRecipe, showcaseName, showcaseDescription } from './showcase-recipe.mjs';
 import { localDemoURL } from './seed-product-demo.mjs';
 
 const base = localDemoURL(process.env.CJC_WEB_URL || 'http://127.0.0.1:5173');
 const directory = 'docs/images/creation';
-const source = 'docs/validation/scoped-contract-live-2026-11-13/result.json';
-const recorded = JSON.parse(await readFile(source, 'utf8')).journeys.find((j) => j.id === 'stock');
-if (!recorded?.proposal || recorded.cases.some((c) => c.result !== 'PASS'))
-  throw new Error('Expected the recorded passing stock workflow.');
+const source = 'scripts/showcase-recipe.mjs';
+const recipe = showcaseRecipe();
 await mkdir(directory, { recursive: true });
 const viewport = { width: 1600, height: 1050 };
 const manifest = {
   captured_at: new Date().toISOString(),
   source_commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+  source_dirty: !!execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(),
   viewport,
   device_scale_factor: 2,
   synthetic_data: true,
-  recorded_workflow: source + '#stock',
-  generation: 'Local SSE replay of the recorded proposal; no live provider call',
-  presentation_metadata:
-    'Human-authored demo journey name/description; graph and contract from the recorded run',
+  authored_workflow: source,
+  workspace: 'Northstar Commerce',
+  generation: 'Local SSE replay of the newly authored showcase proposal; no live provider call',
+  presentation_metadata: 'One shared human-authored journey recipe across the galleries',
   screenshots: [],
 };
 const proposal = {
-  ...recorded.proposal,
-  name: 'Back in stock',
-  description: 'Notify shoppers when the product they want becomes available.',
+  schema_version: 'composer.v5',
+  action: 'generate',
+  name: showcaseName,
+  description: showcaseDescription,
+  workflow: recipe.workflow,
+  explanation:
+    'Wait one hour, send a personal email, then wait up to 24 hours for the same cart to be purchased. If no purchase arrives, offer 10% off by SMS. Channel permissions are enforced at delivery. A matching purchase ends the journey immediately.',
+  warnings: [
+    'The storefront URL is fictional. Live gallery activity uses local Mailpit and mock SMS.',
+  ],
+  diff: {
+    metadata_changed: true,
+    edges_changed: true,
+    exit_changed: true,
+    reentry_changed: true,
+    added_nodes: recipe.workflow.nodes.map((n) => n.id),
+    removed_nodes: [],
+    updated_nodes: [],
+    changed_conditions: [],
+    changed_messages: [],
+  },
 };
+const brief =
+  'Recover abandoned EUR carts worth at least €50. After one hour, send a personal email. Wait up to 24 hours for the shopper to purchase the same cart. If they do, stop immediately as converted. Otherwise offer 10% off by SMS and complete. Respect channel consent and prevent re-entry for seven days.';
+
 let finish;
 const replay = createServer((request, response) => {
   request.resume();
@@ -71,8 +92,8 @@ try {
   const identity = await (
     await page.request.post('/api/v1/auth/register', {
       data: {
-        name: 'Product showcase',
-        workspace: 'Product showcase',
+        name: 'Alex Morgan',
+        workspace: 'Northstar Commerce',
         email: randomBytes(12).toString('hex') + '@example.invalid',
         password: randomBytes(24).toString('hex'),
       },
@@ -81,7 +102,7 @@ try {
   const headers = { 'X-CSRF-Token': identity.csrf_token };
   const catalog = await page.request.put('/api/v1/data-catalog', {
     headers,
-    data: { entries: recorded.catalog },
+    data: { entries: recipe.catalog },
   });
   if (!catalog.ok()) throw new Error('Could not prepare the fictional workspace catalog.');
   await page.route('**/api/v1/ai/**', (route) => {
@@ -107,15 +128,15 @@ try {
       revision: record.journey.revision,
       state: {
         ...record.state,
-        brief: recorded.brief,
+        brief: brief,
         provider: 'openai',
-        behavior_checks: recorded.behavior_checks,
+        behavior_checks: recipe.contract,
       },
     },
   });
-  if (!saved.ok()) throw new Error('Could not save the recorded brief and scoped contract.');
+  if (!saved.ok()) throw new Error('Could not save the new brief and scoped contract.');
   await page.reload();
-  await expect(page.getByLabel('Your brief', { exact: true })).toHaveValue(recorded.brief);
+  await expect(page.getByLabel('Your brief', { exact: true })).toHaveValue(brief);
   await shot('brief');
   await page
     .getByRole('heading', { name: 'What must be true?', exact: true })
@@ -130,7 +151,7 @@ try {
   ).toBeVisible();
   await expect(page.locator('.creation-save')).toHaveText('All changes saved');
   await expect(page.getByRole('region', { name: 'Reviewed behavior expectations' })).toContainText(
-    'Already in stock at entry',
+    'Purchase before the first reminder',
   );
   await shot('review');
   await page
@@ -139,12 +160,10 @@ try {
   await shot('review-diagram');
   await page.getByLabel('I reviewed the flow, messages and assumptions').check();
   await page.getByRole('button', { name: 'Approve & open builder', exact: true }).click();
-  await expect(page.locator('.canvas .vue-flow__node')).toHaveCount(
-    recorded.proposal.workflow.nodes.length,
-  );
+  await expect(page.locator('.canvas .vue-flow__node')).toHaveCount(recipe.workflow.nodes.length);
   await shot('canvas-start');
   await page.getByRole('button', { name: 'Fit view', exact: true }).click();
-  await page.locator('.canvas .vue-flow__node[data-id="wait_for_stock"]').click();
+  await page.locator('.canvas .vue-flow__node[data-id="purchase_wait"]').click();
   await page.getByRole('button', { name: 'Focus selected step', exact: true }).click();
   await expect(page.getByRole('complementary', { name: 'Step settings' })).toBeVisible();
   await shot('canvas-focus');

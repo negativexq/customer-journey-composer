@@ -570,3 +570,25 @@ assumption by selecting its newly created sandbox run. Production entries remain
 72 before/after capture. README leads with six product capabilities and the create → test → publish → observe
 flow, followed by current 25/25 live evidence and 78-case browser verification; older audits remain linked
 from the validation index. Capture commands, manifests and gallery notes are current.
+
+### Clean Northstar showcase — 2026-11-13
+
+At the user's request, the cluttered local demo was reset into a fresh workspace.
+Prior journeys, executions and immutable versions remain archived; old executions
+were cancelled and old access revoked. The prefilled login now opens Northstar
+Commerce with one newly authored Abandoned Cart Recovery journey and 14 fictional
+customers. One shared recipe supplies English copy, profiles, scoped obligations,
+Mailpit email, mock SMS and all creation/product captures. Published v1 uses 5s/30s
+real waits; the editable draft and five passing saved scenarios use 1h/24h. Capture
+refuses additional journeys and uses current-draft regression evidence. No paid
+LLM call or external deployment. Fixed fractional-hour contract inputs and covered
+the real form submission; demo login verification now uses the signed-in identity
+rather than a hardcoded display name. [Setup and capture details](SHOWCASE.md).
+
+Verification for the clean showcase: `make check` passed; all 21 capture paths,
+PNG dimensions/manifests and documentation links validated. API readback confirms
+one Active journey, 14 customers/executions, five saved scenarios and a ready
+publish gate. Capturing preserved the 14 live entry count. The full browser run
+passed 76 cases; two old demo-name assertions were updated to use the successful
+login identity and then passed 2/2 in a focused rerun. Fractional contract duration
+submission is included in the passing scoped-contract browser coverage.

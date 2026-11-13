@@ -1,9 +1,8 @@
 # Journey creation gallery
 
 Refreshed November 13, 2026 from the running application at 1600 × 1050 CSS pixels,
-2× display scale (**3200 × 2100 PNGs**). Fictional isolated workspace. The workflow
-and scoped contract come from the recorded passing stock generation; the demo
-name/description are human-authored presentation metadata.
+2× display scale (**3200 × 2100 PNGs**). Fictional isolated workspace. The workflow, scoped contract, English brief and message content are newly
+authored from the shared Northstar recipe. They match the product gallery story.
 
 Generation uses a local SSE replay. It does not make a new paid provider request.
 The application applies its normal layout, reference review and approval checks.
@@ -21,4 +20,4 @@ The result stays Draft. No UI values, metrics or geometry are patched in the DOM
 | Contextual inspector | [Wait-for-event step and its connections](canvas-focus.png) |
 
 [Capture manifest](manifest.json) · [Reproduction](../../SHOWCASE.md)
-· [Recorded live evidence](../../reports/scoped-contract-live-2026-11-13.md).
+· [Shared recipe](../../../scripts/showcase-recipe.mjs).

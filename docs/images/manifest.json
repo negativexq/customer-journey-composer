@@ -1,8 +1,13 @@
 {
-  "captured_at": "2026-11-12T21:56:00.356Z",
-  "source_commit": "a60e975667c8c9845b8e66001e96d9da2451b43e",
+  "captured_at": "2026-11-12T22:32:17.239Z",
+  "source_commit": "922d85022d05d2461d06ee7f7021d9ea83b34868",
   "source_dirty": true,
   "synthetic_data": true,
+  "workspace": "Northstar Commerce",
+  "story": "One newly authored Abandoned Cart Recovery journey",
+  "live_email_provider": "Local Mailpit SMTP",
+  "live_cadence": "5s reminder / 30s purchase window",
+  "draft_cadence": "1h reminder / 24h purchase window",
   "viewport": {
     "width": 1600,
     "height": 1050
@@ -15,81 +20,81 @@
       "file": "docs/images/overview.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 449792
+      "bytes": 397499
     },
     {
       "file": "docs/images/journeys.png",
       "width": 3200,
-      "height": 2100,
-      "bytes": 418191
+      "height": 1520,
+      "bytes": 225463
     },
     {
       "file": "docs/images/journey-builder.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 420525
+      "bytes": 443353
     },
     {
       "file": "docs/images/test-lab.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 465984
+      "bytes": 448505
     },
     {
       "file": "docs/images/test-inbox-email.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 361918
+      "bytes": 376826
     },
     {
       "file": "docs/images/test-inbox-sms.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 415383
+      "bytes": 412984
     },
     {
       "file": "docs/images/live-monitor.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 470355
+      "bytes": 471799
     },
     {
       "file": "docs/images/journey-observability/node-breakdown.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 463191
+      "bytes": 464669
     },
     {
       "file": "docs/images/journey-observability/customer-path.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 465229
+      "bytes": 469088
     },
     {
       "file": "docs/images/journey-observability/analytics.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 367436
+      "bytes": 347273
     },
     {
       "file": "docs/images/analytics.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 307084
+      "bytes": 291721
     },
     {
       "file": "docs/images/customers.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 398223
+      "bytes": 368635
     },
     {
       "file": "docs/images/publish-review.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 476456
+      "bytes": 470254
     }
   ],
-  "live_entries_before": 72,
-  "live_entries_after": 72
+  "live_entries_before": 14,
+  "live_entries_after": 14
 }

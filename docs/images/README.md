@@ -1,6 +1,6 @@
 # Product gallery
 
-Refreshed November 13, 2026. Real application captures at **3200 × 2100** (2× display scale). All customers are fictional. Counts come from persisted local demo activity; live actions use mock SMS, while email previews use isolated simulations. No historical activity or open/click rates are invented.
+Refreshed November 13, 2026. Real application captures at **3200 pixels wide** (2× display scale); the single-journey list uses a tighter native frame. One clean Northstar workspace, one Abandoned Cart Recovery journey and 14 fictional customers. Live email uses local Mailpit, SMS uses the mock provider and Inbox previews use isolated simulations. No historical activity or open/click rates are invented.
 
 [Run the demo or reproduce these captures](../SHOWCASE.md) · [Capture manifest](manifest.json) · [Project README](../../README.md)
 
@@ -12,7 +12,7 @@ Workspace totals, recent journeys and operational activity.
 
 ## Journeys
 
-Compact journey management with draft, active, paused and sunset examples.
+The new Abandoned Cart Recovery journey, with no old scratch names or audit drafts.
 
 ![Journey listing with lifecycle states](journeys.png)
 
@@ -26,7 +26,7 @@ Searchable Elements, branch insertion and a contextual step inspector on a light
 
 A dedicated brief page, per-situation business expectations, visible generation
 progress and human approval before the editable canvas. Generation in these
-captures is a local replay of a recorded passing output, with no paid call.
+captures is a local replay of the newly authored Northstar proposal, with no paid call.
 
 ![Review of a scoped business contract before opening the builder](creation/review.png)
 
@@ -54,7 +54,7 @@ Rendered recovery SMS with customer details and the sample discount code.
 
 ## Live Monitor
 
-An enrolled customer waiting on their immutable published workflow version.
+An enrolled customer's path and delivery history on their immutable published workflow version.
 
 ![Live Monitor with a tracked customer](live-monitor.png)
 

@@ -22,6 +22,11 @@ const manifest = {
   source_commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
   source_dirty: !!execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(),
   synthetic_data: true,
+  workspace: 'Northstar Commerce',
+  story: 'One newly authored Abandoned Cart Recovery journey',
+  live_email_provider: 'Local Mailpit SMTP',
+  live_cadence: demo.liveCadence,
+  draft_cadence: demo.draftCadence,
   viewport,
   device_scale_factor: 2,
   live_showcase_provider: 'mock_sms',
@@ -46,8 +51,8 @@ async function shot(name) {
   await page.screenshot({ path: file, animations: 'disabled', caret: 'hide' });
   manifest.screenshots.push({
     file,
-    width: viewport.width * 2,
-    height: viewport.height * 2,
+    width: page.viewportSize().width * 2,
+    height: page.viewportSize().height * 2,
     bytes: (await stat(file)).size,
   });
   console.log('Captured ' + name);
@@ -67,7 +72,10 @@ try {
       },
       { timeout: 15000 },
     )
-    .toBeGreaterThanOrEqual(72);
+    .toBeGreaterThanOrEqual(14);
+  const cleanJourneys = await (await page.request.get('/api/v1/journeys?limit=200')).json();
+  expect(cleanJourneys).toHaveLength(1);
+  expect(cleanJourneys[0].name).toBe('Abandoned Cart Recovery');
   const beforeSummary = await (await page.request.get('/api/v1/overview')).json();
   manifest.live_entries_before = beforeSummary.metrics.find(
     (m) => m.dimension === 'execution' && m.metric === 'entries',
@@ -75,12 +83,21 @@ try {
   await open('/');
   await shot('overview');
   await open('/journeys');
+  await page.setViewportSize({ width: 1600, height: 760 });
   await shot('journeys');
-  await open('/journeys/' + demo.canonicalJourneyId);
-  await page.locator('.vue-flow__node').filter({ hasText: 'Wait 1 hour' }).first().click();
+  await page.setViewportSize(viewport);
+  await open('/journeys/' + demo.journeyId);
+  await page.getByRole('button', { name: 'Fit view', exact: true }).click();
+  await page.locator('.canvas .vue-flow__node[data-id="purchase_wait"]').click();
   await expect(page.getByRole('complementary', { name: 'Step settings' })).toBeVisible();
+  await page.getByRole('button', { name: 'Focus selected step', exact: true }).click();
   await shot('journey-builder');
-  await open(`/journeys/${demo.canonicalJourneyId}?tab=preview-test&view=test-lab`);
+  await open(`/journeys/${demo.journeyId}?tab=preview-test&view=test-lab`);
+  await page
+    .getByLabel('Saved scenario')
+    .and(page.locator('select'))
+    .selectOption({ label: 'Email and SMS · no purchase' });
+  await page.getByLabel('Use current draft for regression', { exact: false }).check();
   const creating = page.waitForResponse(
     (response) =>
       response.url().endsWith('/api/v1/test-runs') &&
@@ -97,34 +114,28 @@ try {
   await expect(page.locator('.inbox-row')).toHaveCount(2);
   await page.locator('.inbox-row').filter({ hasText: 'EMAIL' }).click();
   await expect(
-    page
-      .frameLocator('iframe[title="Test email preview"]')
-      .getByText('You left something behind', { exact: true }),
+    page.frameLocator('iframe[title="Test email preview"]').getByText(/Made for your everyday/),
   ).toBeVisible();
   await shot('test-inbox-email');
   await page.locator('.inbox-row').filter({ hasText: 'SMS' }).click();
   await expect(page.locator('.sms-phone')).toContainText('COMEBACK10');
   await shot('test-inbox-sms');
-  await open(
-    `/journeys/${demo.welcomeJourneyId}?tab=live-monitor&execution=${demo.monitorExecutionId}`,
-  );
+  await open(`/journeys/${demo.journeyId}?tab=live-monitor&execution=${demo.monitorExecutionId}`);
   await expect(page.getByRole('region', { name: 'Execution details' })).toContainText(
-    'showcase_customer_041',
+    demo.monitorCustomerId,
   );
   await shot('live-monitor');
   await page.getByRole('button', { name: 'Close customer journey', exact: true }).click();
   await page.getByRole('combobox', { name: 'Step', exact: true }).click();
-  await page.getByRole('option', { name: 'Welcome aboard', exact: true }).click();
+  await page.getByRole('option', { name: 'Your cart is waiting', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Step breakdown' })).toBeVisible();
   await shot('journey-observability/node-breakdown');
-  await open(
-    `/journeys/${demo.welcomeJourneyId}?tab=live-monitor&execution=${demo.monitorExecutionId}`,
-  );
+  await open(`/journeys/${demo.journeyId}?tab=live-monitor&execution=${demo.monitorExecutionId}`);
   await expect(page.getByRole('region', { name: 'Execution details' })).toContainText(
-    'showcase_customer_041',
+    demo.monitorCustomerId,
   );
   await shot('journey-observability/customer-path');
-  await open(`/journeys/${demo.welcomeJourneyId}?tab=analytics`);
+  await open(`/journeys/${demo.journeyId}?tab=analytics`);
   await expect(page.getByRole('heading', { name: 'Journey outcomes', exact: true })).toBeVisible();
   await shot('journey-observability/analytics');
   await open('/analytics');
@@ -134,7 +145,7 @@ try {
   await open(`/customers?customer=${demo.customerId}`);
   await expect(page.getByLabel('Customer ID', { exact: true })).toHaveValue(demo.customerId);
   await shot('customers');
-  await open(`/journeys/${demo.canonicalJourneyId}`);
+  await open(`/journeys/${demo.journeyId}`);
   await page.getByRole('button', { name: 'Publish', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Review before publishing' })).toBeVisible();
   await page
@@ -152,7 +163,7 @@ try {
   expect(manifest.live_entries_after).toBe(manifest.live_entries_before);
   await writeFile(directory + '/manifest.json', JSON.stringify(manifest, null, 2) + '\n');
   console.log(
-    `Saved ${manifest.screenshots.length} current application screenshots at 3200 × 2100.`,
+    `Saved ${manifest.screenshots.length} current application screenshots at native 2× scale.`,
   );
 } finally {
   await browser.close();

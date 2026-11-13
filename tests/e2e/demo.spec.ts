@@ -9,8 +9,15 @@ test('local demo credentials are prefilled and sign in without typing', async ({
   expect(
     (await page.getByLabel('Password', { exact: true }).inputValue()).length >= 16,
   ).toBeTruthy();
+  const signingIn = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/v1/auth/login') &&
+      response.request().method() === 'POST' &&
+      response.ok(),
+  );
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: /Good (morning|afternoon|evening), Demo/ }),
-  ).toBeVisible();
+  const identity = await (await signingIn).json();
+  const greeting = page.getByRole('heading', { name: /Good (morning|afternoon|evening),/ });
+  await expect(greeting).toBeVisible();
+  await expect(greeting).toContainText(identity.name.split(' ')[0]);
 });

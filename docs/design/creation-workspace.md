@@ -74,9 +74,9 @@ local state. In-flight/unsaved work has a browser unload warning.
 ## Screenshots
 
 Refreshed November 13, 2026 at 1600 × 1050 CSS pixels, scale 2 (3200 × 2100).
-The fictional workspace uses the recorded passing stock workflow and scoped v2
-contract. Generation lifecycle is a local streamed replay, not a new provider call.
-The demo journey name/description are prepared metadata; normal application
+The fictional Northstar workspace uses the newly authored recovery workflow and
+scoped v2 contract shared with the product gallery. Generation lifecycle is a local
+streamed proposal replay, not a new provider call. All content follows one story; normal application
 layout, reference checks and approval render the graph. The result remains Draft.
 
 [Brief and examples](../images/creation/brief.png) ·

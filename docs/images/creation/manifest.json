@@ -1,63 +1,65 @@
 {
-  "captured_at": "2026-11-12T21:56:05.080Z",
-  "source_commit": "a60e975667c8c9845b8e66001e96d9da2451b43e",
+  "captured_at": "2026-11-12T22:32:22.417Z",
+  "source_commit": "922d85022d05d2461d06ee7f7021d9ea83b34868",
+  "source_dirty": true,
   "viewport": {
     "width": 1600,
     "height": 1050
   },
   "device_scale_factor": 2,
   "synthetic_data": true,
-  "recorded_workflow": "docs/validation/scoped-contract-live-2026-11-13/result.json#stock",
-  "generation": "Local SSE replay of the recorded proposal; no live provider call",
-  "presentation_metadata": "Human-authored demo journey name/description; graph and contract from the recorded run",
+  "authored_workflow": "scripts/showcase-recipe.mjs",
+  "workspace": "Northstar Commerce",
+  "generation": "Local SSE replay of the newly authored showcase proposal; no live provider call",
+  "presentation_metadata": "One shared human-authored journey recipe across the galleries",
   "screenshots": [
     {
       "file": "docs/images/creation/method.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 206755
+      "bytes": 215110
     },
     {
       "file": "docs/images/creation/brief.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 407381
+      "bytes": 333412
     },
     {
       "file": "docs/images/creation/contract.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 338734
+      "bytes": 328775
     },
     {
       "file": "docs/images/creation/generating.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 331941
+      "bytes": 267260
     },
     {
       "file": "docs/images/creation/review.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 458652
+      "bytes": 396656
     },
     {
       "file": "docs/images/creation/review-diagram.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 374898
+      "bytes": 316894
     },
     {
       "file": "docs/images/creation/canvas-start.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 337807
+      "bytes": 320240
     },
     {
       "file": "docs/images/creation/canvas-focus.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 449446
+      "bytes": 426760
     }
   ]
 }

@@ -21,7 +21,8 @@
     "demo:seed": "node scripts/seed-product-demo.mjs",
     "screenshots": "node scripts/capture-product.mjs && node scripts/capture-creation.mjs",
     "screenshots:product": "node scripts/capture-product.mjs",
-    "screenshots:creation": "node scripts/capture-creation.mjs"
+    "screenshots:creation": "node scripts/capture-creation.mjs",
+    "demo:reset": "node scripts/seed-product-demo.mjs --reset"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

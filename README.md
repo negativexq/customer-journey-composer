@@ -66,8 +66,8 @@ Follow live node counts and customer paths, then compare journey and channel out
 ![Journey analytics with version and cohort filters, outcomes and persisted synthetic execution data](docs/images/journey-observability/analytics.png)
 
 **About these screenshots:** refreshed November 13, 2026 from the running local
-application at **3200 × 2100**. Contacts and activity are fictional; counts come
-from stored records. Creation screens use the recorded passing stock workflow
+application at **2× scale, 3200 pixels wide**. The single-journey list uses a tighter native frame. Contacts and activity are fictional; counts come
+from stored records. Creation screens use the same newly authored Northstar recipe
 with a local generation replay, not a new paid request. The application renders
 its normal UI, including warnings and human approval. [Capture methods and manifests](docs/SHOWCASE.md).
 
@@ -101,12 +101,20 @@ Requires **Docker with Compose v2**, **Git** and **Node.js 24+** in the supporte
 git clone https://github.com/negativexq/customer-journey-composer.git
 cd customer-journey-composer
 make up
-make demo
+npm run demo:reset
 ```
 
 Open **[localhost:5173](http://localhost:5173)**. The development demo login is prefilled: select **Sign in**.
 
-`make demo` adds 54 fictional customer profiles, 72 local demo enrollments, Active/Paused/Sunset journeys, a draft campaign and recovery test scenarios. Re-running a completed seed preserves its fixture identities. Existing workspace data is retained. The demo account is development-only; this command does not deploy the application.
+`npm run demo:reset` prepares a clean **Northstar Commerce** workspace with one
+**Abandoned Cart Recovery** journey, 14 fictional customers and five passing
+sandbox scenarios. The previous demo workspace and history are archived; the demo
+login stays the same. Other workspaces are untouched. `make demo` reuses the current
+fixtures without resetting them.
+
+The published local demo uses a 5-second reminder and 30-second purchase window,
+with email sent only to local Mailpit and SMS handled by the mock provider. Its
+editable draft and sandbox scenarios retain the intended 1-hour / 24-hour cadence.
 
 | Local service        | Address                                                   |
 | -------------------- | --------------------------------------------------------- |
@@ -119,16 +127,21 @@ The local stack binds to loopback. `make down` stops it while retaining PostgreS
 
 ## A complete recovery example
 
-The **Abandoned Cart · €50+** template includes:
+The gallery follows one **Northstar Commerce / Abandoned Cart Recovery** story:
 
-1. Qualify a EUR cart worth at least €50 and wait one hour.
-2. Send a personalized email when the customer has consent and has not purchased.
-3. Wait up to 24 hours for a purchase, then offer a consented SMS with `COMEBACK10`.
-4. Wait another 48 hours and finish with the recorded conversion outcome.
+1. A EUR cart worth at least €50 starts the journey.
+2. After one hour, an eligible customer receives a personal cart reminder.
+3. The journey waits up to 24 hours for a purchase of that same cart.
+4. A purchase exits as converted; otherwise an eligible SMS offers `COMEBACK10`.
+5. The journey completes, with a seven-day reentry cooldown.
 
-Purchase events can exit the journey immediately. A seven-day reentry cooldown prevents repeat enrollment while permitting the email and SMS in the same execution. The Test Lab includes five A–E customer scenarios. [Full example contract](docs/design/abandoned-cart-eur.md).
+Five saved tests cover the full path, early purchase, purchase after email,
+SMS opt-out and an unrelated cart purchase. Inbox previews use Alex Morgan's
+€89.90 cart and the same Northstar email/SMS content throughout.
 
-The optional live showcase uses separate accelerated fixtures; it leaves the original recovery draft and its 1h/24h/48h timing intact.
+The separate [€50+ recovery template](docs/design/abandoned-cart-eur.md) includes a
+longer 48-hour final window. It remains available as a template; it is not the
+new seven-step gallery journey.
 
 ## Built around durable execution
 

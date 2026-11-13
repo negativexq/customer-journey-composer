@@ -505,6 +505,7 @@ onMounted(async () => {
             type="number"
             min="0"
             max="8760"
+            step="any"
             :value="c.duration_seconds === undefined ? '' : c.duration_seconds / 3600"
             @input="
               patch({

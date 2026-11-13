@@ -153,6 +153,7 @@ test('scoped contract resumes alternatives and enforces matched-event obligation
   await alt.getByLabel('Situation name', { exact: true }).fill('Event arrives');
   await alt.getByLabel('Expected emails', { exact: true }).fill('1');
   await alt.getByLabel('Expected SMS', { exact: true }).fill('0');
+  await alt.getByLabel('Expected duration (hours, optional)', { exact: true }).fill('0.166666667');
   await alt.getByRole('button', { name: 'Add subsequent event', exact: true }).click();
   await alt.getByRole('combobox', { name: 'Follow-up event 1', exact: true }).click();
   await page.getByRole('option', { name: 'Resource available', exact: true }).click();
