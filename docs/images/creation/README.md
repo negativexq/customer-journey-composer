@@ -1,12 +1,36 @@
 # Journey creation gallery
 
 Refreshed November 13, 2026 from the running application at 1600 × 1050 CSS pixels,
-2× display scale (**3200 × 2100 PNGs**). Fictional isolated workspace. The workflow, scoped contract, English brief and message content are newly
-authored from the shared Northstar recipe. They match the product gallery story.
+2× display scale (**3200 × 2100 PNGs**). Fictional isolated workspace.
+The displayed English brief and human-reviewed behavior contract were submitted
+to the application's real OpenAI provider (`gpt-6-luna`). The response passed
+validation after one automatic repair: **40.9 seconds, 11,320 tokens**.
 
-Generation uses a local SSE replay. It does not make a new paid provider request.
-The application applies its normal layout, reference review and approval checks.
-The result stays Draft. No UI values, metrics or geometry are patched in the DOM.
+The application renders the generated graph with normal layout, reference review
+and human approval. It stays Draft; no messages were dispatched or journey published.
+No screenshot text, metric or geometry was patched. This generated graph differs
+from the hand-authored operational demo, while using the same recovery brief.
+[Attempt history and capture caveats](../../reports/live-creation-capture-2026-11-13.md).
+
+## Brief → generation → review → canvas
+
+Write the brief and choose an example if useful:
+
+![Natural-language brief entry](brief.png)
+
+Follow the processing stage without losing the submitted brief:
+
+![Submitted brief and generation progress](generating.png)
+
+Review the proposed path and alternatives before approving:
+
+![Proposed journey diagram](review-diagram.png)
+
+Continue editing in the canvas:
+
+![Editable canvas and step settings](canvas-focus.png)
+
+## All captures
 
 | Stage                | Capture                                                     |
 | -------------------- | ----------------------------------------------------------- |

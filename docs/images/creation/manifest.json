@@ -1,6 +1,6 @@
 {
-  "captured_at": "2026-11-12T22:32:22.417Z",
-  "source_commit": "922d85022d05d2461d06ee7f7021d9ea83b34868",
+  "captured_at": "2026-11-13T01:42:27.834Z",
+  "source_commit": "e50633bf3a642fd8b7253939cb42b23571541449",
   "source_dirty": true,
   "viewport": {
     "width": 1600,
@@ -8,10 +8,10 @@
   },
   "device_scale_factor": 2,
   "synthetic_data": true,
-  "authored_workflow": "scripts/showcase-recipe.mjs",
+  "authored_workflow": "Only the catalog and reviewed behavior contract use scripts/showcase-recipe.mjs; the captured workflow is the unedited live_proposal below.",
   "workspace": "Northstar Commerce",
-  "generation": "Local SSE replay of the newly authored showcase proposal; no live provider call",
-  "presentation_metadata": "One shared human-authored journey recipe across the galleries",
+  "generation": "Live OpenAI generation through the application API; no response interception",
+  "presentation_metadata": "Displayed natural-language brief and reviewed contract generated a real provider proposal; operational demo is separately authored.",
   "screenshots": [
     {
       "file": "docs/images/creation/method.png",
@@ -41,25 +41,658 @@
       "file": "docs/images/creation/review.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 396656
+      "bytes": 475369
     },
     {
       "file": "docs/images/creation/review-diagram.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 316894
+      "bytes": 415217
     },
     {
       "file": "docs/images/creation/canvas-start.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 320240
+      "bytes": 354214
     },
     {
       "file": "docs/images/creation/canvas-focus.png",
       "width": 3200,
       "height": 2100,
-      "bytes": 426760
+      "bytes": 448022
     }
-  ]
+  ],
+  "journey_id": "686da1e3-806d-4d16-ac8b-ad90c7456439",
+  "duration_ms": 40945,
+  "live_proposal": {
+    "grounding": {
+      "version": "semantic.v1",
+      "ready": true,
+      "mappings": [
+        {
+          "reference": {
+            "key": "customer_field::customer.attributes.first_name",
+            "kind": "customer_field",
+            "path": "customer.attributes.first_name"
+          },
+          "label": "First name",
+          "status": "matched",
+          "candidates": [
+            {
+              "key": "customer_field::customer.attributes.first_name",
+              "kind": "customer_field",
+              "path": "customer.attributes.first_name",
+              "label": "First name",
+              "data_type": "string",
+              "aliases": [],
+              "enabled": true,
+              "source": "declared"
+            }
+          ]
+        },
+        {
+          "reference": {
+            "key": "customer_field::customer.consents.email",
+            "kind": "customer_field",
+            "path": "customer.consents.email"
+          },
+          "label": "consents / email",
+          "status": "matched",
+          "candidates": [
+            {
+              "key": "customer_field::customer.consents.email",
+              "kind": "customer_field",
+              "path": "customer.consents.email",
+              "label": "consents / email",
+              "data_type": "boolean",
+              "aliases": [],
+              "enabled": true,
+              "source": "system"
+            }
+          ]
+        },
+        {
+          "reference": {
+            "key": "customer_field::customer.consents.sms",
+            "kind": "customer_field",
+            "path": "customer.consents.sms"
+          },
+          "label": "consents / sms",
+          "status": "matched",
+          "candidates": [
+            {
+              "key": "customer_field::customer.consents.sms",
+              "kind": "customer_field",
+              "path": "customer.consents.sms",
+              "label": "consents / sms",
+              "data_type": "boolean",
+              "aliases": [],
+              "enabled": true,
+              "source": "system"
+            }
+          ]
+        },
+        {
+          "reference": {
+            "key": "event:cart_updated:",
+            "kind": "event",
+            "event_name": "cart_updated"
+          },
+          "label": "Cart updated",
+          "status": "matched",
+          "candidates": [
+            {
+              "key": "event:cart_updated:",
+              "kind": "event",
+              "event_name": "cart_updated",
+              "label": "Cart updated",
+              "data_type": "event",
+              "aliases": [],
+              "enabled": true,
+              "source": "declared"
+            }
+          ]
+        },
+        {
+          "reference": {
+            "key": "event:purchase_completed:",
+            "kind": "event",
+            "event_name": "purchase_completed"
+          },
+          "label": "Purchase completed",
+          "status": "matched",
+          "candidates": [
+            {
+              "key": "event:purchase_completed:",
+              "kind": "event",
+              "event_name": "purchase_completed",
+              "label": "Purchase completed",
+              "data_type": "event",
+              "aliases": [],
+              "enabled": true,
+              "source": "declared"
+            }
+          ]
+        },
+        {
+          "reference": {
+            "key": "event_field:cart_updated:event.properties.amount",
+            "kind": "event_field",
+            "event_name": "cart_updated",
+            "path": "event.properties.amount"
+          },
+          "label": "Cart total",
+          "status": "matched",
+          "candidates": [
+            {
+              "key": "event_field:cart_updated:event.properties.amount",
+              "kind": "event_field",
+              "event_name": "cart_updated",
+              "path": "event.properties.amount",
+              "label": "Cart total",
+              "data_type": "number",
+              "aliases": [],
+              "enabled": true,
+              "source": "declared"
+            }
+          ]
+        },
+        {
+          "reference": {
+            "key": "event_field:cart_updated:event.properties.amount_display",
+            "kind": "event_field",
+            "event_name": "cart_updated",
+            "path": "event.properties.amount_display"
+          },
+          "label": "Formatted cart total",
+          "status": "matched",
+          "candidates": [
+            {
+              "key": "event_field:cart_updated:event.properties.amount_display",
+              "kind": "event_field",
+              "event_name": "cart_updated",
+              "path": "event.properties.amount_display",
+              "label": "Formatted cart total",
+              "data_type": "string",
+              "aliases": [],
+              "enabled": true,
+              "source": "declared"
+            }
+          ]
+        },
+        {
+          "reference": {
+            "key": "event_field:cart_updated:event.properties.cart_id",
+            "kind": "event_field",
+            "event_name": "cart_updated",
+            "path": "event.properties.cart_id"
+          },
+          "label": "Cart ID",
+          "status": "matched",
+          "candidates": [
+            {
+              "key": "event_field:cart_updated:event.properties.cart_id",
+              "kind": "event_field",
+              "event_name": "cart_updated",
+              "path": "event.properties.cart_id",
+              "label": "Cart ID",
+              "data_type": "string",
+              "aliases": [],
+              "enabled": true,
+              "source": "declared"
+            }
+          ]
+        },
+        {
+          "reference": {
+            "key": "event_field:cart_updated:event.properties.currency",
+            "kind": "event_field",
+            "event_name": "cart_updated",
+            "path": "event.properties.currency"
+          },
+          "label": "Currency",
+          "status": "matched",
+          "candidates": [
+            {
+              "key": "event_field:cart_updated:event.properties.currency",
+              "kind": "event_field",
+              "event_name": "cart_updated",
+              "path": "event.properties.currency",
+              "label": "Currency",
+              "data_type": "string",
+              "aliases": [],
+              "enabled": true,
+              "source": "declared"
+            }
+          ]
+        },
+        {
+          "reference": {
+            "key": "event_field:purchase_completed:event.properties.cart_id",
+            "kind": "event_field",
+            "event_name": "purchase_completed",
+            "path": "event.properties.cart_id"
+          },
+          "label": "Cart ID",
+          "status": "matched",
+          "candidates": [
+            {
+              "key": "event_field:purchase_completed:event.properties.cart_id",
+              "kind": "event_field",
+              "event_name": "purchase_completed",
+              "path": "event.properties.cart_id",
+              "label": "Cart ID",
+              "data_type": "string",
+              "aliases": [],
+              "enabled": true,
+              "source": "declared"
+            }
+          ]
+        }
+      ]
+    },
+    "generation": {
+      "attempts": [
+        {
+          "validation": {
+            "schema": 0,
+            "workflow": 1,
+            "message": 0,
+            "behavior": 0
+          },
+          "provider": "openai",
+          "requested_model": "gpt-6-luna",
+          "model": "gpt-6-luna",
+          "request_id": "req_c8c31dad7491406aba6ac114ae72115b",
+          "duration_ms": 27521,
+          "http_status": 200,
+          "usage": {
+            "input_tokens": 2998,
+            "output_tokens": 2622,
+            "reasoning_tokens": 1483,
+            "cached_input_tokens": 2995,
+            "cache_creation_tokens": 0
+          },
+          "provider_succeeded": true,
+          "accepted": false
+        },
+        {
+          "provider": "openai",
+          "requested_model": "gpt-6-luna",
+          "model": "gpt-6-luna",
+          "request_id": "req_b475e17df01b4294a5072d026606564a",
+          "duration_ms": 13327,
+          "http_status": 200,
+          "usage": {
+            "input_tokens": 4156,
+            "output_tokens": 1544,
+            "reasoning_tokens": 407,
+            "cached_input_tokens": 2877,
+            "cache_creation_tokens": 1276
+          },
+          "provider_succeeded": true,
+          "accepted": true
+        }
+      ],
+      "usage": {
+        "input_tokens": 7154,
+        "output_tokens": 4166,
+        "reasoning_tokens": 1890,
+        "cached_input_tokens": 5872,
+        "cache_creation_tokens": 1276
+      }
+    },
+    "schema_version": "composer.v5",
+    "name": "Abandoned Cart Recovery",
+    "description": "After an eligible EUR cart is updated, wait one hour and send a consent-checked personal email. Then monitor for a purchase of that same cart for 24 hours. A matching purchase ends the journey as converted; otherwise, send a consent-checked 10% SMS offer and complete. Re-entry is blocked for seven days.",
+    "workflow": {
+      "behavior_checks": {
+        "version": 2,
+        "confirmed": true,
+        "entry_event": "cart_updated",
+        "inputs": {
+          "customer.attributes.first_name": "Alex",
+          "event.properties.amount": 89.9,
+          "event.properties.amount_display": "€89.90",
+          "event.properties.cart_id": "CART-ALEX-001",
+          "event.properties.currency": "EUR"
+        },
+        "email_count": 1,
+        "sms_count": 1,
+        "outcome": "completed",
+        "duration_seconds": 90000,
+        "case_name": "No purchase during recovery",
+        "conditions": [
+          {
+            "path": "event.properties.amount",
+            "operator": "greater_than_or_equal",
+            "value": 50
+          },
+          {
+            "path": "event.properties.currency",
+            "operator": "equals",
+            "value": "EUR"
+          }
+        ],
+        "consents": {
+          "email": true,
+          "sms": true
+        },
+        "alternatives": [
+          {
+            "name": "Purchase before the first reminder",
+            "events": [
+              {
+                "entry_binding": {
+                  "entry_path": "event.properties.cart_id",
+                  "event_path": "event.properties.cart_id",
+                  "operator": "equals"
+                },
+                "event_name": "purchase_completed",
+                "after_seconds": 1800,
+                "properties": {
+                  "cart_id": "CART-ALEX-001"
+                }
+              }
+            ],
+            "email_count": 0,
+            "sms_count": 0,
+            "outcome": "converted",
+            "duration_seconds": 1800
+          }
+        ]
+      },
+      "schema_version": 1,
+      "nodes": [
+        {
+          "id": "trigger",
+          "type": "event_trigger",
+          "label": "Cart updated",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "config": {
+            "event_name": "cart_updated"
+          }
+        },
+        {
+          "id": "eligibility",
+          "type": "condition",
+          "label": "EUR cart worth at least €50",
+          "position": {
+            "x": 240,
+            "y": 0
+          },
+          "config": {
+            "rule": {
+              "logic": "and",
+              "rules": [
+                {
+                  "logic": "and",
+                  "rules": [
+                    {
+                      "path": "event.properties.amount",
+                      "operator": "greater_than_or_equal",
+                      "value": 50
+                    },
+                    {
+                      "path": "event.properties.currency",
+                      "operator": "equals",
+                      "value": "EUR"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "email_consent",
+          "type": "condition",
+          "label": "Email consent granted?",
+          "position": {
+            "x": 480,
+            "y": 0
+          },
+          "config": {
+            "rule": {
+              "path": "customer.consents.email",
+              "operator": "equals",
+              "value": true
+            }
+          }
+        },
+        {
+          "id": "email_delay",
+          "type": "wait",
+          "label": "Wait one hour",
+          "position": {
+            "x": 720,
+            "y": 0
+          },
+          "config": {
+            "duration_seconds": 3600,
+            "timezone": "UTC"
+          }
+        },
+        {
+          "id": "recovery_email",
+          "type": "email",
+          "label": "Send personal recovery email",
+          "position": {
+            "x": 960,
+            "y": 0
+          },
+          "config": {
+            "subject": "Your cart is waiting, {{ customer.attributes.first_name }}",
+            "preheader": "Your cart is waiting for you.",
+            "html": "<p>Hi {{ customer.attributes.first_name }},</p><p>You left {{ event.properties.amount_display }} in your cart. Take another look when you're ready.</p>",
+            "text": "Hi {{ customer.attributes.first_name }},\n\nYou left {{ event.properties.amount_display }} in your cart. Take another look when you're ready.",
+            "fallbacks": {
+              "customer.attributes.first_name": "there",
+              "event.properties.amount_display": "your cart"
+            }
+          }
+        },
+        {
+          "id": "purchase_wait",
+          "type": "wait_event",
+          "label": "Wait up to 24 hours for purchase of this cart",
+          "position": {
+            "x": 1200,
+            "y": 0
+          },
+          "config": {
+            "event_name": "purchase_completed",
+            "timeout_seconds": 86400
+          }
+        },
+        {
+          "id": "sms_consent",
+          "type": "condition",
+          "label": "SMS consent granted?",
+          "position": {
+            "x": 1440,
+            "y": 120
+          },
+          "config": {
+            "rule": {
+              "path": "customer.consents.sms",
+              "operator": "equals",
+              "value": true
+            }
+          }
+        },
+        {
+          "id": "recovery_sms",
+          "type": "sms",
+          "label": "Send 10% offer by SMS",
+          "position": {
+            "x": 1680,
+            "y": 120
+          },
+          "config": {
+            "text": "Hi {{ customer.attributes.first_name }}, complete your order and enjoy 10% off. See your cart to redeem.",
+            "fallbacks": {
+              "customer.attributes.first_name": "there"
+            }
+          }
+        },
+        {
+          "id": "ineligible_exit",
+          "type": "exit",
+          "label": "Not an eligible cart",
+          "position": {
+            "x": 480,
+            "y": 240
+          },
+          "config": {
+            "reason": "condition_not_met"
+          }
+        },
+        {
+          "id": "converted_exit",
+          "type": "exit",
+          "label": "Same cart purchased",
+          "position": {
+            "x": 1440,
+            "y": -120
+          },
+          "config": {
+            "reason": "converted"
+          }
+        },
+        {
+          "id": "completed_exit",
+          "type": "exit",
+          "label": "Recovery complete",
+          "position": {
+            "x": 1920,
+            "y": 240
+          },
+          "config": {
+            "reason": "completed"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "trigger",
+          "target": "eligibility",
+          "port": "started"
+        },
+        {
+          "id": "e2",
+          "source": "eligibility",
+          "target": "email_consent",
+          "port": "true"
+        },
+        {
+          "id": "e3",
+          "source": "eligibility",
+          "target": "ineligible_exit",
+          "port": "false"
+        },
+        {
+          "id": "e4",
+          "source": "email_consent",
+          "target": "email_delay",
+          "port": "true"
+        },
+        {
+          "id": "e5",
+          "source": "email_consent",
+          "target": "email_delay",
+          "port": "false"
+        },
+        {
+          "id": "e6",
+          "source": "email_delay",
+          "target": "recovery_email",
+          "port": "completed"
+        },
+        {
+          "id": "e7",
+          "source": "recovery_email",
+          "target": "purchase_wait",
+          "port": "next"
+        },
+        {
+          "id": "e8",
+          "source": "purchase_wait",
+          "target": "converted_exit",
+          "port": "matched"
+        },
+        {
+          "id": "e9",
+          "source": "purchase_wait",
+          "target": "sms_consent",
+          "port": "timeout"
+        },
+        {
+          "id": "e10",
+          "source": "sms_consent",
+          "target": "recovery_sms",
+          "port": "true"
+        },
+        {
+          "id": "e11",
+          "source": "sms_consent",
+          "target": "completed_exit",
+          "port": "false"
+        },
+        {
+          "id": "e12",
+          "source": "recovery_sms",
+          "target": "completed_exit",
+          "port": "next"
+        }
+      ],
+      "global_exit": {
+        "correlation": {
+          "entry_path": "event.properties.cart_id",
+          "event_path": "event.properties.cart_id"
+        },
+        "reason": "converted",
+        "event_name": "purchase_completed"
+      },
+      "reentry": {
+        "mode": "cooldown",
+        "cooldown_seconds": 604800
+      }
+    },
+    "explanation": "Eligibility uses the cart update's amount and currency. The purchase goal is correlated to the entry cart ID, so purchases of other carts do not end this journey. Missing cart IDs do not match. If a channel lacks consent, its message is skipped.",
+    "warnings": [
+      "The 10% offer's redemption method, code, and terms were not provided; confirm them before sending the SMS.",
+      "Confirm email and SMS channel deployment settings before launch. Messages use the customer's profile contact details; no recipients or provider credentials are configured.",
+      "The reviewed scoped obligations and eligibility boundaries passed. Unspecified customer states and event sequences still require review and Test Lab coverage."
+    ],
+    "diff": {
+      "behavior_checks_changed": true,
+      "metadata_changed": true,
+      "added_nodes": [
+        "completed_exit",
+        "converted_exit",
+        "eligibility",
+        "email_consent",
+        "email_delay",
+        "ineligible_exit",
+        "purchase_wait",
+        "recovery_email",
+        "recovery_sms",
+        "sms_consent",
+        "trigger"
+      ],
+      "removed_nodes": [],
+      "updated_nodes": [],
+      "changed_conditions": [],
+      "changed_messages": [],
+      "edges_changed": true,
+      "exit_changed": true,
+      "reentry_changed": true
+    },
+    "action": "generate"
+  }
 }

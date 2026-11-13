@@ -25,10 +25,13 @@ Searchable Elements, branch insertion and a contextual step inspector on a light
 ## AI creation and scoped review
 
 A dedicated brief page, per-situation business expectations, visible generation
-progress and human approval before the editable canvas. Generation in these
-captures is a local replay of the newly authored Northstar proposal, with no paid call.
+progress and human approval before the editable canvas. These creation captures use a real OpenAI `gpt-6-luna` response: 40.9 seconds,
+11,320 tokens including one automatic repair. The generated draft is separate
+from the operational demo workflow. [Run evidence](../reports/live-creation-capture-2026-11-13.md).
 
-![Review of a scoped business contract before opening the builder](creation/review.png)
+![Natural-language brief entry before generation](creation/brief.png)
+
+![Proposed journey diagram after the brief is submitted](creation/review-diagram.png)
 
 [Brief](creation/brief.png) · [Contract editor](creation/contract.png) ·
 [Generation feedback](creation/generating.png) · [Path diagram](creation/review-diagram.png)

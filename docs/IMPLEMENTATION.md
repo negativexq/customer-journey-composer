@@ -592,3 +592,14 @@ publish gate. Capturing preserved the 14 live entry count. The full browser run
 passed 76 cases; two old demo-name assertions were updated to use the successful
 login identity and then passed 2/2 in a focused rerun. Fractional contract duration
 submission is included in the passing scoped-contract browser coverage.
+
+### Visible brief-to-journey product walkthrough — 2026-11-13
+
+README now shows inline brief, generation progress, review diagram and editable
+canvas screens. At the user's explicit request, the eight creation images were
+replaced with a real OpenAI `gpt-6-luna` generation, not replay. The captured
+request used 11,320 tokens and 40.9s including one automatic repair. Human approval
+applied it to Draft; no publication or delivery occurred. The operational demo
+remains separate. The capture script has an explicit paid opt-in and observes a
+cloned stream without replacing the provider response. Earlier failed generation
+and capture-tool failures are disclosed in the [capture report](reports/live-creation-capture-2026-11-13.md).

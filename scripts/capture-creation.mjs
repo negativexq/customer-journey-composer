@@ -9,8 +9,10 @@ import { localDemoURL } from './seed-product-demo.mjs';
 const base = localDemoURL(process.env.CJC_WEB_URL || 'http://127.0.0.1:5173');
 const directory = 'docs/images/creation';
 const source = 'scripts/showcase-recipe.mjs';
+const live = process.env.CJC_LIVE_AI === '1';
 const recipe = showcaseRecipe();
 await mkdir(directory, { recursive: true });
+await mkdir('.tmp', { recursive: true });
 const viewport = { width: 1600, height: 1050 };
 const manifest = {
   captured_at: new Date().toISOString(),
@@ -19,10 +21,16 @@ const manifest = {
   viewport,
   device_scale_factor: 2,
   synthetic_data: true,
-  authored_workflow: source,
+  authored_workflow: live
+    ? 'Catalog and reviewed contract from ' + source + '; workflow is the unedited live_proposal'
+    : source,
   workspace: 'Northstar Commerce',
-  generation: 'Local SSE replay of the newly authored showcase proposal; no live provider call',
-  presentation_metadata: 'One shared human-authored journey recipe across the galleries',
+  generation: live
+    ? 'Live OpenAI generation through the application API; no response interception'
+    : 'Local SSE replay of the newly authored showcase proposal; no live provider call',
+  presentation_metadata: live
+    ? 'Real provider proposal for the displayed brief; operational demo is separately authored'
+    : 'One shared human-authored journey recipe across the galleries',
   screenshots: [],
 };
 const proposal = {
@@ -68,7 +76,7 @@ const replay = createServer((request, response) => {
       response.end('data: ' + JSON.stringify({ type: 'ready', proposal }) + '\n\n');
   };
 });
-await new Promise((resolve) => replay.listen(0, '127.0.0.1', resolve));
+if (!live) await new Promise((resolve) => replay.listen(0, '127.0.0.1', resolve));
 const browser = await chromium.launch();
 const page = await browser.newPage({
   baseURL: base,
@@ -105,11 +113,12 @@ try {
     data: { entries: recipe.catalog },
   });
   if (!catalog.ok()) throw new Error('Could not prepare the fictional workspace catalog.');
-  await page.route('**/api/v1/ai/**', (route) => {
-    if (route.request().url().endsWith('/journeys/generate/stream'))
-      return route.continue({ url: `http://127.0.0.1:${replay.address().port}/generate` });
-    return route.abort();
-  });
+  if (!live)
+    await page.route('**/api/v1/ai/**', (route) => {
+      if (route.request().url().endsWith('/journeys/generate/stream'))
+        return route.continue({ url: `http://127.0.0.1:${replay.address().port}/generate` });
+      return route.abort();
+    });
   await page.goto('/journeys/new');
   await page.getByLabel('Journey name', { exact: true }).fill(proposal.name);
   await page.getByLabel('Description', { exact: false }).fill(proposal.description);
@@ -119,6 +128,7 @@ try {
   await expect(page.getByLabel('Your brief', { exact: true })).toBeVisible();
   await expect(page.locator('.creation-save')).toHaveText('All changes saved');
   const id = page.url().split('/').at(-1);
+  manifest.journey_id = id;
   const record = await (await page.request.get(`/api/v1/journeys/${id}/composition`)).json();
   const saved = await page.request.put(`/api/v1/journeys/${id}/composition`, {
     headers,
@@ -142,13 +152,44 @@ try {
     .getByRole('heading', { name: 'What must be true?', exact: true })
     .evaluate((element) => element.scrollIntoView({ block: 'start' }));
   await shot('contract');
+  if (live)
+    await page.evaluate(() => {
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = async (...args) => {
+        const response = await originalFetch(...args);
+        if (response.url.endsWith('/journeys/generate/stream'))
+          window.__captureStream = response.clone().text();
+        return response;
+      };
+    });
+  const started = Date.now();
   await page.getByRole('button', { name: 'Generate plan', exact: false }).click();
   await expect(page.getByText('Waiting for the AI provider', { exact: false })).toBeVisible();
   await shot('generating');
-  finish();
-  await expect(
-    page.getByRole('heading', { name: 'Review your journey', exact: true }),
-  ).toBeVisible();
+  if (!live) finish();
+  if (live) {
+    const body = await page.evaluate(async () => {
+      if (!window.__captureStream) throw new Error('Live generation stream was not observed');
+      return await window.__captureStream;
+    });
+    const events = body
+      .split('\n')
+      .filter((line) => line.startsWith('data: '))
+      .map((line) => JSON.parse(line.slice(6)));
+    await writeFile('.tmp/live-creation-events.json', JSON.stringify(events, null, 2));
+    const ready = events.find((event) => event.type === 'ready');
+    if (!ready?.proposal) throw new Error('No live proposal returned: ' + JSON.stringify(events));
+    Object.assign(proposal, ready.proposal);
+    manifest.duration_ms = Date.now() - started;
+    manifest.live_proposal = ready.proposal;
+    await writeFile(directory + '/manifest.json', JSON.stringify(manifest, null, 2) + '\n');
+    console.log(
+      JSON.stringify({ duration_ms: manifest.duration_ms, generation: ready.proposal.generation }),
+    );
+  }
+  await expect(page.getByRole('heading', { name: 'Review your journey', exact: true })).toBeVisible(
+    { timeout: 15000 },
+  );
   await expect(page.locator('.creation-save')).toHaveText('All changes saved');
   await expect(page.getByRole('region', { name: 'Reviewed behavior expectations' })).toContainText(
     'Purchase before the first reminder',
@@ -160,10 +201,12 @@ try {
   await shot('review-diagram');
   await page.getByLabel('I reviewed the flow, messages and assumptions').check();
   await page.getByRole('button', { name: 'Approve & open builder', exact: true }).click();
-  await expect(page.locator('.canvas .vue-flow__node')).toHaveCount(recipe.workflow.nodes.length);
+  await expect(page.locator('.canvas .vue-flow__node')).toHaveCount(proposal.workflow.nodes.length);
   await shot('canvas-start');
   await page.getByRole('button', { name: 'Fit view', exact: true }).click();
-  await page.locator('.canvas .vue-flow__node[data-id="purchase_wait"]').click();
+  const waitNode = proposal.workflow.nodes.find((node) => node.type === 'wait_event');
+  if (!waitNode) throw new Error('Live workflow has no wait-for-event node to inspect');
+  await page.locator(`.canvas .vue-flow__node[data-id="${waitNode.id}"]`).click();
   await page.getByRole('button', { name: 'Focus selected step', exact: true }).click();
   await expect(page.getByRole('complementary', { name: 'Step settings' })).toBeVisible();
   await shot('canvas-focus');
@@ -171,11 +214,15 @@ try {
   expect(await (await page.request.get('/api/v1/deliveries')).json()).toHaveLength(0);
   await writeFile(directory + '/manifest.json', JSON.stringify(manifest, null, 2) + '\n');
   console.log(
-    'Captured eight creation screens with local replay; no provider call or publication.',
+    live
+      ? 'Captured eight creation screens from live AI generation; no publication.'
+      : 'Captured eight creation screens with local replay; no provider call or publication.',
   );
 } finally {
   finish?.();
   await browser.close();
-  replay.closeAllConnections();
-  await new Promise((resolve) => replay.close(resolve));
+  if (!live) {
+    replay.closeAllConnections();
+    await new Promise((resolve) => replay.close(resolve));
+  }
 }

@@ -66,9 +66,11 @@ without activating the draft.
 
 The creation gallery has eight images: method, brief, scoped contract, generation
 feedback, contract/path review and builder start/focus. A separate fictional
-Northstar workspace uses the same newly authored recipe and a **local SSE replay**
-of its proposal. Provider requests are blocked, no live generation is claimed and
-the result stays Draft. This keeps preview creation out of the user's clean demo.
+Northstar workspace submitted the displayed brief to real OpenAI `gpt-6-luna`.
+Its generated graph passed validation after one automatic repair and was applied
+through human approval. It remains Draft in a separate workspace. The operational
+demo uses the independently authored recipe, not this generated graph.
+[Live capture evidence](reports/live-creation-capture-2026-11-13.md).
 
 All 21 PNGs are native **2×** captures, 3200 pixels wide. Most use a 1600 × 1050 CSS viewport; the single-row journey list uses 1600 × 760 to avoid excessive empty space.
 Images are not composited or patched. Only normal UI navigation, focus and scroll
@@ -77,7 +79,12 @@ manifests record source and capture details.
 
 [Product manifest](images/manifest.json) · [Creation manifest](images/creation/manifest.json).
 
-Use `npm run screenshots:product` or `npm run screenshots:creation` for one gallery.
+Use `npm run screenshots:product` for the operational gallery.
+`npm run screenshots:creation` defaults to unpaid local replay for reproducibility;
+it replaces the creation pictures with replay captures and labels the manifest accordingly.
+For an explicitly authorized **paid** creation capture, use
+`CJC_LIVE_AI=1 npm run screenshots:creation`. It uses the server-side OpenAI configuration;
+no provider key is passed to the browser. It does not publish the resulting journey.
 `.tmp/product-demo.json` contains fixture identifiers/counts, never passwords,
 sessions, CSRF values or provider keys. Optional `CJC_API_URL`/`CJC_WEB_URL` must be
 loopback origins. This is a local development showcase, not an external deployment.
