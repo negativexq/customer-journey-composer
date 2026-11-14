@@ -439,6 +439,7 @@ onErrorCaptured((cause) => {
           :customer-id="route.customerID"
           @select="go({ ...route, customerID: $event })"
           @inspect="inspectActivity"
+          @monitor="openMonitor"
         /><EventsView
           v-else-if="page === 'Events'"
           :readonly="readOnly"

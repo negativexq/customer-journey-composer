@@ -8,6 +8,10 @@ import DetailDrawer from './ui/DetailDrawer.vue';
 import StatusBadge from './ui/StatusBadge.vue';
 import DecisionSummary from './ui/DecisionSummary.vue';
 import AttemptHistory from './ui/AttemptHistory.vue';
+import JourneyRoute from './JourneyRoute.vue';
+import { journeyPath, type ExecutionDetail } from '../lib/customer-journey';
+import { loadDefinition, type Definition } from '../lib/journey-definition';
+import { stepSummary } from '../lib/workflow-presentation';
 type ExecutionLink = { id: string; journey_id: string; state: string; started_at: string };
 type Detail = {
   id?: string;
@@ -15,6 +19,7 @@ type Detail = {
   event_name?: string;
   customer_id?: string;
   journey_id?: string;
+  version_id?: string;
   execution_id?: string;
   entry_event_id?: string;
   state?: string;
@@ -49,6 +54,18 @@ const emit = defineEmits<{
 }>();
 const detail = ref<Detail>();
 const executions = ref<ExecutionLink[]>([]);
+// What an execution needs to read as a route: the published definition and the journey's name.
+const definition = ref<Definition>();
+const journeyName = ref('');
+const path = computed(() =>
+  props.kind === 'execution' && detail.value?.steps
+    ? journeyPath(
+        definition.value?.workflow || { schema_version: 1, nodes: [], edges: [] },
+        detail.value as unknown as ExecutionDetail,
+        stepSummary,
+      )
+    : undefined,
+);
 const error = ref('');
 const busy = ref(false);
 let sequence = 0;
@@ -66,6 +83,8 @@ async function load() {
   controller = new AbortController();
   const current = ++sequence;
   detail.value = undefined;
+  definition.value = undefined;
+  journeyName.value = '';
   executions.value = [];
   error.value = '';
   if (!props.kind || !props.recordId) {
@@ -85,6 +104,21 @@ async function load() {
     );
     if (current !== sequence) return;
     detail.value = result;
+    if (props.kind === 'execution' && result.journey_id) {
+      // The route still reads without these, with step ids instead of names.
+      const journeyID = result.journey_id;
+      void api<{ name: string }>('/journeys/' + journeyID)
+        .then((journey) => {
+          if (current === sequence) journeyName.value = journey.name;
+        })
+        .catch(() => undefined);
+      if (result.version_id)
+        void loadDefinition(journeyID, result.version_id)
+          .then((loaded) => {
+            if (current === sequence) definition.value = loaded;
+          })
+          .catch(() => undefined);
+    }
     if (props.kind === 'event') {
       const rows = await api<ExecutionLink[]>(
         `/events/${encodeURIComponent(props.recordId)}/executions?limit=25`,
@@ -122,11 +156,15 @@ onBeforeUnmount(() => {
             detail.event_name ||
             detail.message?.subject ||
             detail.channel?.toUpperCase() ||
+            journeyName ||
             'Journey execution'
           }}
         </h3>
         <StatusBadge :status="detail.status || detail.state || 'UNKNOWN'" />
       </div>
+      <p v-if="path" class="activity-headline">
+        {{ path.headline }}<template v-if="path.duration"> · took {{ path.duration }}</template>
+      </p>
       <dl class="activity-facts">
         <div>
           <dt>Record</dt>
@@ -143,6 +181,10 @@ onBeforeUnmount(() => {
         <div>
           <dt>Time</dt>
           <dd>{{ time(detail.occurred_at || detail.started_at || detail.created_at) }}</dd>
+        </div>
+        <div v-if="definition">
+          <dt>Version</dt>
+          <dd>Version {{ definition.version }}</dd>
         </div>
         <div v-if="detail.mode">
           <dt>Mode</dt>
@@ -192,21 +234,11 @@ onBeforeUnmount(() => {
         <pre>{{ JSON.stringify(detail.properties, null, 2) }}</pre>
       </template>
       <template v-if="kind === 'execution'"
-        ><h3>Step history</h3>
-        <ol class="activity-timeline">
-          <li v-for="step in detail.steps" :key="step.node_id">
-            <div>
-              <strong>{{ step.node_id }}</strong
-              ><StatusBadge :status="step.state" />
-            </div>
-            <p v-if="step.output?.condition !== undefined">
-              Condition {{ step.output.condition ? 'matched · Yes' : 'did not match · No' }}
-            </p>
-            <p v-else-if="step.output?.error">{{ step.output.error }}</p>
-            <p v-else-if="step.output?.port">Continued via {{ step.output.port }}</p>
-            <time>{{ time(step.started_at) }}</time>
-          </li>
-        </ol>
+        ><JourneyRoute
+          v-if="path"
+          class="activity-route"
+          :path="path"
+          @message="emit('inspect', { kind: 'message', id: $event })" />
         <h3>Messages</h3>
         <p v-if="!detail.deliveries?.length" class="muted">No logical messages created.</p>
         <button
@@ -256,9 +288,13 @@ h3 {
 }
 .activity-facts {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 14px;
-  margin: 24px 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 20px;
+  margin: 20px 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--page);
   font-size: 13px;
 }
 .activity-facts dt {
@@ -270,21 +306,13 @@ h3 {
   margin: 0;
   overflow-wrap: anywhere;
 }
-.activity-timeline {
-  list-style: none;
-  padding: 0;
-  display: grid;
-  gap: 12px;
-}
-.activity-timeline li {
-  border-left: 2px solid var(--border);
-  padding: 4px 0 8px 16px;
+.activity-headline {
+  margin: 8px 0 0;
   font-size: 13px;
+  color: var(--muted);
 }
-.activity-timeline li > div {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
+.activity-route {
+  margin-top: 24px;
 }
 time,
 small {

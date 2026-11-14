@@ -135,13 +135,33 @@ test('customer, event, execution and message inspections survive reload and brow
   ])
     expect((await request.get('/api/v1' + path)).status()).toBe(404);
   await page.goto(`/customers?customer=${customer}`);
+  await expect(page.getByRole('heading', { name: customer, exact: true })).toBeVisible();
+  // The person's route is drawn on the journey map and spelled out stop by stop.
+  const journeyView = page.getByRole('region', { name: 'Customer journey' });
+  await expect(journeyView.getByRole('heading', { name: 'Activity journey' })).toBeVisible();
+  await expect(journeyView).toContainText('Finished the journey · Version 1');
+  const stops = journeyView.locator('.route-step');
+  await expect(stops).toHaveCount(3);
+  await expect(stops.nth(0)).toContainText('Entered when cart_updated arrived');
+  await expect(stops.nth(1)).toContainText('SMS accepted by the provider');
+  await expect(stops.nth(2)).toContainText('Left the journey: completed');
+  await expect(journeyView.locator('.workflow-node.was-visited')).toHaveCount(3);
+  await expect(journeyView.locator('.node-metrics')).toHaveCount(0);
+  await page.getByRole('tab', { name: /^Activity/ }).click();
+  const feed = page.getByRole('tabpanel');
+  await expect(feed).toContainText('Entered Activity journey');
+  await expect(feed).toContainText('SMS message');
+  await expect(feed).toContainText('cart_updated');
+  await page.getByRole('tab', { name: 'Profile', exact: true }).click();
   await expect(page.getByLabel('Customer ID', { exact: true })).toHaveValue(customer);
-  await page
-    .getByRole('button')
-    .filter({ hasText: executionID.slice(0, 8) })
-    .click();
+  await page.getByRole('tab', { name: /^Journey/ }).click();
+  await journeyView.getByRole('button', { name: 'Inspect details', exact: true }).click();
   const drawer = page.getByRole('dialog', { name: 'Execution details', exact: true });
   await expect(drawer).toBeVisible();
+  await expect(drawer.getByRole('heading', { name: 'Activity journey' })).toBeVisible();
+  await expect(drawer).toContainText('Finished the journey');
+  await expect(drawer.locator('.route-step')).toHaveCount(3);
+  await expect(drawer.locator('.route-step').nth(1)).toContainText('Cart reminder');
   await expect(page).toHaveURL(new RegExp(`inspect=execution&record=${executionID}`));
   await page.reload();
   await expect(drawer).toBeVisible();

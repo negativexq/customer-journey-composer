@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import SkeletonBlock from './ui/SkeletonBlock.vue';
 import { errorMessage, formatDateTime } from '../lib/format';
-import { onMounted, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import type { InspectionKind } from '../lib/navigation';
 import StatusBadge from './ui/StatusBadge.vue';
 import { api } from '../lib/api';
+import AppIcon from './ui/AppIcon.vue';
+import CustomerJourney, { type CustomerExecution } from './CustomerJourney.vue';
+import { activityFeed, displayName, initials } from '../lib/customer-journey';
+import { plural } from '../lib/format';
+import { toast } from '../lib/toast';
 type Customer = {
   customer_id: string;
   external_id?: string;
@@ -12,8 +17,9 @@ type Customer = {
   phone?: string;
   locale: string;
   timezone: string;
-  attributes: Record<string, unknown>;
-  consents: Record<string, boolean>;
+  // The list endpoint omits attributes and consents; the profile endpoint returns them.
+  attributes: Record<string, unknown> | null;
+  consents: Record<string, boolean> | null;
   created_at: string;
   updated_at: string;
 };
@@ -21,11 +27,26 @@ const props = defineProps<{ readonly?: boolean; customerId?: string }>();
 const emit = defineEmits<{
   select: [string | undefined];
   inspect: [{ kind: InspectionKind; id: string }];
+  monitor: [{ journeyID: string; executionID: string }];
 }>();
+type EventRow = { event_id: string; event_name: string; occurred_at: string; status?: string };
+type DeliveryRow = {
+  id: string;
+  channel: string;
+  mode?: string;
+  status: string;
+  created_at?: string;
+  accepted_at?: string | null;
+};
+const tabs = ['Journey', 'Activity', 'Profile'] as const;
+const tab = ref<(typeof tabs)[number]>('Journey');
+const creating = ref(false);
+const journeyNames = ref<Record<string, string>>({});
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
 let request = 0;
 let listRequest = 0;
 let disposed = false;
-const executions = ref<{ id: string; state: string; started_at: string }[]>([]);
+const executions = ref<CustomerExecution[]>([]);
 const customers = ref<Customer[]>([]);
 const selected = ref<Customer>();
 const search = ref('');
@@ -33,8 +54,8 @@ const error = ref('');
 const busy = ref(false);
 const loadingProfile = ref(false);
 const attributes = ref('{}');
-const events = ref<Record<string, unknown>[]>([]);
-const deliveries = ref<Record<string, unknown>[]>([]);
+const events = ref<EventRow[]>([]);
+const deliveries = ref<DeliveryRow[]>([]);
 const form = ref({
   customer_id: '',
   external_id: '',
@@ -62,6 +83,8 @@ async function load() {
 async function open(customer: Pick<Customer, 'customer_id'>) {
   const current = ++request;
   loadingProfile.value = true;
+  creating.value = false;
+  if (selected.value?.customer_id !== customer.customer_id) tab.value = 'Journey';
   selected.value = undefined;
   error.value = '';
   events.value = [];
@@ -78,15 +101,13 @@ async function open(customer: Pick<Customer, 'customer_id'>) {
       phone: c.phone || '',
       locale: c.locale,
       timezone: c.timezone,
-      emailConsent: !!c.consents.email,
-      smsConsent: !!c.consents.sms,
+      emailConsent: !!c.consents?.email,
+      smsConsent: !!c.consents?.sms,
     };
-    attributes.value = JSON.stringify(c.attributes, null, 2);
+    attributes.value = JSON.stringify(c.attributes || {}, null, 2);
     const [timeline, history, runs] = await Promise.all([
-      api<Record<string, unknown>[]>(`/customers/${encodeURIComponent(c.customer_id)}/events`),
-      api<Record<string, unknown>[]>(
-        `/deliveries?customer_id=${encodeURIComponent(c.customer_id)}`,
-      ),
+      api<EventRow[]>(`/customers/${encodeURIComponent(c.customer_id)}/events`),
+      api<DeliveryRow[]>(`/deliveries?customer_id=${encodeURIComponent(c.customer_id)}`),
       api<typeof executions.value>(
         `/customers/${encodeURIComponent(c.customer_id)}/executions?limit=25`,
       ),
@@ -103,6 +124,7 @@ async function open(customer: Pick<Customer, 'customer_id'>) {
 }
 function reset(fromRoute = false) {
   request++;
+  creating.value = !fromRoute;
   loadingProfile.value = false;
   error.value = '';
   deliveries.value = [];
@@ -125,6 +147,7 @@ function reset(fromRoute = false) {
 async function save() {
   if (props.readonly) return;
   error.value = '';
+  const existing = !!selected.value;
   try {
     const c = await api<Customer>(
       selected.value
@@ -142,6 +165,7 @@ async function save() {
         consents: { email: form.value.emailConsent, sms: form.value.smsConsent },
       },
     );
+    toast(existing ? 'Profile saved' : 'Customer created');
     await load();
     if (props.customerId === c.customer_id) await open(c);
     else emit('select', c.customer_id);
@@ -149,12 +173,40 @@ async function save() {
     error.value = errorMessage(cause);
   }
 }
-function inspect(event: Record<string, unknown>) {
-  emit('inspect', { kind: 'event', id: String(event.event_id) });
-}
-function inspectDelivery(id: unknown) {
-  emit('inspect', { kind: 'message', id: String(id) });
-}
+const name = computed(() => (selected.value ? displayName(selected.value) : ''));
+const feed = computed(() =>
+  activityFeed(
+    events.value,
+    deliveries.value,
+    executions.value,
+    (execution) =>
+      journeyNames.value[
+        executions.value.find((item) => item.id === execution.id)?.journey_id || ''
+      ] || 'a journey',
+  ),
+);
+const day = (value: string) =>
+  new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+// Consecutive feed items that share a calendar day, newest day first.
+const feedDays = computed(() => {
+  const groups: { day: string; items: typeof feed.value }[] = [];
+  for (const item of feed.value) {
+    const label = day(item.at);
+    if (groups.at(-1)?.day !== label) groups.push({ day: label, items: [] });
+    groups.at(-1)!.items.push(item);
+  }
+  return groups;
+});
+const feedIcon = { event: 'events', message: 'email', execution: 'workflow' } as const;
+const counts = computed(() => ({
+  Journey: executions.value.length,
+  Activity: feed.value.length,
+  Profile: undefined,
+}));
+watch(search, () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => void load(), 250);
+});
 watch(
   () => props.customerId,
   (id) => {
@@ -164,11 +216,17 @@ watch(
 );
 onBeforeUnmount(() => {
   disposed = true;
+  clearTimeout(searchTimer);
   request++;
   listRequest++;
 });
 onMounted(() => {
   void load();
+  void api<{ id: string; name: string }[]>('/journeys?limit=200')
+    .then((list) => {
+      if (!disposed) journeyNames.value = Object.fromEntries(list.map((j) => [j.id, j.name]));
+    })
+    .catch(() => undefined);
   if (props.customerId) void open({ customer_id: props.customerId });
 });
 </script>
@@ -177,127 +235,600 @@ onMounted(() => {
     <div>
       <p class="eyebrow">YOUR AUDIENCE</p>
       <h1>Customers</h1>
-      <p class="page-description">Profiles, permissions, and the moments that matter.</p>
+      <p class="page-description">
+        Pick a person to see the route they took, what they received and what they did.
+      </p>
     </div>
-    <button v-if="!readonly" @click="reset()">New customer</button>
+    <button v-if="!readonly" class="primary" @click="reset()">
+      <AppIcon name="plus" :size="15" />New customer
+    </button>
   </div>
   <p v-if="error" role="alert" class="error-message">{{ error }}</p>
-  <div class="resource-grid">
-    <section class="panel">
-      <form class="toolbar" @submit.prevent="load">
-        <label
-          >Find customer<input
-            v-model="search"
-            placeholder="Customer ID, external ID or email prefix" /></label
-        ><button>Search</button>
+  <div class="customers-layout" :class="{ 'has-detail': customerId || creating }">
+    <aside class="panel people" aria-label="Customer list">
+      <form class="people-search" role="search" @submit.prevent="load">
+        <AppIcon name="search" :size="15" />
+        <input
+          v-model="search"
+          aria-label="Find customer"
+          placeholder="ID, external ID or email prefix"
+        />
       </form>
-      <SkeletonBlock v-if="busy" label="Loading customers…" :rows="5" />
-      <p v-else-if="!customers.length">No customers found.</p>
-      <button
-        v-for="customer in customers"
-        :key="customer.customer_id"
-        class="list-row"
-        :aria-pressed="selected?.customer_id === customer.customer_id"
-        @click="emit('select', customer.customer_id)"
-      >
-        <span>{{ customer.email || customer.customer_id }}</span
-        ><small>{{ customer.external_id }}</small></button
-      ><small>Showing up to 200 profiles. Use search to narrow results.</small>
-    </section>
-    <section class="panel">
-      <h2>{{ selected ? 'Customer profile' : 'New customer' }}</h2>
-      <SkeletonBlock
-        v-if="loadingProfile"
-        label="Loading customer profile…"
-        variant="text"
-        :rows="5"
-      />
-      <button
-        v-if="customerId && !selected && !loadingProfile"
-        @click="open({ customer_id: customerId })"
-      >
-        Retry customer
-      </button>
-      <form
-        v-if="!loadingProfile && (!customerId || selected)"
-        class="editor-form"
-        @submit.prevent="save"
-      >
-        <label
-          >Customer ID<input
-            v-model="form.customer_id"
-            :disabled="!!selected || readonly"
-            placeholder="Generated if blank"
-            maxlength="128" /></label
-        ><label
-          >External ID<input
-            v-model="form.external_id"
-            :disabled="readonly"
-            maxlength="128" /></label
-        ><label>Email<input v-model="form.email" type="email" :disabled="readonly" /></label
-        ><label
-          >Phone<input v-model="form.phone" :disabled="readonly" placeholder="+905551234567"
-        /></label>
-        <div class="toolbar">
-          <label>Locale<input v-model="form.locale" :disabled="readonly" /></label
-          ><label>Timezone<input v-model="form.timezone" :disabled="readonly" /></label>
-        </div>
-        <div class="consent-row">
-          <label
-            ><input v-model="form.emailConsent" type="checkbox" :disabled="readonly" /> Email
-            consent</label
-          ><label
-            ><input v-model="form.smsConsent" type="checkbox" :disabled="readonly" /> SMS
-            consent</label
+      <SkeletonBlock v-if="busy && !customers.length" label="Loading customers…" :rows="6" />
+      <div v-else-if="!customers.length" class="people-empty">
+        <strong>{{ search ? 'No one matches that search' : 'No customers yet' }}</strong>
+        <p>
+          {{
+            search
+              ? 'Search matches the start of an ID, external ID or email.'
+              : 'Customers appear when events arrive, or you can add one.'
+          }}
+        </p>
+      </div>
+      <template v-else>
+        <p class="people-count">
+          {{
+            customers.length === 200
+              ? 'First 200 profiles · search to narrow'
+              : plural(customers.length, 'profile')
+          }}
+        </p>
+        <button
+          v-for="customer in customers"
+          :key="customer.customer_id"
+          class="person"
+          :aria-pressed="customerId === customer.customer_id"
+          @click="emit('select', customer.customer_id)"
+        >
+          <span class="avatar" aria-hidden="true">{{ initials(displayName(customer)) }}</span>
+          <span class="person-copy"
+            ><strong>{{ displayName(customer) }}</strong
+            ><small
+              >{{ customer.customer_id
+              }}<template v-if="customer.external_id">
+                · {{ customer.external_id }}</template
+              ></small
+            ></span
           >
-        </div>
-        <label
-          >Custom attributes (JSON)<textarea
-            v-model="attributes"
-            rows="7"
-            class="code-input"
-            :disabled="readonly"
-          /></label
-        ><button v-if="!readonly" class="primary">
-          {{ selected ? 'Save profile' : 'Create customer' }}
-        </button>
-      </form>
-      <template v-if="selected"
-        ><h3>Journey executions</h3>
-        <p v-if="!executions.length">No journey enrollments found.</p>
-        <button
-          v-for="execution in executions"
-          :key="execution.id"
-          class="list-row"
-          @click="emit('inspect', { kind: 'execution', id: execution.id })"
-        >
-          <span>{{ execution.id.slice(0, 8) }} · {{ formatDateTime(execution.started_at) }}</span
-          ><StatusBadge :status="execution.state" /></button
-        ><small>Latest 25 executions.</small>
-        <h3>Message history</h3>
-        <p v-if="!deliveries.length">No message actions yet.</p>
-        <button
-          v-for="item in deliveries"
-          :key="String(item.id)"
-          class="list-row"
-          @click="inspectDelivery(item.id)"
-        >
-          <span>{{ item.channel }} · {{ item.mode }}</span
-          ><span>{{ item.status }}</span>
-        </button>
-
-        <h3>Event timeline</h3>
-        <p v-if="!events.length">No events received yet.</p>
-        <button
-          v-for="event in events"
-          :key="String(event.event_id)"
-          class="list-row"
-          @click="inspect(event)"
-        >
-          <span>{{ event.event_name }}</span
-          ><small>{{ formatDateTime(String(event.occurred_at), { seconds: true }) }}</small>
         </button>
       </template>
+    </aside>
+    <section class="customer-detail">
+      <button
+        v-if="customerId || creating"
+        class="back-to-list"
+        type="button"
+        @click="
+          creating = false;
+          emit('select', undefined);
+        "
+      >
+        <AppIcon name="back" :size="15" />All customers
+      </button>
+      <div v-if="!customerId && !creating" class="panel customer-placeholder">
+        <span class="placeholder-mark"><AppIcon name="users" :size="22" /></span>
+        <h2>Select a customer</h2>
+        <p>Their journey map, messages and events open here.</p>
+      </div>
+      <div v-if="loadingProfile" class="panel">
+        <SkeletonBlock label="Loading customer profile…" variant="text" :rows="6" />
+      </div>
+      <div v-if="customerId && !selected && !loadingProfile" class="panel customer-placeholder">
+        <h2>This profile did not load</h2>
+        <button @click="open({ customer_id: customerId })">Retry customer</button>
+      </div>
+      <template v-if="selected && !loadingProfile">
+        <header class="panel profile-head">
+          <span class="avatar large" aria-hidden="true">{{ initials(name) }}</span>
+          <div class="profile-identity">
+            <h2>{{ name }}</h2>
+            <p>
+              {{ selected.customer_id
+              }}<template v-if="selected.external_id"> · {{ selected.external_id }}</template
+              ><template v-if="selected.email && selected.email !== name">
+                · {{ selected.email }}</template
+              >
+            </p>
+            <div class="profile-chips">
+              <span :class="selected.consents?.email ? 'chip-yes' : 'chip-no'"
+                ><AppIcon :name="selected.consents?.email ? 'check' : 'close'" :size="12" />Email
+                {{ selected.consents?.email ? 'allowed' : 'not allowed' }}</span
+              ><span :class="selected.consents?.sms ? 'chip-yes' : 'chip-no'"
+                ><AppIcon :name="selected.consents?.sms ? 'check' : 'close'" :size="12" />SMS
+                {{ selected.consents?.sms ? 'allowed' : 'not allowed' }}</span
+              ><span><AppIcon name="clock" :size="12" />{{ selected.timezone }}</span
+              ><span>{{ selected.locale }}</span>
+            </div>
+          </div>
+          <dl class="profile-stats">
+            <div>
+              <dt>Journeys</dt>
+              <dd>{{ executions.length }}</dd>
+            </div>
+            <div>
+              <dt>Messages</dt>
+              <dd>{{ deliveries.length }}</dd>
+            </div>
+            <div>
+              <dt>Events</dt>
+              <dd>{{ events.length }}</dd>
+            </div>
+          </dl>
+        </header>
+        <div class="detail-tabs" role="tablist" aria-label="Customer sections">
+          <button
+            v-for="item in tabs"
+            :id="'customer-tab-' + item"
+            :key="item"
+            role="tab"
+            type="button"
+            :aria-selected="tab === item"
+            aria-controls="customer-tabpanel"
+            @click="tab = item"
+          >
+            {{ item }}<span v-if="counts[item] !== undefined">{{ counts[item] }}</span>
+          </button>
+        </div>
+      </template>
+      <div
+        v-if="creating || (selected && !loadingProfile)"
+        id="customer-tabpanel"
+        class="panel"
+        :role="creating ? undefined : 'tabpanel'"
+        :aria-labelledby="creating ? undefined : 'customer-tab-' + tab"
+      >
+        <template v-if="!creating && tab === 'Journey'">
+          <CustomerJourney
+            v-if="executions.length"
+            :executions="executions"
+            :journey-names="journeyNames"
+            @inspect="emit('inspect', $event)"
+            @monitor="emit('monitor', $event)"
+          />
+          <div v-else class="customer-placeholder">
+            <span class="placeholder-mark"><AppIcon name="workflow" :size="22" /></span>
+            <h3>No journey entries yet</h3>
+            <p>When an event enrolls this person, the route they take is drawn here.</p>
+          </div>
+        </template>
+        <template v-else-if="!creating && tab === 'Activity'">
+          <div v-if="!feed.length" class="customer-placeholder">
+            <span class="placeholder-mark"><AppIcon name="events" :size="22" /></span>
+            <h3>Nothing has happened yet</h3>
+            <p>Events, journey entries and messages for this person are listed here.</p>
+          </div>
+          <div v-for="group in feedDays" :key="group.day" class="feed-day">
+            <h3>{{ group.day }}</h3>
+            <button
+              v-for="item in group.items"
+              :key="item.key"
+              type="button"
+              class="feed-item"
+              @click="emit('inspect', { kind: item.kind, id: item.id })"
+            >
+              <span class="feed-mark" :class="item.kind"
+                ><AppIcon
+                  :name="
+                    item.kind === 'message' && item.title.startsWith('SMS')
+                      ? 'message'
+                      : feedIcon[item.kind]
+                  "
+                  :size="15"
+              /></span>
+              <span class="feed-copy"
+                ><strong>{{ item.title }}</strong
+                ><small
+                  >{{ item.detail }} · {{ formatDateTime(item.at, { seconds: true }) }}</small
+                ></span
+              >
+              <StatusBadge v-if="item.status" :status="item.status" />
+            </button>
+          </div>
+          <small v-if="feed.length" class="feed-note"
+            >Latest 25 journey entries, with this person's events and messages.</small
+          >
+        </template>
+        <template v-else>
+          <h2 class="form-title">{{ creating ? 'New customer' : 'Profile details' }}</h2>
+          <form class="editor-form profile-form" @submit.prevent="save">
+            <label
+              >Customer ID<input
+                v-model="form.customer_id"
+                :disabled="!!selected || readonly"
+                placeholder="Generated if blank"
+                maxlength="128" /></label
+            ><label
+              >External ID<input
+                v-model="form.external_id"
+                :disabled="readonly"
+                maxlength="128" /></label
+            ><label>Email<input v-model="form.email" type="email" :disabled="readonly" /></label
+            ><label
+              >Phone<input v-model="form.phone" :disabled="readonly" placeholder="+905551234567"
+            /></label>
+            <label>Locale<input v-model="form.locale" :disabled="readonly" /></label
+            ><label>Timezone<input v-model="form.timezone" :disabled="readonly" /></label>
+            <div class="consent-row wide">
+              <label
+                ><input v-model="form.emailConsent" type="checkbox" :disabled="readonly" /> Email
+                consent</label
+              ><label
+                ><input v-model="form.smsConsent" type="checkbox" :disabled="readonly" /> SMS
+                consent</label
+              >
+            </div>
+            <label class="wide"
+              >Custom attributes (JSON)<textarea
+                v-model="attributes"
+                rows="7"
+                class="code-input"
+                :disabled="readonly"
+              /></label
+            ><button v-if="!readonly" class="primary">
+              {{ selected ? 'Save profile' : 'Create customer' }}
+            </button>
+          </form>
+        </template>
+      </div>
     </section>
   </div>
 </template>
+<style scoped>
+.customers-layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.people {
+  position: sticky;
+  top: 16px;
+  display: grid;
+  gap: 4px;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 14px;
+}
+.people-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  background: var(--surface);
+}
+.people-search:focus-within {
+  border-color: var(--accent);
+}
+.people-search input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--text);
+  font-size: 13px;
+}
+.people-count {
+  margin: 0 2px 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.people-empty {
+  padding: 24px 8px;
+  text-align: center;
+}
+.people-empty strong {
+  font-size: 13px;
+}
+.people-empty p {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.person {
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  border-color: transparent;
+  border-radius: 8px;
+  background: none;
+  text-align: left;
+}
+.person:hover {
+  background: var(--page);
+  border-color: transparent;
+}
+.person[aria-pressed='true'] {
+  background: var(--accent-soft);
+}
+.person-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.person-copy strong,
+.person-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.person-copy strong {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+.person-copy small {
+  font-size: 12px;
+  color: var(--muted);
+}
+.avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.avatar.large {
+  flex-basis: 56px;
+  height: 56px;
+  font-size: 18px;
+}
+.customer-detail {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.back-to-list {
+  display: none;
+  justify-self: start;
+}
+.customer-placeholder {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 56px 24px;
+  text-align: center;
+}
+.customer-placeholder h2,
+.customer-placeholder h3 {
+  margin: 8px 0 0;
+  font-size: 15px;
+}
+.customer-placeholder p {
+  margin: 0 0 8px;
+  max-width: 44ch;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.placeholder-mark {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.profile-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+.profile-identity {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.profile-identity h2 {
+  margin: 0;
+  font-size: 18px;
+  overflow-wrap: anywhere;
+}
+.profile-identity p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.profile-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.profile-chips span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--page);
+  color: var(--muted);
+  font-size: 12px;
+}
+.profile-chips .chip-yes {
+  background: var(--green-97);
+  color: var(--green-47-text);
+}
+.profile-chips .chip-no {
+  background: var(--amber-97);
+  color: var(--amber-51-text);
+}
+.profile-stats {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+}
+.profile-stats div {
+  min-width: 84px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.profile-stats dt {
+  font-size: 12px;
+  color: var(--muted);
+}
+.profile-stats dd {
+  margin: 2px 0 0;
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.detail-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.detail-tabs button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+}
+.detail-tabs button:hover {
+  color: var(--text);
+  background: none;
+}
+.detail-tabs button[aria-selected='true'] {
+  border-bottom-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+.detail-tabs span {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--page);
+  font-size: 11px;
+  font-weight: 500;
+}
+.form-title {
+  margin: 0 0 16px;
+  font-size: 15px;
+}
+.profile-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+  max-width: 760px;
+}
+.profile-form .wide {
+  grid-column: 1 / -1;
+}
+.profile-form .primary {
+  justify-self: start;
+}
+.feed-day h3 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.feed-day + .feed-day {
+  margin-top: 20px;
+}
+.feed-item {
+  display: flex;
+  justify-content: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  border-color: transparent;
+  border-radius: 8px;
+  background: none;
+  text-align: left;
+}
+.feed-item:hover {
+  background: var(--page);
+  border-color: transparent;
+}
+.feed-mark {
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--green-97);
+  color: var(--green-47-text);
+}
+.feed-mark.message {
+  background: var(--blue-96);
+  color: var(--blue-56-text);
+}
+.feed-mark.execution {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.feed-copy {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.feed-copy strong {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.feed-copy small,
+.feed-note {
+  font-size: 12px;
+  color: var(--muted);
+}
+.feed-note {
+  display: block;
+  margin-top: 16px;
+}
+@media (max-width: 900px) {
+  .customers-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .people {
+    position: static;
+    max-height: none;
+  }
+  /* On a phone the list and the person take turns. */
+  .has-detail .people {
+    display: none;
+  }
+  .back-to-list {
+    display: inline-flex;
+  }
+  .customers-layout:not(.has-detail) .customer-placeholder {
+    display: none;
+  }
+  .profile-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .profile-stats {
+    width: 100%;
+  }
+  .profile-stats div {
+    flex: 1;
+    min-width: 0;
+  }
+  .person,
+  .detail-tabs button {
+    min-height: 44px;
+  }
+}
+</style>

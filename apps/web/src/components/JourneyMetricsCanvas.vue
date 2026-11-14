@@ -19,6 +19,8 @@ const props = defineProps<{
   workflow: Workflow;
   insights?: Insights;
   selectedNode?: string;
+  // One person's route: step counts are left out because they describe everyone.
+  personal?: boolean;
   execution?: {
     state: string;
     current_node_id: string;
@@ -89,15 +91,17 @@ const nodes = computed<MetricNode[]>(() =>
         !!props.execution &&
         !props.execution.steps.some((s) => s.node_id === n.id) &&
         props.execution.current_node_id !== n.id,
-      observations: observations(n),
-      metrics: {
-        entered: value(n.id, 'entered'),
-        waiting: value(n.id, 'WAITING', 'node_current'),
-        completed: value(n.id, 'SUCCEEDED'),
-        failed: value(n.id, 'FAILED'),
-        skipped: value(n.id, 'SKIPPED'),
-        average: '—',
-      },
+      observations: props.personal ? undefined : observations(n),
+      metrics: props.personal
+        ? undefined
+        : {
+            entered: value(n.id, 'entered'),
+            waiting: value(n.id, 'WAITING', 'node_current'),
+            completed: value(n.id, 'SUCCEEDED'),
+            failed: value(n.id, 'FAILED'),
+            skipped: value(n.id, 'SKIPPED'),
+            average: '—',
+          },
     },
   })),
 );
