@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { toast } from '../lib/toast';
 import SkeletonBlock from './ui/SkeletonBlock.vue';
 import { errorMessage, formatDateTime, plural } from '../lib/format';
 import { computed, ref, watch, onBeforeUnmount, onMounted, nextTick } from 'vue';
@@ -284,6 +285,7 @@ async function confirmPublish() {
     emit('saved', updated);
     publishOpen.value = false;
     notice.value = 'Journey published';
+    toast('Journey published', { announce: false });
   } catch (cause) {
     publishError.value = errorMessage(cause);
   } finally {
@@ -307,6 +309,7 @@ async function saveTemplate() {
     await flushDraft();
     await api('/templates', 'POST', { journey_id: props.journey.id, name: templateName });
     notice.value = 'Workspace template saved';
+    toast('Workspace template saved', { announce: false });
   } catch (cause) {
     error.value = errorMessage(cause);
   }
@@ -352,6 +355,7 @@ async function lifecycle(action: string) {
     revision.value = updated.revision;
     emit('saved', updated);
     notice.value = 'Journey ' + updated.status.toLowerCase();
+    toast(notice.value, { announce: false });
   } catch (cause) {
     error.value = errorMessage(cause);
   }

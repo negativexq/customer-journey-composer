@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { toast } from '../lib/toast';
 import SkeletonBlock from './ui/SkeletonBlock.vue';
 import { errorMessage } from '../lib/format';
 import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue';
@@ -81,6 +82,7 @@ async function action(journey: Journey, kind: string) {
       'POST',
       kind === 'duplicate' ? undefined : { revision: journey.revision },
     );
+    toast(`“${journey.name}” ${kind === 'duplicate' ? 'duplicated' : 'archived'}`);
     await load();
   } catch (cause) {
     error.value = errorMessage(cause);

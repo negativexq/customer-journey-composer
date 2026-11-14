@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { toast } from '../lib/toast';
 import { errorMessage } from '../lib/format';
 import DataCatalog from './DataCatalog.vue';
 import WorkspaceAdmin from './WorkspaceAdmin.vue';
@@ -38,6 +39,7 @@ async function create() {
     const result = await api<{ token: string }>('/settings/api-keys', 'POST', { name: name.value });
     token.value = result.token;
     name.value = '';
+    toast('API key created');
     await load();
   } catch (cause) {
     error.value = errorMessage(cause);
@@ -46,6 +48,7 @@ async function create() {
 async function revoke(id: unknown) {
   try {
     await api(`/settings/api-keys/${id}`, 'DELETE');
+    toast('API key revoked');
     await load();
   } catch (cause) {
     error.value = errorMessage(cause);

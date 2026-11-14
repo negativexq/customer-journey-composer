@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ToastHost from './components/ui/ToastHost.vue';
 import SkeletonBlock from './components/ui/SkeletonBlock.vue';
 import { errorMessage } from './lib/format';
 import { applyTheme, nextTheme, theme, themeLabel } from './lib/theme';
@@ -256,6 +257,7 @@ onErrorCaptured((cause) => {
 });
 </script>
 <template>
+  <ToastHost />
   <div v-if="loading" class="app-loading" aria-busy="true">
     <span class="brand-mark"><AppIcon name="workflow" :size="25" /></span>
     <p>Opening your workspace…</p>

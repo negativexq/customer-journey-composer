@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { toast } from '../lib/toast';
 import { errorMessage } from '../lib/format';
 import { onMounted, ref } from 'vue';
 import { api } from '../lib/api';
@@ -44,6 +45,7 @@ async function create() {
     password.value = '';
     name.value = '';
     email.value = '';
+    toast('Member added');
     await refresh();
   } catch (cause) {
     error.value = errorMessage(cause);
@@ -56,6 +58,7 @@ async function change(id: string, next: string) {
   error.value = '';
   try {
     await api(`/users/${id}/role`, 'PUT', { role: next });
+    toast('Role updated');
     await refresh();
   } catch (cause) {
     error.value = errorMessage(cause);

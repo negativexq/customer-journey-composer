@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { toast } from '../lib/toast';
 import { errorMessage } from '../lib/format';
 import { onMounted, ref } from 'vue';
 import { api, type Journey } from '../lib/api';
@@ -31,6 +32,7 @@ async function create(id: string) {
   error.value = '';
   try {
     emit('open', await api<Journey>(`/templates/${id}/create-journey`, 'POST', {}));
+    toast('Journey created from template');
   } catch (cause) {
     error.value = errorMessage(cause);
   } finally {
