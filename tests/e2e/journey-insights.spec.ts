@@ -218,6 +218,18 @@ test('journey breakdowns preserve version, reveal blocked recipients and paginat
   const steps = page.getByRole('table').first().locator('tbody tr');
   await expect(steps.first()).toContainText('Cart updated');
   await expect(steps.last()).toContainText('Completed');
+  // A step count opens the people behind it and brings that list into view.
+  await steps
+    .filter({ hasText: 'Cart updated' })
+    .getByRole('button', { name: /executions that reached Cart updated/ })
+    .click();
+  const people = page.locator('.observe-people');
+  await expect(people.getByRole('heading')).toContainText('Executions · Cart updated');
+  await expect(people).toContainText('Reached Cart updated');
+  await expect(people.getByRole('button', { name: /v1_.* · WAITING/ })).toHaveCount(25);
+  await expect(people).toBeInViewport();
+  await people.getByRole('button', { name: 'Clear breakdown', exact: true }).click();
+  await expect(people).not.toContainText('Reached Cart updated');
   await page.reload();
   await expect(page.getByRole('combobox', { name: 'Entry period', exact: true })).toContainText(
     'Last 7 days',

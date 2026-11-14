@@ -56,4 +56,11 @@ test('analytics filters support search, keyboard selection and real period reque
     page.getByRole('button', { name: 'Journey: Cart recovery', exact: true }),
   ).toBeFocused();
   await expect(page.getByText('All-time totals', { exact: true })).toBeVisible();
+  // A comparison row leads to that journey's own analytics rather than its builder.
+  await page
+    .getByRole('table')
+    .last()
+    .getByRole('button', { name: 'Cart recovery', exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/journeys\/[0-9a-f-]+\?tab=analytics$/);
 });

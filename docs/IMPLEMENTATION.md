@@ -48,6 +48,16 @@ A walkthrough of the running local build at 1440px and 375px found presentation 
 
 Verified locally: `make check` (including the new `scripts/presentation.test.mjs`), Docker web rebuild and `npx playwright test --workers=2` with 80/80 desktop/mobile tests, including the new `versions.spec.ts` and the confirmation steps in `lifecycle.spec.ts`. Not covered by a browser test: the journey-list Archive confirmation. No integration tests, benchmark, paid LLM call or hosted CI run was performed for this slice. Remaining staged design work (Content/Audience modules, analytics drill-down, collapsible sidebar, dark theme) is unchanged.
 
+## Analytics drill-down — 2026-11-14
+
+Most count-to-record navigation already existed in the journey Monitor/Analytics view (summary cards, outcomes, branch shares and channel counts). This slice closes the remaining gaps with no backend change; the existing `node_id`/`current` execution filters are reused.
+
+- Step reach table: non-zero Reached and Waiting now counts are links that list the executions that reached, or are currently waiting at, that step.
+- Any drill-down that changes the execution list scrolls the list into view when it is off screen. Its header states the active breakdown (reached/currently at a step, branch, outcome, past-due waits) and offers one Clear breakdown action.
+- A row in the workspace Journey comparison table opens that journey's Analytics tab instead of its Builder.
+
+Verified locally: `make check`, Docker web rebuild and `npx playwright test --workers=2` (80/80 desktop/mobile), with new assertions in `journey-insights.spec.ts` and `analytics.spec.ts`. Integration tests were not rerun because no API or SQL changed. Not built: drill-down from the workspace-level Node funnel bars, saved breakdown URLs and exporting the matching customers.
+
 ## Product acceptance verification — 2026-11-11
 
 Verified locally against source `b1b7ab4`, before this documentation update:

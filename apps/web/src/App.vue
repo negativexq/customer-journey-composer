@@ -206,6 +206,10 @@ async function openID(id: string) {
   searchDialog.value?.close();
   await go({ page: 'Journeys', journeyID: id, tab: 'Builder' });
 }
+// From a workspace analytics row, land on that journey's own analytics, not its builder.
+async function openAnalytics(id: string) {
+  await go({ page: 'Journeys', journeyID: id, tab: 'Analytics' });
+}
 async function created(j: Journey) {
   selected.value = j;
   await go({ page: 'Journeys', journeyID: j.id, tab: 'Builder' });
@@ -428,7 +432,7 @@ onErrorCaptured((cause) => {
           :readonly="readOnly"
         /><AnalyticsView
           v-else-if="page === 'Analytics'"
-          @open-journey="openID"
+          @open-journey="openAnalytics"
           @browse-journeys="browseJourneys"
           @navigate="navigate"
         /><SettingsView v-else-if="page === 'Settings'" /><OverviewDashboard

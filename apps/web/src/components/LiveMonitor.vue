@@ -288,6 +288,20 @@ function selectNode(id: string) {
   messageChannel.value = '';
   void refresh(true);
 }
+// A count and the list it filters can be a screen apart. Bring the list to the
+// reader only when it is out of view, so clicks next to the list do not jump.
+const people = ref<HTMLElement>();
+async function revealPeople() {
+  await nextTick();
+  const section = people.value;
+  if (!section) return;
+  const top = section.getBoundingClientRect().top;
+  if (top >= 0 && top <= window.innerHeight * 0.6) return;
+  section.scrollIntoView({
+    block: 'start',
+    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+  });
+}
 function browse(state = '', reason = '') {
   showMessages.value = false;
   overdueFilter.value = false;
@@ -298,6 +312,7 @@ function browse(state = '', reason = '') {
   filter.value = state;
   nodeCurrent.value = false;
   void refresh(true);
+  if (state || reason) void revealPeople();
 }
 function branchPeople(port: string) {
   branch.value = port;
@@ -306,7 +321,34 @@ function branchPeople(port: string) {
   nodeCurrent.value = false;
   nodeTab.value = 'people';
   void refresh(true);
+  void revealPeople();
 }
+// From a step count to the people behind it: everyone who reached the step, or
+// only those waiting there now.
+function stepPeople(id: string, waiting = false) {
+  showMessages.value = false;
+  overdueFilter.value = false;
+  clearSelection();
+  selectedNode.value = id;
+  branch.value = '';
+  exitFilter.value = '';
+  nodeCurrent.value = waiting;
+  filter.value = waiting ? 'WAITING' : '';
+  nodeTab.value = 'people';
+  canvas.value?.focus(id);
+  void refresh(true);
+  void revealPeople();
+}
+const breakdown = computed(() =>
+  [
+    selectedStep.value
+      ? (nodeCurrent.value ? 'Currently at ' : 'Reached ') + selectedStep.value.label
+      : '',
+    branch.value ? 'Branch: ' + portLabel(branch.value) : '',
+    exitFilter.value ? 'Outcome: ' + reasonLabel(exitFilter.value) : '',
+    overdueFilter.value ? 'Waits past due' : '',
+  ].filter(Boolean),
+);
 function reasonMessages(reason: string) {
   messageReason.value = reason;
   messageStatus.value = '';
@@ -332,6 +374,7 @@ function browseOverdue() {
   browse('WAITING');
   overdueFilter.value = true;
   void refresh(true);
+  void revealPeople();
 }
 async function changeScope() {
   insights.value = undefined;
@@ -753,19 +796,18 @@ onBeforeUnmount(() => {
             :execution="selected"
             @select="selectNode"
           />
-          <section class="surface observe-people">
+          <section ref="people" class="surface observe-people">
             <div class="surface-heading">
               <div>
                 <h3>Executions{{ selectedStep ? ' · ' + selectedStep.label : '' }}</h3>
                 <p>
-                  {{ branch ? 'Branch: ' + portLabel(branch) + ' · ' : ''
-                  }}{{ exitFilter ? 'Outcome: ' + reasonLabel(exitFilter) + ' · ' : '' }}Published
-                  v{{ version }} · {{ days ? 'selected entry period' : 'all entries' }}
+                  {{ breakdown.length ? breakdown.join(' · ') + ' · ' : '' }}Published v{{
+                    version
+                  }}
+                  · {{ days ? 'selected entry period' : 'all entries' }}
                 </p>
               </div>
-              <button v-if="selectedNode || branch || exitFilter" @click="browse()">
-                Clear breakdown
-              </button>
+              <button v-if="breakdown.length" @click="browse()">Clear breakdown</button>
             </div>
             <div class="observe-record-filters">
               <label
@@ -1212,9 +1254,27 @@ onBeforeUnmount(() => {
                       {{ n.label }}
                     </button>
                   </td>
-                  <td>{{ value('node', 'entered', n.id) }}</td>
+                  <td>
+                    <button
+                      v-if="value('node', 'entered', n.id)"
+                      class="metric-link"
+                      :aria-label="`Show ${value('node', 'entered', n.id)} executions that reached ${n.label}`"
+                      @click="stepPeople(n.id)"
+                    >
+                      {{ value('node', 'entered', n.id) }}</button
+                    ><template v-else>0</template>
+                  </td>
                   <td>{{ value('node', 'SUCCEEDED', n.id) }}</td>
-                  <td>{{ value('node_current', 'WAITING', n.id) }}</td>
+                  <td>
+                    <button
+                      v-if="value('node_current', 'WAITING', n.id)"
+                      class="metric-link"
+                      :aria-label="`Show ${value('node_current', 'WAITING', n.id)} executions waiting at ${n.label}`"
+                      @click="stepPeople(n.id, true)"
+                    >
+                      {{ value('node_current', 'WAITING', n.id) }}</button
+                    ><template v-else>0</template>
+                  </td>
                 </tr>
               </tbody>
             </table>
