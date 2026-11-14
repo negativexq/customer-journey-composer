@@ -1170,22 +1170,9 @@ tbody tr:hover {
   color: var(--muted);
   border-top: 1px solid var(--gray-95);
 }
-.table-skeleton {
-  display: grid;
+.skeleton.table-skeleton {
   gap: 22px;
   padding: 30px;
-}
-.table-skeleton > div {
-  height: 35px;
-  border-radius: 5px;
-  background: linear-gradient(90deg, var(--page), var(--gray-99), var(--page));
-  background-size: 200%;
-  animation: shimmer 2s infinite;
-}
-@keyframes shimmer {
-  to {
-    background-position: -200%;
-  }
 }
 .journey-list-controls {
   padding: 0 21px;

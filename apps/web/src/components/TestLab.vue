@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SkeletonBlock from './ui/SkeletonBlock.vue';
 import { errorMessage, formatDateTime } from '../lib/format';
 import { computed, onActivated, onMounted, ref, watch } from 'vue';
 import { api, type Journey } from '../lib/api';
@@ -554,7 +555,7 @@ onMounted(
             Journey inputs could not be loaded. Your values are preserved.
             <button type="button" @click="loadExamples(false)">Reload journey inputs</button>
           </p>
-          <p v-if="sourceLoading" role="status">Loading journey inputs…</p>
+          <SkeletonBlock v-if="sourceLoading" label="Loading journey inputs…" variant="text" />
           <section
             v-if="context && !savedScenario"
             class="journey-test-context"

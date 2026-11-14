@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SkeletonBlock from './ui/SkeletonBlock.vue';
 import { errorMessage, formatDateTime, plural } from '../lib/format';
 import { computed, ref, watch, onBeforeUnmount, onMounted, nextTick } from 'vue';
 import { api, type Journey, type GenerationProgress } from '../lib/api';
@@ -730,9 +731,7 @@ function back() {
         plural(versions.length, 'version')
       }}</span>
     </div>
-    <p v-if="versionsLoading && !versions.length" class="versions-empty" role="status">
-      Loading versions…
-    </p>
+    <SkeletonBlock v-if="versionsLoading && !versions.length" label="Loading versions…" :rows="2" />
     <div v-else-if="!versions.length" class="versions-empty">
       <AppIcon name="history" :size="22" />
       <strong>No published versions yet</strong>

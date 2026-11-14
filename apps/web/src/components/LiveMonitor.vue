@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SkeletonBlock from './ui/SkeletonBlock.vue';
 import { errorMessage } from '../lib/format';
 import {
   computed,
@@ -722,7 +723,9 @@ onBeforeUnmount(() => {
     <p v-if="!versions.length" class="panel">
       Publish a validated journey to monitor live executions.
     </p>
-    <p v-if="busy && !insights" role="status" class="panel">Loading journey breakdowns…</p>
+    <div v-if="busy && !insights" class="panel">
+      <SkeletonBlock label="Loading journey breakdowns…" variant="cards" :rows="4" />
+    </div>
     <template v-if="workflow && insights">
       <p v-if="insights.overdue" class="warning-message">
         <button @click="browseOverdue">Inspect {{ insights.overdue }} waits past due</button> ·
@@ -865,7 +868,7 @@ onBeforeUnmount(() => {
           class="observe-details"
           aria-label="Journey breakdown"
         >
-          <p v-if="tracking" role="status">Loading execution…</p>
+          <SkeletonBlock v-if="tracking" label="Loading execution…" variant="text" :rows="4" />
           <section v-if="selected" class="execution-inspector" aria-label="Execution details">
             <div class="surface-heading">
               <h3>Customer journey</h3>
@@ -1196,7 +1199,7 @@ onBeforeUnmount(() => {
                     Clear reason
                   </button>
                 </p>
-                <p v-if="messageBusy" role="status">Loading messages…</p>
+                <SkeletonBlock v-if="messageBusy" label="Loading messages…" variant="text" />
                 <p v-if="!messages.length && !messageBusy" class="empty-inline">
                   No matching messages.
                 </p>

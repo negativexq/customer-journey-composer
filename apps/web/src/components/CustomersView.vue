@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SkeletonBlock from './ui/SkeletonBlock.vue';
 import { errorMessage, formatDateTime } from '../lib/format';
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import type { InspectionKind } from '../lib/navigation';
@@ -190,7 +191,7 @@ onMounted(() => {
             placeholder="Customer ID, external ID or email prefix" /></label
         ><button>Search</button>
       </form>
-      <p v-if="busy" aria-busy="true">Loading customers…</p>
+      <SkeletonBlock v-if="busy" label="Loading customers…" :rows="5" />
       <p v-else-if="!customers.length">No customers found.</p>
       <button
         v-for="customer in customers"
@@ -205,7 +206,12 @@ onMounted(() => {
     </section>
     <section class="panel">
       <h2>{{ selected ? 'Customer profile' : 'New customer' }}</h2>
-      <p v-if="loadingProfile" role="status" aria-busy="true">Loading customer profile…</p>
+      <SkeletonBlock
+        v-if="loadingProfile"
+        label="Loading customer profile…"
+        variant="text"
+        :rows="5"
+      />
       <button
         v-if="customerId && !selected && !loadingProfile"
         @click="open({ customer_id: customerId })"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SkeletonBlock from './ui/SkeletonBlock.vue';
 import { errorMessage } from '../lib/format';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { api } from '../lib/api';
@@ -109,7 +110,7 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <DetailDrawer :model-value="!!kind && !!recordId" :title="title" @close="emit('close')">
-    <p v-if="busy" role="status" aria-busy="true">Loading activity…</p>
+    <SkeletonBlock v-if="busy" label="Loading activity…" variant="text" :rows="6" />
     <div v-if="error" class="inline-alert error-alert" role="alert">
       <p>{{ error }}</p>
       <button @click="load">Retry activity</button>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SkeletonBlock from './ui/SkeletonBlock.vue';
 import { errorMessage } from '../lib/format';
 import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue';
 import { api, type Journey } from '../lib/api';
@@ -133,14 +134,12 @@ onMounted(() => void load());
         </div>
       </div>
       <p v-if="error" role="alert" class="inline-alert error-alert">{{ error }}</p>
-      <div
+      <SkeletonBlock
         v-if="loading && !journeys.length"
         class="table-skeleton"
-        aria-label="Loading journeys"
-        aria-busy="true"
-      >
-        <div v-for="i in 4" :key="i" />
-      </div>
+        label="Loading journeys…"
+        :rows="4"
+      />
       <div v-else-if="!filtered.length" class="empty-state">
         <span class="empty-icon"><AppIcon name="workflow" :size="30" /></span>
         <h2>{{ search || status ? 'No matching journeys' : 'Create your first journey' }}</h2>

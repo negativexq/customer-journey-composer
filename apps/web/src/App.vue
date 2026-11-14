@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SkeletonBlock from './components/ui/SkeletonBlock.vue';
 import { errorMessage } from './lib/format';
 import { applyTheme, nextTheme, theme, themeLabel } from './lib/theme';
 import { computed, nextTick, onBeforeUnmount, onMounted, onErrorCaptured, ref, watch } from 'vue';
@@ -379,7 +380,9 @@ onErrorCaptured((cause) => {
             <AppIcon name="close" />
           </button>
         </div>
-        <div v-if="routeLoading" class="panel" role="status" aria-busy="true">Opening journey…</div>
+        <div v-if="routeLoading" class="panel">
+          <SkeletonBlock label="Opening journey…" variant="text" :rows="5" />
+        </div>
         <section v-else-if="routeUnavailable" class="panel">
           <h1>Journey temporarily unavailable</h1>
           <p>Your page is preserved. Retry when the connection is available.</p>
