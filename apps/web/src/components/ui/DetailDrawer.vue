@@ -43,12 +43,12 @@ onMounted(sync);
   border: 0;
   border-left: 1px solid var(--border);
   padding: 0;
-  background: #fff;
+  background: var(--surface);
   color: var(--text);
   box-shadow: -12px 0 60px #17213b18;
 }
 .detail-drawer::backdrop {
-  background: #17213b44;
+  background: color-mix(in srgb, var(--gray-25) 27%, transparent);
 }
 header {
   display: flex;
@@ -58,7 +58,7 @@ header {
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  background: #fff;
+  background: var(--surface);
   z-index: 2;
 }
 h2 {

@@ -62,7 +62,7 @@ function backdrop(event: MouseEvent) {
   box-shadow: 0 24px 90px #20263930;
 }
 .confirm-dialog::backdrop {
-  background: #1f25394d;
+  background: color-mix(in srgb, var(--gray-27) 30%, transparent);
 }
 h2 {
   margin: 0;
@@ -92,12 +92,12 @@ footer button {
   min-height: 38px;
 }
 .confirm-danger {
-  background: #c8372d;
-  border-color: #c8372d;
+  background: var(--red-56);
+  border-color: var(--red-56);
 }
 .confirm-danger:hover {
-  background: #a92c24;
-  border-color: #a92c24;
+  background: var(--red-49);
+  border-color: var(--red-49);
 }
 @media (max-width: 640px) {
   footer {

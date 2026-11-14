@@ -71,16 +71,16 @@ li {
   font-weight: 600;
 }
 .added {
-  background: #e8f6ee;
-  color: #1c6b43;
+  background: var(--green-97);
+  color: var(--green-47-text);
 }
 .removed {
-  background: #fdecea;
-  color: #a92c24;
+  background: var(--red-96);
+  color: var(--red-49-text);
 }
 .changed {
-  background: #fff4e0;
-  color: #8a5a00;
+  background: var(--amber-97b);
+  color: var(--amber-51-text);
 }
 .change-copy {
   display: grid;

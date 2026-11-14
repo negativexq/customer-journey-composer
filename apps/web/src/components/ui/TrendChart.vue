@@ -53,8 +53,8 @@ function hover(e: MouseEvent) {
     >
       <defs>
         <linearGradient id="entries-fill" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stop-color="#7164e8" stop-opacity=".16" />
-          <stop offset="100%" stop-color="#7164e8" stop-opacity=".01" />
+          <stop offset="0%" stop-color="var(--chart-entries)" stop-opacity=".16" />
+          <stop offset="100%" stop-color="var(--chart-entries)" stop-opacity=".01" />
         </linearGradient>
       </defs>
       <g v-for="i in [0, 1, 2, 3]" :key="i">
@@ -63,24 +63,24 @@ function hover(e: MouseEvent) {
           :x2="width - pad"
           :y1="pad + (i * (height - pad * 2)) / 3"
           :y2="pad + (i * (height - pad * 2)) / 3"
-          stroke="#e9edf3"
+          stroke="var(--chart-grid)"
           stroke-dasharray="3 5"
         />
-        <text x="6" :y="pad + (i * (height - pad * 2)) / 3 + 4" fill="#667085" font-size="12">
+        <text x="6" :y="pad + (i * (height - pad * 2)) / 3 + 4" fill="var(--muted)" font-size="12">
           {{ Math.round(top * (1 - i / 3)) }}
         </text>
       </g>
       <template v-if="hasData">
         <path :d="fill" fill="url(#entries-fill)" />
-        <path :d="line('entries')" fill="none" stroke="#7564e9" stroke-width="2.5" />
-        <path :d="line('converted')" fill="none" stroke="#31a18a" stroke-width="2" />
+        <path :d="line('entries')" fill="none" stroke="var(--chart-entries)" stroke-width="2.5" />
+        <path :d="line('converted')" fill="none" stroke="var(--chart-converted)" stroke-width="2" />
       </template>
       <text
         v-for="i in [0, Math.floor((data.length - 1) / 2), data.length - 1]"
         :key="i"
         :x="x(i)"
         :y="height - 8"
-        fill="#667085"
+        fill="var(--muted)"
         font-size="12"
         text-anchor="middle"
       >
@@ -92,15 +92,15 @@ function hover(e: MouseEvent) {
           :x2="x(hovered)"
           :y1="pad"
           :y2="height - pad"
-          stroke="#9a91dc"
+          stroke="var(--chart-entries)"
           stroke-dasharray="4"
         />
         <circle
           :cx="x(hovered)"
           :cy="y(data[hovered]!.entries)"
           r="4"
-          fill="#7564e9"
-          stroke="white"
+          fill="var(--chart-entries)"
+          stroke="var(--surface)"
           stroke-width="2"
         />
       </g>

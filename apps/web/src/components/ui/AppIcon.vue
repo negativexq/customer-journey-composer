@@ -47,6 +47,9 @@ const paths: Record<string, string> = {
   logout: 'M9 3H3v18h6M9 12h12m-5-5 5 5-5 5',
   folder: 'M3 5h6l2 3h10v12H3V5Z',
   calendar: 'M4 5h16v16H4zM8 2v6M16 2v6M4 11h16',
+  sun: 'M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',
+  moon: 'M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z',
+  monitor: 'M3 4h18v12H3zM8 21h8M12 16v5',
   refresh: 'M20 7a9 9 0 0 0-15-2L2 8m0-5v5h5M4 17a9 9 0 0 0 15 2l3-3m0 5v-5h-5',
 };
 </script>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { errorMessage } from './lib/format';
+import { applyTheme, nextTheme, theme, themeLabel } from './lib/theme';
 import { computed, nextTick, onBeforeUnmount, onMounted, onErrorCaptured, ref, watch } from 'vue';
 import {
   pageRoute,
@@ -346,6 +347,16 @@ onErrorCaptured((cause) => {
           <button class="global-search" aria-label="Search journeys" @click="showSearch">
             <AppIcon name="search" :size="15" /><span>Search journeys...</span
             ><kbd>{{ shortcutLabel }}</kbd></button
+          ><button
+            class="icon-button theme-toggle"
+            :aria-label="`Theme: ${themeLabel[theme]}. Switch to ${themeLabel[nextTheme(theme)]}`"
+            :title="`Theme: ${themeLabel[theme]}`"
+            @click="applyTheme(nextTheme(theme))"
+          >
+            <AppIcon
+              :name="theme === 'system' ? 'monitor' : theme === 'dark' ? 'moon' : 'sun'"
+              :size="17"
+            /></button
           ><span class="role-chip">{{ identity.role }}</span>
         </div>
       </header>

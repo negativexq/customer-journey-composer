@@ -3,11 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f7f8fa" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f7f8fc" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#202128" media="(prefers-color-scheme: dark)" />
     <meta name="description" content="Design, test, and observe customer journeys." />
     <title>Customer Journey Composer</title>
   </head>
   <body>
+    <script>
+      // Apply a pinned theme before first paint; without one the page follows the system.
+      try {
+        var theme = localStorage.getItem('journey-composer.theme');
+        if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    </script>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

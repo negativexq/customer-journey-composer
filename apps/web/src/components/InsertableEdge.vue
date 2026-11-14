@@ -33,7 +33,7 @@ const path = computed(() =>
       :path="path[0]"
       :marker-end="markerEnd"
       :style="{
-        stroke: highlighted ? '#7861bf' : muted ? '#cfd7e4' : '#98a4b6',
+        stroke: highlighted ? 'var(--edge-active)' : muted ? 'var(--edge-muted)' : 'var(--edge)',
         strokeWidth: highlighted ? 2.4 : 1.5,
         opacity: muted ? 0.45 : 1,
       }"
@@ -119,15 +119,15 @@ const path = computed(() =>
   height: 28px;
   min-height: 28px;
   padding: 0;
-  border: 1px solid #d1c9ec;
+  border: 1px solid var(--violet-85);
   border-radius: 6px;
-  background: white;
-  color: var(--accent);
+  background: var(--surface);
+  color: var(--accent-text);
   box-shadow: 0 1px 3px #20204010;
 }
 .edge-actions button:hover {
   border-color: var(--accent);
-  background: #f3f0ff;
+  background: var(--violet-96);
 }
 .connection-port-label {
   position: absolute;
@@ -135,8 +135,8 @@ const path = computed(() =>
   line-height: 1.4;
   padding: 2px 5px;
   border-radius: 4px;
-  background: #fff;
-  color: #5e687b;
+  background: var(--surface);
+  color: var(--gray-52);
   pointer-events: none;
 }
 .connection-port-label.muted {
@@ -154,9 +154,9 @@ const path = computed(() =>
   height: 34px;
   display: flex;
   pointer-events: all;
-  border: 1px dashed #bdb4d6;
+  border: 1px dashed var(--violet-79);
   border-radius: 6px;
-  background: #fcfbff;
+  background: var(--gray-99);
 }
 .exit-reference.muted {
   opacity: 0.45;
@@ -176,7 +176,7 @@ const path = computed(() =>
 }
 .exit-reference small {
   font-size: 9px;
-  color: #807394;
+  color: var(--violet-58);
   line-height: 1.2;
 }
 .exit-reference strong {
@@ -187,13 +187,13 @@ const path = computed(() =>
   text-overflow: ellipsis;
   overflow: hidden;
   width: 100%;
-  color: #625176;
+  color: var(--violet-47b);
 }
 .exit-reference .exit-reference-insert {
   padding: 0 4px;
   min-height: 0;
   border: 0;
-  border-left: 1px solid #e7e1f0;
+  border-left: 1px solid var(--violet-92);
   background: transparent;
   opacity: 0;
 }

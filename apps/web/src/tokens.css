@@ -1,0 +1,209 @@
+/*
+ * Color tokens. Every color in the interface resolves through this file, and each token carries
+ * its light and dark value side by side. `color-scheme` on the root picks the side: it follows the
+ * system by default and is pinned by `data-theme` when someone chooses a theme (see lib/theme.ts).
+ *
+ * Ramp tokens are named family-lightness (OKLCH lightness of the light value). A `-text` or
+ * `-line` variant shares the light value but lightens in the dark theme, where the plain token is a
+ * fill that keeps carrying white text.
+ */
+:root {
+  color-scheme: light dark;
+
+  /* semantic */
+  --page: light-dark(#f7f8fc, #202128);
+  --surface: light-dark(#ffffff, #181b20);
+  --border: light-dark(#e6e9f0, #2c2f35);
+  --text: light-dark(#263348, #d6e2f6);
+  --muted: light-dark(#667085, #a0a9bd);
+  --on-solid: #ffffff;
+  --accent: #6650e8;
+  --accent-dark: light-dark(#513ccc, #7866f0);
+  --accent-soft: light-dark(#f0edff, #2a263a);
+  --accent-text: light-dark(#6650e8, #aaa0ff);
+  --accent-text-strong: light-dark(#513ccc, #bcb3ff);
+
+  /* canvas and charts */
+  --edge: light-dark(#98a4b6, #6c7689);
+  --edge-quiet: light-dark(#b4bece, #505968);
+  --edge-muted: light-dark(#cfd7e4, #3a404b);
+  --edge-active: light-dark(#7861bf, #aaa0ff);
+  --canvas-dots: light-dark(#dde1ec, #30343c);
+  --chart-entries: light-dark(#7564e9, #9d92ff);
+  --chart-converted: light-dark(#31a18a, #4fc3aa);
+  --chart-grid: light-dark(#e9edf3, #2c2f35);
+
+  /* gray */
+  --gray-99: light-dark(#fafbfe, #1d1e25);
+  --gray-99b: light-dark(#fffbf3, #211e18);
+  --gray-98b: light-dark(#fff8f8, #251e1e);
+  --gray-97: light-dark(#fcf3f3, #2a2222);
+  --gray-97b: light-dark(#f0f8f3, #1f2622);
+  --gray-96: light-dark(#f1f3f8, #24262c);
+  --gray-96b: light-dark(#eaf4fb, #21282d);
+  --gray-96c: light-dark(#eef1fd, #252730);
+  --gray-95: light-dark(#edf0f6, #26292f);
+  --gray-94: light-dark(#e9ecf2, #2a2d33);
+  --gray-93b: light-dark(#e3e9e5, #2c332e);
+  --gray-92: light-dark(#e2e4ed, #31333a);
+  --gray-91: light-dark(#dde2ec, #32363d);
+  --gray-90: light-dark(#d9dfe9, #343941);
+  --gray-90b: light-dark(#dddddd, #373a40);
+  --gray-85: light-dark(#c6cddd, #424855);
+  --gray-74: light-dark(#a1abbd, #5e6777);
+  --gray-66: light-dark(#8994a4, #758090);
+  --gray-62: light-dark(#7c879c, #858fa1);
+  --gray-61: light-dark(#79849a, #8992a5);
+  --gray-60: light-dark(#748199, #8c96a9);
+  --gray-59: light-dark(#747d91, #919aad);
+  --gray-55: light-dark(#66738b, #9ca7ba);
+  --gray-53: light-dark(#606c82, #a3aec1);
+  --gray-52: light-dark(#5e687b, #a7b2c5);
+  --gray-51: light-dark(#59677e, #a8b3c6);
+  --gray-49: light-dark(#52617c, #aeb9cc);
+  --gray-46: light-dark(#4b5870, #b7c2d6);
+  --gray-46b: light-dark(#4f596c, #b6c1d5);
+  --gray-44: light-dark(#475467, #bac7da);
+  --gray-44b: light-dark(#45526a, #bdc8dc);
+  --gray-41: light-dark(#3d4961, #c6d0e4);
+  --gray-38-text: light-dark(#364158, #ced8ec);
+  --gray-34-text: light-dark(#30384e, #d6dff3);
+  --gray-31: light-dark(#24314c, #24314b);
+  --gray-31b-line: light-dark(#273047, #dae2f7);
+  --gray-28-text: light-dark(#202939, #dbe7fb);
+  --gray-27: light-dark(#202639, #202639);
+  --gray-25: light-dark(#17213b, #1b253f);
+  /* violet */
+  --violet-97: light-dark(#f7f5ff, #242030);
+  --violet-97b: light-dark(#f5f2fc, #282232);
+  --violet-96: light-dark(#f3f0ff, #282435);
+  --violet-95b: light-dark(#f0eef8, #2a2737);
+  --violet-94: light-dark(#eeeafa, #2e293a);
+  --violet-94b: light-dark(#ece7f8, #312a3e);
+  --violet-93: light-dark(#e9e4fb, #322b46);
+  --violet-92: light-dark(#e8e2f5, #352e44);
+  --violet-92b: light-dark(#e7dff5, #392f48);
+  --violet-91: light-dark(#e4defb, #372e50);
+  --violet-91b: light-dark(#e4dcf3, #3b314c);
+  --violet-89: light-dark(#dcd4f2, #41365a);
+  --violet-89b: light-dark(#dfd7f3, #3f3455);
+  --violet-87: light-dark(#d5cffa, #42376a);
+  --violet-85: light-dark(#d1c9ec, #4a3e6a);
+  --violet-79: light-dark(#bdb4d6, #5b5371);
+  --violet-78: light-dark(#b6acf3, #5b508f);
+  --violet-78b: light-dark(#b9afdf, #5d547e);
+  --violet-77: light-dark(#b5a8ec, #615390);
+  --violet-75-text: light-dark(#b1a5dc, #665a8b);
+  --violet-74-text: light-dark(#b0a1d2, #6c5d8a);
+  --violet-73: light-dark(#ac9adb, #ac9adb);
+  --violet-72: light-dark(#aa96df, #aa96df);
+  --violet-71: light-dark(#a293e9, #a293e9);
+  --violet-71-text: light-dark(#a293e9, #705fb0);
+  --violet-71b-text: light-dark(#a596d6, #72639f);
+  --violet-70-text: light-dark(#a095d6, #7166a3);
+  --violet-69-text: light-dark(#a18fcf, #7b69a6);
+  --violet-68-text: light-dark(#9b8bdb, #7a6ab6);
+  --violet-67: light-dark(#9a85e2, #9a85e2);
+  --violet-66: light-dark(#9a83d1, #9a83d1);
+  --violet-65-text: light-dark(#8c7ce4, #8373d9);
+  --violet-64-text: light-dark(#8d79df, #8975da);
+  --violet-63: light-dark(#8a75d8, #8a75d8);
+  --violet-63-text: light-dark(#8a75d8, #8f7ade);
+  --violet-63b: light-dark(#8976e5, #8976e5);
+  --violet-62: light-dark(#8b8196, #958ba0);
+  --violet-61-text: light-dark(#8070d9, #9081e9);
+  --violet-61b-text: light-dark(#8270df, #8e7fe7);
+  --violet-59: light-dark(#8062e3, #8062e3);
+  --violet-59-text: light-dark(#8062e3, #9986ee);
+  --violet-59b-text: light-dark(#7e6ad5, #9786ee);
+  --violet-58: light-dark(#817494, #a395b7);
+  --violet-57b-text: light-dark(#7562d7, #9a8ef7);
+  --violet-56-text: light-dark(#8261ae, #b392e3);
+  --violet-56b-text: light-dark(#7259d9, #a194fd);
+  --violet-55-text: light-dark(#7862a8, #b09ae4);
+  --violet-54-text: light-dark(#776393, #b5a0d4);
+  --violet-53-text: light-dark(#7252c7, #af9afe);
+  --violet-52-text: light-dark(#6551c8, #aaa3fe);
+  --violet-50-text: light-dark(#6447c3, #b3a9ff);
+  --violet-47b: light-dark(#625176, #c8b6e0);
+  /* blue */
+  --blue-96: light-dark(#eaf4fa, #182a34);
+  --blue-70-text: light-dark(#70a4cf, #4477a0);
+  --blue-69: light-dark(#739ed4, #739ed4);
+  --blue-67-text: light-dark(#6599d2, #4d80b7);
+  --blue-58-text: light-dark(#527dab, #75a2d2);
+  --blue-56-text: light-dark(#3e7b9e, #70aed3);
+  /* teal */
+  --teal-74: light-dark(#a1adab, #5e6968);
+  --teal-72: light-dark(#6cb5a4, #6cb5a4);
+  --teal-68-text: light-dark(#5ca995, #3b8976);
+  --teal-68b: light-dark(#5ba99d, #5ba99d);
+  /* green */
+  --green-97: light-dark(#eaf7f2, #162b24);
+  --green-94: light-dark(#e1eee5, #223328);
+  --green-91: light-dark(#d2e9db, #1f3d2d);
+  --green-80: light-dark(#b6c1ba, #475a4f);
+  --green-77: light-dark(#9fbea9, #486552);
+  --green-76: light-dark(#90bda7, #406b57);
+  --green-76b: light-dark(#99b9a8, #4b695a);
+  --green-74: light-dark(#94b5a1, #4f6e5b);
+  --green-74b: light-dark(#96b29e, #546e5c);
+  --green-72: light-dark(#91ac9b, #5a7363);
+  --green-70: light-dark(#8ca893, #5d7864);
+  --green-67: light-dark(#65a786, #65a786);
+  --green-61: light-dark(#58917c, #67a08b);
+  --green-56-text: light-dark(#27895f, #5cb98c);
+  --green-55-text: light-dark(#39845b, #6fb98d);
+  --green-54: light-dark(#248063, #248063);
+  --green-54-text: light-dark(#248063, #69bf9f);
+  --green-50-text: light-dark(#27734c, #7fca9e);
+  --green-47-text: light-dark(#1c6b43, #87d2a4);
+  --green-43-text: light-dark(#365b35, #acd6aa);
+  --green-32-text: light-dark(#29362a, #d7e7d7);
+  /* amber */
+  --amber-99: light-dark(#fffbf2, #251e0d);
+  --amber-97: light-dark(#fbf3e7, #2e2414);
+  --amber-97b: light-dark(#fff4e0, #2f2209);
+  --amber-94: light-dark(#efe9e0, #372d1d);
+  --amber-92: light-dark(#f1e5cc, #3e300d);
+  --amber-90: light-dark(#f0dcc0, #4b3309);
+  --amber-77: light-dark(#c7b18c, #6e5a38);
+  --amber-76: light-dark(#b8af9d, #696050);
+  --amber-74: light-dark(#c1a678, #7b6236);
+  --amber-74b: light-dark(#cda55a, #cda55a);
+  --amber-72-text: light-dark(#ca9b58, #8e6219);
+  --amber-71-text: light-dark(#bc9b67, #896a36);
+  --amber-69-text: light-dark(#b59863, #8b6f3b);
+  --amber-62: light-dark(#988268, #a18b71);
+  --amber-61-text: light-dark(#a87924, #b98938);
+  --amber-57-text: light-dark(#98702b, #c29855);
+  --amber-55-text: light-dark(#8c6a2c, #c7a365);
+  --amber-53-text: light-dark(#916124, #d5a166);
+  --amber-51-text: light-dark(#8a5a00, #dda962);
+  /* red */
+  --red-96: light-dark(#fceeee, #352222);
+  --red-93: light-dark(#f2e2e2, #402c2c);
+  --red-92: light-dark(#f3dede, #442d2d);
+  --red-76: light-dark(#dca0a0, #844f50);
+  --red-75: light-dark(#c7a49b, #7b5b53);
+  --red-75b: light-dark(#c8a3a3, #7b5a5a);
+  --red-74: light-dark(#ca9e9e, #825a5a);
+  --red-70: light-dark(#c58f8f, #946162);
+  --red-69-text: light-dark(#cc8585, #a36060);
+  --red-67-text: light-dark(#c38282, #a66868);
+  --red-65-text: light-dark(#bf7777, #b66f6f);
+  --red-64-text: light-dark(#bd7373, #bc7272);
+  --red-64b-text: light-dark(#b97777, #b57474);
+  --red-56: light-dark(#c8372d, #c8372d);
+  --red-49: light-dark(#a92c24, #a92c24);
+  --red-49-text: light-dark(#a92c24, #fd9a8c);
+  /* pink */
+  --pink-96: light-dark(#fbeff6, #31212b);
+  --pink-75: light-dark(#c7a0b9, #7a576e);
+}
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}

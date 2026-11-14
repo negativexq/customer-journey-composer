@@ -56,7 +56,7 @@ const flag = (value: unknown, yes: string, no: string) =>
   border-radius: 8px;
   padding: 16px;
   margin-top: 14px;
-  background: #fafbfe;
+  background: var(--gray-99);
 }
 .decision-heading {
   display: flex;

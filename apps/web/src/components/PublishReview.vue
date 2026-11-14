@@ -231,7 +231,7 @@ onBeforeUnmount(() => controller?.abort());
   box-shadow: 0 24px 90px #20263930;
 }
 .publish-review::backdrop {
-  background: #1f25394d;
+  background: color-mix(in srgb, var(--gray-27) 30%, transparent);
 }
 header {
   display: flex;
@@ -281,10 +281,10 @@ h3 {
   color: var(--muted);
 }
 .preflight-row .passed {
-  color: #248063;
+  color: var(--green-54-text);
 }
 .publish-impact {
-  background: #f8f9fc;
+  background: var(--page);
   padding: 18px;
   border: 1px solid var(--border);
   border-radius: 9px;
@@ -320,17 +320,17 @@ dd {
 }
 .publish-blockers {
   margin-top: 22px;
-  border: 1px solid #f0dcc0;
+  border: 1px solid var(--amber-90);
   border-radius: 8px;
   padding: 15px;
-  background: #fffbf5;
+  background: var(--gray-99b);
 }
 .publish-blockers p {
   font-size: 13px;
   line-height: 1.6;
 }
 .publish-blockers > div + div {
-  border-top: 1px solid #f0dcc0;
+  border-top: 1px solid var(--amber-90);
   margin-top: 12px;
 }
 .preflight-note {
@@ -366,7 +366,7 @@ footer {
   gap: 9px;
   padding: 18px 24px;
   border-top: 1px solid var(--border);
-  background: #fafbfe;
+  background: var(--gray-99);
 }
 footer button {
   min-height: 40px;

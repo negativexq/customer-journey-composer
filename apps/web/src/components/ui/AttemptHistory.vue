@@ -45,7 +45,7 @@ li {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 13px;
-  background: #fafbfe;
+  background: var(--gray-99);
 }
 li > div {
   display: flex;

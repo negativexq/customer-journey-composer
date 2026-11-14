@@ -294,7 +294,7 @@ pre {
   font-size: 12px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  background: #f8fafc;
+  background: var(--page);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 16px;

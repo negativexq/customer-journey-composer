@@ -699,7 +699,7 @@ function setAttribute(value: string) {
         v-model:edges="edges"
         :default-edge-options="{
           type: 'insertable',
-          markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: '#98a4b6' },
+          markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: 'var(--edge)' },
         }"
         :nodes-draggable="!readonly"
         :nodes-connectable="!readonly"
@@ -714,7 +714,7 @@ function setAttribute(value: string) {
           inspectorOpen = true;
           emit('inspect');
         "
-        ><Background :gap="20" pattern-color="#dde1ec" /><CanvasControls
+        ><Background :gap="20" pattern-color="var(--canvas-dots)" /><CanvasControls
           :interactive="!readonly"
         /><MiniMap /><template #node-step="nodeProps"
           ><WorkflowNode

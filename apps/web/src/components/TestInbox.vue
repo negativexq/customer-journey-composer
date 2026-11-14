@@ -409,10 +409,10 @@ onMounted(
   border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
-  background: white;
+  background: var(--surface);
 }
 .inbox-filters {
-  background: #fafbfe;
+  background: var(--gray-99);
   display: grid;
   align-content: start;
   gap: 12px;
@@ -427,7 +427,7 @@ onMounted(
   border-radius: 0;
   border: 0;
   border-bottom: 1px solid var(--border);
-  background: white;
+  background: var(--surface);
   overflow-wrap: anywhere;
 }
 .inbox-detail {
@@ -435,7 +435,7 @@ onMounted(
 }
 .inbox-detail iframe {
   height: 480px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--gray-90b);
   border-radius: 12px;
 }
 .inbox-detail pre {
@@ -448,8 +448,8 @@ onMounted(
   flex-wrap: wrap;
 }
 .sms-phone {
-  background: #f7f8fc;
-  border: 7px solid #273047;
+  background: var(--page);
+  border: 7px solid var(--gray-31b-line);
   border-radius: 28px;
   padding: 24px;
   max-width: 350px;

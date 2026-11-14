@@ -125,9 +125,12 @@ const edges = computed<Edge[]>(() =>
       label: branching
         ? `${portLabel(e.port)} · ${count}${total ? ' (' + Math.round((count / total) * 100) + '%)' : ''}`
         : '',
-      markerEnd: { type: MarkerType.ArrowClosed, color: visited ? '#6650e8' : '#98a4b6' },
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: visited ? 'var(--accent-text)' : 'var(--edge)',
+      },
       style: {
-        stroke: visited ? '#6650e8' : '#b4bece',
+        stroke: visited ? 'var(--accent-text)' : 'var(--edge-quiet)',
         strokeWidth: visited ? 2.5 : 1.5,
         opacity: props.execution && !visited ? 0.35 : 1,
       },
