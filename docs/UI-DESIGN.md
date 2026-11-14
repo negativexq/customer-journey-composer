@@ -12,7 +12,7 @@ Workflow interaction references were reviewed from the official [Customer.io bui
 
 The user-provided [UX handoff](design/ux-handoff.md) and [four-screen overview](design/design-overview.png) guide the current implementation. Builder now uses pinned `@xyflow/vue` 2.0.0-next.21 with scoped flow state and immutable application edits. It has grouped elements, independently collapsible panels, an inspector that opens only for a selected step and explicit draft/published-version context. Delay and event timeout fields use seconds/minutes/hours/days while persisting the existing seconds schema. Journey settings are opened from More actions to preserve canvas space. Published-version metadata is obtained through an indexed join on the existing detail query, with no per-node API requests.
 
-- Elements stays 220px wide on desktop and opens over the canvas on mobile. Canvas stays light in dark OS mode, with shared 38px/44px controls, explicit stroke icons and a zoom percentage.
+- Elements stays 220px wide on desktop and opens over the canvas on mobile. Canvas follows the app theme, with shared 38px/44px controls, explicit stroke icons and a zoom percentage.
 - Interface text uses a 12px minimum, 13–14px controls/body text, and clear secondary-text contrast. Code and payloads retain monospace. There are no downloaded font assets or decorative letter spacing.
 - Shared icons, status badges, metric cards and an actual-data trend chart establish a common visual language.
 - Journey creation uses a focused dialog; journey lists use bounded server pagination and search.
@@ -25,6 +25,9 @@ The user-provided [UX handoff](design/ux-handoff.md) and [four-screen overview](
 - Analytics node reach bars use version entries as their denominator; alternative branches are labeled “Not reached” rather than implying linear funnel drop-off. Analytics journey selection is searchable. Period presets show actual UTC date ranges and support keyboard selection, Escape and focus restoration. Date selection controls the trend only; summary cards explicitly show all-time totals.
 - Versions lists immutable published versions with a readable diagram and a product-language change list (draft versus latest, and version versus version); raw JSON is an explicit secondary toggle.
 - Lifecycle actions that close a journey to customers (Sunset, Complete, Archive) use a shared confirmation dialog with Cancel focused. Errors, list timestamps and counts go through shared formatting helpers in `apps/web/src/lib/format.ts`.
+- Colors come only from `apps/web/src/tokens.css`; each token defines its light and dark value together and the theme follows the system unless pinned from the topbar. Translucent shadows and backdrops are the only literal colors in component styles.
+- Loading uses `SkeletonBlock`, empty screens use `EmptyState`, completed actions confirm with a toast, and errors stay inline next to what failed. Motion is short, opacity-and-transform only, and off for reduced motion.
+- Customers shows one person's route on the journey map with a stop-by-stop account beside it; the profile record is read-only until Edit profile is chosen. The execution drawer reuses the same route.
 - Selection controls have generous value space, padding and a distinct disclosure target. Reporting selectors are at least 290px wide on desktop and fill available width on mobile. Native form selects retain platform behavior with a consistent minimum 44px height.
 
 ## Navigation

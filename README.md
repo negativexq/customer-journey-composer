@@ -198,7 +198,7 @@ make test-e2e
 make test-recovery
 ```
 
-The latest recorded local browser run passed **78/78 desktop/mobile scenarios**, including real canvas connections, branch insertion/undo, access recovery, sandbox isolation, customer tracking and dark-OS/light-canvas behavior. Database integration tests use isolated PostgreSQL containers. Hosted CI also checks dependencies and application images.
+The latest recorded local browser run passed **82/82 desktop/mobile scenarios**, including real canvas connections, branch insertion/undo, access recovery, sandbox isolation, customer tracking, a customer's route on the journey map and light/dark theme behavior. Database integration tests use isolated PostgreSQL containers. Hosted CI also checks dependencies and application images.
 
 Measured 10,000-execution workloads, raw results and limitations are available in the [performance reports](docs/PERFORMANCE.md), [operational follow-up](docs/OPERATIONS-PERFORMANCE.md), [bounded-turn analysis](docs/BOUNDED-TURNS.md), [scheduler transaction tradeoffs](docs/SCHEDULER-LOCKS.md) and [latest queue/timer follow-up](docs/QUEUE-FOLLOWUP.md). They describe their own source revisions and matched baselines; they are not universal latency promises.
 

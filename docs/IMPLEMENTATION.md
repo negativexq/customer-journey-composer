@@ -58,6 +58,19 @@ Most count-to-record navigation already existed in the journey Monitor/Analytics
 
 Verified locally: `make check`, Docker web rebuild and `npx playwright test --workers=2` (80/80 desktop/mobile), with new assertions in `journey-insights.spec.ts` and `analytics.spec.ts`. Integration tests were not rerun because no API or SQL changed. Not built: drill-down from the workspace-level Node funnel bars, saved breakdown URLs and exporting the matching customers.
 
+## Interface polish and customer route — 2026-11-14
+
+Frontend-only slices; no API, SQL or runtime behavior changed.
+
+- Color tokens and dark theme: every interface color resolves through `apps/web/src/tokens.css`, where each token carries a light and a dark value via `light-dark()`. The theme follows the system; a topbar control pins light or dark per browser (`lib/theme.ts`) and an inline script applies a pinned choice before first paint. The canvas now follows the theme; the earlier "canvas stays light in dark OS mode" rule is retired and `canvas-controls.spec.ts` asserts the new behavior. `scripts/tokens.test.mjs` fails on opaque literal colors in component styles and on undefined tokens.
+- Loading, feedback and motion: `SkeletonBlock` replaces plain loading sentences; `ToastHost` confirms completed actions without announcing twice what a status region already reports; `motion.css` adds short transitions that are disabled for reduced motion; `EmptyState` replaces six hand-built empty states.
+- Customers: a searchable people list beside a profile with Journey, Activity and Profile tabs. Journey draws the person's route on the published journey map and lists every stop with its outcome, branch, time spent and message (`lib/customer-journey.ts`, `CustomerJourney.vue`, `JourneyRoute.vue`). Activity merges events, messages and journey entries. Profile is read-only until Edit profile is chosen. The execution drawer uses the same route with the journey name, version and outcome.
+- Canvas: a keyboard shortcut reference (toolbar button or `?`), and connection width on the metrics canvas follows each edge's share of traffic.
+
+Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test` (Node tests now 20, including route/activity and token guards), Docker web rebuild and `npx playwright test --workers=2` (82/82 desktop/mobile), with new or updated assertions in `theme.spec.ts`, `canvas-controls.spec.ts`, `activity-navigation.spec.ts` and `events.spec.ts`. Light, dark and 375px layouts of the main screens were checked in a browser, and a scripted contrast pass over 14 routes in the dark theme found one text below 3:1, which was fixed. Integration tests were not rerun because no API or SQL changed.
+
+Not covered: the dark values are derived from the light palette by a lightness mapping and were reviewed on the main screens, not on every state of every screen; dialogs, the AI composer, Message Studio and publish review were not inspected in dark. Toasts have one browser assertion (customer creation). There is no undo for archive because the API has no unarchive transition. The customer list endpoint does not return consents, so consent is shown on the profile only.
+
 ## Product acceptance verification — 2026-11-11
 
 Verified locally against source `b1b7ab4`, before this documentation update:
