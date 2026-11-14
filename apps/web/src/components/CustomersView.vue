@@ -42,6 +42,8 @@ type DeliveryRow = {
 const tabs = ['Journey', 'Activity', 'Profile'] as const;
 const tab = ref<(typeof tabs)[number]>('Journey');
 const creating = ref(false);
+// A profile reads as a record first; editing is a deliberate step.
+const editing = ref(false);
 const journeyNames = ref<Record<string, string>>({});
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
 let request = 0;
@@ -85,6 +87,7 @@ async function open(customer: Pick<Customer, 'customer_id'>) {
   const current = ++request;
   loadingProfile.value = true;
   creating.value = false;
+  editing.value = false;
   if (selected.value?.customer_id !== customer.customer_id) tab.value = 'Journey';
   selected.value = undefined;
   error.value = '';
@@ -125,6 +128,7 @@ async function open(customer: Pick<Customer, 'customer_id'>) {
 }
 function reset(fromRoute = false) {
   request++;
+  editing.value = false;
   creating.value = !fromRoute;
   loadingProfile.value = false;
   error.value = '';
@@ -173,6 +177,17 @@ async function save() {
   } catch (cause) {
     error.value = errorMessage(cause);
   }
+}
+const attributeRows = computed(() =>
+  Object.entries(selected.value?.attributes || {}).map(([key, value]) => ({
+    key,
+    value: typeof value === 'string' ? value : JSON.stringify(value),
+  })),
+);
+function cancelEdit() {
+  editing.value = false;
+  error.value = '';
+  if (selected.value) void open(selected.value);
 }
 const name = computed(() => (selected.value ? displayName(selected.value) : ''));
 const feed = computed(() =>
@@ -428,8 +443,64 @@ onMounted(() => {
             >Latest 25 journey entries, with this person's events and messages.</small
           >
         </template>
+        <template v-else-if="!creating && !editing && selected">
+          <div class="record-heading">
+            <div>
+              <h2 class="form-title">Profile details</h2>
+              <p>
+                Your systems keep this record current through events and the API. Edit it here only
+                to correct a value by hand.
+              </p>
+            </div>
+            <button v-if="!readonly" type="button" @click="editing = true">Edit profile</button>
+          </div>
+          <dl class="record">
+            <div>
+              <dt>Customer ID</dt>
+              <dd>{{ selected.customer_id }}</dd>
+            </div>
+            <div>
+              <dt>External ID</dt>
+              <dd>{{ selected.external_id || '—' }}</dd>
+            </div>
+            <div>
+              <dt>Email</dt>
+              <dd>{{ selected.email || '—' }}</dd>
+            </div>
+            <div>
+              <dt>Phone</dt>
+              <dd>{{ selected.phone || '—' }}</dd>
+            </div>
+            <div>
+              <dt>Locale</dt>
+              <dd>{{ selected.locale }}</dd>
+            </div>
+            <div>
+              <dt>Timezone</dt>
+              <dd>{{ selected.timezone }}</dd>
+            </div>
+            <div>
+              <dt>Created</dt>
+              <dd>{{ formatDateTime(selected.created_at) }}</dd>
+            </div>
+            <div>
+              <dt>Last updated</dt>
+              <dd>{{ formatDateTime(selected.updated_at) }}</dd>
+            </div>
+          </dl>
+          <h3 class="record-title">Custom attributes</h3>
+          <p v-if="!attributeRows.length" class="record-none">
+            No custom attributes on this profile.
+          </p>
+          <dl v-else class="record attributes">
+            <div v-for="row in attributeRows" :key="row.key">
+              <dt>{{ row.key }}</dt>
+              <dd>{{ row.value }}</dd>
+            </div>
+          </dl>
+        </template>
         <template v-else>
-          <h2 class="form-title">{{ creating ? 'New customer' : 'Profile details' }}</h2>
+          <h2 class="form-title">{{ creating ? 'New customer' : 'Edit profile' }}</h2>
           <form class="editor-form profile-form" @submit.prevent="save">
             <label
               >Customer ID<input
@@ -463,10 +534,13 @@ onMounted(() => {
                 rows="7"
                 class="code-input"
                 :disabled="readonly"
-              /></label
-            ><button v-if="!readonly" class="primary">
-              {{ selected ? 'Save profile' : 'Create customer' }}
-            </button>
+              />
+            </label>
+            <div v-if="!readonly" class="form-actions wide">
+              <button class="primary">
+                {{ selected ? 'Save profile' : 'Create customer' }}</button
+              ><button v-if="selected" type="button" @click="cancelEdit">Cancel</button>
+            </div>
           </form>
         </template>
       </div>
@@ -695,6 +769,59 @@ onMounted(() => {
 .form-title {
   margin: 0 0 16px;
   font-size: 15px;
+}
+.record-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.record-heading .form-title {
+  margin-bottom: 4px;
+}
+.record-heading p,
+.record-none {
+  margin: 0;
+  max-width: 60ch;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.record {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1px;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--border);
+  overflow: hidden;
+}
+.record div {
+  padding: 12px 14px;
+  background: var(--surface);
+}
+.record dt {
+  font-size: 12px;
+  color: var(--muted);
+}
+.record dd {
+  margin: 3px 0 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.record.attributes dt {
+  font-family: ui-monospace, monospace;
+}
+.record-title {
+  margin: 24px 0 10px;
+  font-size: 13px;
+}
+.form-actions {
+  display: flex;
+  gap: 8px;
 }
 .profile-form {
   display: grid;

@@ -153,7 +153,15 @@ test('customer, event, execution and message inspections survive reload and brow
   await expect(feed).toContainText('SMS message');
   await expect(feed).toContainText('cart_updated');
   await page.getByRole('tab', { name: 'Profile', exact: true }).click();
+  // The record is read-only until someone chooses to edit it.
+  const record = page.getByRole('tabpanel');
+  await expect(record).toContainText('+12025550100');
+  await expect(record.getByRole('textbox')).toHaveCount(0);
+  await record.getByRole('button', { name: 'Edit profile', exact: true }).click();
   await expect(page.getByLabel('Customer ID', { exact: true })).toHaveValue(customer);
+  await expect(page.getByLabel('Customer ID', { exact: true })).toBeDisabled();
+  await record.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(record.getByRole('textbox')).toHaveCount(0);
   await page.getByRole('tab', { name: /^Journey/ }).click();
   await journeyView.getByRole('button', { name: 'Inspect details', exact: true }).click();
   const drawer = page.getByRole('dialog', { name: 'Execution details', exact: true });
