@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from './ui/EmptyState.vue';
 import { toast } from '../lib/toast';
 import SkeletonBlock from './ui/SkeletonBlock.vue';
 import { errorMessage } from '../lib/format';
@@ -142,20 +143,23 @@ onMounted(() => void load());
         label="Loading journeys…"
         :rows="4"
       />
-      <div v-else-if="!filtered.length" class="empty-state">
-        <span class="empty-icon"><AppIcon name="workflow" :size="30" /></span>
-        <h2>{{ search || status ? 'No matching journeys' : 'Create your first journey' }}</h2>
-        <p>
-          {{
-            search || status
-              ? 'Try another name or status filter.'
-              : 'Start from a template or describe your automation with AI.'
-          }}
-        </p>
-        <button v-if="!readonly && !search && !status" class="primary" @click="emit('create')">
-          <AppIcon name="plus" />New journey
-        </button>
-      </div>
+      <EmptyState
+        v-else-if="!filtered.length"
+        icon="workflow"
+        :level="2"
+        :title="search || status ? 'No matching journeys' : 'Create your first journey'"
+      >
+        {{
+          search || status
+            ? 'Try another name or status filter.'
+            : 'Start from a template or describe your automation with AI.'
+        }}
+        <template v-if="!readonly && !search && !status" #action>
+          <button class="primary" @click="emit('create')">
+            <AppIcon name="plus" />New journey
+          </button>
+        </template>
+      </EmptyState>
       <div v-else class="table-scroll">
         <table class="journey-table">
           <thead>

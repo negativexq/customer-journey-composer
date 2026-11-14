@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from './ui/EmptyState.vue';
 import { errorMessage, plural } from '../lib/format';
 import { computed, onMounted, ref } from 'vue';
 import { api, type Journey } from '../lib/api';
@@ -232,14 +233,14 @@ onMounted(() => void load());
             {{ s }} <span>{{ value('journey', s === 'All' ? 'total' : s) }}</span>
           </button>
         </div>
-        <div v-if="!journeys.length" class="empty-state">
-          <span class="empty-icon"><AppIcon name="workflow" :size="28" /></span>
-          <h3>Your first journey starts here</h3>
-          <p>Create a workflow from scratch or begin with a template.</p>
-          <button v-if="!readonly" class="primary" @click="emit('create')">
-            <AppIcon name="plus" />Create journey
-          </button>
-        </div>
+        <EmptyState v-if="!journeys.length" icon="workflow" title="Your first journey starts here">
+          Create a workflow from scratch or begin with a template.
+          <template v-if="!readonly" #action>
+            <button class="primary" @click="emit('create')">
+              <AppIcon name="plus" />Create journey
+            </button>
+          </template>
+        </EmptyState>
         <div v-for="j in journeys.slice(0, 5)" :key="j.id" class="recent-journey-row">
           <span class="journey-type-icon"><AppIcon name="workflow" :size="19" /></span
           ><button class="journey-name-button" @click="emit('open', j.id)">
@@ -255,11 +256,9 @@ onMounted(() => void load());
           <h2>Recent activity</h2>
           <span class="live-label"><i />Recent entries</span>
         </div>
-        <div v-if="!recent.length" class="activity-empty">
-          <span class="empty-icon"><AppIcon name="events" :size="26" /></span>
-          <h3>A little quiet for now</h3>
-          <p>Customer entries and journey outcomes will appear here.</p>
-        </div>
+        <EmptyState v-if="!recent.length" icon="events" title="A little quiet for now" compact>
+          Customer entries and journey outcomes will appear here.
+        </EmptyState>
         <button
           v-for="e in recent.slice(0, 5)"
           :key="e.id"

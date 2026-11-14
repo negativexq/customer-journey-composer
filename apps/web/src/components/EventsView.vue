@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from './ui/EmptyState.vue';
 import { errorMessage, formatDateTime } from '../lib/format';
 import { onMounted, ref } from 'vue';
 import { api } from '../lib/api';
@@ -61,7 +62,9 @@ onMounted(load);
   <div class="resource-grid">
     <section class="panel">
       <h2>Recent events</h2>
-      <p v-if="!events.length">No events received yet.</p>
+      <EmptyState v-if="!events.length" icon="events" title="No events received yet" compact>
+        Send one with the form, or post to the events API, and it appears here.
+      </EmptyState>
       <button
         v-for="event in events"
         :key="String(event.event_id)"

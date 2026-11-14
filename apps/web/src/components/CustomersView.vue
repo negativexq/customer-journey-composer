@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from './ui/EmptyState.vue';
 import SkeletonBlock from './ui/SkeletonBlock.vue';
 import { errorMessage, formatDateTime } from '../lib/format';
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
@@ -306,16 +307,19 @@ onMounted(() => {
         <AppIcon name="back" :size="15" />All customers
       </button>
       <div v-if="!customerId && !creating" class="panel customer-placeholder">
-        <span class="placeholder-mark"><AppIcon name="users" :size="22" /></span>
-        <h2>Select a customer</h2>
-        <p>Their journey map, messages and events open here.</p>
+        <EmptyState icon="users" :level="2" title="Select a customer">
+          Their journey map, messages and events open here.
+        </EmptyState>
       </div>
       <div v-if="loadingProfile" class="panel">
         <SkeletonBlock label="Loading customer profile…" variant="text" :rows="6" />
       </div>
-      <div v-if="customerId && !selected && !loadingProfile" class="panel customer-placeholder">
-        <h2>This profile did not load</h2>
-        <button @click="open({ customer_id: customerId })">Retry customer</button>
+      <div v-if="customerId && !selected && !loadingProfile" class="panel">
+        <EmptyState icon="refresh" :level="2" title="This profile did not load">
+          <template #action>
+            <button @click="open({ customer_id: customerId })">Retry customer</button>
+          </template>
+        </EmptyState>
       </div>
       <template v-if="selected && !loadingProfile">
         <header class="panel profile-head">
@@ -385,18 +389,14 @@ onMounted(() => {
             @inspect="emit('inspect', $event)"
             @monitor="emit('monitor', $event)"
           />
-          <div v-else class="customer-placeholder">
-            <span class="placeholder-mark"><AppIcon name="workflow" :size="22" /></span>
-            <h3>No journey entries yet</h3>
-            <p>When an event enrolls this person, the route they take is drawn here.</p>
-          </div>
+          <EmptyState v-else icon="workflow" title="No journey entries yet">
+            When an event enrolls this person, the route they take is drawn here.
+          </EmptyState>
         </template>
         <template v-else-if="!creating && tab === 'Activity'">
-          <div v-if="!feed.length" class="customer-placeholder">
-            <span class="placeholder-mark"><AppIcon name="events" :size="22" /></span>
-            <h3>Nothing has happened yet</h3>
-            <p>Events, journey entries and messages for this person are listed here.</p>
-          </div>
+          <EmptyState v-if="!feed.length" icon="events" title="Nothing has happened yet">
+            Events, journey entries and messages for this person are listed here.
+          </EmptyState>
           <div v-for="group in feedDays" :key="group.day" class="feed-day">
             <h3>{{ group.day }}</h3>
             <button
@@ -594,34 +594,6 @@ onMounted(() => {
 .back-to-list {
   display: none;
   justify-self: start;
-}
-.customer-placeholder {
-  display: grid;
-  justify-items: center;
-  gap: 6px;
-  padding: 56px 24px;
-  text-align: center;
-}
-.customer-placeholder h2,
-.customer-placeholder h3 {
-  margin: 8px 0 0;
-  font-size: 15px;
-}
-.customer-placeholder p {
-  margin: 0 0 8px;
-  max-width: 44ch;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--muted);
-}
-.placeholder-mark {
-  display: grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: var(--accent-soft);
-  color: var(--accent-text);
 }
 .profile-head {
   display: flex;

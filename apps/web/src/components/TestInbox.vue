@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from './ui/EmptyState.vue';
 import { errorMessage, formatDateTime } from '../lib/format';
 import { computed, onMounted, ref, watch } from 'vue';
 import AppIcon from './ui/AppIcon.vue';
@@ -341,11 +342,9 @@ onMounted(
           />
           <pre v-else>{{ JSON.stringify(previous, null, 2) }}</pre>
         </template>
-        <div v-else class="inbox-empty">
-          <span><AppIcon name="inbox" :size="32" /></span>
-          <h2>Your message preview</h2>
-          <p>Select a message to inspect its rendered content, eligibility and execution trace.</p>
-        </div>
+        <EmptyState v-else class="inbox-empty" icon="inbox" :level="2" title="Your message preview">
+          Select a message to inspect its rendered content, eligibility and execution trace.
+        </EmptyState>
       </section>
     </div>
   </section>

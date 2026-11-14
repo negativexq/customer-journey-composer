@@ -3878,13 +3878,6 @@ pre {
   text-align: center;
   padding: 28px;
 }
-.inbox-empty > span {
-  background: var(--violet-96);
-  color: var(--violet-59-text);
-  padding: 20px;
-  border-radius: 18px;
-  margin-bottom: 18px;
-}
 .inbox-empty h2 {
   font-size: 17px;
 }
@@ -5813,20 +5806,6 @@ fieldset.scenario-form {
   color: var(--muted);
   font-size: 13px;
   max-width: 68ch;
-}
-.versions-empty {
-  display: grid;
-  justify-items: center;
-  gap: 6px;
-  padding: 36px 16px;
-  color: var(--muted);
-  font-size: 13px;
-  text-align: center;
-}
-.versions-empty strong {
-  color: var(--text);
-  font-weight: 600;
-  font-size: 14px;
 }
 .draft-changes {
   margin-top: 18px;

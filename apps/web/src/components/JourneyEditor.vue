@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from './ui/EmptyState.vue';
 import { toast } from '../lib/toast';
 import SkeletonBlock from './ui/SkeletonBlock.vue';
 import { errorMessage, formatDateTime, plural } from '../lib/format';
@@ -736,11 +737,9 @@ function back() {
       }}</span>
     </div>
     <SkeletonBlock v-if="versionsLoading && !versions.length" label="Loading versions…" :rows="2" />
-    <div v-else-if="!versions.length" class="versions-empty">
-      <AppIcon name="history" :size="22" />
-      <strong>No published versions yet</strong>
-      <span>Publish the draft to create version 1. Until then no customer can enter.</span>
-    </div>
+    <EmptyState v-else-if="!versions.length" icon="history" title="No published versions yet">
+      Publish the draft to create version 1. Until then no customer can enter.
+    </EmptyState>
     <template v-else>
       <div
         v-if="draftDiff"

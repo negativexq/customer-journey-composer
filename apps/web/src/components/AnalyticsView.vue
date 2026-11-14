@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from './ui/EmptyState.vue';
 import { errorMessage } from '../lib/format';
 import LiveMonitor from './LiveMonitor.vue';
 import { computed, onMounted, ref } from 'vue';
@@ -310,17 +311,13 @@ onMounted(() => {
             </tbody>
           </table>
         </div>
-        <div v-else class="empty-state">
-          <span class="empty-icon"><AppIcon name="branch" :size="26" /></span>
-          <h3>No funnel data yet</h3>
-          <p>
-            {{
-              selected
-                ? 'Node activity will appear after customers enter.'
-                : 'Select a journey above to see step-level performance.'
-            }}
-          </p>
-        </div>
+        <EmptyState v-else icon="branch" title="No funnel data yet">
+          {{
+            selected
+              ? 'Node activity will appear after customers enter.'
+              : 'Select a journey above to see step-level performance.'
+          }}
+        </EmptyState>
       </section>
       <section class="surface">
         <div class="surface-heading"><h2>Journey outcomes</h2></div>
