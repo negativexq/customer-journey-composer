@@ -28,6 +28,7 @@ The user-provided [UX handoff](design/ux-handoff.md) and [four-screen overview](
 - Colors come only from `apps/web/src/tokens.css`; each token defines its light and dark value together and the theme follows the system unless pinned from the topbar. Translucent shadows and backdrops are the only literal colors in component styles.
 - Loading uses `SkeletonBlock`, empty screens use `EmptyState`, completed actions confirm with a toast, and errors stay inline next to what failed. Motion is short, opacity-and-transform only, and off for reduced motion.
 - Customers shows one person's route on the journey map with a stop-by-stop account beside it; the profile record is read-only until Edit profile is chosen. The execution drawer reuses the same route.
+- Settings is one section per concern behind a section menu, each linkable by URL; administration data is shown as readable figures and rows, with raw payloads behind a disclosure. Branch targets are laid out under their own handle so branch connections do not cross.
 - Selection controls have generous value space, padding and a distinct disclosure target. Reporting selectors are at least 290px wide on desktop and fill available width on mobile. Native form selects retain platform behavior with a consistent minimum 44px height.
 
 ## Navigation

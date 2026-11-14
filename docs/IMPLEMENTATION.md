@@ -71,6 +71,17 @@ Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test` (
 
 Not covered: the dark values are derived from the light palette by a lightness mapping and were reviewed on the main screens, not on every state of every screen; dialogs, the AI composer, Message Studio and publish review were not inspected in dark. Toasts have one browser assertion (customer creation). There is no undo for archive because the API has no unarchive transition. The customer list endpoint does not return consents, so consent is shown on the profile only.
 
+## Settings sections and branch layout — 2026-11-14
+
+Frontend-only; no API, SQL or runtime behavior changed.
+
+- Settings: the single long page is now seven sections behind a section menu (`/settings?section=…`): Messaging, Workspace data, Team, API keys, AI providers, Audit log and System. Team lists members with a role selector and opens the new-member form on demand; revoking an API key asks for confirmation; the audit log shows a readable action, the person and a formatted time, with raw details behind a disclosure; System shows failed jobs, undelivered messages, analytics freshness, database connections and API memory as figures, with the raw payload behind "Technical details". The data catalog gains a kind filter and shows its definition form only while adding or editing.
+- Canvas layout: Auto layout, generated journeys and the metrics canvas share `lib/flow-layout.ts`, which keeps branch targets under their own handle (Matched/Yes left, Timeout/No right) so the two connections no longer cross. Positions already saved in a draft are not rewritten; Auto layout applies the new arrangement.
+
+Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test` (Node tests now 22, including `flow-layout.test.mjs`), Docker web rebuild and `npx playwright test --workers=2` (84/84 desktop/mobile) with the new `settings.spec.ts`. Settings was checked in a browser in light, dark and at 375px. Integration tests were not rerun because no API or SQL changed.
+
+Not covered: the layout swap exchanges two branch columns and does not re-pack columns of different widths, so very uneven branches can leave extra space; it was verified on the demo recovery journey and in unit tests, not on every template.
+
 ## Product acceptance verification — 2026-11-11
 
 Verified locally against source `b1b7ab4`, before this documentation update:
