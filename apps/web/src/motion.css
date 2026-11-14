@@ -1,0 +1,104 @@
+/*
+ * Motion. Short, opacity-and-transform only, and always in service of orientation: where a
+ * surface came from, what just changed. Everything here is switched off for reduced motion.
+ */
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-fast: 140ms;
+  --motion-base: 200ms;
+}
+
+/* Pages and tab panels settle in when they replace one another. */
+main > section,
+main > .page-heading,
+main > .customers-layout,
+[role='tabpanel'] {
+  animation: view-in var(--motion-base) var(--ease-out) both;
+}
+
+/* Modal dialogs rise; the inspector drawer slides in from its edge. */
+dialog[open] {
+  animation: dialog-in var(--motion-base) var(--ease-out) both;
+}
+dialog[open]::backdrop {
+  animation: fade-in var(--motion-base) ease-out both;
+}
+dialog.detail-drawer[open] {
+  animation-name: drawer-in;
+}
+
+/* Menus and disclosures open from the control that owns them. */
+.action-menu[open] > div {
+  animation: menu-in var(--motion-fast) var(--ease-out) both;
+  transform-origin: top right;
+}
+.version-detail,
+.activity-advanced[open] > pre {
+  animation: view-in var(--motion-base) var(--ease-out) both;
+}
+
+/* Selection states ease instead of snapping. */
+.workflow-node,
+.nav-item,
+.person,
+.run-option,
+.version-card,
+.detail-tabs button {
+  transition:
+    background-color var(--motion-fast) ease-out,
+    border-color var(--motion-fast) ease-out,
+    box-shadow var(--motion-fast) ease-out,
+    color var(--motion-fast) ease-out,
+    opacity var(--motion-fast) ease-out;
+}
+.vue-flow__edge-path {
+  transition:
+    stroke var(--motion-base) ease-out,
+    stroke-width var(--motion-base) ease-out,
+    opacity var(--motion-base) ease-out;
+}
+button:active:not(:disabled) {
+  transform: translateY(0.5px);
+}
+
+@keyframes view-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+}
+@keyframes drawer-in {
+  from {
+    opacity: 0.6;
+    transform: translateX(24px);
+  }
+}
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after,
+  ::backdrop {
+    animation: none !important;
+    transition: none !important;
+  }
+  button:active:not(:disabled) {
+    transform: none;
+  }
+}
