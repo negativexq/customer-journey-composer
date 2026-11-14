@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorMessage } from '../lib/format';
 import {
   computed,
   nextTick,
@@ -234,7 +235,7 @@ async function loadMore() {
     hasMore.value = rows.length === pageSize;
     expanded.value = true;
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   } finally {
     paging.value = false;
   }
@@ -260,7 +261,7 @@ async function loadMessages(more = false) {
     messages.value = more ? [...messages.value, ...rows] : rows;
     messageMore.value = rows.length === pageSize;
   } catch (cause) {
-    if (ticket === messageRequest) error.value = String(cause);
+    if (ticket === messageRequest) error.value = errorMessage(cause);
   } finally {
     if (ticket === messageRequest) messageBusy.value = false;
   }
@@ -477,7 +478,7 @@ async function refresh(reset = false) {
     stamp.value = new Date().toLocaleTimeString();
     if (nodeTab.value === 'messages' && !messageMore.value) void loadMessages();
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   } finally {
     busy.value = false;
     if (!disposed && !inactive && refreshQueued) {
@@ -525,7 +526,7 @@ async function track(id: string, fromRoute = false) {
     canvas.value?.focus(detail.current_node_id);
     await refresh();
   } catch (cause) {
-    if (request === selectionRequest) error.value = String(cause);
+    if (request === selectionRequest) error.value = errorMessage(cause);
   } finally {
     if (request === selectionRequest) tracking.value = false;
   }
@@ -536,7 +537,7 @@ async function control(action: string) {
     await api(`/executions/${selected.value.id}/${action}`, 'POST');
     await refresh();
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 async function inspect(id: string, fromRoute = false) {
@@ -551,7 +552,7 @@ async function inspect(id: string, fromRoute = false) {
       if (!fromRoute) emit('selection', { executionID: execution, deliveryID: id });
     }
   } catch (cause) {
-    if (request === deliveryRequest) error.value = String(cause);
+    if (request === deliveryRequest) error.value = errorMessage(cause);
   }
 }
 let activatedBefore = false;

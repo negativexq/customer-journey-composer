@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorMessage } from '../lib/format';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { api } from '../lib/api';
 import type { InspectionKind } from '../lib/navigation';
@@ -95,7 +96,7 @@ async function load() {
       if (current === sequence) executions.value = rows;
     }
   } catch (cause) {
-    if (current === sequence && !controller.signal.aborted) error.value = String(cause);
+    if (current === sequence && !controller.signal.aborted) error.value = errorMessage(cause);
   } finally {
     if (current === sequence) busy.value = false;
   }

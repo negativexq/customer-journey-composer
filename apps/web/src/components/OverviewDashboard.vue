@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorMessage, plural } from '../lib/format';
 import { computed, onMounted, ref } from 'vue';
 import { api, type Journey } from '../lib/api';
 import AppIcon from './ui/AppIcon.vue';
@@ -83,7 +84,7 @@ async function load() {
     failed.value = activity.failed_executions;
     entries24.value = lastDay.entries;
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   } finally {
     busy.value = false;
   }
@@ -112,7 +113,7 @@ onMounted(() => void load());
       <MetricCard
         label="Active journeys"
         :value="value('journey', 'Active')"
-        :caption="`${value('journey', 'total')} journeys in your workspace`"
+        :caption="`${plural(value('journey', 'total'), 'journey')} in your workspace`"
         icon="workflow"
         @select="emit('browse', 'Active')"
       /><MetricCard

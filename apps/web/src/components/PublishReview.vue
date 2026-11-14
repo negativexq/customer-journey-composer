@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorMessage } from '../lib/format';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { api } from '../lib/api';
 import type { Workflow } from '../lib/workflow';
@@ -64,7 +65,7 @@ async function check() {
     );
     if (current === request) gates.value = result;
   } catch (cause) {
-    if (current === request && !controller.signal.aborted) error.value = String(cause);
+    if (current === request && !controller.signal.aborted) error.value = errorMessage(cause);
   } finally {
     if (current === request) loading.value = false;
   }

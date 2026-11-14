@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorMessage } from '../lib/format';
 import DataCatalog from './DataCatalog.vue';
 import WorkspaceAdmin from './WorkspaceAdmin.vue';
 import { onMounted, ref } from 'vue';
@@ -29,7 +30,7 @@ async function load() {
     hours.value = policy.frequency_window_seconds / 3600;
     allowlist.value = policy.test_allowlist.join('\n');
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 async function create() {
@@ -39,7 +40,7 @@ async function create() {
     name.value = '';
     await load();
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 async function revoke(id: unknown) {
@@ -47,7 +48,7 @@ async function revoke(id: unknown) {
     await api(`/settings/api-keys/${id}`, 'DELETE');
     await load();
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 async function savePolicy() {
@@ -63,7 +64,7 @@ async function savePolicy() {
     });
     notice.value = 'Messaging policy saved';
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 onMounted(load);

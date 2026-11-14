@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorMessage } from '../lib/format';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import CustomerProfileFields from './ui/CustomerProfileFields.vue';
 import { api } from '../lib/api';
@@ -78,7 +79,7 @@ async function render() {
     const result = await api<Message>('/messages/preview', 'POST', payload());
     if (request === sequence && !disposed) preview.value = result;
   } catch (cause) {
-    if (request === sequence) error.value = String(cause);
+    if (request === sequence) error.value = errorMessage(cause);
   } finally {
     if (request === sequence) loading.value = false;
   }
@@ -124,7 +125,7 @@ async function loadTemplates() {
   try {
     templates.value = await api('/message-templates');
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 async function useTemplate() {
@@ -133,7 +134,7 @@ async function useTemplate() {
     const result = await api<{ config: Config }>(`/message-templates/${templateID.value}`);
     patch({ ...result.config, template_id: templateID.value });
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 function setFallbacks(value: string) {
@@ -155,7 +156,7 @@ async function saveTemplate() {
     templateName.value = '';
     await loadTemplates();
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 async function pollDelivery(id: string) {
@@ -167,7 +168,7 @@ async function pollDelivery(id: string) {
       poll = setTimeout(() => void pollDelivery(id), 1000);
     else sending.value = false;
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
     sending.value = false;
   }
 }
@@ -184,7 +185,7 @@ async function sendTest() {
     notice.value = 'Test scheduled';
     await pollDelivery(job.id);
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
     sending.value = false;
   }
 }

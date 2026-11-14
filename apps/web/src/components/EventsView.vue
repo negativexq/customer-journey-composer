@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorMessage, formatDateTime } from '../lib/format';
 import { onMounted, ref } from 'vue';
 import { api } from '../lib/api';
 import type { InspectionKind } from '../lib/navigation';
@@ -16,7 +17,7 @@ async function load() {
   try {
     events.value = await api('/events?limit=100');
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 function inspect(id: unknown) {
@@ -35,7 +36,7 @@ async function send() {
     notice.value = `${result.status} · ${result.executions.length} executions started`;
     await load();
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 function newEvent() {
@@ -75,7 +76,7 @@ onMounted(load);
           }}<small>{{
             Number(event.duplicate_count) > 0
               ? `${event.duplicate_count} duplicate(s)`
-              : new Date(String(event.received_at)).toLocaleString()
+              : formatDateTime(String(event.received_at), { seconds: true })
           }}</small></span
         >
       </button>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorMessage } from '../lib/format';
 import LiveMonitor from './LiveMonitor.vue';
 import { computed, onMounted, ref } from 'vue';
 import { api, type Journey } from '../lib/api';
@@ -110,7 +111,7 @@ async function load() {
       comparison.value = await api<typeof comparison.value>('/analytics/comparison');
     }
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   } finally {
     busy.value = false;
   }
@@ -121,7 +122,7 @@ onMounted(() => {
   if (!props.journeyId)
     void api<Journey[]>('/journeys?limit=200')
       .then((j) => (journeys.value = j))
-      .catch((cause) => (error.value = String(cause)));
+      .catch((cause) => (error.value = errorMessage(cause)));
 });
 </script>
 <template>

@@ -38,6 +38,16 @@ Content/Audience surfaces, AI brief/plan review, analytics drill-down and the
 recorded walkthrough. No new feature or optimization was introduced by the
 acceptance verification below. Deployment and broader paid LLM testing remain deferred; the user-authorized audit corrections and local evidence are recorded in [AI-REMEDIATION.md](AI-REMEDIATION.md). No further paid model generation was performed.
 
+## Interface review — 2026-11-14
+
+A walkthrough of the running local build at 1440px and 375px found presentation gaps rather than missing modules. Delivered in one web slice:
+
+- Versions tab: published versions are listed with publish time and which one receives new entries; a version expands to the readable journey diagram, with the JSON definition behind an explicit toggle. Draft-versus-latest and version-to-version comparisons list added, removed and reconfigured steps plus routing, global-exit and re-entry changes. Canvas position changes are not reported as changes.
+- Sunset, Complete and Archive (editor menu and journey list) now require confirmation in a modal that focuses Cancel; Escape and the backdrop cancel. Pause/Resume stay one click because they are reversible. The overflow menu closes on outside press and Escape.
+- Errors show the server message without the `Error:` prefix; timeouts and unreachable-server failures have their own copy. List timestamps use one `Nov 13, 2026, 01:18` format instead of the browser locale default. Singular counts are no longer pluralized. The search shortcut hint matches the platform and no longer wraps.
+
+Verified locally: `make check` (including the new `scripts/presentation.test.mjs`), Docker web rebuild and `npx playwright test --workers=2` with 80/80 desktop/mobile tests, including the new `versions.spec.ts` and the confirmation steps in `lifecycle.spec.ts`. Not covered by a browser test: the journey-list Archive confirmation. No integration tests, benchmark, paid LLM call or hosted CI run was performed for this slice. Remaining staged design work (Content/Audience modules, analytics drill-down, collapsible sidebar, dark theme) is unchanged.
+
 ## Product acceptance verification — 2026-11-11
 
 Verified locally against source `b1b7ab4`, before this documentation update:

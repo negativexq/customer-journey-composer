@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { labels, type Step, type Workflow } from '../lib/workflow';
-import { portLabel, stepSummary } from '../lib/workflow-presentation';
+import { durationLabel, portLabel, stepSummary } from '../lib/workflow-presentation';
 const props = defineProps<{ workflow: Workflow; interactive?: boolean; selected?: string }>();
 const emit = defineEmits<{ select: [string] }>();
 const choices = ref<Record<string, string>>({});
@@ -66,7 +66,11 @@ const showAll = ref(false);
         {{
           workflow.reentry?.mode === 'once'
             ? 'Once per customer'
-            : workflow.reentry?.mode || 'After completion'
+            : workflow.reentry?.mode === 'cooldown'
+              ? workflow.reentry.cooldown_seconds
+                ? `After a ${durationLabel(workflow.reentry.cooldown_seconds)} cooldown`
+                : 'After a cooldown'
+              : 'After the previous run ends'
         }}
       </p>
     </div>

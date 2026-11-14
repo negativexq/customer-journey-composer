@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorMessage, formatDateTime } from '../lib/format';
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import type { InspectionKind } from '../lib/navigation';
 import StatusBadge from './ui/StatusBadge.vue';
@@ -52,7 +53,7 @@ async function load() {
     );
     if (!disposed && current === listRequest) customers.value = result;
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   } finally {
     if (!disposed && current === listRequest) busy.value = false;
   }
@@ -94,7 +95,7 @@ async function open(customer: Pick<Customer, 'customer_id'>) {
     events.value = timeline;
     deliveries.value = history;
   } catch (cause) {
-    if (!disposed && current === request) error.value = String(cause);
+    if (!disposed && current === request) error.value = errorMessage(cause);
   } finally {
     if (!disposed && current === request) loadingProfile.value = false;
   }
@@ -144,7 +145,7 @@ async function save() {
     if (props.customerId === c.customer_id) await open(c);
     else emit('select', c.customer_id);
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 function inspect(event: Record<string, unknown>) {
@@ -264,9 +265,7 @@ onMounted(() => {
           class="list-row"
           @click="emit('inspect', { kind: 'execution', id: execution.id })"
         >
-          <span
-            >{{ execution.id.slice(0, 8) }} ·
-            {{ new Date(execution.started_at).toLocaleString() }}</span
+          <span>{{ execution.id.slice(0, 8) }} · {{ formatDateTime(execution.started_at) }}</span
           ><StatusBadge :status="execution.state" /></button
         ><small>Latest 25 executions.</small>
         <h3>Message history</h3>
@@ -290,7 +289,7 @@ onMounted(() => {
           @click="inspect(event)"
         >
           <span>{{ event.event_name }}</span
-          ><small>{{ new Date(String(event.occurred_at)).toLocaleString() }}</small>
+          ><small>{{ formatDateTime(String(event.occurred_at), { seconds: true }) }}</small>
         </button>
       </template>
     </section>

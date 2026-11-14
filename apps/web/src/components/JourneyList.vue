@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { errorMessage } from '../lib/format';
 import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue';
 import { api, type Journey } from '../lib/api';
 import AppIcon from './ui/AppIcon.vue';
 import StatusBadge from './ui/StatusBadge.vue';
+import ConfirmDialog from './ui/ConfirmDialog.vue';
 const props = defineProps<{ readonly?: boolean; admin?: boolean; initialStatus?: string }>();
 const emit = defineEmits<{ open: [Journey]; create: []; templates: []; filter: [string] }>();
 const journeys = ref<Journey[]>([]);
@@ -45,7 +47,7 @@ async function load(append = false) {
       more.value = result.length === 50;
     }
   } catch (cause) {
-    if (request === sequence) error.value = String(cause);
+    if (request === sequence) error.value = errorMessage(cause);
   } finally {
     if (request === sequence) loading.value = false;
   }
@@ -58,7 +60,20 @@ onBeforeUnmount(() => {
   clearTimeout(timer);
   sequence++;
 });
+const archiving = ref<Journey>();
+const acting = ref(false);
+async function confirmArchive() {
+  if (!archiving.value || acting.value) return;
+  acting.value = true;
+  try {
+    await action(archiving.value, 'archive');
+  } finally {
+    acting.value = false;
+    archiving.value = undefined;
+  }
+}
 async function action(journey: Journey, kind: string) {
+  error.value = '';
   try {
     await api(
       `/journeys/${journey.id}/${kind}`,
@@ -67,7 +82,7 @@ async function action(journey: Journey, kind: string) {
     );
     await load();
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 onMounted(() => void load());
@@ -237,7 +252,7 @@ onMounted(() => void load());
                     class="icon-button"
                     aria-label="Archive journey"
                     title="Archive"
-                    @click="action(j, 'archive')"
+                    @click="archiving = j"
                   >
                     <AppIcon name="folder" :size="16" />
                   </button>
@@ -249,7 +264,8 @@ onMounted(() => void load());
       </div>
       <div class="table-footer">
         <span
-          >{{ journeys.length }} {{ more ? 'loaded' : 'journeys'
+          >{{ journeys.length }}
+          {{ more ? 'loaded' : journeys.length === 1 ? 'journey' : 'journeys'
           }}<span v-if="status"> · {{ status }}</span></span
         ><button v-if="more && !loading" @click="load(true)">
           Load more journeys <AppIcon name="down" :size="14" /></button
@@ -257,4 +273,19 @@ onMounted(() => void load());
       </div>
     </div>
   </section>
+  <ConfirmDialog
+    :model-value="!!archiving"
+    title="Archive this journey?"
+    confirm-label="Archive journey"
+    danger
+    :busy="acting"
+    @update:model-value="archiving = undefined"
+    @confirm="confirmArchive"
+  >
+    <p>
+      <strong>{{ archiving?.name }}</strong> moves to the Archived list and can no longer be edited
+      or published.
+    </p>
+    <p>Its history is kept. There is no restore action.</p>
+  </ConfirmDialog>
 </template>

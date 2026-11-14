@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorMessage } from '../lib/format';
 import { computed, onMounted, ref } from 'vue';
 import { api } from '../lib/api';
 import type { DataEntry } from '../lib/data-catalog';
@@ -32,7 +33,7 @@ async function load() {
   try {
     entries.value = await api('/data-catalog');
   } catch (e) {
-    error.value = String(e);
+    error.value = errorMessage(e);
   }
 }
 function edit(entry: DataEntry) {
@@ -59,7 +60,7 @@ async function save() {
     aliases.value = '';
     notice.value = 'Data definition saved';
   } catch (e) {
-    error.value = String(e);
+    error.value = errorMessage(e);
   } finally {
     busy.value = false;
   }
@@ -72,7 +73,7 @@ async function discover() {
     notice.value =
       'Recent names and types imported. Review their business meaning; no customer values are sent to AI.';
   } catch (e) {
-    error.value = String(e);
+    error.value = errorMessage(e);
   } finally {
     busy.value = false;
   }

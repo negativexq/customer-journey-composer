@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorMessage } from './lib/format';
 import { computed, nextTick, onBeforeUnmount, onMounted, onErrorCaptured, ref, watch } from 'vue';
 import {
   pageRoute,
@@ -74,6 +75,8 @@ const navGroups = computed(() => [
     ],
   },
 ]);
+// Show the shortcut the current platform actually uses; both are accepted by the handler.
+const shortcutLabel = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘ K' : 'Ctrl K';
 const searchDialog = ref<HTMLDialogElement>();
 const searchInput = ref<HTMLInputElement>();
 const search = ref('');
@@ -94,7 +97,7 @@ watch(search, () => {
         : journeys.value.slice(0, 8);
       if (sequence === searchSequence) searchResults.value = results;
     } catch (cause) {
-      error.value = String(cause);
+      error.value = errorMessage(cause);
     } finally {
       if (sequence === searchSequence) searching.value = false;
     }
@@ -144,7 +147,7 @@ async function applyRoute(next: WorkspaceRoute) {
     if (request === navigationSequence) selected.value = journey;
   } catch (cause) {
     if (request === navigationSequence) {
-      error.value = String(cause);
+      error.value = errorMessage(cause);
       if (cause instanceof APIError && [403, 404].includes(cause.status)) {
         route.value = pageRoute('Journeys');
         window.history.replaceState(null, '', '/journeys');
@@ -193,7 +196,7 @@ async function refresh() {
   try {
     journeys.value = await api<Journey[]>('/journeys?limit=200');
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 async function open(j: Journey) {
@@ -228,7 +231,7 @@ async function logout() {
     route.value = pageRoute('Overview');
     window.history.replaceState(null, '', '/');
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 onMounted(async () => {
@@ -242,7 +245,7 @@ onBeforeUnmount(() => {
   clearTimeout(searchTimer);
 });
 onErrorCaptured((cause) => {
-  error.value = String(cause);
+  error.value = errorMessage(cause);
   return false;
 });
 </script>
@@ -338,7 +341,7 @@ onErrorCaptured((cause) => {
         <div class="topbar-actions">
           <button class="global-search" aria-label="Search journeys" @click="showSearch">
             <AppIcon name="search" :size="15" /><span>Search journeys...</span
-            ><kbd>⌘ K</kbd></button
+            ><kbd>{{ shortcutLabel }}</kbd></button
           ><span class="role-chip">{{ identity.role }}</span>
         </div>
       </header>

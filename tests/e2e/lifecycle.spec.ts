@@ -100,13 +100,24 @@ test('pause and sunset preserve durable work while closing enrollment', async ({
   expect(await state()).toBe('WAITING');
   await page.getByLabel('More journey actions').click();
   await page.getByRole('button', { name: 'Sunset', exact: true }).click();
+  // Lifecycle changes that affect customers are confirmed; cancelling changes nothing.
+  const confirmation = page.getByRole('dialog', { name: 'Sunset this journey?' });
+  await expect(confirmation.getByRole('button', { name: 'Cancel' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(confirmation).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Resume', exact: true })).toBeVisible();
+  await page.getByLabel('More journey actions').click();
+  await page.getByRole('button', { name: 'Sunset', exact: true }).click();
+  await confirmation.getByRole('button', { name: 'Sunset journey' }).click();
   await expect.poll(state).toBe('COMPLETED');
   expect((await send('new')).executions).toEqual([]);
   await page.getByLabel('More journey actions').click();
   await page.getByRole('button', { name: 'Complete after draining', exact: true }).click();
+  await page.getByRole('button', { name: 'Complete journey', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('completed');
   await page.getByLabel('More journey actions').click();
   await page.getByRole('button', { name: 'Archive', exact: true }).click();
+  await page.getByRole('button', { name: 'Archive journey', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('archived');
   const audits = await (await page.request.get('/api/v1/audit-logs')).json();
   expect(audits.some((a: { action: string }) => a.action === 'journey.pause')).toBeTruthy();

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorMessage } from '../lib/format';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { api, generationStream, type GenerationProgress } from '../lib/api';
 import GenerationStatus from './GenerationStatus.vue';
@@ -103,7 +104,7 @@ async function useRecoveryBrief() {
     action.value = 'generate';
     acceptanceContract.value = 'cart-recovery-eur.v1';
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   } finally {
     loadingBrief.value = false;
   }
@@ -209,7 +210,7 @@ async function compose() {
   } catch (cause) {
     error.value = request.signal.aborted
       ? 'Cancellation requested. Your draft is unchanged; the provider may already have processed the request.'
-      : String(cause);
+      : errorMessage(cause);
   } finally {
     busy.value = false;
     clearInterval(timer);
@@ -251,7 +252,7 @@ async function apply() {
     proposal.value = undefined;
     notice.value = 'Proposal applied to the draft. Publish remains a separate action.';
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   } finally {
     busy.value = false;
   }
@@ -268,7 +269,7 @@ onMounted(async () => {
     status.value = await api('/settings/ai');
     if (status.value?.default_provider === 'openai') provider.value = 'openai';
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 });
 onBeforeUnmount(() => {

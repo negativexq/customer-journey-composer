@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorMessage } from '../lib/format';
 import { computed, onMounted, ref, watch } from 'vue';
 import { api } from '../lib/api';
 import type { Workflow } from '../lib/workflow';
@@ -39,7 +40,7 @@ async function refresh() {
     choices.value = {};
     emit('ready', result.grounding.ready);
   } catch (e) {
-    if (ticket === request) error.value = String(e);
+    if (ticket === request) error.value = errorMessage(e);
   } finally {
     if (ticket === request) busy.value = false;
   }
@@ -66,7 +67,7 @@ async function resolve() {
       .map((m) => m.reference.key);
     emit('resolved', result.workflow, [...new Set([...(props.confirmed || []), ...confirmed])]);
   } catch (e) {
-    error.value = String(e);
+    error.value = errorMessage(e);
     emit('ready', false);
   } finally {
     busy.value = false;
@@ -78,7 +79,7 @@ async function reloadCatalog() {
     entries.value = await api('/data-catalog');
     await refresh();
   } catch (e) {
-    error.value = String(e);
+    error.value = errorMessage(e);
     emit('ready', false);
   }
 }
@@ -86,7 +87,7 @@ onMounted(async () => {
   try {
     entries.value = await api('/data-catalog');
   } catch (e) {
-    error.value = String(e);
+    error.value = errorMessage(e);
   }
   await refresh();
 });

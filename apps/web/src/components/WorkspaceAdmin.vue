@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorMessage } from '../lib/format';
 import { onMounted, ref } from 'vue';
 import { api } from '../lib/api';
 const users = ref<{ id: string; name: string; email: string; role: string }[]>([]);
@@ -27,7 +28,7 @@ async function refresh() {
       api('/system/status'),
     ]);
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 async function create() {
@@ -45,7 +46,7 @@ async function create() {
     email.value = '';
     await refresh();
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   } finally {
     busy.value = false;
   }
@@ -57,7 +58,7 @@ async function change(id: string, next: string) {
     await api(`/users/${id}/role`, 'PUT', { role: next });
     await refresh();
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   } finally {
     busy.value = false;
   }

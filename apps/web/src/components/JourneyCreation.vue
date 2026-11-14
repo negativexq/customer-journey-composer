@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorMessage } from '../lib/format';
 import type { DataEntry } from '../lib/data-catalog';
 import DataMappingReview from './DataMappingReview.vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -36,7 +37,7 @@ async function refreshVocabulary() {
     catalogEvents.value = entries.filter((e) => e.enabled && e.kind === 'event').length;
     catalogFields.value = entries.filter((e) => e.enabled && e.kind !== 'event').length;
   } catch (e) {
-    error.value = String(e);
+    error.value = errorMessage(e);
     catalogEvents.value = undefined;
   }
 }
@@ -92,7 +93,7 @@ async function persist() {
         saveError.value = '';
         if (mounted) emit('saved', result.journey);
       } catch (cause) {
-        saveError.value = String(cause);
+        saveError.value = errorMessage(cause);
         throw cause;
       } finally {
         saving.value = false;
@@ -137,7 +138,7 @@ async function load() {
       state.value.generating = false;
     }
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
     restoreFailed.value = true;
   } finally {
     loading.value = false;
@@ -155,7 +156,7 @@ onMounted(async () => {
     if (!state.value.provider)
       state.value.provider = settings.value?.default_provider === 'openai' ? 'openai' : 'claude';
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 });
 onBeforeUnmount(() => {
@@ -182,7 +183,7 @@ async function detailsNext() {
       await persist();
     }
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   } finally {
     working.value = false;
   }
@@ -202,7 +203,7 @@ async function method(method: 'ai' | 'scratch') {
     await persist();
     if (method === 'scratch') await approve();
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   } finally {
     working.value = false;
   }
@@ -228,7 +229,7 @@ async function example(index: number) {
         : undefined;
     }
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 async function compose() {
@@ -294,7 +295,7 @@ async function compose() {
   } catch (cause) {
     error.value = controller.signal.aborted
       ? 'Cancellation requested. The provider may already have processed the request; no automatic retry was made.'
-      : String(cause);
+      : errorMessage(cause);
     state.value.generating = false;
     if (mounted) await persist().catch(() => {});
   } finally {
@@ -332,7 +333,7 @@ async function approve() {
     await nextTick();
     emit('open', result);
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
     opening.value = 0;
   }
 }

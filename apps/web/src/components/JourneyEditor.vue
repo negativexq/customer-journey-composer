@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, watch, onBeforeUnmount, nextTick } from 'vue';
+import { errorMessage, formatDateTime, plural } from '../lib/format';
+import { computed, ref, watch, onBeforeUnmount, onMounted, nextTick } from 'vue';
 import { api, type Journey, type GenerationProgress } from '../lib/api';
 import WorkflowCanvas from './WorkflowCanvas.vue';
 import MessageStudio from './MessageStudio.vue';
@@ -15,7 +16,12 @@ import ScopeSelect from './ui/ScopeSelect.vue';
 import BehaviorChecksEditor from './BehaviorChecksEditor.vue';
 import { blankBehaviorChecks } from '../lib/behavior-checks';
 import type { DataEntry } from '../lib/data-catalog';
-import type { Workflow, Issue } from '../lib/workflow';
+import { labels, type Workflow, type Issue } from '../lib/workflow';
+import { stepSummary } from '../lib/workflow-presentation';
+import { diffWorkflows, type WorkflowDiff } from '../lib/version-diff';
+import ConfirmDialog from './ui/ConfirmDialog.vue';
+import JourneyDiagram from './JourneyDiagram.vue';
+import WorkflowChanges from './WorkflowChanges.vue';
 import type { InspectionKind } from '../lib/navigation';
 const props = defineProps<{
   journey: Journey;
@@ -233,7 +239,7 @@ async function saveDraft() {
     if (dirty.value) autosave = setTimeout(() => void save(), 500);
     emit('saved', journey);
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   } finally {
     busy.value = false;
   }
@@ -249,7 +255,7 @@ async function validate() {
     issues.value = result.issues;
     notice.value = result.valid ? 'Workflow is valid' : `${result.issues.length} validation issues`;
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 const publishOpen = ref(false);
@@ -263,7 +269,7 @@ async function publish() {
     publishRevision.value = revision.value;
     publishOpen.value = true;
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 async function confirmPublish() {
@@ -278,7 +284,7 @@ async function confirmPublish() {
     publishOpen.value = false;
     notice.value = 'Journey published';
   } catch (cause) {
-    publishError.value = String(cause);
+    publishError.value = errorMessage(cause);
   } finally {
     busy.value = false;
   }
@@ -301,10 +307,42 @@ async function saveTemplate() {
     await api('/templates', 'POST', { journey_id: props.journey.id, name: templateName });
     notice.value = 'Workspace template saved';
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
+  }
+}
+// The overflow menu is a native <details>; close it like a menu on outside press or Escape.
+const actionMenu = ref<HTMLDetailsElement>();
+function closeActionMenu(restoreFocus = false) {
+  if (!actionMenu.value?.open) return;
+  actionMenu.value.open = false;
+  if (restoreFocus) actionMenu.value.querySelector('summary')?.focus();
+}
+function outsideActionMenu(event: PointerEvent) {
+  if (actionMenu.value?.open && !actionMenu.value.contains(event.target as Node)) closeActionMenu();
+}
+onMounted(() => document.addEventListener('pointerdown', outsideActionMenu));
+onBeforeUnmount(() => document.removeEventListener('pointerdown', outsideActionMenu));
+type GuardedAction = 'sunset' | 'complete' | 'archive';
+const pendingAction = ref<GuardedAction>();
+const lifecycleBusy = ref(false);
+const confirmCopy: Record<GuardedAction, { title: string; label: string; danger?: boolean }> = {
+  sunset: { title: 'Sunset this journey?', label: 'Sunset journey' },
+  complete: { title: 'Mark this journey completed?', label: 'Complete journey' },
+  archive: { title: 'Archive this journey?', label: 'Archive journey', danger: true },
+};
+async function confirmLifecycle() {
+  const action = pendingAction.value;
+  if (!action || lifecycleBusy.value) return;
+  lifecycleBusy.value = true;
+  try {
+    await lifecycle(action);
+  } finally {
+    lifecycleBusy.value = false;
+    pendingAction.value = undefined;
   }
 }
 async function lifecycle(action: string) {
+  error.value = '';
   try {
     await flushDraft();
     const updated = await api<Journey>(`/journeys/${props.journey.id}/${action}`, 'POST', {
@@ -314,7 +352,7 @@ async function lifecycle(action: string) {
     emit('saved', updated);
     notice.value = 'Journey ' + updated.status.toLowerCase();
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 async function loadVersion(version: number) {
@@ -326,41 +364,63 @@ async function loadVersion(version: number) {
     const target = versions.value.find((v) => v.version === version);
     if (target) target.workflow = result.workflow;
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
+type VersionRow = { id: string; version: number; workflow?: Workflow; created_at: string };
+const versionsLoading = ref(false);
+const openVersion = ref<number>();
+const showDefinition = ref(false);
 const beforeVersion = ref(1);
 const afterVersion = ref(1);
-const versionDiff = ref<unknown>();
-async function compareVersions() {
-  try {
-    await Promise.all([...new Set([beforeVersion.value, afterVersion.value])].map(loadVersion));
-    const before = versions.value.find((v) => v.version === beforeVersion.value)?.workflow;
-    const after = versions.value.find((v) => v.version === afterVersion.value)?.workflow;
-    if (!before || !after) return;
-    const old = new Map(before.nodes.map((n) => [n.id, n]));
-    const current = new Map(after.nodes.map((n) => [n.id, n]));
-    versionDiff.value = {
-      added_nodes: after.nodes.filter((n) => !old.has(n.id)).map((n) => n.label),
-      removed_nodes: before.nodes.filter((n) => !current.has(n.id)).map((n) => n.label),
-      updated_nodes: after.nodes
-        .filter((n) => old.has(n.id) && JSON.stringify(old.get(n.id)) !== JSON.stringify(n))
-        .map((n) => ({ node: n.label, before: old.get(n.id), after: n })),
-      edges_changed: JSON.stringify(before.edges) !== JSON.stringify(after.edges),
-      exit_changed: JSON.stringify(before.global_exit) !== JSON.stringify(after.global_exit),
-      reentry_changed: JSON.stringify(before.reentry) !== JSON.stringify(after.reentry),
-    };
-  } catch (cause) {
-    error.value = String(cause);
+const versionDiff = ref<{ from: number; to: number; diff: WorkflowDiff }>();
+const draftDiff = ref<WorkflowDiff>();
+const compare = (before: Workflow, after: Workflow) =>
+  diffWorkflows(before, after, stepSummary, (step) => labels[step.type]);
+const versionWorkflow = (version: number) =>
+  versions.value.find((v) => v.version === version)?.workflow;
+async function toggleVersion(version: number) {
+  showDefinition.value = false;
+  if (openVersion.value === version) {
+    openVersion.value = undefined;
+    return;
   }
+  openVersion.value = version;
+  await loadVersion(version);
+}
+async function compareVersions() {
+  versionDiff.value = undefined;
+  await Promise.all([...new Set([beforeVersion.value, afterVersion.value])].map(loadVersion));
+  const before = versionWorkflow(beforeVersion.value);
+  const after = versionWorkflow(afterVersion.value);
+  if (!before || !after) return;
+  versionDiff.value = {
+    from: beforeVersion.value,
+    to: afterVersion.value,
+    diff: compare(before, after),
+  };
+}
+// What publishing now would change for new entries, compared with the latest version.
+async function compareDraft() {
+  const latest = versions.value[0];
+  draftDiff.value = undefined;
+  if (!latest) return;
+  await loadVersion(latest.version);
+  const published = versionWorkflow(latest.version);
+  if (published) draftDiff.value = compare(published, draft.value);
 }
 async function showVersions() {
+  versionsLoading.value = true;
   try {
-    versions.value = await api(`/journeys/${props.journey.id}/versions`);
+    versions.value = await api<VersionRow[]>(`/journeys/${props.journey.id}/versions`);
     afterVersion.value = versions.value[0]?.version || 1;
-    beforeVersion.value = versions.value.at(-1)?.version || 1;
+    beforeVersion.value = versions.value[1]?.version || versions.value[0]?.version || 1;
+    versionDiff.value = undefined;
+    await compareDraft();
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
+  } finally {
+    versionsLoading.value = false;
   }
 }
 watch(
@@ -439,7 +499,7 @@ function back() {
         >
           <AppIcon name="upload" :size="15" />Publish
         </button>
-        <details class="action-menu">
+        <details ref="actionMenu" class="action-menu" @keydown.esc="closeActionMenu(true)">
           <summary aria-label="More journey actions"><AppIcon name="more" :size="19" /></summary>
           <div @click="($event.currentTarget as HTMLElement).closest('details')!.open = false">
             <button @click="metadata!.open = !metadata!.open">
@@ -449,21 +509,21 @@ function back() {
             ><button
               v-if="admin && ['Active', 'Paused'].includes(journey.status)"
               :disabled="busy"
-              @click="lifecycle('sunset')"
+              @click="pendingAction = 'sunset'"
             >
-              Sunset</button
+              <AppIcon name="exit" />Sunset</button
             ><button
               v-if="admin && ['Sunset', 'Paused'].includes(journey.status)"
               :disabled="busy"
-              @click="lifecycle('complete')"
+              @click="pendingAction = 'complete'"
             >
-              Complete after draining</button
+              <AppIcon name="check" />Complete after draining</button
             ><button
               v-if="admin && ['Draft', 'Completed'].includes(journey.status)"
               :disabled="busy"
-              @click="lifecycle('archive')"
+              @click="pendingAction = 'archive'"
             >
-              Archive
+              <AppIcon name="folder" />Archive
             </button>
           </div>
         </details>
@@ -657,29 +717,106 @@ function back() {
     @inspect="emit('inspect', $event)"
     @selection="emit('navigate', { tab, preview: previewTab, ...$event })"
   />
-  <div v-else-if="tab === 'Versions'" class="panel">
-    <h2>Published versions</h2>
-    <div v-if="versions.length > 1" class="editor-form">
-      <label
-        >Compare from<select v-model.number="beforeVersion">
-          <option v-for="v in versions" :key="v.id" :value="v.version">v{{ v.version }}</option>
-        </select></label
-      ><label
-        >Compare to<select v-model.number="afterVersion">
-          <option v-for="v in versions" :key="v.id" :value="v.version">v{{ v.version }}</option>
-        </select></label
-      ><button @click="compareVersions">Compare versions</button>
+  <section v-else-if="tab === 'Versions'" class="versions-view">
+    <div class="versions-heading">
+      <div>
+        <h2>Published versions</h2>
+        <p>
+          Each publish creates an immutable version. Customers already in the journey keep the
+          version they entered with.
+        </p>
+      </div>
+      <span v-if="versions.length" class="count-label">{{
+        plural(versions.length, 'version')
+      }}</span>
     </div>
-    <pre v-if="versionDiff">{{ JSON.stringify(versionDiff, null, 2) }}</pre>
-    <p v-if="!versions.length">No published versions yet.</p>
-    <details v-for="version in versions" :key="version.id">
-      <summary>
-        Version {{ version.version }} · {{ new Date(version.created_at).toLocaleString() }}
-      </summary>
-      <button v-if="!version.workflow" @click="loadVersion(version.version)">Load workflow</button>
-      <pre v-else>{{ JSON.stringify(version.workflow, null, 2) }}</pre>
-    </details>
-  </div>
+    <p v-if="versionsLoading && !versions.length" class="versions-empty" role="status">
+      Loading versions…
+    </p>
+    <div v-else-if="!versions.length" class="versions-empty">
+      <AppIcon name="history" :size="22" />
+      <strong>No published versions yet</strong>
+      <span>Publish the draft to create version 1. Until then no customer can enter.</span>
+    </div>
+    <template v-else>
+      <div
+        v-if="draftDiff"
+        class="draft-changes"
+        :class="{ 'has-changes': draftDiff.total > 0 }"
+        data-testid="draft-changes"
+      >
+        <div class="draft-changes-title">
+          <AppIcon :name="draftDiff.total ? 'file' : 'check'" :size="16" />
+          <strong>{{
+            draftDiff.total
+              ? `Draft has ${plural(draftDiff.total, 'unpublished change')} since v${versions[0]!.version}`
+              : `Draft matches v${versions[0]!.version}`
+          }}</strong>
+        </div>
+        <p v-if="!draftDiff.total">Publishing now would not change journey behavior.</p>
+        <WorkflowChanges v-else :diff="draftDiff" />
+      </div>
+      <form v-if="versions.length > 1" class="version-compare" @submit.prevent="compareVersions">
+        <label
+          >Compare from<select v-model.number="beforeVersion">
+            <option v-for="v in versions" :key="v.id" :value="v.version">v{{ v.version }}</option>
+          </select></label
+        ><label
+          >Compare to<select v-model.number="afterVersion">
+            <option v-for="v in versions" :key="v.id" :value="v.version">v{{ v.version }}</option>
+          </select></label
+        ><button type="submit" :disabled="beforeVersion === afterVersion">Compare versions</button>
+      </form>
+      <div v-if="versionDiff" class="draft-changes has-changes" data-testid="version-changes">
+        <div class="draft-changes-title">
+          <AppIcon name="history" :size="16" />
+          <strong
+            >v{{ versionDiff.from }} → v{{ versionDiff.to }} ·
+            {{ plural(versionDiff.diff.total, 'change') }}</strong
+          >
+        </div>
+        <p v-if="!versionDiff.diff.total">These versions behave the same.</p>
+        <WorkflowChanges v-else :diff="versionDiff.diff" />
+      </div>
+      <ol class="version-list">
+        <li v-for="(version, index) in versions" :key="version.id" class="version-card">
+          <button
+            type="button"
+            class="version-row"
+            :aria-expanded="openVersion === version.version"
+            @click="toggleVersion(version.version)"
+          >
+            <span class="version-badge">v{{ version.version }}</span>
+            <span class="version-row-copy"
+              ><strong>Version {{ version.version }}</strong
+              ><small>Published {{ formatDateTime(version.created_at) }}</small></span
+            >
+            <span v-if="index === 0" class="status-badge tone-green"
+              ><i />{{
+                journey.status === 'Active' ? 'Receiving new entries' : 'Latest version'
+              }}</span
+            >
+            <AppIcon
+              name="down"
+              :size="15"
+              class="version-chevron"
+              :class="{ open: openVersion === version.version }"
+            />
+          </button>
+          <div v-if="openVersion === version.version" class="version-detail">
+            <p v-if="!version.workflow" role="status">Loading version {{ version.version }}…</p>
+            <template v-else>
+              <JourneyDiagram :workflow="version.workflow" />
+              <button type="button" class="text-button" @click="showDefinition = !showDefinition">
+                {{ showDefinition ? 'Hide technical definition' : 'Show technical definition' }}
+              </button>
+              <pre v-if="showDefinition">{{ JSON.stringify(version.workflow, null, 2) }}</pre>
+            </template>
+          </div>
+        </li>
+      </ol>
+    </template>
+  </section>
   <KeepAlive
     ><TestLab
       v-if="tab === 'Preview & Test' && previewTab === 'Test Lab'"
@@ -701,6 +838,35 @@ function back() {
       @selection="emit('navigate', { tab: tab, preview: previewTab, ...$event })"
       @inspect="emit('inspect', $event)"
   /></KeepAlive>
+  <ConfirmDialog
+    :model-value="!!pendingAction"
+    :title="pendingAction ? confirmCopy[pendingAction].title : ''"
+    :confirm-label="pendingAction ? confirmCopy[pendingAction].label : 'Confirm'"
+    :danger="pendingAction ? confirmCopy[pendingAction].danger : false"
+    :busy="lifecycleBusy"
+    @update:model-value="pendingAction = undefined"
+    @confirm="confirmLifecycle"
+  >
+    <template v-if="pendingAction === 'sunset'">
+      <p>
+        <strong>{{ name }}</strong> stops accepting new entries.
+      </p>
+      <p>Customers already in the journey continue to the end.</p>
+    </template>
+    <template v-else-if="pendingAction === 'complete'">
+      <p>
+        <strong>{{ name }}</strong> is marked completed and stays closed to new entries.
+      </p>
+      <p>Its versions, history and analytics remain available.</p>
+    </template>
+    <template v-else-if="pendingAction === 'archive'">
+      <p>
+        <strong>{{ name }}</strong> moves to the Archived list and can no longer be edited or
+        published.
+      </p>
+      <p>Its history is kept. There is no restore action.</p>
+    </template>
+  </ConfirmDialog>
   <PublishReview
     v-model="publishOpen"
     :journey-id="journey.id"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorMessage } from '../lib/format';
 import { onMounted, ref } from 'vue';
 import { api, type Journey } from '../lib/api';
 import type { Workflow } from '../lib/workflow';
@@ -22,7 +23,7 @@ async function preview(id: string) {
   try {
     detail.value = await api('/templates/' + id);
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 async function create(id: string) {
@@ -31,7 +32,7 @@ async function create(id: string) {
   try {
     emit('open', await api<Journey>(`/templates/${id}/create-journey`, 'POST', {}));
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   } finally {
     busy.value = false;
   }
@@ -40,7 +41,7 @@ onMounted(async () => {
   try {
     templates.value = await api('/templates');
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 });
 </script>

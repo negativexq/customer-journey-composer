@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorMessage, formatDateTime } from '../lib/format';
 import { computed, onMounted, ref, watch } from 'vue';
 import AppIcon from './ui/AppIcon.vue';
 import StatusBadge from './ui/StatusBadge.vue';
@@ -80,7 +81,7 @@ async function perform(action: () => Promise<void>) {
   try {
     await action();
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   } finally {
     busy.value = false;
   }
@@ -267,7 +268,7 @@ onMounted(
           ><span
             >{{ r.journey_name || 'Explicit test' }} {{ r.version ? '· v' + r.version : '' }}</span
           ><span>{{ r.customer_id || 'Test recipient' }} · {{ r.status }}</span
-          ><small>{{ r.mode }} · {{ new Date(r.simulated_at).toLocaleString() }}</small></button
+          ><small>{{ r.mode }} · {{ formatDateTime(r.simulated_at) }}</small></button
         ><button v-if="rows.length >= 50" @click="load(true)">Load older messages</button>
       </section>
       <section class="panel inbox-detail">

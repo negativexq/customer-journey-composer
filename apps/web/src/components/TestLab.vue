@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { errorMessage, formatDateTime } from '../lib/format';
 import { computed, onActivated, onMounted, ref, watch } from 'vue';
 import { api, type Journey } from '../lib/api';
 import AppIcon from './ui/AppIcon.vue';
@@ -150,7 +151,7 @@ async function loadExamples(autofill = true) {
   } catch (cause) {
     if (request === exampleRequest) {
       sourceFailed.value = true;
-      error.value = String(cause);
+      error.value = errorMessage(cause);
     }
   } finally {
     if (request === exampleRequest) sourceLoading.value = false;
@@ -371,7 +372,7 @@ async function loadVersions() {
   try {
     versions.value = await api('/journeys/' + journey.value + '/versions');
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   }
 }
 watch(journey, () => {
@@ -451,7 +452,7 @@ async function perform(action: () => Promise<void>) {
   try {
     await action();
   } catch (cause) {
-    error.value = String(cause);
+    error.value = errorMessage(cause);
   } finally {
     busy.value = false;
   }
@@ -970,7 +971,7 @@ onMounted(
             <span class="test-run-symbol"><AppIcon name="flask" :size="15" /></span
             ><span
               ><strong>{{ r.id.slice(0, 8) }}</strong
-              ><small>{{ new Date(r.created_at).toLocaleString() }}</small></span
+              ><small>{{ formatDateTime(r.created_at) }}</small></span
             ><StatusBadge :status="r.result" /><AppIcon name="arrow" :size="14" />
           </button>
         </section>
