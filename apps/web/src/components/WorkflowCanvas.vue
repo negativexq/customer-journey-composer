@@ -8,7 +8,7 @@ import {
   MarkerType,
   type Connection,
 } from '@xyflow/vue';
-import dagre from '@dagrejs/dagre';
+import { layoutFlow } from '../lib/flow-layout';
 import {
   kinds,
   defaults,
@@ -484,24 +484,21 @@ function remove() {
   selectedID.value = '';
 }
 function layout() {
-  const graph = new dagre.graphlib.Graph({ multigraph: true });
-  graph.setGraph({ rankdir: 'TB', nodesep: 100, ranksep: 88 });
-  graph.setDefaultEdgeLabel(() => ({}));
-  for (const node of nodes.value) {
-    const card = canvasElement.value?.querySelector<HTMLElement>(
-      `[data-id="${CSS.escape(node.id)}"] .workflow-node`,
-    );
-    graph.setNode(node.id, { width: card?.offsetWidth || 224, height: card?.offsetHeight || 130 });
-  }
-  for (const edge of edges.value) graph.setEdge(edge.source, edge.target, {}, edge.id);
-  dagre.layout(graph);
-  nodes.value = nodes.value.map((node) => {
-    const position = graph.node(node.id);
-    return {
-      ...node,
-      position: { x: position.x - position.width / 2, y: position.y - position.height / 2 },
-    };
-  });
+  const positions = layoutFlow(
+    nodes.value.map((node) => {
+      const card = canvasElement.value?.querySelector<HTMLElement>(
+        `[data-id="${CSS.escape(node.id)}"] .workflow-node`,
+      );
+      return { id: node.id, width: card?.offsetWidth || 224, height: card?.offsetHeight || 130 };
+    }),
+    edges.value.map((edge) => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      port: edge.sourceHandle || undefined,
+    })),
+  );
+  nodes.value = nodes.value.map((node) => ({ ...node, position: positions[node.id]! }));
   void nextTick(startView);
 }
 const shortcutsOpen = ref(false);

@@ -9,7 +9,7 @@ import {
   type Node,
   type Edge,
 } from '@xyflow/vue';
-import dagre from '@dagrejs/dagre';
+import { layoutFlow } from '../lib/flow-layout';
 import WorkflowNode from './WorkflowNode.vue';
 import CanvasControls from './CanvasControls.vue';
 import type { Workflow } from '../lib/workflow';
@@ -33,20 +33,13 @@ const flowID = 'journey-metrics-' + crypto.randomUUID();
 const { setViewport, fitView } = setupVueFlow<MetricNode, Edge>({ id: flowID });
 const root = ref<HTMLDivElement>();
 let placed = false;
-const positions = computed(() => {
-  const g = new dagre.graphlib.Graph({ multigraph: true });
-  g.setGraph({ rankdir: 'TB', nodesep: 90, ranksep: 64, marginx: 30, marginy: 30 });
-  g.setDefaultEdgeLabel(() => ({}));
-  for (const n of props.workflow.nodes) g.setNode(n.id, { width: 248, height: 180 });
-  for (const e of props.workflow.edges) g.setEdge(e.source, e.target, {}, e.id);
-  dagre.layout(g);
-  return Object.fromEntries(
-    props.workflow.nodes.map((n) => {
-      const p = g.node(n.id);
-      return [n.id, { x: p.x - 124, y: p.y - 90 }];
-    }),
-  );
-});
+const positions = computed(() =>
+  layoutFlow(
+    props.workflow.nodes.map((n) => ({ id: n.id, width: 248, height: 180 })),
+    props.workflow.edges,
+    { nodesep: 90, ranksep: 64, margin: 30 },
+  ),
+);
 const value = (node: string, name: string, dim = 'node') => metric(props.insights, dim, name, node);
 function observations(n: Workflow['nodes'][number]) {
   const items =
