@@ -105,6 +105,15 @@ const nodes = computed<MetricNode[]>(() =>
     },
   })),
 );
+// The busiest connection sets the scale, so line weight reads as share of traffic.
+const busiest = computed(() =>
+  Math.max(
+    0,
+    ...props.workflow.edges.map((e) =>
+      metric(props.insights, 'edge', 'traversed', e.source + ':' + e.port),
+    ),
+  ),
+);
 const edges = computed<Edge[]>(() =>
   props.workflow.edges.map((e) => {
     const visited = props.execution?.steps.some(
@@ -134,8 +143,16 @@ const edges = computed<Edge[]>(() =>
         color: visited ? 'var(--accent-text)' : 'var(--edge)',
       },
       style: {
-        stroke: visited ? 'var(--accent-text)' : 'var(--edge-quiet)',
-        strokeWidth: visited ? 2.5 : 1.5,
+        stroke: visited
+          ? 'var(--accent-text)'
+          : count && !props.execution
+            ? 'var(--edge)'
+            : 'var(--edge-quiet)',
+        strokeWidth: visited
+          ? 2.5
+          : props.execution || !busiest.value
+            ? 1.5
+            : 1.5 + 3 * (count / busiest.value),
         opacity: props.execution && !visited ? 0.35 : 1,
       },
     };

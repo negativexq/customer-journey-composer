@@ -25,6 +25,7 @@ import CanvasControls from './CanvasControls.vue';
 import InsertableEdge from './InsertableEdge.vue';
 import RuleEditor from './RuleEditor.vue';
 import AppIcon from './ui/AppIcon.vue';
+import ShortcutsDialog from './ui/ShortcutsDialog.vue';
 import '@xyflow/vue/style.css';
 const props = defineProps<{
   modelValue: Workflow;
@@ -503,12 +504,21 @@ function layout() {
   });
   void nextTick(startView);
 }
+const shortcutsOpen = ref(false);
 function keyboard(event: KeyboardEvent) {
+  const target = event.target as HTMLElement;
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable) return;
   if (
-    ['INPUT', 'TEXTAREA', 'SELECT'].includes((event.target as HTMLElement).tagName) ||
-    props.readonly
-  )
+    event.key === '?' &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !window.document.querySelector('dialog[open]')
+  ) {
+    event.preventDefault();
+    shortcutsOpen.value = true;
     return;
+  }
+  if (props.readonly) return;
   if (event.metaKey || event.ctrlKey) {
     if (event.key === 'a') {
       event.preventDefault();
@@ -643,10 +653,18 @@ function setAttribute(value: string) {
       >
         <AppIcon name="search" :size="16" /></button
       ><button class="icon-button" aria-label="Fit view" title="Fit view" @click="fitView()">
-        <AppIcon name="maximize" :size="16" />
+        <AppIcon name="maximize" :size="16" /></button
+      ><button
+        class="icon-button shortcut-help"
+        aria-label="Keyboard shortcuts"
+        title="Keyboard shortcuts (?)"
+        @click="shortcutsOpen = true"
+      >
+        ?
       </button>
     </div>
   </div>
+  <ShortcutsDialog v-model="shortcutsOpen" />
   <div v-if="sharedExits.size" class="canvas-reading-bar">
     <label><input v-model="shortExitLinks" type="checkbox" />Short exit links</label
     ><span>Shared exits appear as references. Select one to open the original step.</span>

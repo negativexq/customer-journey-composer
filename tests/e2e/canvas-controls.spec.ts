@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 
-test('canvas stays light in dark OS mode with readable zoom controls and a wide Elements panel', async ({
+test('canvas follows the theme with readable zoom controls and a wide Elements panel', async ({
   page,
 }) => {
   const user = await (
@@ -20,19 +20,36 @@ test('canvas stays light in dark OS mode with readable zoom controls and a wide 
       data: {},
     })
   ).json();
-  await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('/journeys/' + journey.id);
   await expect(page.locator('.vue-flow__node')).toHaveCount(14);
-  await expect(page.locator('.canvas > .vue-flow')).toHaveCSS('color-scheme', 'light');
-  await expect(page.locator('.canvas > .vue-flow')).toHaveCSS(
-    'background-color',
-    'rgb(248, 250, 252)',
-  );
+  const flow = page.locator('.canvas > .vue-flow');
+  // Relative luminance of a computed color, so the assertion holds whatever the exact palette is.
+  const luminance = (locator: typeof flow, property: string) =>
+    locator.evaluate((element, name) => {
+      const context = document.createElement('canvas').getContext('2d')!;
+      context.fillStyle = getComputedStyle(element).getPropertyValue(name);
+      context.fillRect(0, 0, 1, 1);
+      const [r, g, b] = [...context.getImageData(0, 0, 1, 1).data].map((value) => {
+        const channel = value / 255;
+        return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+    }, property);
+  const node = page.locator('.workflow-node').first();
+  await expect.poll(() => luminance(flow, 'background-color')).toBeGreaterThan(0.8);
+  await expect.poll(() => luminance(node, 'background-color')).toBeGreaterThan(0.8);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await expect.poll(() => luminance(flow, 'background-color')).toBeLessThan(0.05);
+  await expect.poll(() => luminance(node, 'background-color')).toBeLessThan(0.05);
+  await expect
+    .poll(() => luminance(page.locator('.node-title').first(), 'color'))
+    .toBeGreaterThan(0.5);
   const controls = page.locator('.vue-flow__controls');
   await expect(controls).toHaveAttribute('aria-label', 'Canvas controls');
   const zoomIn = controls.locator('.vue-flow__controls-zoomin');
   await expect(zoomIn.locator('svg path')).toHaveAttribute('d', 'M12 5v14M5 12h14');
-  await expect(zoomIn.locator('svg')).toHaveCSS('stroke', 'rgb(52, 64, 84)');
+  await expect.poll(() => luminance(zoomIn.locator('svg'), 'stroke')).toBeGreaterThan(0.5);
+  await expect.poll(() => luminance(zoomIn, 'background-color')).toBeLessThan(0.05);
   const size = await zoomIn.boundingBox();
   expect(size!.width).toBeGreaterThanOrEqual(38);
   expect(size!.height).toBeGreaterThanOrEqual(38);
@@ -56,4 +73,15 @@ test('canvas stays light in dark OS mode with readable zoom controls and a wide 
   await expect(
     library.getByRole('button', { name: '+ Update Attribute', exact: true }),
   ).toBeVisible();
+
+  const shortcuts = page.getByRole('dialog', { name: 'Keyboard shortcuts', exact: true });
+  await page.getByRole('button', { name: 'Keyboard shortcuts', exact: true }).click();
+  await expect(shortcuts).toContainText('Duplicate selected steps');
+  await page.keyboard.press('Escape');
+  await expect(shortcuts).toBeHidden();
+  // The dialog reports its close on a later task; retry so the key is not pressed in between.
+  await expect(async () => {
+    await page.keyboard.press('?');
+    await expect(shortcuts).toBeVisible({ timeout: 1000 });
+  }).toPass();
 });
