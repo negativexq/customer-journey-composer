@@ -16,6 +16,16 @@ const tabs: Record<string, string> = {
   Analytics: 'analytics',
   Versions: 'versions',
 };
+export const settingsSections = [
+  'messaging',
+  'data',
+  'team',
+  'api-keys',
+  'ai',
+  'audit',
+  'system',
+] as const;
+export type SettingsSection = (typeof settingsSections)[number];
 const statuses = ['Draft', 'Active', 'Paused', 'Sunset', 'Completed', 'Archived'];
 export type InspectionKind = 'event' | 'execution' | 'message';
 export type WorkspaceRoute = {
@@ -30,6 +40,7 @@ export type WorkspaceRoute = {
   tab?: string;
   preview?: string;
   status?: string;
+  section?: SettingsSection;
 };
 export function pageRoute(page: string): WorkspaceRoute {
   return { page: Object.hasOwn(pages, page) ? page : 'Overview' };
@@ -59,11 +70,13 @@ export function readRoute(url: URL): WorkspaceRoute {
   }
   const page = Object.keys(pages).find((key) => pages[key] === path) || 'Overview';
   const status = url.searchParams.get('status') || '';
+  const section = settingsSections.find((item) => item === url.searchParams.get('section'));
   return {
     page,
     ...inspection,
     ...(page === 'Customers' ? { customerID: url.searchParams.get('customer') || undefined } : {}),
     ...(page === 'Journeys' && statuses.includes(status) ? { status } : {}),
+    ...(page === 'Settings' && section ? { section } : {}),
   };
 }
 export function routeURL(route: WorkspaceRoute): string {
@@ -77,6 +90,8 @@ export function routeURL(route: WorkspaceRoute): string {
       params.set('view', 'test-lab');
   } else if (route.page === 'Journeys' && route.status && statuses.includes(route.status))
     params.set('status', route.status);
+  if (route.page === 'Settings' && route.section && route.section !== settingsSections[0])
+    params.set('section', route.section);
   if (route.page === 'Customers' && route.customerID) params.set('customer', route.customerID);
   if (route.journeyID && route.executionID) params.set('execution', route.executionID);
   if (route.journeyID && route.deliveryID) params.set('delivery', route.deliveryID);

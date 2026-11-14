@@ -5955,3 +5955,175 @@ fieldset.scenario-form {
 .observe-people {
   scroll-margin-top: 72px;
 }
+
+/* Settings: shared building blocks for every section. */
+.settings-heading h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.settings-heading p {
+  margin: 4px 0 0;
+  max-width: 62ch;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.settings-heading.with-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.settings-card {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  min-width: 0;
+}
+.settings-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+.settings-card h3:not(:first-child) {
+  margin-top: 24px;
+}
+.settings-count {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--page);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.settings-help {
+  margin: 0 0 14px;
+  max-width: 68ch;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.settings-card label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+.settings-field {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+.settings-field small {
+  font-size: 12px;
+  color: var(--muted);
+}
+.settings-card label.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.settings-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px 16px;
+  margin-bottom: 14px;
+}
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.settings-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+.settings-inline label {
+  flex: 1 1 240px;
+}
+.settings-rows {
+  margin: 0;
+}
+.settings-rows div {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+.settings-rows div:first-child {
+  border-top: 0;
+}
+.settings-rows dt {
+  font-weight: 500;
+}
+.settings-rows dd {
+  margin: 0;
+  color: var(--muted);
+}
+.settings-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.settings-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+.settings-list li:first-child {
+  border-top: 0;
+}
+.settings-list li > div {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.settings-list strong {
+  font-size: 13px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.settings-list small {
+  font-size: 12px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.settings-tag {
+  display: inline-flex;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.settings-tag.on {
+  background: var(--green-97);
+  color: var(--green-47-text);
+}
+.settings-tag.off {
+  background: var(--page);
+  color: var(--muted);
+}
+.settings-status {
+  display: flex;
+  align-items: center;
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.settings-status.on {
+  color: var(--green-47-text);
+}
+.settings-status.off {
+  color: var(--amber-51-text);
+}

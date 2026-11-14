@@ -171,7 +171,7 @@ test('workspace data definitions are editable in Settings without changing custo
     headers: { 'X-CSRF-Token': user.csrf_token },
     data: { customer_id: 'catalog-demo', attributes: { activated: true } },
   });
-  await page.goto('/settings');
+  await page.goto('/settings?section=data');
   const catalog = page.getByRole('region', { name: 'Workspace data catalog' });
   await catalog.getByRole('button', { name: 'Discover recent data', exact: true }).click();
   await expect(catalog).toContainText('customer.attributes.activated');

@@ -452,7 +452,11 @@ onErrorCaptured((cause) => {
           @open-journey="openAnalytics"
           @browse-journeys="browseJourneys"
           @navigate="navigate"
-        /><SettingsView v-else-if="page === 'Settings'" /><OverviewDashboard
+        /><SettingsView
+          v-else-if="page === 'Settings'"
+          :section="route.section"
+          @section="go({ page: 'Settings', section: $event })"
+        /><OverviewDashboard
           v-else
           :name="identity.name"
           :readonly="readOnly"
