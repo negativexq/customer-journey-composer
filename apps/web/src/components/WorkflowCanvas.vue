@@ -421,6 +421,52 @@ const attribute = configField('attribute');
 const operation = configField('operation');
 const reason = configField('reason');
 const percent = configField('percent');
+const atTime = configField('at_time');
+const datePath = configField('date_path');
+const weekdayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const waitMode = computed({
+  get: () => selected.value?.data.config.wait_mode || 'duration',
+  // Each wait type keeps only its own fields, so a saved step never carries stale ones.
+  set: (mode: 'duration' | 'time' | 'date') => {
+    const config = selected.value?.data.config;
+    if (!config) return;
+    patchConfig({
+      wait_mode: mode === 'duration' ? undefined : mode,
+      duration_seconds: mode === 'duration' ? config.duration_seconds || 7200 : undefined,
+      at_time: mode === 'time' ? config.at_time || '09:00' : undefined,
+      weekdays: mode === 'time' ? config.weekdays : undefined,
+      date_path: mode === 'date' ? config.date_path || 'customer.attributes.renews_on' : undefined,
+      offset_seconds: mode === 'date' ? config.offset_seconds || 0 : undefined,
+    });
+  },
+});
+function toggleWeekday(day: number) {
+  const days = new Set(selected.value?.data.config.weekdays || []);
+  if (days.has(day)) days.delete(day);
+  else days.add(day);
+  patchConfig({ weekdays: days.size ? [...days].sort((a, b) => a - b) : undefined });
+}
+// The date offset is edited as an amount, a unit and a direction.
+const offsetUnit = ref(86400);
+const offsetAmount = computed({
+  get: () => Math.abs(selected.value?.data.config.offset_seconds || 0) / offsetUnit.value,
+  set: (value: number) =>
+    patchConfig({
+      offset_seconds: Math.round(Math.abs(Number(value)) * offsetUnit.value) * offsetSign.value,
+    }),
+});
+const offsetSign = computed({
+  get: () => ((selected.value?.data.config.offset_seconds || 0) > 0 ? 1 : -1),
+  set: (sign: number) =>
+    patchConfig({
+      offset_seconds: Math.abs(selected.value?.data.config.offset_seconds || 0) * sign,
+    }),
+});
+function changeOffsetUnit(value: number) {
+  const amount = offsetAmount.value;
+  offsetUnit.value = value;
+  offsetAmount.value = amount;
+}
 
 const delayUnit = ref(3600);
 const delayKey = computed(() =>
@@ -436,6 +482,8 @@ watch(selectedID, () => {
   inspectorOpen.value = true;
   const seconds = selected.value?.data.config[delayKey.value] || 0;
   delayUnit.value = [86400, 3600, 60].find((unit) => seconds > 0 && seconds % unit === 0) || 1;
+  const offset = Math.abs(selected.value?.data.config.offset_seconds || 0);
+  offsetUnit.value = [86400, 3600, 60].find((unit) => offset > 0 && offset % unit === 0) || 86400;
 });
 function changeDelayUnit(value: number) {
   const amount = delayAmount.value;
@@ -1030,7 +1078,81 @@ function setAttribute(value: string) {
         <label v-if="['event_trigger', 'wait_event'].includes(selected.data.kind)"
           >Event name<input v-model="eventName" :disabled="readonly"
         /></label>
-        <div v-if="['wait', 'wait_event'].includes(selected.data.kind)" class="duration-field">
+        <label v-if="selected.data.kind === 'wait'"
+          >Wait type<select v-model="waitMode" aria-label="Wait type" :disabled="readonly">
+            <option value="duration">For a set time</option>
+            <option value="time">Until a time of day</option>
+            <option value="date">Until a date on the customer</option>
+          </select></label
+        >
+        <template v-if="selected.data.kind === 'wait' && waitMode === 'time'">
+          <label
+            >Time of day<input v-model="atTime" type="time" required :disabled="readonly"
+          /></label>
+          <fieldset class="weekday-picker">
+            <legend>Only on these days</legend>
+            <button
+              v-for="(day, index) in weekdayNames"
+              :key="day"
+              type="button"
+              :aria-pressed="(selected.data.config.weekdays || []).includes(index + 1)"
+              :disabled="readonly"
+              @click="toggleWeekday(index + 1)"
+            >
+              {{ day }}
+            </button>
+            <small>Leave all off to continue on any day.</small>
+          </fieldset>
+        </template>
+        <template v-if="selected.data.kind === 'wait' && waitMode === 'date'">
+          <label
+            >Date field<input
+              v-model="datePath"
+              :disabled="readonly"
+              placeholder="customer.attributes.renews_on"
+          /></label>
+          <div class="duration-field offset-field">
+            <label
+              >Offset<input
+                v-model.number="offsetAmount"
+                type="number"
+                min="0"
+                :disabled="readonly"
+            /></label>
+            <label
+              >Offset unit<select
+                :value="offsetUnit"
+                aria-label="Offset unit"
+                :disabled="readonly"
+                @change="changeOffsetUnit(Number(($event.target as HTMLSelectElement).value))"
+              >
+                <option :value="60">Minutes</option>
+                <option :value="3600">Hours</option>
+                <option :value="86400">Days</option>
+              </select></label
+            >
+            <label
+              >Direction<select
+                v-model.number="offsetSign"
+                aria-label="Direction"
+                :disabled="readonly"
+              >
+                <option :value="-1">Before the date</option>
+                <option :value="1">After the date</option>
+              </select></label
+            >
+          </div>
+          <small
+            >A customer without this date, or whose date has passed, continues straight away.</small
+          >
+        </template>
+        <div
+          v-if="
+            selected.data.kind === 'wait_event' ||
+            (selected.data.kind === 'wait' && waitMode === 'duration')
+          "
+          class="duration-field"
+        >
           <label
             >{{ selected.data.kind === 'wait_event' ? 'Timeout' : 'Wait for'
             }}<input v-model.number="delayAmount" type="number" min="1" :disabled="readonly"

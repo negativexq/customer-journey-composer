@@ -6501,3 +6501,38 @@ fieldset.scenario-form {
   justify-self: start;
   margin-right: 12px;
 }
+
+/* Wait types */
+.weekday-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.weekday-picker legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font-size: 12px;
+}
+.weekday-picker button {
+  min-height: 30px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+.weekday-picker button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+.weekday-picker small {
+  flex-basis: 100%;
+}
+.offset-field {
+  grid-template-columns: 1fr 1fr;
+}
+.offset-field label:last-child {
+  grid-column: 1 / -1;
+}

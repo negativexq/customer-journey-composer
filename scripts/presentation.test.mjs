@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { errorMessage, formatDateTime, plural } from '../apps/web/src/lib/format.ts';
 import { diffWorkflows } from '../apps/web/src/lib/version-diff.ts';
+import { stepSummary } from '../apps/web/src/lib/workflow-presentation.ts';
 
 const step = (id, type, label, config = {}, position = { x: 0, y: 0 }) => ({
   id,
@@ -86,4 +87,31 @@ test('version comparison ignores layout and key order but reports behavior chang
   assert.equal(diff.exitChanged, true);
   assert.equal(diff.reentryChanged, true);
   assert.equal(diff.total, 7);
+});
+
+test('waits and splits summarize what they do', () => {
+  const wait = (config) => stepSummary({ type: 'wait', config });
+  assert.equal(wait({ duration_seconds: 7200 }), 'Wait 2 hours');
+  assert.equal(wait({ wait_mode: 'time', at_time: '09:00' }), 'Until 09:00');
+  assert.equal(
+    wait({ wait_mode: 'time', at_time: '18:30', weekdays: [5, 1] }),
+    'Until 18:30 on Mon, Fri',
+  );
+  assert.equal(
+    wait({
+      wait_mode: 'date',
+      date_path: 'customer.attributes.renews_on',
+      offset_seconds: -259200,
+    }),
+    'Until 3 days before renews on',
+  );
+  assert.equal(
+    wait({ wait_mode: 'date', date_path: 'event.properties.ends_at', offset_seconds: 3600 }),
+    'Until 1 hour after ends at',
+  );
+  assert.equal(
+    wait({ wait_mode: 'date', date_path: 'customer.attributes.birthday' }),
+    'Until birthday',
+  );
+  assert.equal(stepSummary({ type: 'split', config: { percent: 30 } }), '30% A · 70% B');
 });

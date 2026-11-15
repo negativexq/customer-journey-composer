@@ -39,6 +39,13 @@ type Config struct {
 	Operation       string            `json:"operation,omitempty" enum:"set,increment,unset"`
 	Value           any               `json:"value,omitempty"`
 	Reason          string            `json:"reason,omitempty"`
+	// A wait is a fixed delay by default. "time" waits for the next given time
+	// of day, "date" until a date held on the customer or event.
+	WaitMode      string `json:"wait_mode,omitempty" enum:"duration,time,date"`
+	AtTime        string `json:"at_time,omitempty" maxLength:"5"`
+	Weekdays      []int  `json:"weekdays,omitempty" maxItems:"7"`
+	DatePath      string `json:"date_path,omitempty" maxLength:"200"`
+	OffsetSeconds int64  `json:"offset_seconds,omitempty"`
 	// Percent is the share of customers a split sends to its "a" output.
 	Percent int `json:"percent,omitempty" minimum:"0" maximum:"99"`
 }
@@ -162,8 +169,8 @@ func Validate(w Workflow) []Issue {
 				add(n.ID, "timeout_seconds", "Timeout must be between 1 second and 365 days")
 			}
 		case "wait":
-			if c.DurationSeconds < 1 || c.DurationSeconds > 31536000 {
-				add(n.ID, "duration_seconds", "Delay must be between 1 second and 365 days")
+			if field, message := validateWait(c); field != "" {
+				add(n.ID, field, message)
 			}
 			if c.Timezone != "" {
 				if _, err := time.LoadLocation(c.Timezone); err != nil {

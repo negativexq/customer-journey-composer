@@ -34,6 +34,13 @@ export type Config = {
   operation?: string;
   value?: unknown;
   reason?: string;
+  // A wait is a fixed delay unless wait_mode says otherwise: 'time' waits for the next at_time
+  // (HH:MM, optionally only on weekdays 1=Mon…7=Sun), 'date' until date_path plus offset_seconds.
+  wait_mode?: 'duration' | 'time' | 'date';
+  at_time?: string;
+  weekdays?: number[];
+  date_path?: string;
+  offset_seconds?: number;
   // Share of customers a split sends to variant A.
   percent?: number;
 };

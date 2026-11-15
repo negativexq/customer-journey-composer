@@ -58,6 +58,21 @@ function templateSummary(text: string) {
   });
 }
 
+const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+export function waitSummary(c: Step['config']): string {
+  if (c.wait_mode === 'time') {
+    const days = [...(c.weekdays || [])].sort((a, b) => a - b).map((day) => dayNames[day - 1]);
+    return `Until ${c.at_time || '--:--'}${days.length ? ' on ' + days.join(', ') : ''}`;
+  }
+  if (c.wait_mode === 'date') {
+    const field = (c.date_path || 'a date').split('.').at(-1)!.replaceAll('_', ' ');
+    const offset = c.offset_seconds || 0;
+    if (!offset) return `Until ${field}`;
+    return `Until ${durationLabel(Math.abs(offset))} ${offset < 0 ? 'before' : 'after'} ${field}`;
+  }
+  return `Wait ${durationLabel(c.duration_seconds || 0)}`;
+}
+
 export function stepSummary(step: Pick<Step, 'type' | 'config'>): string {
   const c = step.config;
   switch (step.type) {
@@ -66,7 +81,7 @@ export function stepSummary(step: Pick<Step, 'type' | 'config'>): string {
     case 'split':
       return `${c.percent || 0}% A · ${100 - (c.percent || 0)}% B`;
     case 'wait':
-      return `Wait ${durationLabel(c.duration_seconds || 0)}`;
+      return waitSummary(c);
     case 'wait_event':
       return `${c.event_name || 'Choose an event'} · up to ${durationLabel(c.timeout_seconds || 0)}`;
     case 'event_trigger':

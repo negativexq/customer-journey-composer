@@ -38,7 +38,7 @@ func Decide(node workflow.Node, data map[string]any, now time.Time, resumePort s
 	case "wait":
 		d.Port = "completed"
 		if resumePort == "" {
-			until := now.Add(time.Duration(c.DurationSeconds) * time.Second)
+			until := workflow.WaitDeadline(c, data, now)
 			d.WaitUntil = &until
 		}
 	case "wait_event":
