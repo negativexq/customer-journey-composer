@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { runTitle, type TestRunSummary } from '../lib/test-runs';
 import EmptyState from './ui/EmptyState.vue';
 import { errorMessage, formatDateTime } from '../lib/format';
 import { computed, onMounted, ref, watch } from 'vue';
@@ -53,7 +54,7 @@ const props = defineProps<{
 const rows = ref<Row[]>([]);
 const selected = ref<Detail>();
 const previous = ref<unknown>();
-const runs = ref<{ id: string; result: string; execution_state: string }[]>([]);
+const runs = ref<TestRunSummary[]>([]);
 const journeys = ref<Journey[]>([]);
 const run = ref(props.testRunId || '');
 let detailSequence = 0;
@@ -213,7 +214,7 @@ onMounted(
           >Test run<select v-model="run" aria-label="Test run" @change="load()">
             <option value="">All runs and explicit sends</option>
             <option v-for="r in runs" :key="r.id" :value="r.id">
-              {{ r.id.slice(0, 8) }} · {{ r.result }}
+              {{ runTitle(r) }} · {{ r.journey_name || 'Journey' }} · {{ r.result }}
             </option>
           </select></label
         ><label>Customer ID<input v-model="customer" @keyup.enter="load()" /></label
@@ -265,20 +266,28 @@ onMounted(
           :class="{ selected: selected?.id === r.id }"
           @click="open(r)"
         >
-          <strong>{{ r.channel.toUpperCase() }} · {{ r.node_label }}</strong
-          ><span
-            >{{ r.journey_name || 'Explicit test' }} {{ r.version ? '· v' + r.version : '' }}</span
-          ><span>{{ r.customer_id || 'Test recipient' }} · {{ r.status }}</span
-          ><small>{{ r.mode }} · {{ formatDateTime(r.simulated_at) }}</small></button
+          <span class="inbox-channel" aria-hidden="true"
+            ><AppIcon :name="r.channel === 'sms' ? 'message' : 'email'" :size="15" /></span
+          ><span class="inbox-row-body"
+            ><strong>{{ r.node_label }}</strong
+            ><span
+              >{{ r.channel === 'sms' ? 'SMS' : 'Email' }} · {{ r.journey_name || 'Explicit test'
+              }}{{ r.version ? ' · v' + r.version : '' }}</span
+            ><small
+              >{{ r.customer_id || 'Test recipient' }} · {{ formatDateTime(r.simulated_at) }}</small
+            ></span
+          ><StatusBadge :status="r.status" /></button
         ><button v-if="rows.length >= 50" @click="load(true)">Load older messages</button>
       </section>
       <section class="panel inbox-detail">
         <template v-if="selected"
           ><h2>{{ selected.message.subject || selected.node_label }}</h2>
           <div class="inbox-message-meta">
-            <StatusBadge :status="selected.status" /><span
-              >{{ selected.mode }} {{ selected.provider_status || '' }}</span
-            >
+            <StatusBadge :status="selected.status" /><span>{{
+              [selected.mode, selected.provider_status]
+                .filter((part) => part && part !== selected!.status)
+                .join(' · ')
+            }}</span>
           </div>
           <p>To: {{ selected.message.to }} · {{ selected.message.preheader }}</p>
           <div class="detail-tabs">
@@ -350,6 +359,24 @@ onMounted(
   </section>
 </template>
 <style scoped>
+.inbox-row-body {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.inbox-row-body strong {
+  color: var(--text);
+  font-size: 13px;
+}
+.inbox-row-body small {
+  font-size: 11px;
+}
+.inbox-row .status-badge,
+.inbox-row > :last-child {
+  justify-self: end;
+}
 .embedded-inbox-heading {
   display: flex;
   align-items: center;
@@ -418,10 +445,14 @@ onMounted(
 }
 .inbox-row {
   display: grid;
-  gap: 6px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  justify-content: stretch;
+  justify-items: start;
+  gap: 12px;
   width: 100%;
   text-align: left;
-  padding: 16px;
+  padding: 14px 16px;
   margin-bottom: 0;
   border-radius: 0;
   border: 0;
@@ -466,8 +497,22 @@ onMounted(
   .inbox-layout {
     grid-template-columns: 1fr;
   }
+  /* On a phone the messages come first; the preview follows and filters close the page. */
+  .inbox-list {
+    order: 1;
+    max-height: 420px;
+    overflow: auto;
+  }
   .inbox-detail {
     grid-column: auto;
+    order: 2;
+  }
+  .inbox-filters {
+    order: 3;
+  }
+  .inbox-layout > .panel + .panel {
+    border-left: 0;
+    border-top: 1px solid var(--border);
   }
 }
 </style>

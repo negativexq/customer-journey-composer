@@ -330,14 +330,15 @@ func registerTesting(api huma.API, pool *pgxpool.Pool) {
 		JourneyID string `query:"journey_id"`
 		Limit     int    `query:"limit" default:"50" minimum:"1" maximum:"200"`
 	}) (*Result[[]map[string]any], error) {
-		where := `workspace_id=$1`
+		where := `t.workspace_id=$1`
 		args := []any{who(ctx).WorkspaceID}
 		if in.JourneyID != "" {
-			where += ` AND journey_id=$2::uuid`
+			where += ` AND t.journey_id=$2::uuid`
 			args = append(args, in.JourneyID)
 		}
 		args = append(args, in.Limit)
-		query := fmt.Sprintf(`SELECT COALESCE(jsonb_agg(to_jsonb(r)),'[]'::jsonb) FROM (SELECT id,journey_id,version_id,mode,workflow_hash,execution_state,result,finalized,virtual_now,message_count,created_at FROM test_runs WHERE %s ORDER BY created_at DESC,id LIMIT $%d) r`, where, len(args))
+		// Names let the list say what was tested, not only which run it was.
+		query := fmt.Sprintf(`SELECT COALESCE(jsonb_agg(to_jsonb(r)),'[]'::jsonb) FROM (SELECT t.id,t.journey_id,j.name AS journey_name,NULLIF(t.scenario->>'name','') AS scenario_name,t.version_id,v.version,t.draft_revision,t.mode,t.workflow_hash,t.execution_state,t.result,t.finalized,t.virtual_now,t.message_count,t.created_at FROM test_runs t JOIN journeys j ON j.workspace_id=t.workspace_id AND j.id=t.journey_id LEFT JOIN journey_versions v ON v.workspace_id=t.workspace_id AND v.id=t.version_id WHERE %s ORDER BY t.created_at DESC,t.id LIMIT $%d) r`, where, len(args))
 		return jsonRow[[]map[string]any](pool.QueryRow(ctx, query, args...))
 	})
 	huma.Get(api, "/api/v1/test-runs/{id}", func(ctx context.Context, in *journeyID) (*Result[TestRun], error) {

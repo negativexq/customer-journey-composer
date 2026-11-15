@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { runContext, runTitle, type TestRunSummary } from '../lib/test-runs';
 import SkeletonBlock from './ui/SkeletonBlock.vue';
 import { errorMessage, formatDateTime } from '../lib/format';
 import { computed, onActivated, onMounted, ref, watch } from 'vue';
@@ -289,7 +290,7 @@ watch(formSignature, () => {
   if (selectedSuggestion.value && !applyingInputs) reviewedSuggestion.value = false;
 });
 const currentDraft = ref(false);
-const runs = ref<{ id: string; result: string; execution_state: string; created_at: string }[]>([]);
+const runs = ref<TestRunSummary[]>([]);
 const run = ref<Run>();
 const path = ref<State>();
 const error = ref('');
@@ -971,8 +972,8 @@ onMounted(
           <button v-for="r in runs" :key="r.id" class="test-run-row" @click="open(r.id)">
             <span class="test-run-symbol"><AppIcon name="flask" :size="15" /></span
             ><span
-              ><strong>{{ r.id.slice(0, 8) }}</strong
-              ><small>{{ formatDateTime(r.created_at) }}</small></span
+              ><strong>{{ runTitle(r) }}</strong
+              ><small>{{ runContext(r) }} · {{ formatDateTime(r.created_at || '') }}</small></span
             ><StatusBadge :status="r.result" /><AppIcon name="arrow" :size="14" />
           </button>
         </section>

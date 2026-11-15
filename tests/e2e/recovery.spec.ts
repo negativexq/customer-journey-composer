@@ -92,7 +92,7 @@ test('EUR recovery scenarios run in the sandbox with a run-scoped inline inbox',
   await page.getByRole('button', { name: 'Run to completion', exact: true }).click();
   await expect(page.getByTestId('test-result')).toHaveText('PASS');
   await expect(inbox.locator('.inbox-row')).toHaveCount(1);
-  await expect(inbox.locator('.inbox-row')).toContainText('EMAIL');
+  await expect(inbox.locator('.inbox-row')).toContainText('Email ·');
   expect(
     await (await page.request.get(`/api/v1/journeys/${journey.id}/executions`)).json(),
   ).toEqual([]);
