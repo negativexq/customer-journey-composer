@@ -122,6 +122,14 @@ Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test` (
 
 Not covered: the step was exercised in the sandbox and the builder, not through a published journey on the live worker (the worker shares the same decision function). Auto layout orders multi-way targets by branch through the layout seed only; the column swap that guarantees order applies to two-way steps. Branch counts and conversion per branch are not broken out in Analytics beyond the existing edge traffic. The AI composer schema does not include the step.
 
+## Customer paths diagram — 2026-11-15
+
+Frontend only. Journey Analytics gains a left-to-right flow diagram for the selected version: a bar per step sized by customers who reached it and a band per connection sized by customers who took it, from the existing projected `node`/`edge` metrics (`lib/path-flow.ts`, `PathFlow.vue`). One hue carries magnitude, labels use text colors, each bar and band has a tooltip and opens the matching executions, and the Step reach table below holds the same numbers as text.
+
+Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test` (Node tests now 28 with `path-flow.test.mjs`), Docker web rebuild and `npx playwright test --workers=2` (92/92 desktop/mobile); `experiments.spec.ts` asserts the bars, bands and totals after waiting for the projection. Checked by eye on the demo journey in the dark theme at desktop width.
+
+Not covered: customers who leave at a step through the journey's global exit simply shrink the next bar; there is no separate "left here" band. Light theme and phone width were not checked by eye. Column order uses a simple weighted ordering, not full crossing minimization, so a dense graph can still cross bands.
+
 ## Product acceptance verification — 2026-11-11
 
 Verified locally against source `b1b7ab4`, before this documentation update:
