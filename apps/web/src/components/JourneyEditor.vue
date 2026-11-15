@@ -475,14 +475,19 @@ function back() {
 <template>
   <div class="journey-heading">
     <div class="journey-heading-copy">
-      <button class="back-link" @click="back"><AppIcon name="back" :size="14" />Journeys</button>
       <div class="journey-title-row">
-        <h1>{{ name }}</h1>
+        <button
+          class="back-link"
+          type="button"
+          aria-label="Back to journeys"
+          title="Back to journeys"
+          @click="back"
+        >
+          <AppIcon name="back" :size="16" />
+        </button>
+        <h1 :title="name">{{ name }}</h1>
         <StatusBadge :status="journey.status" />
       </div>
-      <p v-if="tab !== 'Builder'" class="journey-subtitle">
-        {{ description || 'Build a connected customer experience.' }}
-      </p>
       <div class="draft-context">
         <strong>{{
           ['Live Monitor', 'Analytics'].includes(tab)
@@ -495,6 +500,11 @@ function back() {
           ><AppIcon name="history" :size="13" />{{
             publishedVersion ? 'Latest published v' + publishedVersion : 'Not published yet'
           }}</span
+        ><span
+          v-if="tab !== 'Builder' && description"
+          class="journey-subtitle"
+          :title="description"
+          >{{ description }}</span
         >
       </div>
     </div>

@@ -6658,3 +6658,82 @@ fieldset.scenario-form {
     display: none;
   }
 }
+
+/* Compact journey header: title, status and actions on one row, context on the next. */
+.journey-heading {
+  align-items: center;
+  margin-bottom: 12px;
+}
+.journey-title-row {
+  gap: 10px;
+}
+.journey-title-row .back-link {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  min-height: 30px;
+  margin: 0 0 0 -6px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.journey-title-row .back-link:hover {
+  background: var(--gray-96);
+  color: var(--text);
+}
+.journey-heading .draft-context {
+  margin: 6px 0 0 34px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.journey-heading .draft-context strong {
+  padding: 2px 7px;
+  flex-shrink: 0;
+}
+.journey-heading .version-context {
+  flex-shrink: 0;
+}
+.journey-heading .journey-subtitle {
+  margin: 0;
+  min-width: 0;
+  max-width: 520px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
+.journey-heading-actions {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding-top: 0;
+}
+@media (max-width: 1050px) {
+  /* The header stacks here; actions start under the title with the save note first. */
+  .journey-heading {
+    align-items: stretch;
+  }
+  .journey-heading-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 8px 12px;
+  }
+}
+@media (max-width: 900px) {
+  .journey-heading .draft-context {
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+  .journey-heading .journey-subtitle {
+    flex-basis: 100%;
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+.journey-heading .journey-heading-copy {
+  flex: 1 1 auto;
+}
+.journey-heading .journey-heading-actions {
+  flex-shrink: 0;
+}
+.journey-heading .save-feedback {
+  white-space: nowrap;
+}

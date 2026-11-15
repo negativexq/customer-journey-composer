@@ -133,6 +133,20 @@ test('a journey can enter a scheduled audience instead of waiting for an event',
     '2 customers entered · 2 matched of 3 checked',
   );
 
+  // The route reads the finished execution, so wait for the worker under load.
+  await expect
+    .poll(
+      async () =>
+        (
+          await (
+            await page.request.get(
+              `/api/v1/journeys/${journey.id}/executions?version=1&customer_id=gold_a_${suffix}`,
+            )
+          ).json()
+        )[0]?.state,
+      { timeout: 20_000 },
+    )
+    .toBe('COMPLETED');
   await page.goto(`/customers?customer=gold_a_${suffix}`);
   const route = page.getByRole('region', { name: 'Customer journey' }).locator('.route-step');
   await expect(route.first()).toContainText('Entered with the scheduled audience');
