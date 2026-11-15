@@ -171,6 +171,15 @@ Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test` (
 
 Not covered: Test Lab's scenario form and timeline were looked at but not changed; the light theme was not checked by eye.
 
+## Spacing and sub-navigation sweep — 2026-11-15
+
+- Preview & Test's "Message preview" / "Journey path & Test Lab" buttons sat directly under the journey tabs and looked like a second tab row with no selected state. They are now a segmented control with space above and below and `aria-pressed` on the chosen view.
+- The same pattern was checked across the app. Test Inbox's detail tabs (Rendered, Raw, Variables, Delivery) looked identical to its action buttons; the actions now sit in their own row with icons and the tabs use the segmented control. Live Monitor's Executions filters touched the panel edge and now have padding. Template cards align their buttons to the card bottom. The Events "New event ID" button sits beside its field. The Overview greeting lost a stray space before its full stop.
+
+Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`, rebuilt `web`, and `npx playwright test --workers=2`: 96/96 desktop/mobile. Overview, Journeys, Templates, Analytics, Customers, Events, Settings, Versions, journey Analytics, Live Monitor, Preview & Test and Test Inbox checked by eye in the dark theme at 1440 px.
+
+Not covered: the light theme and phone widths were not checked by eye for these changes.
+
 ## Product acceptance verification — 2026-11-11
 
 Verified locally against source `b1b7ab4`, before this documentation update:

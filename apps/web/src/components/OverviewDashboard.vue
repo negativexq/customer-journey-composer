@@ -97,7 +97,7 @@ onMounted(() => void load());
     <div class="page-heading">
       <div>
         <p class="eyebrow">Workspace overview</p>
-        <h1>{{ greeting }}, {{ name.split(' ')[0] }} <span class="greeting-dot">.</span></h1>
+        <h1>{{ greeting }}, {{ name.split(' ')[0] }}<span class="greeting-dot">.</span></h1>
         <p class="page-description">Manage your journeys and follow every customer moment.</p>
       </div>
       <div class="heading-actions">

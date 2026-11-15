@@ -6737,3 +6737,73 @@ fieldset.scenario-form {
 .journey-heading .save-feedback {
   white-space: nowrap;
 }
+
+/* Preview & Test: switch between message preview and Test Lab, set apart from the journey tabs. */
+.preview-switch,
+.segmented {
+  display: inline-flex;
+  gap: 2px;
+  margin: 18px 0 20px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--gray-96);
+  max-width: 100%;
+  overflow-x: auto;
+}
+.preview-switch button,
+.segmented > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: none;
+}
+.preview-switch button:hover,
+.segmented > button:hover {
+  color: var(--text);
+}
+.preview-switch button[aria-pressed='true'],
+.segmented > button[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+/* A segmented control inside a panel sits closer to its content. */
+.segmented {
+  margin: 0 0 16px;
+}
+.segmented > button {
+  min-height: 30px;
+  padding: 0 11px;
+  font-size: 12px;
+}
+
+/* Executions list: filters line up with the heading and sit a step below it. */
+.observe-people .observe-record-filters {
+  padding: 14px 22px 12px;
+  align-items: flex-end;
+}
+.observe-people .observe-record-list {
+  padding: 0 14px 8px;
+}
+/* Event ID and its generator share one row. */
+.event-id-field {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.event-id-field label {
+  flex: 1;
+  min-width: 0;
+}
+.event-id-field button {
+  flex-shrink: 0;
+}

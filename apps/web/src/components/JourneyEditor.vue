@@ -718,15 +718,22 @@ function back() {
     />
   </section>
   <section v-else-if="tab === 'Preview & Test'">
-    <nav class="detail-tabs">
-      <button @click="previewTab = 'Messages'">Message preview</button
+    <nav class="preview-switch" aria-label="Preview views">
+      <button
+        type="button"
+        :aria-pressed="previewTab !== 'Test Lab'"
+        @click="previewTab = 'Messages'"
+      >
+        <AppIcon name="email" :size="15" />Message preview</button
       ><button
+        type="button"
+        :aria-pressed="previewTab === 'Test Lab'"
         @click="
           previewTab = 'Test Lab';
           testNodeID = '';
         "
       >
-        Journey path &amp; Test Lab
+        <AppIcon name="flask" :size="15" />Journey path &amp; Test Lab
       </button>
     </nav>
     <template v-if="previewTab !== 'Test Lab'">

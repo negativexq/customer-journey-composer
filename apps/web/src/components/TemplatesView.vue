@@ -95,6 +95,21 @@ onMounted(async () => {
   </section>
 </template>
 <style scoped>
+.journey-card {
+  display: flex;
+  flex-direction: column;
+}
+/* Actions sit on one row at the bottom, so cards with longer copy still line up. */
+.journey-card > .toolbar {
+  margin-top: auto;
+  padding-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.journey-card > .toolbar button {
+  margin: 0;
+}
 .template-card-heading {
   display: flex;
   align-items: center;

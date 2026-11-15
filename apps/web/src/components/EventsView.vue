@@ -88,9 +88,11 @@ onMounted(load);
       <h2>Send an event</h2>
       <p>This enters the live event pipeline. For isolated scenarios, use Test Lab.</p>
       <form class="editor-form" @submit.prevent="send">
-        <label>Event ID<input v-model="eventID" required maxlength="128" /></label
-        ><button type="button" @click="newEvent">New event ID</button
-        ><label>Customer ID<input v-model="customer" required maxlength="128" /></label
+        <div class="event-id-field">
+          <label>Event ID<input v-model="eventID" required maxlength="128" /></label
+          ><button type="button" @click="newEvent">New event ID</button>
+        </div>
+        <label>Customer ID<input v-model="customer" required maxlength="128" /></label
         ><label>Event name<input v-model="name" required /></label
         ><label>Occurred at<input v-model="occurred" required /></label
         ><label

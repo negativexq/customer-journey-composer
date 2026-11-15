@@ -290,25 +290,30 @@ onMounted(
             }}</span>
           </div>
           <p>To: {{ selected.message.to }} · {{ selected.message.preheader }}</p>
-          <div class="detail-tabs">
+          <div v-if="!embedded" class="inbox-actions">
+            <button type="button" @click="copy">
+              <AppIcon name="copy" :size="14" />Copy rendered content</button
+            ><button
+              type="button"
+              :disabled="!selected.test_run_id || readonly || busy"
+              @click="replay"
+            >
+              <AppIcon name="refresh" :size="14" />Replay scenario</button
+            ><button type="button" :disabled="!selected.test_run_id || busy" @click="compare">
+              <AppIcon name="history" :size="14" />Compare with previous run
+            </button>
+          </div>
+          <div class="detail-tabs segmented" aria-label="Message details">
             <button
               v-for="t in embedded
                 ? ['Preview', 'Decision', 'Attempts']
                 : ['Preview', 'Payload', 'Execution trace', 'Decision', 'Attempts']"
               :key="t"
-              :class="{ active: tab === t }"
+              type="button"
               :aria-pressed="tab === t"
               @click="tab = t"
             >
               {{ t }}
-            </button>
-          </div>
-          <div v-if="!embedded" class="detail-tabs">
-            <button @click="copy">Copy rendered content</button
-            ><button :disabled="!selected.test_run_id || readonly || busy" @click="replay">
-              Replay scenario</button
-            ><button :disabled="!selected.test_run_id || busy" @click="compare">
-              Compare with previous run
             </button>
           </div>
           <template v-if="tab === 'Preview'"
@@ -359,6 +364,20 @@ onMounted(
   </section>
 </template>
 <style scoped>
+.inbox-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 14px;
+}
+.inbox-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+}
 .inbox-row-body {
   display: grid;
   gap: 3px;
