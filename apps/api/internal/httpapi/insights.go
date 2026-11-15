@@ -47,6 +47,22 @@ func registerInsights(api huma.API, pool *pgxpool.Pool) {
    'overdue',(SELECT count(DISTINCT e.id) FROM scheduled_jobs q JOIN journey_executions e ON e.workspace_id=q.workspace_id AND e.id=q.execution_id WHERE q.workspace_id=$1 AND q.state='SCHEDULED' AND q.due_at<statement_timestamp()-interval '30 seconds' AND e.journey_id=$2 AND e.state='WAITING' AND e.started_at>=$3 AND e.started_at<$4 AND ($5='' OR e.version_id=NULLIF($5,'')::uuid) AND $8::text IN ('Active','Sunset'))
   )`, who(ctx).WorkspaceID, in.ID, from, until, version, in.Version, in.Days, status, in.IncludeUnique))
 	})
+	// Experiments compare the two sides of each split step on one published
+	// version: how many customers took each side and how many of them converted.
+	huma.Get(api, "/api/v1/journeys/{id}/experiments", func(ctx context.Context, in *struct {
+		ID      string `path:"id" format:"uuid"`
+		Version int    `query:"version" minimum:"1"`
+	}) (*Result[[]map[string]any], error) {
+		return jsonRow[[]map[string]any](pool.QueryRow(ctx, `SELECT COALESCE(jsonb_agg(to_jsonb(a) ORDER BY a.node_id,a.port),'[]'::jsonb) FROM (
+   SELECT s.node_id,s.output->>'port' AS port,count(*) AS entered,
+    count(*) FILTER (WHERE e.exit_reason='converted') AS converted,
+    count(*) FILTER (WHERE e.state IN ('RUNNING','WAITING')) AS in_progress
+   FROM step_executions s
+   JOIN journey_executions e ON e.workspace_id=s.workspace_id AND e.id=s.execution_id
+   JOIN journey_versions v ON v.workspace_id=e.workspace_id AND v.id=e.version_id
+   WHERE s.workspace_id=$1 AND s.node_type='split' AND s.state='SUCCEEDED' AND e.journey_id=$2 AND v.version=$3
+   GROUP BY 1,2) a`, who(ctx).WorkspaceID, in.ID, in.Version))
+	})
 	huma.Get(api, "/api/v1/journeys/{id}/messages", func(ctx context.Context, in *struct {
 		ID       string    `path:"id" format:"uuid"`
 		Version  int       `query:"version" minimum:"0"`

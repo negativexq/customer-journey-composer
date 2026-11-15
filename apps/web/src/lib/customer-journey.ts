@@ -124,6 +124,10 @@ function describe(
         ? { tone: 'done', outcome: `${event} did not arrive in time`, branch: 'Timeout' }
         : { tone: 'done', outcome: `${event} arrived`, branch: 'Matched' };
     }
+    case 'split':
+      return port === 'b'
+        ? { tone: 'done', outcome: 'Assigned to variant B', branch: 'B' }
+        : { tone: 'done', outcome: 'Assigned to variant A', branch: 'A' };
     case 'condition':
       return port === 'true'
         ? { tone: 'done', outcome: 'Condition was met', branch: 'Yes' }

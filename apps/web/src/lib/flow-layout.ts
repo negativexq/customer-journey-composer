@@ -8,7 +8,8 @@ export type LayoutEdge = { id: string; source: string; target: string; port?: st
 export type LayoutOptions = { nodesep?: number; ranksep?: number; margin?: number };
 
 // Left-to-right position of an output handle on its card.
-const portRank = (port?: string) => (port === 'false' || port === 'timeout' ? 1 : 0);
+const portRank = (port?: string) =>
+  port === 'false' || port === 'timeout' || port === 'b' ? 1 : 0;
 
 export function layoutFlow(
   nodes: LayoutNode[],

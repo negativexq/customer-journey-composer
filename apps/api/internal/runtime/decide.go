@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/negativexq/customer-journey-composer/apps/api/internal/messaging"
@@ -23,6 +24,7 @@ type Decision struct {
 	Attribute  string             `json:"attribute,omitempty"`
 	Operation  string             `json:"operation,omitempty"`
 	Value      any                `json:"value,omitempty"`
+	Variant    string             `json:"variant,omitempty"`
 }
 
 // Decide is pure: production and the virtual-clock simulator share these node
@@ -54,6 +56,12 @@ func Decide(node workflow.Node, data map[string]any, now time.Time, resumePort s
 		v := workflow.Evaluate(*c.Rule, data)
 		d.Condition = &v
 		d.Port = workflow.BoolPort(v)
+	case "split":
+		// No random choice here: the customer and the step decide the variant.
+		customer, _ := data["customer"].(map[string]any)
+		id, _ := customer["customer_id"].(string)
+		d.Port = workflow.SplitPort(c.Percent, id+":"+node.ID)
+		d.Variant = strings.ToUpper(d.Port)
 	case "email", "sms":
 		d.Port = "next"
 		rendered, err := messaging.Render(node.Type, c, data)

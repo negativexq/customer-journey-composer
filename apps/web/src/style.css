@@ -6458,3 +6458,41 @@ fieldset.scenario-form {
     flex-basis: auto;
   }
 }
+
+/* A/B split */
+.step-type-icon.split {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.node-caption.variant {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.split-share {
+  display: flex;
+  gap: 2px;
+  height: 28px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.split-share span {
+  display: grid;
+  place-items: center;
+  flex-basis: 0;
+  min-width: 44px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.split-share .variant-a {
+  background: var(--accent);
+  color: var(--on-solid);
+}
+.split-share .variant-b {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.node-config input[type='range'] {
+  min-height: 0;
+  padding: 0;
+  accent-color: var(--accent);
+}

@@ -1,7 +1,16 @@
 import { labels, type Rule, type Step } from './workflow.ts';
 
 export const portLabel = (port: string) =>
-  ({ true: 'Yes', false: 'No', matched: 'Matched', timeout: 'Timeout' })[port] || 'Next';
+  (
+    ({
+      true: 'Yes',
+      false: 'No',
+      matched: 'Matched',
+      timeout: 'Timeout',
+      a: 'Variant A',
+      b: 'Variant B',
+    }) as Record<string, string>
+  )[port] || 'Next';
 
 export function durationLabel(seconds: number) {
   const [amount, unit] =
@@ -54,6 +63,8 @@ export function stepSummary(step: Pick<Step, 'type' | 'config'>): string {
   switch (step.type) {
     case 'condition':
       return ruleSummary(c.rule);
+    case 'split':
+      return `${c.percent || 0}% A · ${100 - (c.percent || 0)}% B`;
     case 'wait':
       return `Wait ${durationLabel(c.duration_seconds || 0)}`;
     case 'wait_event':

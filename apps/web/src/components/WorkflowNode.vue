@@ -38,6 +38,7 @@ const icons: Record<string, string> = {
   wait: 'clock',
   wait_event: 'events',
   condition: 'branch',
+  split: 'split',
   email: 'email',
   sms: 'message',
   update_attribute: 'user',
@@ -64,7 +65,11 @@ const label = (p: string) =>
         ? 'Matched'
         : p === 'timeout'
           ? 'Timeout'
-          : '';
+          : p === 'a'
+            ? 'A'
+            : p === 'b'
+              ? 'B'
+              : '';
 </script>
 <template>
   <div

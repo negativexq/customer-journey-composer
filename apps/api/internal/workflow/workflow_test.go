@@ -30,6 +30,7 @@ func TestGraphValidation(t *testing.T) {
 			w.Nodes = append(w.Nodes, Node{ID: "extra", Type: "exit", Label: "Extra", Config: Config{Reason: "completed"}})
 		}, "unreachable"},
 		{"invalid email", func(w *Workflow) { w.Nodes[1].Type = "email" }, "Subject required"},
+		{"split without a share", func(w *Workflow) { w.Nodes[1].Type = "split" }, "Variant A share"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			w := valid()

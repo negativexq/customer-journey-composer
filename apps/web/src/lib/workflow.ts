@@ -3,6 +3,7 @@ export const kinds = [
   'wait',
   'wait_event',
   'condition',
+  'split',
   'email',
   'sms',
   'update_attribute',
@@ -33,6 +34,8 @@ export type Config = {
   operation?: string;
   value?: unknown;
   reason?: string;
+  // Share of customers a split sends to variant A.
+  percent?: number;
 };
 export type Step = {
   id: string;
@@ -98,6 +101,7 @@ export function ports(kind: Kind): string[] {
     wait: ['completed'],
     wait_event: ['matched', 'timeout'],
     condition: ['true', 'false'],
+    split: ['a', 'b'],
     email: ['next'],
     sms: ['next'],
     update_attribute: ['next'],
@@ -110,6 +114,7 @@ export function defaults(kind: Kind): Config {
     wait: { duration_seconds: 7200, timezone: 'UTC' },
     wait_event: { event_name: 'purchase_completed', timeout_seconds: 86400 },
     condition: { rule: { path: 'customer.attributes.purchased', operator: 'equals', value: true } },
+    split: { percent: 50 },
     email: {
       subject: 'A little reminder',
       html: '<p>Hello {{ customer.attributes.first_name }}, your cart is waiting.</p>',
@@ -126,6 +131,7 @@ export const labels: Record<Kind, string> = {
   wait: 'Wait / Delay',
   wait_event: 'Wait for Event',
   condition: 'Condition',
+  split: 'A/B Split',
   email: 'Send Email',
   sms: 'Send SMS',
   update_attribute: 'Update Attribute',

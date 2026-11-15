@@ -77,7 +77,16 @@ type CanvasEdge = {
   label?: string;
 };
 const branchLabel = (port: string) =>
-  ({ true: 'Yes', false: 'No', matched: 'Matched', timeout: 'Timeout' })[port] || '';
+  (
+    ({
+      true: 'Yes',
+      false: 'No',
+      matched: 'Matched',
+      timeout: 'Timeout',
+      a: 'A',
+      b: 'B',
+    }) as Record<string, string>
+  )[port] || '';
 const nodes = ref<CanvasNode[]>(
   props.modelValue.nodes.map((n) => ({
     id: n.id,
@@ -225,6 +234,7 @@ const groupTitle: Record<string, string> = {
   wait: 'Timing',
   wait_event: 'Event to wait for',
   condition: 'Rule',
+  split: 'Experiment',
   email: 'Email content',
   sms: 'Message',
   update_attribute: 'Profile change',
@@ -260,6 +270,7 @@ const iconFor: Record<string, string> = {
   wait: 'clock',
   wait_event: 'events',
   condition: 'branch',
+  split: 'split',
   email: 'email',
   sms: 'message',
   update_attribute: 'user',
@@ -272,6 +283,8 @@ const explanations: Record<string, string> = {
   wait_event:
     'Watches for an event. The customer takes Matched if it arrives in time and Timeout if it does not.',
   condition: 'Checks the customer against a rule and sends them down Yes or No.',
+  split:
+    'Sends a fixed share of customers to variant A and the rest to B. A customer always gets the same variant here.',
   email: 'Sends an email, if the customer allows email and the sending limit has room.',
   sms: 'Sends a text message, if the customer allows SMS and the sending limit has room.',
   update_attribute: 'Changes a value on the customer profile for later steps and journeys.',
@@ -282,6 +295,7 @@ const descriptions: Record<string, string> = {
   wait: 'Wait before the next step',
   wait_event: 'Listen for an event',
   condition: 'Split by a condition',
+  split: 'Test two variants',
   email: 'Send an email message',
   sms: 'Send a text message',
   update_attribute: 'Change a customer attribute',
@@ -293,7 +307,7 @@ const visibleKinds = computed(() =>
 const paletteGroups = computed(() =>
   [
     { label: 'Entry', kinds: ['event_trigger'] },
-    { label: 'Logic & timing', kinds: ['condition', 'wait', 'wait_event'] },
+    { label: 'Logic & timing', kinds: ['condition', 'split', 'wait', 'wait_event'] },
     { label: 'Messages', kinds: ['email', 'sms'] },
     { label: 'Customer & outcomes', kinds: ['update_attribute', 'exit'] },
   ]
@@ -406,6 +420,7 @@ const text = configField('text');
 const attribute = configField('attribute');
 const operation = configField('operation');
 const reason = configField('reason');
+const percent = configField('percent');
 
 const delayUnit = ref(3600);
 const delayKey = computed(() =>
@@ -1037,6 +1052,23 @@ function setAttribute(value: string) {
         <label v-if="selected.data.kind === 'wait'"
           >Timezone<input v-model="timezone" :disabled="readonly"
         /></label>
+        <template v-if="selected.data.kind === 'split'">
+          <label
+            >Share for variant A (%)<input
+              v-model.number="percent"
+              type="range"
+              min="1"
+              max="99"
+              :disabled="readonly"
+          /></label>
+          <div class="split-share" aria-live="polite">
+            <span class="variant-a" :style="{ flexGrow: percent || 0 }">A {{ percent || 0 }}%</span
+            ><span class="variant-b" :style="{ flexGrow: 100 - (percent || 0) }"
+              >B {{ 100 - (percent || 0) }}%</span
+            >
+          </div>
+          <small>Compare the variants in Analytics once customers have passed through both.</small>
+        </template>
         <RuleEditor
           v-if="selected.data.kind === 'condition'"
           v-model="nodeRule"

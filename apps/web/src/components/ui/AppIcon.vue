@@ -25,6 +25,7 @@ const paths: Record<string, string> = {
   check: 'm5 12 4 4L19 6',
   sparkles: 'm12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3ZM20 2v4M18 4h4',
   clock: 'M12 7v5l3 2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20',
+  split: 'M12 3v6M12 9 6 15v6M12 9l6 6v6M3 21h6M15 21h6',
   branch: 'M6 3v12a4 4 0 0 0 4 4h8M6 8h8a4 4 0 0 0 4-4V3M16 17l2 2-2 2M4 5l2-2 2 2',
   email: 'M3 5h18v14H3V5Zm0 1 9 7 9-7',
   message: 'M21 15a3 3 0 0 1-3 3H8l-5 4V5a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v10ZM7 7h10M7 12h7',

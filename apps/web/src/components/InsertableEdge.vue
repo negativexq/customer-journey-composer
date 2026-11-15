@@ -13,7 +13,7 @@ const props = defineProps<
 >();
 const emit = defineEmits<{ insert: []; jump: [] }>();
 const hovered = ref(false);
-const direction = computed(() => (['No', 'Timeout'].includes(String(props.label)) ? 1 : -1));
+const direction = computed(() => (['No', 'Timeout', 'B'].includes(String(props.label)) ? 1 : -1));
 const referenceX = computed(() => props.sourceX + direction.value * 170);
 const referenceY = computed(() => props.sourceY + 18);
 const path = computed(() =>

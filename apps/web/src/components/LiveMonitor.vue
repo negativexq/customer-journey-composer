@@ -13,6 +13,7 @@ import {
 } from 'vue';
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui';
 import JourneyMetricsCanvas from './JourneyMetricsCanvas.vue';
+import ExperimentResults from './ExperimentResults.vue';
 import ScopeSelect from './ui/ScopeSelect.vue';
 import MetricCard from './ui/MetricCard.vue';
 import TrendChart from './ui/TrendChart.vue';
@@ -323,6 +324,12 @@ function branchPeople(port: string) {
   nodeTab.value = 'people';
   void refresh(true);
   void revealPeople();
+}
+// From an experiment result to the people on one variant of that split.
+function variantPeople(node: string, port: string) {
+  showMessages.value = false;
+  selectedNode.value = node;
+  branchPeople(port);
 }
 // From a step count to the people behind it: everyone who reached the step, or
 // only those waiting there now.
@@ -1228,6 +1235,13 @@ onBeforeUnmount(() => {
           </section>
         </aside>
       </div>
+      <ExperimentResults
+        v-if="mode === 'analytics' && workflow"
+        :journey-id="journeyId"
+        :version="version"
+        :workflow="workflow"
+        @people="variantPeople($event.node, $event.port)"
+      />
       <div v-if="mode === 'analytics'" class="observe-analytics-bottom">
         <section class="surface">
           <div class="surface-heading">

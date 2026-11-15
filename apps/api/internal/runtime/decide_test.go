@@ -1,6 +1,8 @@
 package runtime
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -34,6 +36,31 @@ func TestPureDecisionsUseProvidedClockAndPorts(t *testing.T) {
 		if err != nil || d.Port != port || d.WaitUntil != nil {
 			t.Fatal(d, err)
 		}
+	}
+	split := workflow.Node{ID: "experiment", Type: "split", Config: workflow.Config{Percent: 50}}
+	counts := map[string]int{}
+	for i := 0; i < 2000; i++ {
+		who := map[string]any{"customer": map[string]any{"customer_id": fmt.Sprintf("customer-%d", i)}}
+		first, err := Decide(split, who, now, "")
+		again, _ := Decide(split, who, now.Add(time.Hour), "")
+		if err != nil || first.Port != again.Port || first.Variant != strings.ToUpper(first.Port) {
+			t.Fatal("a customer must keep one variant", first, again, err)
+		}
+		counts[first.Port]++
+	}
+	if counts["a"]+counts["b"] != 2000 || counts["a"] < 900 || counts["a"] > 1100 {
+		t.Fatal("an even split must be roughly even", counts)
+	}
+	split.Config.Percent = 99
+	mostly := 0
+	for i := 0; i < 1000; i++ {
+		d, _ := Decide(split, map[string]any{"customer": map[string]any{"customer_id": fmt.Sprintf("customer-%d", i)}}, now, "")
+		if d.Port == "a" {
+			mostly++
+		}
+	}
+	if mostly < 960 {
+		t.Fatal("the share must follow the configured percent", mostly)
 	}
 	if _, err := Decide(workflow.Node{Type: "arbitrary_code"}, data, now, ""); err == nil {
 		t.Fatal("unregistered node must be rejected")

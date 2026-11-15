@@ -5,6 +5,7 @@ package workflow
 import (
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"math"
 	"reflect"
 	"regexp"
@@ -38,6 +39,8 @@ type Config struct {
 	Operation       string            `json:"operation,omitempty" enum:"set,increment,unset"`
 	Value           any               `json:"value,omitempty"`
 	Reason          string            `json:"reason,omitempty"`
+	// Percent is the share of customers a split sends to its "a" output.
+	Percent int `json:"percent,omitempty" minimum:"0" maximum:"99"`
 }
 type Position struct {
 	X float64 `json:"x"`
@@ -45,7 +48,7 @@ type Position struct {
 }
 type Node struct {
 	ID       string   `json:"id" minLength:"1" maxLength:"80"`
-	Type     string   `json:"type" enum:"event_trigger,wait,wait_event,condition,email,sms,update_attribute,exit"`
+	Type     string   `json:"type" enum:"event_trigger,wait,wait_event,condition,split,email,sms,update_attribute,exit"`
 	Label    string   `json:"label" minLength:"1" maxLength:"160"`
 	Position Position `json:"position"`
 	Config   Config   `json:"config"`
@@ -99,6 +102,8 @@ func Ports(kind string) []string {
 		return []string{"matched", "timeout"}
 	case "condition":
 		return []string{"true", "false"}
+	case "split":
+		return []string{"a", "b"}
 	case "email", "sms", "update_attribute":
 		return []string{"next"}
 	case "exit":
@@ -168,6 +173,10 @@ func Validate(w Workflow) []Issue {
 		case "condition":
 			if c.Rule == nil {
 				add(n.ID, "rule", "Condition required")
+			}
+		case "split":
+			if c.Percent < 1 || c.Percent > 99 {
+				add(n.ID, "percent", "Variant A share must be between 1 and 99 percent")
 			}
 		case "email":
 			if strings.TrimSpace(c.Subject) == "" || len(c.Subject) > 998 {
@@ -462,6 +471,18 @@ func (w Workflow) Next(id, port string) string {
 	return ""
 }
 func BoolPort(value bool) string { return strconv.FormatBool(value) }
+
+// SplitPort assigns a customer to one side of a split. The choice is a pure
+// function of the key, so retries, replays and the simulator all agree and a
+// customer keeps the same variant every time they reach the same split.
+func SplitPort(percent int, key string) string {
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(key))
+	if int(h.Sum32()%100) < percent {
+		return "a"
+	}
+	return "b"
+}
 
 // ExitOutcome keeps the semantics of existing immutable snapshots: a missing
 // outcome is a conversion. Newly authored cancellation exits are explicit.

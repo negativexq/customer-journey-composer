@@ -3,7 +3,7 @@ import { durationLabel } from './workflow-presentation.ts';
 
 // The words that sit on top of a step and say when a customer arrives there, so a journey reads
 // from top to bottom as a sentence: "Starts when … If purchase arrives … Otherwise, after 1 day …".
-export type StepCaption = { text: string; tone: 'start' | 'if' | 'else' };
+export type StepCaption = { text: string; tone: 'start' | 'if' | 'else' | 'variant' };
 
 export function stepCaptions(
   workflow: Pick<Workflow, 'nodes' | 'edges'>,
@@ -22,7 +22,14 @@ export function stepCaptions(
               tone: 'else',
             }
           : { text: `If ${source.config.event_name || 'the event'} arrives`, tone: 'if' };
-    else if (source.type === 'condition')
+    else if (source.type === 'split') {
+      const share =
+        edge.port === 'b' ? 100 - (source.config.percent || 0) : source.config.percent || 0;
+      caption = {
+        text: `Variant ${edge.port === 'b' ? 'B' : 'A'} · ${share}% of customers`,
+        tone: 'variant',
+      };
+    } else if (source.type === 'condition')
       caption =
         edge.port === 'false'
           ? { text: 'Otherwise', tone: 'else' }
