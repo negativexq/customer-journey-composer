@@ -13,14 +13,14 @@ your team controls what is applied and activated.
 
 ## What you can do
 
-| Capability                | In the product                                                                                                                                        |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Create with AI**        | Turn a natural-language brief into editable steps with Claude or OpenAI. Review scoped business expectations, changes and warnings before applying.   |
-| **Build visually**        | Connect triggers, conditions, multi-way branches, A/B splits, timed waits, email/SMS, webhooks, profile updates and exits. Undo changes and autosave. |
-| **Test days in seconds**  | Advance a virtual clock, inject events and provider failures, and check expected outcomes in an isolated Test Lab.                                    |
-| **Preview every message** | Personalize as a customer and inspect email/SMS, consent decisions, blocked sends and attempts in Test Inbox.                                         |
-| **Run durable journeys**  | Start from real customer events. Persist waits and progress, deduplicate logical actions and recover after worker restarts.                           |
-| **Follow every outcome**  | Track customer paths, inspect node/message breakdowns and compare conversions by published version and entry cohort.                                  |
+| Capability                | In the product                                                                                                                                                                         |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Create with AI**        | Turn a natural-language brief into editable steps with Claude or OpenAI. Review scoped business expectations, changes and warnings before applying.                                    |
+| **Build visually**        | Start on an event or a scheduled audience. Connect conditions, multi-way branches, A/B splits, timed waits, email/SMS, webhooks, profile updates and exits. Undo changes and autosave. |
+| **Test days in seconds**  | Advance a virtual clock, inject events and provider failures, and check expected outcomes in an isolated Test Lab.                                                                     |
+| **Preview every message** | Personalize as a customer and inspect email/SMS, consent decisions, blocked sends and attempts in Test Inbox.                                                                          |
+| **Run durable journeys**  | Start from real customer events. Persist waits and progress, deduplicate logical actions and recover after worker restarts.                                                            |
+| **Follow every outcome**  | Track customer paths, inspect node/message breakdowns and compare conversions by published version and entry cohort.                                                                   |
 
 ## From a brief to an editable journey
 
