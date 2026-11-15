@@ -66,7 +66,11 @@ func registerAI(api huma.API, pool *pgxpool.Pool) {
 			var invalid *composer.InvalidOutput
 			var external *composer.ProviderError
 			if errors.As(err, &invalid) {
-				return nil, huma.Error422UnprocessableEntity("AI output did not pass schema and workflow validation after two attempts; refine the request or edit manually")
+				message := "AI output did not pass schema and workflow validation after two attempts; refine the request or edit manually"
+				if reasons := invalid.Reasons(); reasons != "" {
+					message += ". Last problems: " + reasons
+				}
+				return nil, huma.Error422UnprocessableEntity(message)
 			}
 			if errors.Is(err, context.DeadlineExceeded) || request.Err() != nil {
 				return nil, huma.Error504GatewayTimeout("AI request timed out")

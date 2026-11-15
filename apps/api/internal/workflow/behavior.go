@@ -116,6 +116,9 @@ func ValidateBehaviorChecks(c *BehaviorChecks) error {
 	clauses := c.Cases()
 	for i, clause := range clauses {
 		if err := validateBehaviorCase(c, clause); err != nil {
+			if clause.Name != "" {
+				return fmt.Errorf("Situation %q: %w", clause.Name, err)
+			}
 			return fmt.Errorf("Clause %d: %w", i+1, err)
 		}
 		for j := 0; j < i; j++ {
@@ -281,7 +284,11 @@ func validateBehaviorCase(c *BehaviorChecks, clause BehaviorCase) error {
 			validEvent := (&ExitCriteria{Correlation: &EventCorrelation{EntryPath: binding.EventPath, EventPath: binding.EventPath}}).MatchesEntry(incoming, incoming)
 			matches := (&ExitCriteria{Correlation: &EventCorrelation{EntryPath: binding.EntryPath, EventPath: binding.EventPath}}).MatchesEntry(entry, incoming)
 			if !validEntry || !validEvent || matches != (binding.Operator == "equals") {
-				return fmt.Errorf("Private event example contradicts its reviewed identity relationship")
+				relation := "the same"
+				if binding.Operator == "not_equals" {
+					relation = "a different"
+				}
+				return fmt.Errorf("the example %s event needs %s %s as the entry; set it under Private event example", e.EventName, relation, strings.TrimPrefix(binding.EventPath, "event.properties."))
 			}
 		}
 	}

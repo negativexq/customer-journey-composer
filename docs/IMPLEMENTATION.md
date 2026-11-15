@@ -290,6 +290,25 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Fixes from the browser LLM test — 2026-11-16
+
+The browser test of journeys made with gpt-6-luna found six more problems. All are fixed without a provider call.
+
+- **Test Lab sample.** `offer.code` is no longer asked for as test data. A rule like `amount > 49` gets a passing value instead of 0. The reviewed contract's example inputs and consents fill the sample, so a test run with the defaults follows the main path.
+- **Bound follow-up events.** When a follow-up event is scoped to the entry (for example the order's cart number equals the entry's cart number), the contract form copies the entry example into the private event example, or a different value for "different object". The error now names the situation and the field instead of "Clause 2: Private event example contradicts…".
+- **Refusal reasons.** When both attempts fail, the 422 message ends with the last three problems as "step: message". Each refused attempt in the `ai.generation` audit record keeps up to five issues; they name steps and rules, not customer data.
+- **Change keeps name and description.** "Change this journey" and other edits keep the journey's existing name and description; only "Draft a new journey" takes the model's.
+- **Message actions list message steps only.** "Write a message" and "Improve a message" offer only email and SMS steps; "Explain a step" still offers all.
+
+Verified locally:
+
+- New tests: two in `scripts/test-context.test.mjs`, `TestBoundEventExampleErrorNamesTheSituationAndField`, `TestChangeKeepsJourneyNameAndDescription`, and refusal reasons in `TestSemanticMismatch`.
+- `make fmt-check`, `make lint`, `make typecheck`, `make test` and `git diff --check`.
+- Browser, with AI disabled, on the cart journey of the test workspace: Test Lab shows no `offer.code` hint and fills amount 50 and the name; a run with the defaults passed with two sandbox messages. Changing the contract's cart number updated the bound order example. "Improve a message" listed only the email and SMS steps.
+- `npx playwright test --workers=2` against the rebuilt local stack: 102 passed.
+
+Not covered: the refusal reasons and the kept description were not seen with a live model; the unit tests use fixed provider output.
+
 ## Coded journeys can be approved — 2026-11-16
 
 Found while creating journeys through the browser with gpt-6-luna. A journey whose message showed `{{ offer.code }}` could not be approved: the data-mapping check looked for `offer.code` in workspace data, marked it "Not connected" and kept "Approve & open builder" disabled. The earlier live runs saved drafts through the API and never reached this screen.
@@ -302,7 +321,7 @@ Verified locally:
 - `make fmt-check`, `make lint`, `make typecheck`, `make test` and `git diff --check`.
 - In the browser, "Refresh data" on the cart proposal removed the "Not connected" row and enabled approval.
 
-Not covered: Test Lab still asks to "Review offer.code in Advanced options"; that hint is in the web client and was not changed.
+Not covered at the time: Test Lab still asked to "Review offer.code in Advanced options". Fixed in the next entry.
 
 ## Text contrast — 2026-11-15
 

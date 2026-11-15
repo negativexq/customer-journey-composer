@@ -1,5 +1,7 @@
 package ai
 
+import "github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
+
 // Usage contains provider-reported counters only. Nil details mean unknown, not zero.
 // Anthropic input includes uncached, cache-read and cache-creation input tokens.
 type Usage struct {
@@ -30,7 +32,10 @@ type ValidationSummary struct {
 }
 type Attempt struct {
 	Validation *ValidationSummary `json:"validation,omitempty"`
-	Provider   string             `json:"provider"`
+	// Issues are the first reasons an attempt was refused, so a person can see
+	// why a proposal failed. They name steps and rules, never customer data.
+	Issues   []workflow.Issue `json:"issues,omitempty" maxItems:"5"`
+	Provider string           `json:"provider"`
 	ProviderResult
 	ProviderSucceeded bool   `json:"provider_succeeded"`
 	Accepted          bool   `json:"accepted"`

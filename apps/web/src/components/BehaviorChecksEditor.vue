@@ -61,8 +61,32 @@ const operators = [
   { value: 'less_than_or_equal', label: 'At most (≤)' },
   { value: 'less_than', label: 'Less than (<)' },
 ];
+// A follow-up event bound to the entry carries the entry's identifier in its
+// private example, so the example always agrees with the relationship the
+// person chose. It is kept in step whenever the entry example changes.
+function bound(next: BehaviorChecks) {
+  for (const e of next.events || []) {
+    const b = e.entry_binding;
+    const value = b?.entry_path ? next.inputs?.[b.entry_path] : undefined;
+    if (!b?.event_path?.startsWith('event.properties.') || value === undefined || value === null)
+      continue;
+    e.properties = {
+      ...e.properties,
+      [b.event_path.replace('event.properties.', '')]:
+        b.operator === 'not_equals'
+          ? typeof value === 'number'
+            ? value + 1
+            : `${value}-other`
+          : value,
+    };
+  }
+  return next;
+}
 function patch(data: Partial<BehaviorChecks>) {
-  emit('update:modelValue', { ...JSON.parse(JSON.stringify(c.value)), ...data, confirmed: false });
+  emit(
+    'update:modelValue',
+    bound({ ...JSON.parse(JSON.stringify(c.value)), ...data, confirmed: false }),
+  );
 }
 function entry(value: string) {
   const event = value === 'all' ? '' : value;

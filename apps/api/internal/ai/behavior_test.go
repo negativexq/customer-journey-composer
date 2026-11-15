@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 
@@ -43,8 +44,14 @@ func TestSemanticMismatchTriggersBoundedRepair(t *testing.T) {
 	}
 	p = &sequence{outputs: []string{string(bad)}}
 	c, _ = New(map[string]Provider{"openai": p})
-	if _, err = c.Compose(context.Background(), Input{BehaviorChecks: checks, Provider: "openai", Action: "generate", Prompt: "Send one email"}); err == nil || p.calls != 2 {
+	refused, err := c.Compose(context.Background(), Input{BehaviorChecks: checks, Provider: "openai", Action: "generate", Prompt: "Send one email"})
+	if err == nil || p.calls != 2 {
 		t.Fatal("semantic mismatch accepted", err, p.calls)
+	}
+	// The person sees why, and the attempts keep the reasons for review.
+	var invalid *InvalidOutput
+	if !errors.As(err, &invalid) || invalid.Reasons() == "" || len(refused.Generation.Attempts[1].Issues) == 0 {
+		t.Fatal("refusal reasons missing", err, refused.Generation)
 	}
 }
 
@@ -62,5 +69,34 @@ func TestBehaviorExampleValuesStayOutOfProviderRequest(t *testing.T) {
 	c, _ := New(map[string]Provider{"openai": privacyProvider{t}})
 	if _, err := c.Compose(context.Background(), Input{BehaviorChecks: checks, Provider: "openai", Action: "generate", Prompt: "Complete normally", Workflow: workflow.Workflow{SchemaVersion: 1, BehaviorChecks: checks}}); err != nil {
 		t.Fatal(err)
+	}
+}
+
+type fixedOutput struct{ out string }
+
+func (f fixedOutput) Generate(context.Context, Request) (ProviderResult, error) {
+	return ProviderResult{Output: []byte(f.out)}, nil
+}
+
+// A change request keeps the journey's own name and description.
+func TestChangeKeepsJourneyNameAndDescription(t *testing.T) {
+	var root map[string]any
+	_ = json.Unmarshal([]byte(validOutput), &root)
+	root["name"] = "Changed name"
+	root["description"] = "Adds one step"
+	out, _ := json.Marshal(root)
+	c, _ := New(map[string]Provider{"openai": fixedOutput{string(out)}})
+	var base struct {
+		Workflow workflow.Workflow `json:"workflow"`
+	}
+	_ = json.Unmarshal([]byte(validOutput), &base)
+	base.Workflow.BehaviorChecks = reviewedEmptyChecks()
+	result, err := c.Compose(context.Background(), Input{Provider: "openai", Action: "modify", Prompt: "Add a step", Name: "Cart recovery", Description: "Recovers abandoned carts", Workflow: base.Workflow})
+	if err != nil || result.Name != "Cart recovery" || result.Description != "Recovers abandoned carts" || result.Diff.MetadataChanged {
+		t.Fatal(err, result.Name, result.Description)
+	}
+	result, err = c.Compose(context.Background(), Input{Provider: "openai", Action: "modify", Prompt: "Add a step", Workflow: base.Workflow})
+	if err != nil || result.Name != "Changed name" {
+		t.Fatal("an unnamed journey should take the proposed name", err, result.Name)
 	}
 }

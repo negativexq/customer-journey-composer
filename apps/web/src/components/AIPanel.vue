@@ -2,7 +2,7 @@
 import AppSelect from './ui/AppSelect.vue';
 import SegmentedControl from './ui/SegmentedControl.vue';
 import { errorMessage } from '../lib/format';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { api, generationStream, type GenerationProgress } from '../lib/api';
 import GenerationStatus from './GenerationStatus.vue';
 import DataMappingReview from './DataMappingReview.vue';
@@ -128,6 +128,17 @@ const configured = computed(
 const needsNode = computed(() =>
   ['explain_node', 'improve_message', 'generate_message'].includes(action.value),
 );
+// Message actions work on an email or SMS step only; explaining works on any.
+const stepOptions = computed(() =>
+  props.workflow.nodes
+    .filter(
+      (node) => action.value === 'explain_node' || node.type === 'email' || node.type === 'sms',
+    )
+    .map((node) => ({ value: node.id, label: node.label })),
+);
+watch(stepOptions, (options) => {
+  if (nodeID.value && !options.some((option) => option.value === nodeID.value)) nodeID.value = '';
+});
 const changed = computed(
   () => proposal.value && action.value !== 'explain_journey' && action.value !== 'explain_node',
 );
@@ -369,10 +380,7 @@ onBeforeUnmount(() => {
             { value: 'explain_node', label: 'Explain a step', icon: 'file', group: 'Explain' },
           ]" /></label
       ><label v-if="needsNode"
-        >Step<AppSelect
-          v-model="nodeID"
-          placeholder="Choose a step"
-          :options="[...workflow.nodes.map((node) => ({ value: node.id, label: node.label }))]"
+        >Step<AppSelect v-model="nodeID" placeholder="Choose a step" :options="stepOptions"
       /></label>
     </details>
     <BehaviorChecksEditor

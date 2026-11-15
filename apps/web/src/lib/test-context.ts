@@ -53,6 +53,8 @@ export function testContext(workflow: Workflow, now = new Date().toISOString()):
   const properties: Record<string, unknown> = {};
   function field(path: string, value: unknown, source: string) {
     if (path.split('.').some((part) => forbidden.has(part))) return;
+    // The code a message shows comes from its own step, not from test data.
+    if (path === 'offer.code') return;
     if (!path.startsWith('customer.') && !path.startsWith('event.properties.')) {
       notes.add(`Review ${path} in Advanced options; it cannot be filled from a test profile.`);
       return;
@@ -109,7 +111,35 @@ export function testContext(workflow: Workflow, now = new Date().toISOString()):
         field(match[1]!, node.config.fallbacks?.[match[1]!] || '', 'Message variable');
     }
   }
+  // A lower bound in a condition gets the smallest value that passes it, so the
+  // sample follows the main path instead of stopping at 0.
+  for (const node of workflow.nodes) lowerBounds(node.config.rule);
+  function lowerBounds(rule: Rule | undefined, depth = 0) {
+    if (!rule || depth > 8) return;
+    if (rule.rules) {
+      if (rule.logic !== 'or') for (const child of rule.rules) lowerBounds(child, depth + 1);
+      return;
+    }
+    if (typeof rule.value !== 'number' || !rule.path?.match(/^(customer|event\.properties)\./))
+      return;
+    const value = rule.operator === 'greater_than' ? rule.value + 1 : rule.value;
+    if (!['greater_than', 'greater_than_or_equal'].includes(rule.operator || '')) return;
+    const target = rule.path.startsWith('customer.') ? profile : properties;
+    const relative = rule.path.replace(/^customer\.|^event\.properties\./, '');
+    const current = pathValue(target, relative);
+    if (typeof current !== 'number' || current < value) setPath(target, relative, value);
+  }
   rules(trigger?.config.filters, 'Entry filter', true);
+  // The reviewed contract's example is the person's own sample; it wins.
+  const reviewed = workflow.behavior_checks;
+  for (const [path, value] of Object.entries(reviewed?.inputs || {})) {
+    if (value === null || path.split('.').some((part) => forbidden.has(part))) continue;
+    if (path.startsWith('customer.')) setPath(profile, path.replace(/^customer\./, ''), value);
+    else if (path.startsWith('event.properties.'))
+      setPath(properties, path.replace(/^event\.properties\./, ''), value);
+  }
+  if (reviewed?.consents)
+    profile.consents = { ...(profile.consents as Record<string, boolean>), ...reviewed.consents };
   if (trigger?.config.filters)
     notes.add(
       'Entry samples are editable suggestions, not proof that every entry filter is satisfied.',

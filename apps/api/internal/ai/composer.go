@@ -61,6 +61,19 @@ type InvalidOutput struct{ Issues []workflow.Issue }
 
 func (*InvalidOutput) Error() string { return "AI output did not pass schema or workflow validation" }
 
+// Reasons gives the first few refusal reasons in words a reviewer can act on.
+func (e *InvalidOutput) Reasons() string {
+	parts := []string{}
+	for _, issue := range e.Issues[:min(len(e.Issues), 3)] {
+		if issue.NodeID != "" {
+			parts = append(parts, issue.NodeID+": "+issue.Message)
+		} else {
+			parts = append(parts, issue.Message)
+		}
+	}
+	return strings.Join(parts, "; ")
+}
+
 type Composer struct {
 	Providers map[string]Provider
 	schemas   map[string]*jsonschema.Schema
@@ -234,6 +247,17 @@ func (c *Composer) Compose(ctx context.Context, in Input) (proposal Proposal, er
 					} else {
 						proposal.Name = result.Name
 						proposal.Description = result.Description
+						// A change to a journey keeps the name and description the
+						// person gave it; the model's summary of the change belongs
+						// in the explanation, not over the journey's description.
+						if in.Action != "generate" {
+							if strings.TrimSpace(in.Name) != "" {
+								proposal.Name = in.Name
+							}
+							if strings.TrimSpace(in.Description) != "" {
+								proposal.Description = in.Description
+							}
+						}
 						proposal.Workflow = result.Workflow
 						proposal.Workflow.BehaviorChecks = checks
 						proposal.Explanation = result.Explanation
@@ -335,6 +359,7 @@ func (c *Composer) Compose(ctx context.Context, in Input) (proposal Proposal, er
 			}
 		}
 		report.Attempts[len(report.Attempts)-1].Validation = validationSummary(lastIssues)
+		report.Attempts[len(report.Attempts)-1].Issues = lastIssues[:min(len(lastIssues), 5)]
 		if attempt == 0 {
 			progress(ctx, "repairing", attempt+1)
 		}

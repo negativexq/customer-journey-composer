@@ -73,3 +73,57 @@ test('context rejects prototype paths and flags context-only inputs instead of i
   assert(c.notes.some((note) => note.includes('context.score')));
   assert.equal(c.sample.entry_event.properties.context, undefined);
 });
+
+test('a message code is not test data and a lower bound gets a passing value', () => {
+  const cart = {
+    schema_version: 1,
+    nodes: [
+      { id: 'start', type: 'event_trigger', config: { event_name: 'cart_abandoned' } },
+      {
+        id: 'amount',
+        type: 'condition',
+        config: {
+          rule: { path: 'event.properties.amount', operator: 'greater_than_or_equal', value: 50 },
+        },
+      },
+      {
+        id: 'sms',
+        type: 'sms',
+        config: { text: 'Code {{ offer.code }}', discount_code: 'SEPET15' },
+      },
+    ],
+    edges: [],
+  };
+  const context = testContext(cart, '2026-11-16T10:00:00Z');
+  assert.equal(context.sample.entry_event.properties.amount, 50);
+  assert.ok(!context.notes.some((note) => note.includes('offer.code')));
+  assert.ok(!context.fields.some((field) => field.path === 'offer.code'));
+});
+
+test('the reviewed contract example fills the sample', () => {
+  const cart = {
+    schema_version: 1,
+    nodes: [
+      { id: 'start', type: 'event_trigger', config: { event_name: 'cart_abandoned' } },
+      {
+        id: 'amount',
+        type: 'condition',
+        config: { rule: { path: 'event.properties.amount', operator: 'greater_than', value: 50 } },
+      },
+    ],
+    edges: [],
+    behavior_checks: {
+      version: 2,
+      confirmed: true,
+      entry_event: 'cart_abandoned',
+      outcome: 'completed',
+      thresholds: [],
+      inputs: { 'event.properties.amount': 80, 'customer.attributes.first_name': 'Deniz' },
+      consents: { sms: false },
+    },
+  };
+  const context = testContext(cart, '2026-11-16T10:00:00Z');
+  assert.equal(context.sample.entry_event.properties.amount, 80);
+  assert.equal(context.sample.customer.attributes.first_name, 'Deniz');
+  assert.deepEqual(context.sample.customer.consents, { email: true, sms: false });
+});
