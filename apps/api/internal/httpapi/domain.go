@@ -347,6 +347,7 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 	registerInbox(api, pool)
 	registerAnalytics(api, pool)
 	registerInsights(api, pool)
+	registerAudience(api, pool)
 	registerDemo(api)
 	registerLifecycle(api, pool)
 	registerExecutionControls(api, pool)

@@ -140,51 +140,69 @@ func Ingest(ctx context.Context, pool *pgxpool.Pool, workspace string, event Eve
 	}
 	for _, m := range matches {
 		start := m.spec.Start()
+		// Audience journeys enroll on their schedule, never on a sent event.
+		if start.Config.IsAudience() {
+			continue
+		}
 		if start.Config.Filters != nil && !workflow.Evaluate(*start.Config.Filters, data) {
 			continue
 		}
-		// The customer row lock serializes policy checks. INSERT's partial
-		// unique active-enrollment index is the final guard for every mode,
-		// including an active execution whose cooldown has already elapsed.
-		// Default/after_completion needs no historical reads; once/cooldown
-		// only fetch the one fact required by that policy.
-		if r := m.spec.Reentry; r != nil {
-			switch r.Mode {
-			case "once":
-				var previous bool
-				if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM journey_executions WHERE workspace_id=$1 AND journey_id=$2 AND customer_id=$3)`, workspace, m.journey, event.CustomerID).Scan(&previous); err != nil {
-					return result, err
-				}
-				if previous {
-					continue
-				}
-			case "cooldown":
-				var last *time.Time
-				if err := tx.QueryRow(ctx, `SELECT (SELECT started_at FROM journey_executions WHERE workspace_id=$1 AND journey_id=$2 AND customer_id=$3 ORDER BY started_at DESC LIMIT 1)`, workspace, m.journey, event.CustomerID).Scan(&last); err != nil {
-					return result, err
-				}
-				if last != nil && now.Before(last.Add(time.Duration(r.CooldownSeconds)*time.Second)) {
-					continue
-				}
-			}
-		}
-		var id string
-		err = tx.QueryRow(ctx, `INSERT INTO journey_executions(workspace_id,journey_id,version_id,customer_id,entry_event_id,current_node_id,started_at,updated_at,exit_event_name,trace_parent) VALUES($1,$2,$3,$4,$5,$6,$7,$7,$8,$9) ON CONFLICT DO NOTHING RETURNING id::text`, workspace, m.journey, m.version, event.CustomerID, event.EventID, start.ID, now, exitName(m.spec), observability.TraceParent(ctx)).Scan(&id)
-		if errors.Is(err, pgx.ErrNoRows) {
-			continue
-		}
+		id, err := enroll(ctx, tx, workspace, m.journey, m.version, m.spec, event.CustomerID, event.EventID, now)
 		if err != nil {
 			return result, err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO scheduled_jobs(workspace_id,execution_id,node_id,due_at) VALUES($1,$2,$3,$4)`, workspace, id, start.ID, now); err != nil {
-			return result, err
+		if id != "" {
+			result.Executions = append(result.Executions, id)
 		}
-		result.Executions = append(result.Executions, id)
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return result, fmt.Errorf("commit event: %w", err)
 	}
 	return result, nil
+}
+
+// enroll starts one execution of a published version for a customer whose row
+// the transaction has locked. It returns "" when the re-entry policy or the
+// active-enrollment index keeps the customer out.
+func enroll(ctx context.Context, tx pgx.Tx, workspace, journey, version string, spec workflow.Workflow, customer, eventID string, now time.Time) (string, error) {
+	// The customer row lock serializes policy checks. INSERT's partial
+	// unique active-enrollment index is the final guard for every mode,
+	// including an active execution whose cooldown has already elapsed.
+	// Default/after_completion needs no historical reads; once/cooldown
+	// only fetch the one fact required by that policy.
+	if r := spec.Reentry; r != nil {
+		switch r.Mode {
+		case "once":
+			var previous bool
+			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM journey_executions WHERE workspace_id=$1 AND journey_id=$2 AND customer_id=$3)`, workspace, journey, customer).Scan(&previous); err != nil {
+				return "", err
+			}
+			if previous {
+				return "", nil
+			}
+		case "cooldown":
+			var last *time.Time
+			if err := tx.QueryRow(ctx, `SELECT (SELECT started_at FROM journey_executions WHERE workspace_id=$1 AND journey_id=$2 AND customer_id=$3 ORDER BY started_at DESC LIMIT 1)`, workspace, journey, customer).Scan(&last); err != nil {
+				return "", err
+			}
+			if last != nil && now.Before(last.Add(time.Duration(r.CooldownSeconds)*time.Second)) {
+				return "", nil
+			}
+		}
+	}
+	start := spec.Start()
+	var id string
+	err := tx.QueryRow(ctx, `INSERT INTO journey_executions(workspace_id,journey_id,version_id,customer_id,entry_event_id,current_node_id,started_at,updated_at,exit_event_name,trace_parent) VALUES($1,$2,$3,$4,$5,$6,$7,$7,$8,$9) ON CONFLICT DO NOTHING RETURNING id::text`, workspace, journey, version, customer, eventID, start.ID, now, exitName(spec), observability.TraceParent(ctx)).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO scheduled_jobs(workspace_id,execution_id,node_id,due_at) VALUES($1,$2,$3,$4)`, workspace, id, start.ID, now); err != nil {
+		return "", err
+	}
+	return id, nil
 }
 
 func exitName(w workflow.Workflow) any {

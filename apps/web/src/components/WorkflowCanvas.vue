@@ -10,6 +10,7 @@ import {
 } from '@xyflow/vue';
 import { layoutFlow } from '../lib/flow-layout';
 import {
+  audienceEvent,
   kinds,
   defaults,
   ports,
@@ -290,7 +291,8 @@ const iconFor: Record<string, string> = {
 };
 // One sentence on what a step does, shown at the top of its settings.
 const explanations: Record<string, string> = {
-  event_trigger: 'A customer enters the journey each time this event arrives for them.',
+  event_trigger:
+    'A customer enters each time the entry event arrives for them, or, with an audience, when they match it at the scheduled time.',
   wait: 'Holds the customer here for a set time, then moves on.',
   wait_event:
     'Watches for an event. The customer takes Matched if it arrives in time and Timeout if it does not.',
@@ -524,6 +526,35 @@ const waitMode = computed({
       date_path: mode === 'date' ? config.date_path || 'customer.attributes.renews_on' : undefined,
       offset_seconds: mode === 'date' ? config.offset_seconds || 0 : undefined,
     });
+  },
+});
+// The trigger enrolls on an event or a scheduled audience; each keeps only its own fields.
+const lastEventName = ref('');
+const entryMode = computed({
+  get: () => selected.value?.data.config.entry_mode || 'event',
+  set: (mode: 'event' | 'audience') => {
+    const config = selected.value?.data.config;
+    if (!config || mode === entryMode.value) return;
+    if (mode === 'audience') {
+      lastEventName.value = config.event_name || '';
+      patchConfig({
+        entry_mode: 'audience',
+        event_name: audienceEvent,
+        filters: { path: 'customer.attributes.tier', operator: 'equals', value: 'gold' },
+        at_time: '09:00',
+        weekdays: undefined,
+        timezone: config.timezone || 'UTC',
+      });
+    } else {
+      patchConfig({
+        entry_mode: undefined,
+        event_name: lastEventName.value || 'cart_updated',
+        filters: undefined,
+        at_time: undefined,
+        weekdays: undefined,
+        timezone: undefined,
+      });
+    }
   },
 });
 function toggleWeekday(day: number) {
@@ -1161,7 +1192,41 @@ function setAttribute(value: string) {
       </section>
       <section class="inspector-group">
         <h4>{{ groupTitle[selected.data.kind] }}</h4>
-        <label v-if="['event_trigger', 'wait_event'].includes(selected.data.kind)"
+        <label v-if="selected.data.kind === 'event_trigger'"
+          >Entry type<select v-model="entryMode" aria-label="Entry type" :disabled="readonly">
+            <option value="event">When an event arrives</option>
+            <option value="audience">Audience on a schedule</option>
+          </select></label
+        >
+        <template v-if="selected.data.kind === 'event_trigger' && entryMode === 'audience'">
+          <div class="audience-rule">
+            <span class="field-title">Who enters</span>
+            <RuleEditor v-model="nodeFilters" :readonly="readonly" />
+          </div>
+          <label
+            >Time of day<input v-model="atTime" type="time" required :disabled="readonly"
+          /></label>
+          <fieldset class="weekday-picker">
+            <legend>Run on these days</legend>
+            <button
+              v-for="(day, index) in weekdayNames"
+              :key="day"
+              type="button"
+              :aria-pressed="(selected.data.config.weekdays || []).includes(index + 1)"
+              :disabled="readonly"
+              @click="toggleWeekday(index + 1)"
+            >
+              {{ day }}
+            </button>
+            <small>Leave all off to run every day.</small>
+          </fieldset>
+          <label>Timezone<input v-model="timezone" :disabled="readonly" /></label>
+          <small
+            >Customers who match at that time enter together. Re-entry settings decide whether they
+            can enter again on a later run.</small
+          >
+        </template>
+        <label v-else-if="['event_trigger', 'wait_event'].includes(selected.data.kind)"
           >Event name<input v-model="eventName" :disabled="readonly"
         /></label>
         <label v-if="selected.data.kind === 'wait'"
@@ -1378,7 +1443,12 @@ function setAttribute(value: string) {
           v-model="nodeRule"
           :readonly="readonly"
         />
-        <details v-if="['event_trigger', 'wait_event'].includes(selected.data.kind)">
+        <details
+          v-if="
+            selected.data.kind === 'wait_event' ||
+            (selected.data.kind === 'event_trigger' && entryMode !== 'audience')
+          "
+        >
           <summary>Event filters</summary>
           <button
             v-if="!selected.data.config.filters"

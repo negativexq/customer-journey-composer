@@ -47,6 +47,9 @@ type Config struct {
 	Weekdays      []int  `json:"weekdays,omitempty" maxItems:"7"`
 	DatePath      string `json:"date_path,omitempty" maxLength:"200"`
 	OffsetSeconds int64  `json:"offset_seconds,omitempty"`
+	// EntryMode "audience" makes the trigger enroll every customer matching
+	// Filters at AtTime (on Weekdays, in Timezone) instead of on an event.
+	EntryMode string `json:"entry_mode,omitempty" enum:"event,audience"`
 	// A webhook step posts Fields (name -> data path) to URL.
 	URL      string            `json:"url,omitempty" maxLength:"2000"`
 	Fields   map[string]string `json:"fields,omitempty"`
@@ -189,6 +192,9 @@ func Validate(w Workflow) []Issue {
 		case "event_trigger", "wait_event":
 			if n.Type == "event_trigger" {
 				roots = append(roots, n.ID)
+				if field, message := validateEntry(c); field != "" {
+					add(n.ID, field, message)
+				}
 			}
 			if !eventName.MatchString(c.EventName) {
 				add(n.ID, "event_name", "Valid event name required")

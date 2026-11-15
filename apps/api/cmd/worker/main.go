@@ -70,6 +70,8 @@ func run() error {
 	hooks := engine.NewWebhookDispatcher(pool, engine.AllowedWebhookHosts(os.Getenv("WEBHOOK_ALLOWED_HOSTS")))
 	hooks.Log = log
 	group.Go(func() { hooks.Run(ctx) })
+	audiences := &engine.AudienceScheduler{Pool: pool, Log: log}
+	group.Go(func() { audiences.Run(ctx) })
 	err = worker.Run(ctx)
 	group.Wait()
 	return err

@@ -64,3 +64,40 @@ func TestWaitValidation(t *testing.T) {
 		}
 	}
 }
+
+func TestAudienceSchedule(t *testing.T) {
+	c := Config{EntryMode: "audience", EventName: AudienceEvent, AtTime: "09:00", Weekdays: []int{1}}
+	// Friday 13 November 2026, 12:00 UTC.
+	anchor := time.Date(2026, 11, 13, 12, 0, 0, 0, time.UTC)
+	if got := AudienceSlotAfter(c, anchor); !got.Equal(time.Date(2026, 11, 16, 9, 0, 0, 0, time.UTC)) {
+		t.Fatal("next Monday", got)
+	}
+	if _, ok := LatestAudienceSlot(c, anchor, time.Date(2026, 11, 16, 8, 59, 0, 0, time.UTC)); ok {
+		t.Fatal("nothing is due before the first slot")
+	}
+	got, ok := LatestAudienceSlot(c, anchor, time.Date(2026, 12, 2, 0, 0, 0, 0, time.UTC))
+	if !ok || !got.Equal(time.Date(2026, 11, 30, 9, 0, 0, 0, time.UTC)) {
+		t.Fatal("only the latest missed Monday runs", got, ok)
+	}
+}
+
+func TestAudienceEntryValidation(t *testing.T) {
+	gold := &Rule{Path: "customer.attributes.tier", Operator: "equals", Value: "gold"}
+	for _, tc := range []struct {
+		name  string
+		c     Config
+		field string
+	}{
+		{"valid audience", Config{EntryMode: "audience", EventName: AudienceEvent, AtTime: "09:00", Filters: gold}, ""},
+		{"event entry may not use the reserved name", Config{EventName: AudienceEvent}, "event_name"},
+		{"audience uses the internal event", Config{EntryMode: "audience", EventName: "cart_updated", AtTime: "09:00", Filters: gold}, "event_name"},
+		{"audience needs a rule", Config{EntryMode: "audience", EventName: AudienceEvent, AtTime: "09:00"}, "filters"},
+		{"audience rules read customers only", Config{EntryMode: "audience", EventName: AudienceEvent, AtTime: "09:00", Filters: &Rule{Logic: "and", Rules: []Rule{*gold, {Path: "event.properties.amount", Operator: "greater_than", Value: 1.0}}}}, "filters"},
+		{"audience needs a time", Config{EntryMode: "audience", EventName: AudienceEvent, AtTime: "9am", Filters: gold}, "at_time"},
+		{"unknown entry type", Config{EntryMode: "segment", EventName: "cart_updated"}, "entry_mode"},
+	} {
+		if field, _ := validateEntry(tc.c); field != tc.field {
+			t.Errorf("%s: got %q, want %q", tc.name, field, tc.field)
+		}
+	}
+}

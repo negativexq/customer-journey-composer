@@ -90,6 +90,10 @@ export function stepSummary(step: Pick<Step, 'type' | 'config'>): string {
     case 'wait_event':
       return `${c.event_name || 'Choose an event'} · up to ${durationLabel(c.timeout_seconds || 0)}`;
     case 'event_trigger':
+      if (c.entry_mode === 'audience') {
+        const days = [...(c.weekdays || [])].sort((a, b) => a - b).map((day) => dayNames[day - 1]);
+        return `Audience at ${c.at_time || '--:--'} ${days.length ? 'on ' + days.join(', ') : 'every day'}`;
+      }
       return c.event_name || 'Choose an event';
     case 'email':
       return c.subject ? templateSummary(c.subject) : 'Add email content';

@@ -14,6 +14,7 @@ import {
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui';
 import JourneyMetricsCanvas from './JourneyMetricsCanvas.vue';
 import ExperimentResults from './ExperimentResults.vue';
+import AudienceEntry from './AudienceEntry.vue';
 import PathFlow from './PathFlow.vue';
 import ScopeSelect from './ui/ScopeSelect.vue';
 import MetricCard from './ui/MetricCard.vue';
@@ -728,6 +729,12 @@ onBeforeUnmount(() => {
         ><input v-model="poll" type="checkbox" />Auto refresh · 5s</label
       >
     </div>
+    <AudienceEntry
+      v-if="mode !== 'analytics'"
+      :journey-id="journeyId"
+      :can-run="admin && !readonly"
+      @ran="refresh(true)"
+    />
     <p v-if="!versions.length" class="panel">
       Publish a validated journey to monitor live executions.
     </p>

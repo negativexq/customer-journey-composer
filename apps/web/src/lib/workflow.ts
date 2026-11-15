@@ -20,6 +20,8 @@ export type Rule = {
   value?: unknown;
 };
 export type Config = {
+  // 'audience' enrolls every customer matching filters at at_time instead of on an event.
+  entry_mode?: 'event' | 'audience';
   event_name?: string;
   filters?: Rule;
   duration_seconds?: number;
@@ -108,6 +110,8 @@ export type Workflow = {
   };
   reentry?: { mode: string; cooldown_seconds?: number };
 };
+// Internal event an audience entry records; reserved for that use.
+export const audienceEvent = 'audience_entry';
 export type Issue = { node_id?: string; field: string; message: string };
 // Outputs of a step. Most kinds have fixed outputs; a multi-way step has one per branch, then
 // "else". Without a config the kind's default is assumed.

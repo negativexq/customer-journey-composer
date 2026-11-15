@@ -167,7 +167,10 @@ func visit(w *workflow.Workflow, fn func(Reference) string) {
 		scope := entry
 		if w.Nodes[i].Type == "event_trigger" || w.Nodes[i].Type == "wait_event" {
 			scope = c.EventName
-			event(&c.EventName)
+			// An audience entry's event is internal, not part of the catalog.
+			if !c.IsAudience() {
+				event(&c.EventName)
+			}
 		}
 		rules(c.Filters, scope)
 		rules(c.Rule, entry)

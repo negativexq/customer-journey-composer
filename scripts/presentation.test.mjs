@@ -125,3 +125,16 @@ test('webhook steps are summarised by host and field count', () => {
   assert.equal(hook({ url: 'not a url', fields: {} }), 'Add an address');
   assert.equal(hook({ url: 'http://localhost:8080/x' }), 'POST to localhost:8080 · 0 fields');
 });
+
+test('audience triggers are summarised by their schedule', () => {
+  const entry = (config) => stepSummary({ type: 'event_trigger', config });
+  assert.equal(
+    entry({ entry_mode: 'audience', event_name: 'audience_entry', at_time: '09:00' }),
+    'Audience at 09:00 every day',
+  );
+  assert.equal(
+    entry({ entry_mode: 'audience', at_time: '18:30', weekdays: [5, 1] }),
+    'Audience at 18:30 on Mon, Fri',
+  );
+  assert.equal(entry({ event_name: 'cart_updated' }), 'cart_updated');
+});

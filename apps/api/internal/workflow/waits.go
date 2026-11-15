@@ -117,3 +117,70 @@ func validateWait(c Config) (field, message string) {
 	}
 	return "", ""
 }
+
+// AudienceEvent names the internal event that records an audience entry. It is
+// reserved: customer events with this name never start a journey.
+const AudienceEvent = "audience_entry"
+
+// IsAudience reports whether a trigger enrolls a scheduled audience.
+func (c Config) IsAudience() bool { return c.EntryMode == "audience" }
+
+func audienceSchedule(c Config) Config {
+	return Config{WaitMode: "time", AtTime: c.AtTime, Weekdays: c.Weekdays, Timezone: c.Timezone}
+}
+
+// AudienceSlotAfter is the first scheduled audience run strictly after a moment.
+func AudienceSlotAfter(c Config, after time.Time) time.Time {
+	return WaitDeadline(audienceSchedule(c), nil, after)
+}
+
+// LatestAudienceSlot is the last scheduled run after anchor and not after now,
+// so a worker that was stopped runs a missed audience once, not once per slot.
+func LatestAudienceSlot(c Config, anchor, now time.Time) (time.Time, bool) {
+	slot := AudienceSlotAfter(c, anchor)
+	if !slot.After(anchor) || slot.After(now) {
+		return time.Time{}, false
+	}
+	for {
+		next := AudienceSlotAfter(c, slot)
+		if !next.After(slot) || next.After(now) {
+			return slot, true
+		}
+		slot = next
+	}
+}
+
+func onlyCustomerPaths(r Rule) bool {
+	if r.Path != "" && !strings.HasPrefix(r.Path, "customer.") {
+		return false
+	}
+	for _, child := range r.Rules {
+		if !onlyCustomerPaths(child) {
+			return false
+		}
+	}
+	return true
+}
+
+func validateEntry(c Config) (field, message string) {
+	switch c.EntryMode {
+	case "", "event":
+		if c.EventName == AudienceEvent {
+			return "event_name", "audience_entry is reserved for audience entry"
+		}
+	case "audience":
+		if c.EventName != AudienceEvent {
+			return "event_name", "An audience entry uses the audience_entry event"
+		}
+		if c.Filters == nil {
+			return "filters", "Choose who is in the audience"
+		}
+		if !onlyCustomerPaths(*c.Filters) {
+			return "filters", "An audience is chosen by customer fields only"
+		}
+		return validateWait(audienceSchedule(c))
+	default:
+		return "entry_mode", fmt.Sprintf("Unsupported entry type: %s", c.EntryMode)
+	}
+	return "", ""
+}

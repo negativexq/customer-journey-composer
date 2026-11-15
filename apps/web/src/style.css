@@ -6597,3 +6597,13 @@ fieldset.scenario-form {
 .webhook-field input {
   min-width: 0;
 }
+
+/* Audience entry */
+.audience-rule {
+  display: grid;
+  gap: 6px;
+}
+.field-title {
+  font-size: 12px;
+  font-weight: 600;
+}

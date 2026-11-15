@@ -120,6 +120,8 @@ function describe(
   }
   switch (kind) {
     case 'event_trigger':
+      if (node?.config.entry_mode === 'audience')
+        return { tone: 'done', outcome: 'Entered with the scheduled audience', branch: '' };
       return {
         tone: 'done',
         outcome: `Entered when ${node?.config.event_name || 'the event'} arrived`,
