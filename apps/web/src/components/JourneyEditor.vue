@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppSelect from './ui/AppSelect.vue';
+import SegmentedControl from './ui/SegmentedControl.vue';
 import EmptyState from './ui/EmptyState.vue';
 import { toast } from '../lib/toast';
 import SkeletonBlock from './ui/SkeletonBlock.vue';
@@ -616,10 +617,30 @@ function back() {
           v-model="exitReason"
           :disabled="readonly || !exitEvent"
           :options="[
-            { value: 'converted', label: 'Goal reached — converted' },
-            { value: 'completed', label: 'Stop without conversion' },
-            { value: 'condition_not_met', label: 'No longer eligible' },
-            { value: 'manually_cancelled', label: 'Cancelled' },
+            {
+              value: 'converted',
+              label: 'Converted',
+              description: 'The goal was reached',
+              tone: 'green',
+            },
+            {
+              value: 'completed',
+              label: 'Completed',
+              description: 'Finished without converting',
+              tone: 'blue',
+            },
+            {
+              value: 'condition_not_met',
+              label: 'Not eligible',
+              description: 'No longer meets the entry rules',
+              tone: 'amber',
+            },
+            {
+              value: 'manually_cancelled',
+              label: 'Cancelled',
+              description: 'Stopped by an operator',
+              tone: 'neutral',
+            },
           ]"
       /></label>
       <ScopeSelect
@@ -655,16 +676,16 @@ function back() {
           Define identifier fields in Settings → Workspace data.
         </p>
       </template>
-      <label
-        >Re-entry policy<AppSelect
-          v-model="reentryMode"
-          :disabled="readonly"
-          :options="[
-            { value: 'once', label: 'Only once' },
-            { value: 'after_completion', label: 'After previous execution ends' },
-            { value: 'cooldown', label: 'After cooldown' },
-          ]" /></label
-      ><label v-if="reentryMode === 'cooldown'"
+      <SegmentedControl
+        v-model="reentryMode"
+        label="Customers can enter again"
+        :disabled="readonly"
+        :options="[
+          { value: 'once', label: 'Never' },
+          { value: 'after_completion', label: 'After they finish' },
+          { value: 'cooldown', label: 'After a cooldown' },
+        ]"
+      /><label v-if="reentryMode === 'cooldown'"
         >Cooldown (seconds)<input
           v-model.number="cooldown"
           type="number"

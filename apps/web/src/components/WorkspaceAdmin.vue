@@ -165,7 +165,9 @@ onMounted(() => void refresh());
             id="member-role"
             v-model="role"
             aria-describedby="member-role-hint"
-            :options="roles.map((item) => ({ value: item, label: item }))"
+            :options="
+              roles.map((item) => ({ value: item, label: item, description: roleHelp[item] }))
+            "
           />
           <small id="member-role-hint">{{ roleHelp[role] }}</small>
         </div>
@@ -191,7 +193,9 @@ onMounted(() => void refresh());
             :model-value="user.role"
             :disabled="busy"
             :aria-label="`Role for ${user.name}`"
-            :options="roles.map((item) => ({ value: item, label: item }))"
+            :options="
+              roles.map((item) => ({ value: item, label: item, description: roleHelp[item] }))
+            "
             @update:model-value="change(user, String($event))"
           />
         </li>

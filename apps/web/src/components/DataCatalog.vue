@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppSelect from './ui/AppSelect.vue';
+import SegmentedControl from './ui/SegmentedControl.vue';
 import { errorMessage } from '../lib/format';
 import { computed, onMounted, ref } from 'vue';
 import { api } from '../lib/api';
@@ -150,17 +151,17 @@ onMounted(load);
         does not create an event or populate customer values.
       </p>
       <div class="settings-fields">
-        <label
-          >Kind<AppSelect
-            v-model="draft.kind"
-            :disabled="!!draft.key"
-            :options="[
-              { value: 'event', label: 'Customer event' },
-              { value: 'customer_field', label: 'Customer field' },
-              { value: 'event_field', label: 'Event field' },
-            ]"
-            @change="draft.data_type = draft.kind === 'event' ? 'event' : 'string'"
-        /></label>
+        <SegmentedControl
+          v-model="draft.kind"
+          label="Kind"
+          :disabled="!!draft.key"
+          :options="[
+            { value: 'event', label: 'Event', icon: 'events' },
+            { value: 'customer_field', label: 'Customer field', icon: 'user' },
+            { value: 'event_field', label: 'Event field', icon: 'file' },
+          ]"
+          @change="draft.data_type = draft.kind === 'event' ? 'event' : 'string'"
+        />
         <label
           >Business name<input
             v-model="draft.label"
@@ -194,8 +195,12 @@ onMounted(load);
             :options="[
               { value: 'string', label: 'Text' },
               { value: 'number', label: 'Number' },
-              { value: 'boolean', label: 'Yes / no' },
-              { value: 'mixed', label: 'Conflicting types — needs review' },
+              { value: 'boolean', label: 'Yes or no' },
+              {
+                value: 'mixed',
+                label: 'Mixed',
+                description: 'Values arrive with different types; review before relying on it',
+              },
             ]"
         /></label>
         <label

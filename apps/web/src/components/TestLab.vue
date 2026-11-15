@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppSelect from './ui/AppSelect.vue';
+import SegmentedControl from './ui/SegmentedControl.vue';
 import { runContext, runTitle, type TestRunSummary } from '../lib/test-runs';
 import SkeletonBlock from './ui/SkeletonBlock.vue';
 import { errorMessage, formatDateTime } from '../lib/format';
@@ -670,11 +671,31 @@ onMounted(
               >Profile<AppSelect
                 v-model="profile"
                 :options="[
-                  { value: 'Custom Test Customer', label: 'Custom Test Customer' },
-                  { value: 'Existing Customer', label: 'Existing Customer' },
-                  { value: 'New Customer', label: 'New Customer' },
-                  { value: 'Returning Customer', label: 'Returning Customer' },
-                  { value: 'Inactive Customer', label: 'Inactive Customer' },
+                  {
+                    value: 'Custom Test Customer',
+                    label: 'Custom',
+                    description: 'Edit every field yourself',
+                  },
+                  {
+                    value: 'Existing Customer',
+                    label: 'Existing customer',
+                    description: 'Copy a profile from this workspace',
+                  },
+                  {
+                    value: 'New Customer',
+                    label: 'New customer',
+                    description: 'Signed up today, no orders',
+                  },
+                  {
+                    value: 'Returning Customer',
+                    label: 'Returning customer',
+                    description: 'Has ordered before',
+                  },
+                  {
+                    value: 'Inactive Customer',
+                    label: 'Inactive customer',
+                    description: 'No activity for months',
+                  },
                 ]"
                 @change="preset" /></label
             ><label v-if="profile === 'Existing Customer'"
@@ -729,21 +750,29 @@ onMounted(
                 >Expected outcome<AppSelect
                   v-model="outcome"
                   :options="[
-                    { value: 'any', label: 'Choose the outcome expected from your brief' },
-                    { value: 'COMPLETED', label: 'Journey completes' },
-                    { value: 'EXITED', label: 'Customer exits' },
-                    { value: 'FAILED', label: 'Journey fails' },
-                    { value: 'WAITING', label: 'Still waiting' },
+                    {
+                      value: 'any',
+                      label: 'Not checked',
+                      description: 'Pick the outcome your brief expects',
+                    },
+                    { value: 'COMPLETED', label: 'Completes', tone: 'blue' },
+                    { value: 'EXITED', label: 'Exits early', tone: 'purple' },
+                    { value: 'FAILED', label: 'Fails', tone: 'red' },
+                    { value: 'WAITING', label: 'Still waiting', tone: 'amber' },
                   ]" /></label
               ><label
                 >Expected messages<AppSelect
                   v-model="expectedMessages"
                   :options="[
-                    { value: 'any', label: 'Use default assertions' },
+                    {
+                      value: 'any',
+                      label: 'Default checks',
+                      description: 'Whatever the journey sends',
+                    },
                     { value: 'both', label: 'Email and SMS' },
-                    { value: 'email', label: 'Email is generated' },
-                    { value: 'sms', label: 'SMS is generated' },
-                    { value: 'none', label: 'No messages' },
+                    { value: 'email', label: 'Email only', icon: 'email' },
+                    { value: 'sms', label: 'SMS only', icon: 'message' },
+                    { value: 'none', label: 'Nothing sent' },
                   ]"
               /></label>
             </template>
@@ -752,35 +781,50 @@ onMounted(
               <div class="editor-form">
                 <label
                   >Start time (UTC)<input v-model="start" type="datetime-local" step="1" /></label
-                ><label
-                  >Test mode<AppSelect
-                    v-model="mode"
-                    :options="[
-                      { value: 'full', label: 'Full journey / event sequence' },
-                      { value: 'single_node', label: 'Single node' },
-                    ]" /></label
-                ><label v-if="mode === 'single_node'">Node ID<input v-model="node" /></label
+                ><SegmentedControl
+                  v-model="mode"
+                  label="Test mode"
+                  :options="[
+                    { value: 'full', label: 'Whole journey' },
+                    { value: 'single_node', label: 'One step' },
+                  ]"
+                /><label v-if="mode === 'single_node'">Node ID<input v-model="node" /></label
                 ><label
                   >Prior sandbox messages<input
                     v-model.number="prior"
                     type="number"
                     min="0"
                     max="1000" /></label
-                ><label
-                  >Fault channel<AppSelect
-                    v-model="faultChannel"
-                    :options="[
-                      { value: 'email', label: 'email' },
-                      { value: 'sms', label: 'sms' },
-                    ]" /></label
-                ><label
+                ><SegmentedControl
+                  v-model="faultChannel"
+                  label="Fault channel"
+                  :options="[
+                    { value: 'email', label: 'Email', icon: 'email' },
+                    { value: 'sms', label: 'SMS', icon: 'message' },
+                  ]"
+                /><label
                   >Provider faults<AppSelect
                     v-model="faults"
                     :options="[
-                      { value: '[]', label: 'Success' },
-                      { value: '[429,500,200]', label: '429 → 500 → success' },
-                      { value: '[408]', label: 'Ambiguous timeout' },
-                      { value: '[400]', label: 'Permanent failure' },
+                      { value: '[]', label: 'Accepted', tone: 'green' },
+                      {
+                        value: '[429,500,200]',
+                        label: 'Retried, then accepted',
+                        description: '429, then 500, then accepted',
+                        tone: 'amber',
+                      },
+                      {
+                        value: '[408]',
+                        label: 'Timed out',
+                        description: 'The provider may or may not have sent it',
+                        tone: 'amber',
+                      },
+                      {
+                        value: '[400]',
+                        label: 'Rejected',
+                        description: 'Not retried',
+                        tone: 'red',
+                      },
                     ]" /></label
                 ><label
                   >Customer overrides (JSON)<textarea

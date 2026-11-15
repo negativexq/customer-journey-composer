@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppSelect from './ui/AppSelect.vue';
+import SegmentedControl from './ui/SegmentedControl.vue';
 import { errorMessage } from '../lib/format';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { api, generationStream, type GenerationProgress } from '../lib/api';
@@ -300,23 +301,31 @@ onBeforeUnmount(() => {
     </p>
     <details open class="composer-options">
       <summary>AI options</summary>
-      <label
-        >Provider<AppSelect
-          v-model="provider"
-          :disabled="busy"
-          :options="[
-            { value: 'claude', label: 'Claude' },
-            { value: 'openai', label: 'OpenAI' },
-          ]"
-      /></label>
+      <SegmentedControl
+        v-model="provider"
+        label="Provider"
+        :disabled="busy"
+        :options="[
+          { value: 'claude', label: 'Claude' },
+          { value: 'openai', label: 'OpenAI' },
+        ]"
+      />
 
       <label
         >Behavior contract<AppSelect
           v-model="acceptanceContract"
           :disabled="busy || readonly || !!workflow.acceptance_contract"
           :options="[
-            { value: '', label: 'General workflow — manual acceptance tests' },
-            { value: 'cart-recovery-eur.v1', label: 'EUR cart recovery — validated behavior' },
+            {
+              value: '',
+              label: 'General workflow',
+              description: 'You write and review the acceptance tests',
+            },
+            {
+              value: 'cart-recovery-eur.v1',
+              label: 'EUR cart recovery',
+              description: 'Checked against the validated recovery behavior',
+            },
           ]"
       /></label>
       <label v-if="!revising"
@@ -324,22 +333,40 @@ onBeforeUnmount(() => {
           v-model="action"
           :disabled="busy"
           :options="[
-            { value: 'generate', label: 'Generate Journey' },
-            { value: 'modify', label: 'Modify Journey' },
-            { value: 'add_step', label: 'Add Step' },
-            { value: 'explain_journey', label: 'Explain Journey' },
-            { value: 'explain_node', label: 'Explain Node' },
-            { value: 'improve_message', label: 'Improve Message' },
-            { value: 'generate_message', label: 'Generate Message' },
-            { value: 'fix_validation', label: 'Fix Validation Errors' },
+            { value: 'generate', label: 'Draft a new journey', icon: 'sparkles', group: 'Journey' },
+            { value: 'modify', label: 'Change this journey', icon: 'workflow', group: 'Journey' },
+            { value: 'add_step', label: 'Add a step', icon: 'plus', group: 'Journey' },
+            {
+              value: 'fix_validation',
+              label: 'Fix validation errors',
+              icon: 'shield',
+              group: 'Journey',
+            },
+            {
+              value: 'generate_message',
+              label: 'Write a message',
+              icon: 'email',
+              group: 'Messages',
+            },
+            {
+              value: 'improve_message',
+              label: 'Improve a message',
+              icon: 'message',
+              group: 'Messages',
+            },
+            {
+              value: 'explain_journey',
+              label: 'Explain the journey',
+              icon: 'file',
+              group: 'Explain',
+            },
+            { value: 'explain_node', label: 'Explain a step', icon: 'file', group: 'Explain' },
           ]" /></label
       ><label v-if="needsNode"
-        >Selected node<AppSelect
+        >Step<AppSelect
           v-model="nodeID"
-          :options="[
-            { value: '', label: 'Choose a node' },
-            ...workflow.nodes.map((node) => ({ value: node.id, label: node.label })),
-          ]"
+          placeholder="Choose a step"
+          :options="[...workflow.nodes.map((node) => ({ value: node.id, label: node.label }))]"
       /></label>
     </details>
     <BehaviorChecksEditor

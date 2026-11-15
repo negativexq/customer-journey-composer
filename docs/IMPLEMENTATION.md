@@ -184,6 +184,17 @@ Follow-up: Preview & Test's Message node field was a native `<select>`. Safari d
 
 Follow-up: every remaining native `<select>` (45 across 13 components) now uses `ui/AppSelect.vue`, a themed listbox built on reka-ui. It accepts any value type, including `''` and numbers, opens inside a modal `<dialog>` when it sits in one (the edge-insertion dialog made an outside menu unclickable), and keeps `<label>` association. The Rule editor's operator list now stores the operator code rather than its display text. E2E tests pick options through `tests/e2e/helpers/select.ts` and read the chosen label instead of a value. Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`, rebuilt `web`, Playwright 96/96 desktop/mobile. Checked by eye: Test Inbox Status menu in the light theme at 1440 px.
 
+## Dropdown content and choice controls — 2026-11-15
+
+- Choices of two or three short options are now a `SegmentedControl` (radio group with arrow keys) instead of a menu: AI provider, rule match (all/any), data definition kind, Overview activity period, journey re-entry, entry type, wait type, date direction, attribute operation, Test Inbox channel and device, Test Lab mode and fault channel.
+- Menu options use plain, sentence-case labels instead of raw codes, Title Case and dash-joined phrases (`SIMULATED` → Simulated, "Goal reached — converted" → Converted). Where a choice needs explaining, a second line says so. The Builder's exit reason and the journey's global exit outcome now share the same labels.
+- `AppSelect` options can carry the product's own markers: step icons and Timing/Branching/Actions groups in the insert-step menu, status-coloured dots for message statuses, exit reasons, expected outcomes and provider faults, and channel icons. Hover is neutral grey; the selected item is bold with a check. The menu is at least 220 px wide.
+- Test Inbox filters show their caption inside the field ("Status · All statuses") rather than as a separate form label.
+
+Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`, rebuilt `web`, Playwright 94/96 then the 2 failing `data-catalog.spec.ts` cases (desktop/mobile) passed 4/4 after picking same-named definitions by their path line. Checked by eye: Test Inbox (light 1440 px, dark 375 px), Overview period control, Builder wait-step settings (light 1440 px).
+
+Not covered: message status badges in Test Inbox rows still show upper-case codes; the insert-step menu and Test Lab advanced options were not looked at by eye.
+
 ## Product acceptance verification — 2026-11-11
 
 Verified locally against source `b1b7ab4`, before this documentation update:

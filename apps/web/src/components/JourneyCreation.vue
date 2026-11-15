@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppSelect from './ui/AppSelect.vue';
+import SegmentedControl from './ui/SegmentedControl.vue';
 import { errorMessage } from '../lib/format';
 import type { DataEntry } from '../lib/data-catalog';
 import DataMappingReview from './DataMappingReview.vue';
@@ -524,21 +525,29 @@ async function back() {
         </label>
         <details class="composer-options">
           <summary>AI options</summary>
-          <label
-            >Provider<AppSelect
-              v-model="state.provider"
-              :disabled="readonly"
-              :options="[
-                { value: 'openai', label: 'OpenAI' },
-                { value: 'claude', label: 'Claude' },
-              ]" /></label
-          ><label
+          <SegmentedControl
+            v-model="state.provider"
+            label="Provider"
+            :disabled="readonly"
+            :options="[
+              { value: 'openai', label: 'OpenAI' },
+              { value: 'claude', label: 'Claude' },
+            ]"
+          /><label
             >Behavior contract<AppSelect
               v-model="state.acceptance_contract"
               :disabled="readonly"
               :options="[
-                { value: undefined, label: 'General workflow — reviewed scenarios' },
-                { value: 'cart-recovery-eur.v1', label: 'EUR cart recovery — validated behavior' },
+                {
+                  value: undefined,
+                  label: 'General workflow',
+                  description: 'Checked with the scenarios you review',
+                },
+                {
+                  value: 'cart-recovery-eur.v1',
+                  label: 'EUR cart recovery',
+                  description: 'Checked against the validated recovery behavior',
+                },
               ]"
           /></label>
         </details>

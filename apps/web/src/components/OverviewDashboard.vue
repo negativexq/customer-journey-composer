@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import AppSelect from './ui/AppSelect.vue';
+import SegmentedControl from './ui/SegmentedControl.vue';
 import EmptyState from './ui/EmptyState.vue';
 import { errorMessage, plural } from '../lib/format';
 import { computed, onMounted, ref } from 'vue';
@@ -148,17 +148,18 @@ onMounted(() => void load());
             <h2>Journey activity</h2>
             <p>Entries and conversions by entry date</p>
           </div>
-          <label class="compact-select"
-            ><AppIcon name="calendar" :size="15" /><AppSelect
-              v-model="days"
-              aria-label="Activity period"
-              :options="[
-                { value: 7, label: 'Last 7 days' },
-                { value: 30, label: 'Last 30 days' },
-                { value: 90, label: 'Last 90 days' },
-              ]"
-              @change="load"
-          /></label>
+          <SegmentedControl
+            v-model="days"
+            class="period-segments"
+            label="Activity period"
+            hide-label
+            :options="[
+              { value: 7, label: '7 days' },
+              { value: 30, label: '30 days' },
+              { value: 90, label: '90 days' },
+            ]"
+            @change="load"
+          />
         </div>
         <div class="chart-legend">
           <span><i class="legend-dot violet" />Journey entries</span

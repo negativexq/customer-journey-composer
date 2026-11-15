@@ -220,7 +220,7 @@ onBeforeUnmount(() => {
           v-model="templateID"
           :disabled="readonly"
           :options="[
-            { value: '', label: 'Custom content' },
+            { value: '', label: 'Write my own', description: 'Edit the subject and body below' },
             ...templates
               .filter((t) => t.channel === channel)
               .map((template) => ({ value: template.id, label: template.name })),
@@ -280,15 +280,33 @@ onBeforeUnmount(() => {
         <label
           >Profile<AppSelect
             v-model="profile"
-            :options="
-              [
-                'Existing Customer',
-                'New Customer',
-                'Returning Customer',
-                'Inactive Customer',
-                'Custom Test Customer',
-              ].map((name) => ({ value: name, label: name }))
-            "
+            :options="[
+              {
+                value: 'Existing Customer',
+                label: 'Existing customer',
+                description: 'Copy a profile from this workspace',
+              },
+              {
+                value: 'New Customer',
+                label: 'New customer',
+                description: 'Signed up today, no orders',
+              },
+              {
+                value: 'Returning Customer',
+                label: 'Returning customer',
+                description: 'Has ordered before',
+              },
+              {
+                value: 'Inactive Customer',
+                label: 'Inactive customer',
+                description: 'No activity for months',
+              },
+              {
+                value: 'Custom Test Customer',
+                label: 'Custom',
+                description: 'Edit every field yourself',
+              },
+            ]"
             @change="chooseProfile" /></label
         ><label v-if="profile === 'Existing Customer'"
           >Existing customer ID<input

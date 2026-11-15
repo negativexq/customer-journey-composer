@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppSelect from './ui/AppSelect.vue';
+import SegmentedControl from './ui/SegmentedControl.vue';
 import { runTitle, type TestRunSummary } from '../lib/test-runs';
 import EmptyState from './ui/EmptyState.vue';
 import { errorMessage, formatDateTime } from '../lib/format';
@@ -211,53 +212,70 @@ onMounted(
     <div class="inbox-layout">
       <aside v-if="!embedded" class="panel inbox-filters">
         <h2>Recipients &amp; runs</h2>
-        <label
-          >Test run<AppSelect
-            v-model="run"
-            aria-label="Test run"
-            :options="[
-              { value: '', label: 'All runs and explicit sends' },
-              ...runs.map((r) => ({
-                value: r.id,
-                label: runTitle(r) + ' · ' + (r.journey_name || 'Journey') + ' · ' + r.result,
-              })),
-            ]"
-            @change="load()" /></label
-        ><label>Customer ID<input v-model="customer" @keyup.enter="load()" /></label
+        <AppSelect
+          v-model="run"
+          caption="Test run"
+          aria-label="Test run"
+          :options="[
+            { value: '', label: 'All runs and explicit sends' },
+            ...runs.map((r) => ({
+              value: r.id,
+              label: runTitle(r),
+              description:
+                (r.journey_name || 'Journey') +
+                ' · ' +
+                (r.result === 'PASS' ? 'Passed' : r.result === 'FAIL' ? 'Failed' : r.result),
+              tone:
+                r.result === 'PASS'
+                  ? ('green' as const)
+                  : r.result === 'FAIL'
+                    ? ('red' as const)
+                    : undefined,
+            })),
+          ]"
+          @change="load()"
+        /><label>Customer ID<input v-model="customer" @keyup.enter="load()" /></label
         ><button @click="load()">Filter customer</button
         ><button v-for="c in customers" :key="c" class="list-row" @click="filterCustomer(c)">
           {{ c }}</button
-        ><label
-          >Journey<AppSelect
-            v-model="journey"
-            aria-label="Journey"
-            :options="[
-              { value: '', label: 'All journeys' },
-              ...journeys.map((j) => ({ value: j.id, label: j.name })),
-            ]"
-            @change="load()" /></label
-        ><label
-          >Channel<AppSelect
-            v-model="channel"
-            aria-label="Channel"
-            :options="[
-              { value: '', label: 'All channels' },
-              { value: 'email', label: 'email' },
-              { value: 'sms', label: 'sms' },
-            ]"
-            @change="load()" /></label
-        ><label
-          >Status<AppSelect
-            v-model="status"
-            aria-label="Status"
-            :options="[
-              { value: '', label: 'All statuses' },
-              ...['SIMULATED', 'BLOCKED', 'SKIPPED', 'FAILED', 'TEST_ACCEPTED', 'TEST_PENDING'].map(
-                (s) => ({ value: s, label: s }),
-              ),
-            ]"
-            @change="load()"
-        /></label>
+        ><AppSelect
+          v-model="journey"
+          caption="Journey"
+          aria-label="Journey"
+          :options="[
+            { value: '', label: 'All journeys' },
+            ...journeys.map((j) => ({ value: j.id, label: j.name, icon: 'workflow' })),
+          ]"
+          @change="load()"
+        /><SegmentedControl
+          v-model="channel"
+          label="Channel"
+          :options="[
+            { value: '', label: 'All' },
+            { value: 'email', label: 'Email', icon: 'email' },
+            { value: 'sms', label: 'SMS', icon: 'message' },
+          ]"
+          @change="load()"
+        /><AppSelect
+          v-model="status"
+          caption="Status"
+          aria-label="Status"
+          :options="[
+            { value: '', label: 'All statuses' },
+            { value: 'SIMULATED', label: 'Simulated', tone: 'blue' },
+            { value: 'TEST_ACCEPTED', label: 'Accepted', tone: 'green' },
+            { value: 'TEST_PENDING', label: 'Pending', tone: 'amber' },
+            {
+              value: 'BLOCKED',
+              label: 'Blocked',
+              description: 'Consent or a limit stopped it',
+              tone: 'amber',
+            },
+            { value: 'SKIPPED', label: 'Skipped', tone: 'neutral' },
+            { value: 'FAILED', label: 'Failed', tone: 'red' },
+          ]"
+          @change="load()"
+        />
       </aside>
       <section class="panel inbox-list" :aria-busy="busy">
         <div class="inbox-list-heading">
@@ -325,14 +343,17 @@ onMounted(
             </button>
           </div>
           <template v-if="tab === 'Preview'"
-            ><label v-if="selected.channel === 'email'"
-              >Device<AppSelect
-                v-model="device"
-                :options="[
-                  { value: 'desktop', label: 'desktop' },
-                  { value: 'mobile', label: 'mobile' },
-                ]" /></label
-            ><iframe
+            ><SegmentedControl
+              v-if="selected.channel === 'email'"
+              v-model="device"
+              class="device-segments"
+              label="Device"
+              hide-label
+              :options="[
+                { value: 'desktop', label: 'Desktop', icon: 'monitor' },
+                { value: 'mobile', label: 'Mobile' },
+              ]"
+            /><iframe
               v-if="selected.channel === 'email'"
               title="Test email preview"
               sandbox=""

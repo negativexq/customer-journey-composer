@@ -63,7 +63,7 @@ test('a wait can end at a time of day or relative to a date on the customer', as
   await expect(card.locator('.workflow-node-detail')).toHaveText('Wait 1 hour');
   await card.click();
   const settings = page.getByRole('complementary', { name: 'Step settings' });
-  await choose(settings.getByLabel('Wait type', { exact: true }), 'Until a time of day');
+  await choose(settings.getByLabel('Wait type', { exact: true }), 'Time of day');
   await expect(settings.getByLabel('Wait for', { exact: true })).toHaveCount(0);
   await settings.getByLabel('Time of day', { exact: true }).fill('09:30');
   await settings.getByRole('button', { name: 'Tue', exact: true }).click();
@@ -78,13 +78,13 @@ test('a wait can end at a time of day or relative to a date on the customer', as
     timezone: 'UTC',
   });
 
-  await choose(settings.getByLabel('Wait type', { exact: true }), 'Until a date on the customer');
+  await choose(settings.getByLabel('Wait type', { exact: true }), 'Customer date');
   await settings.getByLabel('Date field', { exact: true }).fill('customer.attributes.renews_on');
   await settings.getByLabel('Offset', { exact: true }).fill('3');
   await expect(card.locator('.workflow-node-detail')).toHaveText('Until 3 days before renews on');
-  await choose(settings.getByLabel('Direction', { exact: true }), 'After the date');
+  await choose(settings.getByLabel('Direction', { exact: true }), 'After');
   await expect(card.locator('.workflow-node-detail')).toHaveText('Until 3 days after renews on');
-  await choose(settings.getByLabel('Direction', { exact: true }), 'Before the date');
+  await choose(settings.getByLabel('Direction', { exact: true }), 'Before');
   await page.getByRole('button', { name: 'Validate', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Workflow is valid');
   // Switching type leaves none of the previous type's fields behind.

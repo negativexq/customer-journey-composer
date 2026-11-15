@@ -58,16 +58,18 @@ test('a journey can enter a scheduled audience instead of waiting for an event',
   await page.getByRole('button', { name: 'Fit view', exact: true }).click();
   await card.click();
   const settings = page.getByRole('complementary', { name: 'Step settings' });
-  await expect(settings.getByLabel('Entry type', { exact: true })).toHaveText(
-    'Audience on a schedule',
-  );
+  await expect(
+    settings
+      .getByRole('radiogroup', { name: 'Entry type' })
+      .getByRole('radio', { name: 'A scheduled audience' }),
+  ).toBeChecked();
   await expect(settings.getByLabel('Event name', { exact: true })).toHaveCount(0);
   await expect(settings.getByText('Who enters', { exact: true })).toBeVisible();
   await settings.getByRole('button', { name: 'Mon', exact: true }).click();
   await expect(card.locator('.workflow-node-detail')).toHaveText('Audience at 09:00 on Mon');
 
   // Switching back to an event entry clears the audience; undo restores it.
-  await choose(settings.getByLabel('Entry type', { exact: true }), 'When an event arrives');
+  await choose(settings.getByLabel('Entry type', { exact: true }), 'An event');
   await expect(settings.getByLabel('Event name', { exact: true })).toHaveValue('cart_updated');
   await expect(card.locator('.workflow-node-detail')).toHaveText('cart_updated');
   await page.getByRole('button', { name: 'Undo', exact: true }).click();

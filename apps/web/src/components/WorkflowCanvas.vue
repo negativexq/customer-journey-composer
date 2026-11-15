@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppSelect from './ui/AppSelect.vue';
+import SegmentedControl from './ui/SegmentedControl.vue';
 import { computed, nextTick, onBeforeUnmount, provide, ref, watch } from 'vue';
 import {
   VueFlow,
@@ -289,6 +290,19 @@ const iconFor: Record<string, string> = {
   webhook: 'webhook',
   update_attribute: 'user',
   exit: 'exit',
+};
+// Headings for the step-type menu in the insert dialog.
+const stepGroup: Record<string, string> = {
+  wait: 'Timing',
+  wait_event: 'Timing',
+  condition: 'Branching',
+  switch: 'Branching',
+  split: 'Branching',
+  email: 'Actions',
+  sms: 'Actions',
+  webhook: 'Actions',
+  update_attribute: 'Actions',
+  exit: 'End',
 };
 // One sentence on what a step does, shown at the top of its settings.
 const explanations: Record<string, string> = {
@@ -880,7 +894,15 @@ function setAttribute(value: string) {
       <label
         >Step type<AppSelect
           v-model="insertKind"
-          :options="insertKinds.map((kind) => ({ value: kind, label: labels[kind] }))"
+          :options="
+            insertKinds.map((kind) => ({
+              value: kind,
+              label: labels[kind],
+              description: descriptions[kind],
+              icon: iconFor[kind],
+              group: stepGroup[kind],
+            }))
+          "
       /></label>
       <label
         >Continue through<AppSelect
@@ -1193,16 +1215,16 @@ function setAttribute(value: string) {
       </section>
       <section class="inspector-group">
         <h4>{{ groupTitle[selected.data.kind] }}</h4>
-        <label v-if="selected.data.kind === 'event_trigger'"
-          >Entry type<AppSelect
-            v-model="entryMode"
-            aria-label="Entry type"
-            :disabled="readonly"
-            :options="[
-              { value: 'event', label: 'When an event arrives' },
-              { value: 'audience', label: 'Audience on a schedule' },
-            ]"
-        /></label>
+        <SegmentedControl
+          v-if="selected.data.kind === 'event_trigger'"
+          v-model="entryMode"
+          label="Entry type"
+          :disabled="readonly"
+          :options="[
+            { value: 'event', label: 'An event', icon: 'zap' },
+            { value: 'audience', label: 'A scheduled audience', icon: 'users' },
+          ]"
+        />
         <template v-if="selected.data.kind === 'event_trigger' && entryMode === 'audience'">
           <div class="audience-rule">
             <span class="field-title">Who enters</span>
@@ -1234,17 +1256,17 @@ function setAttribute(value: string) {
         <label v-else-if="['event_trigger', 'wait_event'].includes(selected.data.kind)"
           >Event name<input v-model="eventName" :disabled="readonly"
         /></label>
-        <label v-if="selected.data.kind === 'wait'"
-          >Wait type<AppSelect
-            v-model="waitMode"
-            aria-label="Wait type"
-            :disabled="readonly"
-            :options="[
-              { value: 'duration', label: 'For a set time' },
-              { value: 'time', label: 'Until a time of day' },
-              { value: 'date', label: 'Until a date on the customer' },
-            ]"
-        /></label>
+        <SegmentedControl
+          v-if="selected.data.kind === 'wait'"
+          v-model="waitMode"
+          label="Wait type"
+          :disabled="readonly"
+          :options="[
+            { value: 'duration', label: 'Duration' },
+            { value: 'time', label: 'Time of day' },
+            { value: 'date', label: 'Customer date' },
+          ]"
+        />
         <template v-if="selected.data.kind === 'wait' && waitMode === 'time'">
           <label
             >Time of day<input v-model="atTime" type="time" required :disabled="readonly"
@@ -1291,16 +1313,15 @@ function setAttribute(value: string) {
                 ]"
                 @update:model-value="changeOffsetUnit(Number($event))"
             /></label>
-            <label
-              >Direction<AppSelect
-                v-model="offsetSign"
-                aria-label="Direction"
-                :disabled="readonly"
-                :options="[
-                  { value: -1, label: 'Before the date' },
-                  { value: 1, label: 'After the date' },
-                ]"
-            /></label>
+            <SegmentedControl
+              v-model="offsetSign"
+              label="Direction"
+              :disabled="readonly"
+              :options="[
+                { value: -1, label: 'Before' },
+                { value: 1, label: 'After' },
+              ]"
+            />
           </div>
           <small
             >A customer without this date, or whose date has passed, continues straight away.</small
@@ -1488,16 +1509,15 @@ function setAttribute(value: string) {
           >Message text<textarea v-model="text" :disabled="readonly" rows="5" /></label
         ><template v-if="selected.data.kind === 'update_attribute'"
           ><label>Attribute<input v-model="attribute" :disabled="readonly" /></label
-          ><label
-            >Operation<AppSelect
-              v-model="operation"
-              :disabled="readonly"
-              :options="[
-                { value: 'set', label: 'Set to a value' },
-                { value: 'increment', label: 'Add to a number' },
-                { value: 'unset', label: 'Remove the attribute' },
-              ]" /></label
-          ><label
+          ><SegmentedControl
+            v-model="operation"
+            label="Operation"
+            :disabled="readonly"
+            :options="[
+              { value: 'set', label: 'Set' },
+              { value: 'increment', label: 'Add to' },
+              { value: 'unset', label: 'Remove' },
+            ]" /><label
             >Value (JSON)<input
               :value="JSON.stringify(selected.data.config.value)"
               :disabled="readonly"
@@ -1507,10 +1527,30 @@ function setAttribute(value: string) {
             v-model="reason"
             :disabled="readonly"
             :options="[
-              { value: 'completed', label: 'Completed the journey' },
-              { value: 'converted', label: 'Converted (goal reached)' },
-              { value: 'condition_not_met', label: 'Did not qualify' },
-              { value: 'manually_cancelled', label: 'Cancelled by an operator' },
+              {
+                value: 'converted',
+                label: 'Converted',
+                description: 'The goal was reached',
+                tone: 'green',
+              },
+              {
+                value: 'completed',
+                label: 'Completed',
+                description: 'Finished without converting',
+                tone: 'blue',
+              },
+              {
+                value: 'condition_not_met',
+                label: 'Not eligible',
+                description: 'No longer meets the entry rules',
+                tone: 'amber',
+              },
+              {
+                value: 'manually_cancelled',
+                label: 'Cancelled',
+                description: 'Stopped by an operator',
+                tone: 'neutral',
+              },
             ]"
         /></label>
         <button

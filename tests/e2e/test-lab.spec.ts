@@ -98,6 +98,6 @@ test('virtual clock runs persisted sandbox without changing production', async (
   await expect(page.locator('.inbox-detail')).toContainText('ACCEPTED');
   await page.getByRole('button', { name: 'Compare with previous run', exact: true }).click();
   await expect(page.locator('.inbox-detail pre')).toContainText('SIMULATED');
-  await choose(page.getByLabel('Status', { exact: true }), 'BLOCKED');
+  await choose(page.getByLabel('Status', { exact: true }), 'Blocked');
   await expect(page.locator('.inbox-row')).toHaveCount(0);
 });

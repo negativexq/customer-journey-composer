@@ -138,13 +138,20 @@ onMounted(async () => {
             v-model="choices[mapping.reference.key]"
             :aria-label="`Definition for ${mapping.reference.key}`"
             :disabled="readonly || busy"
-            :options="[
-              { value: '', label: 'Choose a definition…' },
-              ...options(mapping).map((entry) => ({
+            placeholder="Choose a definition"
+            :options="
+              options(mapping).map((entry) => ({
                 value: entry.key,
-                label: entry.label + ' — ' + (entry.event_name || entry.path),
-              })),
-            ]"
+                label: entry.label,
+                description: entry.event_name || entry.path,
+                icon:
+                  entry.kind === 'event'
+                    ? 'events'
+                    : entry.kind === 'customer_field'
+                      ? 'user'
+                      : 'file',
+              }))
+            "
         /></label>
       </li>
     </ul>

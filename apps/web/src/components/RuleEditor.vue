@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppSelect from './ui/AppSelect.vue';
+import SegmentedControl from './ui/SegmentedControl.vue';
 const operatorLabels: Record<string, string> = {
   equals: 'Equals',
   not_equals: 'Does not equal',
@@ -46,16 +47,16 @@ function child(index: number, rule: Rule) {
 <template>
   <div class="rule-editor">
     <template v-if="modelValue?.rules"
-      ><label
-        >Match<AppSelect
-          :model-value="modelValue.logic"
-          :disabled="readonly"
-          :options="[
-            { value: 'and', label: 'All conditions (AND)' },
-            { value: 'or', label: 'Any condition (OR)' },
-          ]"
-          @update:model-value="patch({ logic: $event as 'and' | 'or' })"
-      /></label>
+      ><SegmentedControl
+        :model-value="modelValue.logic"
+        label="Match"
+        :disabled="readonly"
+        :options="[
+          { value: 'and', label: 'All conditions' },
+          { value: 'or', label: 'Any condition' },
+        ]"
+        @update:model-value="patch({ logic: $event as 'and' | 'or' })"
+      />
       <div v-for="(rule, index) in modelValue.rules" :key="index">
         <RuleEditor
           :model-value="rule"
