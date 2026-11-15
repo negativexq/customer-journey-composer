@@ -31,6 +31,14 @@ func TestGraphValidation(t *testing.T) {
 		}, "unreachable"},
 		{"invalid email", func(w *Workflow) { w.Nodes[1].Type = "email" }, "Subject required"},
 		{"split without a share", func(w *Workflow) { w.Nodes[1].Type = "split" }, "Variant A share"},
+		{"multi-way with one branch", func(w *Workflow) {
+			w.Nodes[1].Type = "switch"
+			w.Nodes[1].Config.Branches = []Branch{{Label: "Only", Rule: &Rule{Path: "customer.attributes.x", Operator: "exists"}}}
+		}, "2 to 5 branches"},
+		{"multi-way branch without a condition", func(w *Workflow) {
+			w.Nodes[1].Type = "switch"
+			w.Nodes[1].Config.Branches = []Branch{{Label: "A"}, {Label: "B", Rule: &Rule{Path: "customer.attributes.x", Operator: "exists"}}}
+		}, "needs a condition"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			w := valid()

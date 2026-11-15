@@ -124,6 +124,12 @@ function describe(
         ? { tone: 'done', outcome: `${event} did not arrive in time`, branch: 'Timeout' }
         : { tone: 'done', outcome: `${event} arrived`, branch: 'Matched' };
     }
+    case 'switch': {
+      const branch = node?.config.branches?.[Number(port.slice(5)) - 1];
+      return port === 'else' || !branch
+        ? { tone: 'done', outcome: 'No branch matched', branch: 'Otherwise' }
+        : { tone: 'done', outcome: `Matched ${branch.label}`, branch: branch.label };
+    }
     case 'split':
       return port === 'b'
         ? { tone: 'done', outcome: 'Assigned to variant B', branch: 'B' }

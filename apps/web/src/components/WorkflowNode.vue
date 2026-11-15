@@ -38,6 +38,7 @@ const icons: Record<string, string> = {
   wait: 'clock',
   wait_event: 'events',
   condition: 'branch',
+  switch: 'branch',
   split: 'split',
   email: 'email',
   sms: 'message',
@@ -50,7 +51,7 @@ const addAfter = inject<((nodeID: string, port: string) => void) | undefined>(
   undefined,
 );
 const portPosition = (port: string) => {
-  const all = ports(props.data.kind);
+  const all = ports(props.data.kind, props.data.config);
   return `${((all.indexOf(port) + 1) * 100) / (all.length + 1)}%`;
 };
 const detail = computed(() =>
@@ -65,11 +66,16 @@ const label = (p: string) =>
         ? 'Matched'
         : p === 'timeout'
           ? 'Timeout'
-          : p === 'a'
-            ? 'A'
-            : p === 'b'
-              ? 'B'
-              : '';
+          : p === 'else'
+            ? 'Otherwise'
+            : p.startsWith('case_')
+              ? props.data.config?.branches?.[Number(p.slice(5)) - 1]?.label ||
+                'Branch ' + p.slice(5)
+              : p === 'a'
+                ? 'A'
+                : p === 'b'
+                  ? 'B'
+                  : '';
 </script>
 <template>
   <div
@@ -120,7 +126,7 @@ const label = (p: string) =>
       >
     </div>
     <Handle
-      v-for="p in ports(data.kind)"
+      v-for="p in ports(data.kind, data.config)"
       :id="p"
       :key="p"
       type="source"

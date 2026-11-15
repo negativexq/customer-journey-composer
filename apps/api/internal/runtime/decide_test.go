@@ -62,6 +62,22 @@ func TestPureDecisionsUseProvidedClockAndPorts(t *testing.T) {
 	if mostly < 960 {
 		t.Fatal("the share must follow the configured percent", mostly)
 	}
+	tiers := workflow.Node{Type: "switch", Config: workflow.Config{Branches: []workflow.Branch{
+		{Label: "Big spender", Rule: &workflow.Rule{Path: "customer.attributes.orders", Operator: "greater_than", Value: 10.0}},
+		{Label: "Returning", Rule: &workflow.Rule{Path: "customer.attributes.orders", Operator: "greater_than", Value: 1.0}},
+		{Label: "Also returning", Rule: &workflow.Rule{Path: "customer.attributes.orders", Operator: "greater_than", Value: 0.0}},
+	}}}
+	d, err = Decide(tiers, data, now, "")
+	if err != nil || d.Port != "case_2" || d.Branch != "Returning" {
+		t.Fatal("the first matching branch wins", d, err)
+	}
+	d, err = Decide(tiers, map[string]any{"customer": map[string]any{"attributes": map[string]any{}}}, now, "")
+	if err != nil || d.Port != "else" || d.Branch != "" {
+		t.Fatal("no match leaves through else", d, err)
+	}
+	if got := workflow.NodePorts(tiers); len(got) != 4 || got[0] != "case_1" || got[3] != "else" {
+		t.Fatal(got)
+	}
 	if _, err := Decide(workflow.Node{Type: "arbitrary_code"}, data, now, ""); err == nil {
 		t.Fatal("unregistered node must be rejected")
 	}

@@ -13,6 +13,7 @@ const icons: Record<string, string> = {
   wait: 'clock',
   wait_event: 'events',
   condition: 'branch',
+  switch: 'branch',
   split: 'split',
   email: 'email',
   sms: 'message',

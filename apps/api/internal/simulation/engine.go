@@ -117,7 +117,7 @@ func SingleNode(original workflow.Workflow, id, entryEvent string) (workflow.Wor
 		spec.Nodes = append(spec.Nodes, workflow.Node{ID: startID, Type: "event_trigger", Label: "Test entry", Config: workflow.Config{EventName: entryEvent}})
 		spec.Edges = append(spec.Edges, workflow.Edge{ID: "sandbox_entry_edge", Source: startID, Target: node.ID, Port: "started"})
 	}
-	for _, port := range workflow.Ports(node.Type) {
+	for _, port := range workflow.NodePorts(node) {
 		endID := "sandbox_exit_" + port
 		if endID == node.ID {
 			endID += "_0"

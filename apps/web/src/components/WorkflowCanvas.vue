@@ -41,8 +41,16 @@ const emit = defineEmits<{
   inspect: [];
   ai: [];
 }>();
-const { fitView, setViewport, setCenter, screenToFlowPosition, zoomIn, zoomOut, viewport } =
-  setupVueFlow<CanvasNode, CanvasEdge>();
+const {
+  fitView,
+  setViewport,
+  setCenter,
+  screenToFlowPosition,
+  zoomIn,
+  zoomOut,
+  viewport,
+  updateNodeInternals,
+} = setupVueFlow<CanvasNode, CanvasEdge>();
 const canvasElement = ref<HTMLDivElement>();
 let initialViewportPlaced = false;
 function placeInitialViewport() {
@@ -86,7 +94,7 @@ const branchLabel = (port: string) =>
       a: 'A',
       b: 'B',
     }) as Record<string, string>
-  )[port] || '';
+  )[port] || (port === 'else' ? 'Otherwise' : port.startsWith('case_') ? port.slice(5) : '');
 const nodes = ref<CanvasNode[]>(
   props.modelValue.nodes.map((n) => ({
     id: n.id,
@@ -217,7 +225,7 @@ const incomingSteps = computed(() =>
 const outgoingSteps = computed(() => {
   const step = nodes.value.find((node) => node.id === selectedID.value);
   if (!step) return [];
-  return ports(step.data.kind).map((port) => {
+  return ports(step.data.kind, step.data.config).map((port) => {
     const edge = edges.value.find(
       (candidate) => candidate.source === step.id && (candidate.sourceHandle || 'next') === port,
     );
@@ -234,6 +242,7 @@ const groupTitle: Record<string, string> = {
   wait: 'Timing',
   wait_event: 'Event to wait for',
   condition: 'Rule',
+  switch: 'Branches',
   split: 'Experiment',
   email: 'Email content',
   sms: 'Message',
@@ -270,6 +279,7 @@ const iconFor: Record<string, string> = {
   wait: 'clock',
   wait_event: 'events',
   condition: 'branch',
+  switch: 'branch',
   split: 'split',
   email: 'email',
   sms: 'message',
@@ -283,6 +293,8 @@ const explanations: Record<string, string> = {
   wait_event:
     'Watches for an event. The customer takes Matched if it arrives in time and Timeout if it does not.',
   condition: 'Checks the customer against a rule and sends them down Yes or No.',
+  switch:
+    'Checks the branches from top to bottom and sends the customer down the first one that matches, or Otherwise if none does.',
   split:
     'Sends a fixed share of customers to variant A and the rest to B. A customer always gets the same variant here.',
   email: 'Sends an email, if the customer allows email and the sending limit has room.',
@@ -295,6 +307,7 @@ const descriptions: Record<string, string> = {
   wait: 'Wait before the next step',
   wait_event: 'Listen for an event',
   condition: 'Split by a condition',
+  switch: 'Split into several paths',
   split: 'Test two variants',
   email: 'Send an email message',
   sms: 'Send a text message',
@@ -307,7 +320,7 @@ const visibleKinds = computed(() =>
 const paletteGroups = computed(() =>
   [
     { label: 'Entry', kinds: ['event_trigger'] },
-    { label: 'Logic & timing', kinds: ['condition', 'split', 'wait', 'wait_event'] },
+    { label: 'Logic & timing', kinds: ['condition', 'switch', 'split', 'wait', 'wait_event'] },
     { label: 'Messages', kinds: ['email', 'sms'] },
     { label: 'Customer & outcomes', kinds: ['update_attribute', 'exit'] },
   ]
@@ -327,7 +340,7 @@ const openPorts = computed(() => {
   return new Map(
     nodes.value.map((node) => [
       node.id,
-      ports(node.data.kind).filter((port) => !taken.has(node.id + ':' + port)),
+      ports(node.data.kind, node.data.config).filter((port) => !taken.has(node.id + ':' + port)),
     ]),
   );
 });
@@ -354,12 +367,12 @@ function addNext(kind: Kind) {
     configError.value = 'Workflow limit: 100 nodes and 200 connections';
     return;
   }
-  const outputs = ports(source.data.kind);
+  const outputs = ports(source.data.kind, source.data.config);
   const card = canvasElement.value?.querySelector<HTMLElement>(
     `[data-id="${CSS.escape(source.id)}"] .workflow-node`,
   );
   // Branches fan out under their own handle; a single output continues straight down.
-  const shift = outputs.length > 1 ? (outputs.indexOf(from.port) === 0 ? -150 : 150) : 0;
+  const shift = (outputs.indexOf(from.port) - (outputs.length - 1) / 2) * 300;
   const id = crypto.randomUUID();
   nodes.value = [
     ...nodes.value.map((node) => ({ ...node, selected: false })),
@@ -421,6 +434,52 @@ const attribute = configField('attribute');
 const operation = configField('operation');
 const reason = configField('reason');
 const percent = configField('percent');
+// Branch outputs are positional, so adding or removing a branch renumbers the connections.
+function setBranches(branches: NonNullable<Config['branches']>) {
+  const id = selectedID.value;
+  patchConfig({ branches });
+  // The card gains or loses output handles; have the canvas measure them again.
+  void nextTick(() => updateNodeInternals([id]));
+}
+function addBranch() {
+  const branches = selected.value?.data.config.branches || [];
+  if (branches.length >= 5) return;
+  setBranches([
+    ...branches,
+    {
+      label: `Branch ${branches.length + 1}`,
+      rule: { path: 'customer.attributes.tier', operator: 'equals', value: '' },
+    },
+  ]);
+}
+function removeBranch(index: number) {
+  const step = selected.value;
+  const branches = step?.data.config.branches || [];
+  if (!step || branches.length <= 2) return;
+  const gone = `case_${index + 1}`;
+  edges.value = edges.value
+    .filter((edge) => !(edge.source === step.id && edge.sourceHandle === gone))
+    .map((edge) => {
+      const position = edge.sourceHandle?.startsWith('case_')
+        ? Number(edge.sourceHandle.slice(5))
+        : 0;
+      return edge.source === step.id && position > index + 1
+        ? {
+            ...edge,
+            sourceHandle: `case_${position - 1}`,
+            label: branchLabel(`case_${position - 1}`),
+          }
+        : edge;
+    });
+  setBranches(branches.filter((_, position) => position !== index));
+}
+function updateBranch(index: number, patch: { label?: string; rule?: Config['rule'] }) {
+  setBranches(
+    (selected.value?.data.config.branches || []).map((branch, position) =>
+      position === index ? { ...branch, ...patch } : branch,
+    ),
+  );
+}
 const atTime = configField('at_time');
 const datePath = configField('date_path');
 const weekdayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -1174,6 +1233,46 @@ function setAttribute(value: string) {
         <label v-if="selected.data.kind === 'wait'"
           >Timezone<input v-model="timezone" :disabled="readonly"
         /></label>
+        <template v-if="selected.data.kind === 'switch'">
+          <div
+            v-for="(branch, index) in selected.data.config.branches || []"
+            :key="index"
+            class="branch-editor"
+          >
+            <div class="branch-editor-heading">
+              <span>{{ index + 1 }}</span>
+              <input
+                :value="branch.label"
+                :aria-label="`Name of branch ${index + 1}`"
+                maxlength="60"
+                :disabled="readonly"
+                @input="updateBranch(index, { label: ($event.target as HTMLInputElement).value })"
+              />
+              <button
+                v-if="!readonly && (selected.data.config.branches || []).length > 2"
+                type="button"
+                class="icon-button"
+                :aria-label="`Remove branch ${index + 1}`"
+                @click="removeBranch(index)"
+              >
+                <AppIcon name="close" :size="14" />
+              </button>
+            </div>
+            <RuleEditor
+              :model-value="branch.rule"
+              :readonly="readonly"
+              @update:model-value="updateBranch(index, { rule: $event })"
+            />
+          </div>
+          <button
+            v-if="!readonly && (selected.data.config.branches || []).length < 5"
+            type="button"
+            @click="addBranch"
+          >
+            <AppIcon name="plus" :size="14" />Add a branch
+          </button>
+          <small>The first branch that matches wins. Everyone else takes Otherwise.</small>
+        </template>
         <template v-if="selected.data.kind === 'split'">
           <label
             >Share for variant A (%)<input

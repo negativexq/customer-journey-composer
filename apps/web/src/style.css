@@ -6536,3 +6536,37 @@ fieldset.scenario-form {
 .offset-field label:last-child {
   grid-column: 1 / -1;
 }
+
+/* Multi-way branch */
+.step-type-icon.switch {
+  background: var(--accent-soft);
+  color: var(--amber-53-text);
+}
+.branch-editor {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.branch-editor-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.branch-editor-heading span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.branch-editor-heading input {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}

@@ -10,7 +10,8 @@ export const portLabel = (port: string) =>
       a: 'Variant A',
       b: 'Variant B',
     }) as Record<string, string>
-  )[port] || 'Next';
+  )[port] ||
+  (port === 'else' ? 'Otherwise' : port.startsWith('case_') ? `Branch ${port.slice(5)}` : 'Next');
 
 export function durationLabel(seconds: number) {
   const [amount, unit] =
@@ -78,6 +79,10 @@ export function stepSummary(step: Pick<Step, 'type' | 'config'>): string {
   switch (step.type) {
     case 'condition':
       return ruleSummary(c.rule);
+    case 'switch':
+      return [...(c.branches || []).map((branch) => branch.label || 'Unnamed'), 'otherwise'].join(
+        ' · ',
+      );
     case 'split':
       return `${c.percent || 0}% A · ${100 - (c.percent || 0)}% B`;
     case 'wait':

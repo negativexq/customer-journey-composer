@@ -22,7 +22,13 @@ export function stepCaptions(
               tone: 'else',
             }
           : { text: `If ${source.config.event_name || 'the event'} arrives`, tone: 'if' };
-    else if (source.type === 'split') {
+    else if (source.type === 'switch') {
+      const branch = source.config.branches?.[Number(edge.port.slice(5)) - 1];
+      caption =
+        edge.port === 'else'
+          ? { text: 'Otherwise', tone: 'else' }
+          : { text: `If ${branch?.label || 'this branch matches'}`, tone: 'if' };
+    } else if (source.type === 'split') {
       const share =
         edge.port === 'b' ? 100 - (source.config.percent || 0) : source.config.percent || 0;
       caption = {

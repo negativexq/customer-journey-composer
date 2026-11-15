@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,6 +26,7 @@ type Decision struct {
 	Operation  string             `json:"operation,omitempty"`
 	Value      any                `json:"value,omitempty"`
 	Variant    string             `json:"variant,omitempty"`
+	Branch     string             `json:"branch,omitempty"`
 }
 
 // Decide is pure: production and the virtual-clock simulator share these node
@@ -56,6 +58,15 @@ func Decide(node workflow.Node, data map[string]any, now time.Time, resumePort s
 		v := workflow.Evaluate(*c.Rule, data)
 		d.Condition = &v
 		d.Port = workflow.BoolPort(v)
+	case "switch":
+		d.Port = "else"
+		for i, branch := range c.Branches {
+			if branch.Rule != nil && workflow.Evaluate(*branch.Rule, data) {
+				d.Port = "case_" + strconv.Itoa(i+1)
+				d.Branch = branch.Label
+				break
+			}
+		}
 	case "split":
 		// No random choice here: the customer and the step decide the variant.
 		customer, _ := data["customer"].(map[string]any)

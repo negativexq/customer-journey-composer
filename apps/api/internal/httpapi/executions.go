@@ -34,7 +34,7 @@ func registerExecutions(api huma.API, pool *pgxpool.Pool) {
 		ID         string    `path:"id" format:"uuid"`
 		Version    int       `query:"version" minimum:"0"`
 		Node       string    `query:"node_id" maxLength:"80"`
-		Port       string    `query:"port" enum:"started,completed,matched,timeout,true,false,next,a,b"`
+		Port       string    `query:"port" enum:"started,completed,matched,timeout,true,false,next,a,b,case_1,case_2,case_3,case_4,case_5,else"`
 		Current    bool      `query:"current"`
 		Active     bool      `query:"active"`
 		Overdue    bool      `query:"overdue"`

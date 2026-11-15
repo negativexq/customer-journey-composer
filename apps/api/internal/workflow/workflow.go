@@ -41,13 +41,21 @@ type Config struct {
 	Reason          string            `json:"reason,omitempty"`
 	// A wait is a fixed delay by default. "time" waits for the next given time
 	// of day, "date" until a date held on the customer or event.
-	WaitMode      string `json:"wait_mode,omitempty" enum:"duration,time,date"`
-	AtTime        string `json:"at_time,omitempty" maxLength:"5"`
-	Weekdays      []int  `json:"weekdays,omitempty" maxItems:"7"`
-	DatePath      string `json:"date_path,omitempty" maxLength:"200"`
-	OffsetSeconds int64  `json:"offset_seconds,omitempty"`
+	WaitMode      string   `json:"wait_mode,omitempty" enum:"duration,time,date"`
+	AtTime        string   `json:"at_time,omitempty" maxLength:"5"`
+	Weekdays      []int    `json:"weekdays,omitempty" maxItems:"7"`
+	DatePath      string   `json:"date_path,omitempty" maxLength:"200"`
+	OffsetSeconds int64    `json:"offset_seconds,omitempty"`
+	Branches      []Branch `json:"branches,omitempty" maxItems:"5"`
 	// Percent is the share of customers a split sends to its "a" output.
 	Percent int `json:"percent,omitempty" minimum:"0" maximum:"99"`
+}
+
+// Branch is one arm of a multi-way step: customers who match Rule leave
+// through that arm. Arms are checked in order and the first match wins.
+type Branch struct {
+	Label string `json:"label" maxLength:"60"`
+	Rule  *Rule  `json:"rule,omitempty"`
 }
 type Position struct {
 	X float64 `json:"x"`
@@ -55,7 +63,7 @@ type Position struct {
 }
 type Node struct {
 	ID       string   `json:"id" minLength:"1" maxLength:"80"`
-	Type     string   `json:"type" enum:"event_trigger,wait,wait_event,condition,split,email,sms,update_attribute,exit"`
+	Type     string   `json:"type" enum:"event_trigger,wait,wait_event,condition,switch,split,email,sms,update_attribute,exit"`
 	Label    string   `json:"label" minLength:"1" maxLength:"160"`
 	Position Position `json:"position"`
 	Config   Config   `json:"config"`
@@ -111,6 +119,9 @@ func Ports(kind string) []string {
 		return []string{"true", "false"}
 	case "split":
 		return []string{"a", "b"}
+	case "switch":
+		// The arms depend on the step; see NodePorts.
+		return []string{"else"}
 	case "email", "sms", "update_attribute":
 		return []string{"next"}
 	case "exit":
@@ -118,6 +129,19 @@ func Ports(kind string) []string {
 	default:
 		return nil
 	}
+}
+
+// NodePorts lists the outputs of one step. Most step types have fixed outputs;
+// a multi-way step has one per branch, then "else".
+func NodePorts(n Node) []string {
+	if n.Type != "switch" {
+		return Ports(n.Type)
+	}
+	ports := make([]string, 0, len(n.Config.Branches)+1)
+	for i := range n.Config.Branches {
+		ports = append(ports, "case_"+strconv.Itoa(i+1))
+	}
+	return append(ports, "else")
 }
 func Validate(w Workflow) []Issue {
 	issues := []Issue{}
@@ -181,6 +205,20 @@ func Validate(w Workflow) []Issue {
 			if c.Rule == nil {
 				add(n.ID, "rule", "Condition required")
 			}
+		case "switch":
+			if len(c.Branches) < 2 || len(c.Branches) > 5 {
+				add(n.ID, "branches", "A multi-way step needs 2 to 5 branches")
+			}
+			for _, branch := range c.Branches {
+				if strings.TrimSpace(branch.Label) == "" || len(branch.Label) > 60 {
+					add(n.ID, "branches", "Each branch needs a name (maximum 60 characters)")
+				}
+				if branch.Rule == nil {
+					add(n.ID, "branches", "Each branch needs a condition")
+				} else if err := validateRule(*branch.Rule, 0); err != nil {
+					add(n.ID, "branches", err.Error())
+				}
+			}
 		case "split":
 			if c.Percent < 1 || c.Percent > 99 {
 				add(n.ID, "percent", "Variant A share must be between 1 and 99 percent")
@@ -239,7 +277,7 @@ func Validate(w Workflow) []Issue {
 		}
 		edgeIDs[e.ID] = true
 		valid := false
-		for _, p := range Ports(source.Type) {
+		for _, p := range NodePorts(source) {
 			if p == e.Port {
 				valid = true
 			}
@@ -258,7 +296,7 @@ func Validate(w Workflow) []Issue {
 		edges[e.Source] = append(edges[e.Source], e)
 	}
 	for _, n := range w.Nodes {
-		for _, port := range Ports(n.Type) {
+		for _, port := range NodePorts(n) {
 			if !ports[n.ID+":"+port] {
 				add(n.ID, "edges", "Connect the "+port+" output")
 			}

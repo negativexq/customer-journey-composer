@@ -3,6 +3,7 @@ export const kinds = [
   'wait',
   'wait_event',
   'condition',
+  'switch',
   'split',
   'email',
   'sms',
@@ -41,6 +42,8 @@ export type Config = {
   weekdays?: number[];
   date_path?: string;
   offset_seconds?: number;
+  // Arms of a multi-way step, checked in order; the first match wins.
+  branches?: { label: string; rule?: Rule }[];
   // Share of customers a split sends to variant A.
   percent?: number;
 };
@@ -102,12 +105,20 @@ export type Workflow = {
   reentry?: { mode: string; cooldown_seconds?: number };
 };
 export type Issue = { node_id?: string; field: string; message: string };
-export function ports(kind: Kind): string[] {
+// Outputs of a step. Most kinds have fixed outputs; a multi-way step has one per branch, then
+// "else". Without a config the kind's default is assumed.
+export function ports(kind: Kind, config?: Config): string[] {
+  if (kind === 'switch')
+    return [
+      ...(config?.branches || defaults('switch').branches!).map((_, index) => `case_${index + 1}`),
+      'else',
+    ];
   return {
     event_trigger: ['started'],
     wait: ['completed'],
     wait_event: ['matched', 'timeout'],
     condition: ['true', 'false'],
+    switch: [],
     split: ['a', 'b'],
     email: ['next'],
     sms: ['next'],
@@ -121,6 +132,18 @@ export function defaults(kind: Kind): Config {
     wait: { duration_seconds: 7200, timezone: 'UTC' },
     wait_event: { event_name: 'purchase_completed', timeout_seconds: 86400 },
     condition: { rule: { path: 'customer.attributes.purchased', operator: 'equals', value: true } },
+    switch: {
+      branches: [
+        {
+          label: 'Branch 1',
+          rule: { path: 'customer.attributes.tier', operator: 'equals', value: 'gold' },
+        },
+        {
+          label: 'Branch 2',
+          rule: { path: 'customer.attributes.tier', operator: 'equals', value: 'silver' },
+        },
+      ],
+    },
     split: { percent: 50 },
     email: {
       subject: 'A little reminder',
@@ -138,6 +161,7 @@ export const labels: Record<Kind, string> = {
   wait: 'Wait / Delay',
   wait_event: 'Wait for Event',
   condition: 'Condition',
+  switch: 'Multi-way Branch',
   split: 'A/B Split',
   email: 'Send Email',
   sms: 'Send SMS',
