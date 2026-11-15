@@ -85,6 +85,31 @@ func Builtins() []Entry {
 	}
 	return result
 }
+
+// EngagementEntries are the events the delivery service sends after a journey
+// message is accepted. They follow the workspace's own definitions, so a
+// workspace's events stay first wherever events are listed.
+func EngagementEntries() []Entry {
+	result := []Entry{}
+	for _, e := range []struct{ name, label, description string }{
+		{"message_delivered", "Message delivered", "The provider reported that a journey message reached the inbox or phone."},
+		{"message_bounced", "Message bounced", "The provider reported that a journey message could not be delivered."},
+		{"message_opened", "Email opened", "The customer's mail client loaded the email's images. Some clients load them without the person reading."},
+		{"message_clicked", "Message link clicked", "The customer opened a tracked link in an email or SMS."},
+		{"message_unsubscribed", "Unsubscribed from email", "The customer used the email's unsubscribe link. Email consent is withdrawn."},
+	} {
+		result = append(result, Entry{Key: Key("event", e.name, ""), Kind: "event", EventName: e.name, Label: e.label, Description: e.description, DataType: "event", Enabled: true, Source: "system", Aliases: []string{}})
+		for _, f := range []struct{ path, label string }{{"channel", "Channel"}, {"node_id", "Message step"}, {"journey_id", "Journey"}, {"execution_id", "Journey run"}, {"delivery_id", "Delivery"}} {
+			path := "event.properties." + f.path
+			result = append(result, Entry{Key: Key("event_field", e.name, path), Kind: "event_field", EventName: e.name, Path: path, Label: f.label, DataType: "string", Enabled: true, Source: "system", Aliases: []string{}})
+		}
+		if e.name == "message_clicked" {
+			path := "event.properties.url"
+			result = append(result, Entry{Key: Key("event_field", e.name, path), Kind: "event_field", EventName: e.name, Path: path, Label: "Link address", DataType: "string", Enabled: true, Source: "system", Aliases: []string{}})
+		}
+	}
+	return result
+}
 func Humanize(s string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(s, "_", " "), ".", " / ")
 }

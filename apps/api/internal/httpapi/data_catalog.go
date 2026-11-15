@@ -41,6 +41,15 @@ func loadDataCatalog(ctx context.Context, db catalogReader) ([]semantic.Entry, e
 	if count > 1000 {
 		return nil, huma.Error422UnprocessableEntity("Catalog limit exceeded")
 	}
+	declared := map[string]bool{}
+	for _, e := range entries {
+		declared[e.Key] = true
+	}
+	for _, e := range semantic.EngagementEntries() {
+		if !declared[e.Key] {
+			entries = append(entries, e)
+		}
+	}
 	return entries, nil
 }
 

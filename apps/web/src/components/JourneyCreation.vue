@@ -36,7 +36,10 @@ const catalogFields = ref(0);
 async function refreshVocabulary() {
   try {
     const entries = await api<DataEntry[]>('/data-catalog');
-    catalogEvents.value = entries.filter((e) => e.enabled && e.kind === 'event').length;
+    // Message engagement events are built in; only the workspace's own events count here.
+    catalogEvents.value = entries.filter(
+      (e) => e.enabled && e.kind === 'event' && e.source !== 'system',
+    ).length;
     catalogFields.value = entries.filter((e) => e.enabled && e.kind !== 'event').length;
   } catch (e) {
     error.value = errorMessage(e);

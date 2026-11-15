@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -54,6 +55,9 @@ type Config struct {
 	URL      string            `json:"url,omitempty" maxLength:"2000"`
 	Fields   map[string]string `json:"fields,omitempty"`
 	Branches []Branch          `json:"branches,omitempty" maxItems:"5"`
+	// MessageNode limits a wait_event step to engagement with one message step
+	// of the same journey run: "wait until this email is opened", not any email.
+	MessageNode string `json:"message_node,omitempty" maxLength:"80"`
 	// Percent is the share of customers a split sends to its "a" output.
 	Percent int `json:"percent,omitempty" minimum:"0" maximum:"99"`
 }
@@ -327,6 +331,11 @@ func Validate(w Workflow) []Issue {
 				add(n.ID, "edges", "Connect the "+port+" output")
 			}
 		}
+		if n.Config.MessageNode != "" {
+			if message := validateMessageScope(n, nodes, w.Edges); message != "" {
+				add(n.ID, "message_node", message)
+			}
+		}
 	}
 	visited := map[string]int{}
 	var visit func(string)
@@ -562,4 +571,71 @@ func (e *ExitCriteria) ExitOutcome() string {
 		return "converted"
 	}
 	return e.Reason
+}
+
+// EngagementEvents are the customer events the delivery service sends for a
+// message after it was accepted, with the channels each can come from.
+var EngagementEvents = map[string][]string{
+	"message_delivered":    {"email", "sms"},
+	"message_bounced":      {"email", "sms"},
+	"message_opened":       {"email"},
+	"message_clicked":      {"email", "sms"},
+	"message_unsubscribed": {"email"},
+}
+
+// validateMessageScope checks a step that waits for engagement with one
+// message: that message must come before it and be able to produce the event.
+func validateMessageScope(n Node, nodes map[string]Node, edges []Edge) string {
+	if n.Type != "wait_event" {
+		return "Only a wait-for-event step can follow a message"
+	}
+	target, ok := nodes[n.Config.MessageNode]
+	if !ok || target.Type != "email" && target.Type != "sms" {
+		return "Choose an email or SMS step"
+	}
+	channels, engagement := EngagementEvents[n.Config.EventName]
+	if !engagement {
+		return "Wait for a message event (delivered, bounced, opened, clicked or unsubscribed)"
+	}
+	if !slices.Contains(channels, target.Type) {
+		return "An SMS has no " + strings.TrimPrefix(n.Config.EventName, "message_") + " event"
+	}
+	incoming := map[string][]string{}
+	for _, e := range edges {
+		incoming[e.Target] = append(incoming[e.Target], e.Source)
+	}
+	seen := map[string]bool{}
+	queue := []string{n.ID}
+	for len(queue) > 0 {
+		id := queue[0]
+		queue = queue[1:]
+		for _, source := range incoming[id] {
+			if source == target.ID {
+				return ""
+			}
+			if !seen[source] {
+				seen[source] = true
+				queue = append(queue, source)
+			}
+		}
+	}
+	return "The message step must come before this step"
+}
+
+// MatchesMessage says whether an engagement event belongs to the message a
+// waiting step is scoped to. execution may be empty in the sandbox, where an
+// injected event names only the step.
+func (c Config) MatchesMessage(execution string, properties map[string]any) bool {
+	if c.MessageNode == "" {
+		return true
+	}
+	node, _ := properties["node_id"].(string)
+	if node != c.MessageNode {
+		return false
+	}
+	if execution == "" {
+		return true
+	}
+	run, _ := properties["execution_id"].(string)
+	return run == execution
 }

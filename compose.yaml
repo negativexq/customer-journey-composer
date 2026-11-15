@@ -15,6 +15,10 @@ x-api: &api
     OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
     OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_SAMPLER_ARG:-0.1}
     OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+    # Tracked links, the open pixel and unsubscribe links in sent messages point here.
+    PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:5173}
+    # Signs provider delivery reports to /api/provider/events; empty turns the endpoint off.
+    PROVIDER_WEBHOOK_SECRET: ${PROVIDER_WEBHOOK_SECRET:-}
   init: true
 
 services:

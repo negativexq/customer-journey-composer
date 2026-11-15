@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/negativexq/customer-journey-composer/apps/api/internal/messaging"
@@ -226,9 +227,15 @@ func (s *Service) scheduleAfter(ctx context.Context, cursor *scheduleCursor) (in
 			decision.Reason = "provider_unconfigured"
 			status = "FAILED"
 		}
+		// Only a message that will be sent gets tracked links, an open pixel and
+		// an unsubscribe link; the stored copy is exactly what goes out.
+		var codes []TrackingCode
+		if status == "SCHEDULED" {
+			codes = Track(&message, TrackingBase())
+		}
 		body, _ := json.Marshal(message)
 		eligibility, _ := json.Marshal(decision)
-		if _, err := tx.Exec(ctx, `WITH delivery AS (INSERT INTO delivery_jobs(workspace_id,execution_id,outbox_id,node_id,customer_id,channel,provider,idempotent_provider,logical_key,message,decision,status,due_at,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$13) ON CONFLICT DO NOTHING) UPDATE action_outbox SET state='PROCESSED',payload='{}' WHERE id=$3`, p.workspace, p.execution, p.id, p.node, p.customer, p.channel, name, idempotent, p.execution+":"+p.node, body, eligibility, status, now); err != nil {
+		if _, err := tx.Exec(ctx, `WITH delivery AS (INSERT INTO delivery_jobs(id,workspace_id,execution_id,outbox_id,node_id,customer_id,channel,provider,idempotent_provider,logical_key,message,decision,status,due_at,created_at) VALUES($14,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$13) ON CONFLICT DO NOTHING RETURNING id), codes AS (INSERT INTO tracking_codes(code,workspace_id,delivery_id,kind,url) SELECT c.code,$1,d.id,c.kind,c.url FROM delivery d CROSS JOIN jsonb_to_recordset($15::jsonb) c(code text,kind text,url text)) UPDATE action_outbox SET state='PROCESSED',payload='{}' WHERE id=$3`, p.workspace, p.execution, p.id, p.node, p.customer, p.channel, name, idempotent, p.execution+":"+p.node, body, eligibility, status, now, uuid.NewString(), codesJSON(codes)); err != nil {
 			return 0, err
 		}
 	}
@@ -463,7 +470,18 @@ func (s *Service) Dispatch(ctx context.Context, job Job) (err error) {
 	if _, err := tx2.Exec(completed, `UPDATE delivery_attempts SET status=$3,provider_code=$4,provider_id=$5,response=$6,completed_at=$7 WHERE delivery_id=$1 AND attempt=$2 AND status='STARTED'`, job.ID, job.Attempt, out.Status, out.Code, out.ProviderID, out.Response, finished); err != nil {
 		return err
 	}
-	return tx2.Commit(completed)
+	if err := tx2.Commit(completed); err != nil {
+		return err
+	}
+	// The mock providers report delivery the way a real one would by webhook.
+	// The send is already recorded, so a failed report is logged, not retried.
+	if _, mock := provider.(*Mock); mock && status == "ACCEPTED" {
+		kind := simulatedReport(job.Message.Channel, job.Message.To)
+		if _, err := RecordEngagement(completed, s.Pool, job.WorkspaceID, job.ID, kind, "simulated", nil, finished, finished); err != nil {
+			s.Log.WarnContext(ctx, "simulated delivery report failed", "delivery_id", job.ID, "error_class", observability.ErrorClass(err))
+		}
+	}
+	return nil
 }
 func (s *Service) Run(ctx context.Context) error {
 	wake := make(chan struct{}, 4)

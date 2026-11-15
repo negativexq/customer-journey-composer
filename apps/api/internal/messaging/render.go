@@ -32,6 +32,9 @@ type Message struct {
 	Units      int               `json:"units"`
 	Segments   int               `json:"segments"`
 	TemplateID string            `json:"template_id,omitempty"`
+	// Unsubscribe is the one-click address of a sent email, set only when the
+	// message is tracked for a delivery; previews never carry one.
+	Unsubscribe string `json:"unsubscribe_url,omitempty"`
 }
 
 var variables = regexp.MustCompile(`\{\{\s*((?:customer|event|context)\.[a-zA-Z0-9_.]+)\s*\}\}`)

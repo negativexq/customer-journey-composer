@@ -58,6 +58,7 @@ func New(log *slog.Logger, ready Readiness, pools ...*pgxpool.Pool) http.Handler
 	}, operation("readiness", "Database and schema readiness"))
 	if len(pools) > 0 {
 		registerDomain(api, pools[0])
+		registerTracking(mux, pools[0], log)
 	}
 	return middleware(log, mux)
 }

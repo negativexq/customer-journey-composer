@@ -196,7 +196,12 @@ test('customer, event, execution and message inspections survive reload and brow
   await page.keyboard.press('Escape');
   await expect(drawer).toBeHidden();
   await page.goto('/events');
-  await page.locator('.event-row').filter({ hasText: customer }).click();
+  // The mock SMS provider's delivery report is an event of this customer too.
+  await page
+    .locator('.event-row')
+    .filter({ hasText: customer })
+    .filter({ hasText: 'cart_updated' })
+    .click();
   await expect(eventDrawer).toContainText('linked_cart');
   await page.reload();
   await expect(eventDrawer).toContainText(eventID);

@@ -338,7 +338,7 @@ func onEvent(spec workflow.Workflow, scenario Scenario, s *State, event Event, i
 			index := stepIndex(s, s.Execution, node.ID)
 			if index >= 0 {
 				step := &s.Steps[index]
-				if step.Deadline != nil && !s.Now.After(*step.Deadline) && !event.OccurredAt.Before(step.StartedAt) && (node.Config.Filters == nil || workflow.Evaluate(*node.Config.Filters, data)) {
+				if step.Deadline != nil && !s.Now.After(*step.Deadline) && !event.OccurredAt.Before(step.StartedAt) && node.Config.MatchesMessage("", event.Properties) && (node.Config.Filters == nil || workflow.Evaluate(*node.Config.Filters, data)) {
 					decision, err := engine.Decide(node, data, s.Now, "matched")
 					if err != nil {
 						return err

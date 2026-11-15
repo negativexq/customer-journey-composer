@@ -61,6 +61,20 @@ Admins configure `/settings/messaging`: `frequency_limit`, `frequency_window_sec
 
 Global exit/failure cancels SCHEDULED or CLAIMED deliveries before dispatch. A dispatch already committed as in-flight can finish; `cancel_requested` records a later exit. External acceptance cannot be revoked transactionally. Consent, execution state and recipient identity are rechecked before committing dispatch, and stale claim tokens cannot dispatch another logical send.
 
+### Engagement and tracking
+
+Live and test deliveries are tracked when created. Each http(s) link is rewritten to `PUBLIC_BASE_URL/api/t/{code}`, and an email also gets an open pixel, an unsubscribe link and one-click `List-Unsubscribe` headers. These public endpoints need no session:
+
+- `GET|HEAD /api/t/{code}`:
+  - A click code redirects (302) to the stored URL.
+  - An open code returns a 1×1 GIF.
+  - An unsubscribe code returns a confirmation page.
+  - Only `GET` is counted.
+- `POST /api/t/{code}` with an unsubscribe code withdraws the customer's email consent. It also accepts mail clients' one-click posts.
+- `POST /api/provider/events` takes `{idempotency_key, type: delivered|bounced, occurred_at?, reason?}`, signed with `X-Provider-Signature: sha256=<hex HMAC-SHA256 of the body>` using `PROVIDER_WEBHOOK_SECRET`. It answers 404 when no secret is set.
+
+The first report of each kind is kept per delivery and returned as `engagement` by `GET /deliveries/{id}` and `GET /test-messages/{id}`. For live journey messages it also becomes a customer event, `message_<kind>`, with `delivery_id`, `journey_id`, `execution_id`, `node_id`, `channel` and, for clicks, `url`. A `wait_event` step with `message_node` waits only for its own message.
+
 ## AI draft proposals
 
 `POST /ai/journeys/generate`, `/ai/journeys/modify` and `/ai/messages/generate` accept `provider`, `action`, `prompt`, current `name`/`description`/`workflow`, and `node_id` for node/message actions. Supported actions are generate, modify, add_step, explain_journey, explain_node, improve_message, generate_message and fix_validation.

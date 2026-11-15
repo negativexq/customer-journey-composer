@@ -147,8 +147,12 @@ func registerMessages(api huma.API, pool *pgxpool.Pool) {
 			return nil, huma.Error403Forbidden("Test recipient is not allowlisted")
 		}
 		message.To = recipient
+		// The fingerprint covers what was asked for; tracked links differ per send.
+		request, _ := json.Marshal(message)
+		fingerprint := digest(string(request))
+		codes := delivery.Track(&message, delivery.TrackingBase())
 		body, _ := json.Marshal(message)
-		fingerprint := digest(string(body))
+		trackingCodes, _ := json.Marshal(codes)
 		provider := "smtp"
 		idempotent := false
 		if message.Channel == "sms" {
@@ -156,7 +160,7 @@ func registerMessages(api huma.API, pool *pgxpool.Pool) {
 			idempotent = true
 		}
 		now := time.Now().UTC()
-		_, err = pool.Exec(ctx, `INSERT INTO delivery_jobs(workspace_id,mode,channel,provider,idempotent_provider,logical_key,request_hash,message,decision,status,due_at,created_at) VALUES($1,'TEST',$2,$3,$4,$5,$6,$7,'{"eligible":true,"reason":"allowlisted_test_recipient"}','SCHEDULED',$8,$8) ON CONFLICT(workspace_id,logical_key) DO NOTHING`, who(ctx).WorkspaceID, message.Channel, provider, idempotent, "test:"+in.Key, fingerprint, body, now)
+		_, err = pool.Exec(ctx, `WITH delivery AS (INSERT INTO delivery_jobs(workspace_id,mode,channel,provider,idempotent_provider,logical_key,request_hash,message,decision,status,due_at,created_at) VALUES($1,'TEST',$2,$3,$4,$5,$6,$7,'{"eligible":true,"reason":"allowlisted_test_recipient"}','SCHEDULED',$8,$8) ON CONFLICT(workspace_id,logical_key) DO NOTHING RETURNING id) INSERT INTO tracking_codes(code,workspace_id,delivery_id,kind,url) SELECT c.code,$1,d.id,c.kind,c.url FROM delivery d CROSS JOIN jsonb_to_recordset($9::jsonb) c(code text,kind text,url text)`, who(ctx).WorkspaceID, message.Channel, provider, idempotent, "test:"+in.Key, fingerprint, body, now, trackingCodes)
 		if err != nil {
 			return nil, dbError(err)
 		}
@@ -179,7 +183,7 @@ func registerMessages(api huma.API, pool *pgxpool.Pool) {
 		return jsonRow[[]map[string]any](pool.QueryRow(ctx, `SELECT COALESCE(jsonb_agg(to_jsonb(d)),'[]'::jsonb) FROM (SELECT id,execution_id,node_id,customer_id,channel,provider,mode,status,attempts,decision,created_at,accepted_at,cancel_requested FROM delivery_jobs WHERE workspace_id=$1 ORDER BY created_at DESC,id LIMIT $2) d`, who(ctx).WorkspaceID, in.Limit))
 	})
 	huma.Get(api, "/api/v1/deliveries/{id}", func(ctx context.Context, in *journeyID) (*Result[map[string]any], error) {
-		return jsonRow[map[string]any](pool.QueryRow(ctx, `SELECT (to_jsonb(d)-'workspace_id'-'claim_token'-'request_hash')||jsonb_build_object('attempt_history',COALESCE((SELECT jsonb_agg(to_jsonb(a)-'workspace_id' ORDER BY attempt) FROM delivery_attempts a WHERE a.delivery_id=d.id),'[]'::jsonb)) FROM delivery_jobs d WHERE d.workspace_id=$1 AND d.id=$2`, who(ctx).WorkspaceID, in.ID))
+		return jsonRow[map[string]any](pool.QueryRow(ctx, `SELECT (to_jsonb(d)-'workspace_id'-'claim_token'-'request_hash')||jsonb_build_object('attempt_history',COALESCE((SELECT jsonb_agg(to_jsonb(a)-'workspace_id' ORDER BY attempt) FROM delivery_attempts a WHERE a.delivery_id=d.id),'[]'::jsonb),'engagement',`+engagementJSON+`) FROM delivery_jobs d WHERE d.workspace_id=$1 AND d.id=$2`, who(ctx).WorkspaceID, in.ID))
 	})
 	huma.Get(api, "/api/v1/message-templates", func(ctx context.Context, _ *struct{}) (*Result[[]map[string]any], error) {
 		return jsonRow[[]map[string]any](pool.QueryRow(ctx, `SELECT COALESCE(jsonb_agg(to_jsonb(t)),'[]'::jsonb) FROM (SELECT id,name,channel,updated_at FROM message_templates WHERE workspace_id=$1 ORDER BY updated_at DESC,id LIMIT 100) t`, who(ctx).WorkspaceID))
@@ -204,3 +208,6 @@ func registerMessages(api huma.API, pool *pgxpool.Pool) {
 		return jsonRow[map[string]any](pool.QueryRow(ctx, `INSERT INTO message_templates(workspace_id,name,channel,config) VALUES($1,$2,$3,$4) RETURNING to_jsonb(message_templates)-'workspace_id'`, who(ctx).WorkspaceID, in.Body.Name, in.Body.Channel, in.Body.Config))
 	})
 }
+
+// engagementJSON lists the reports kept for delivery d, oldest first.
+const engagementJSON = `COALESCE((SELECT jsonb_agg(jsonb_build_object('kind',e.kind,'occurred_at',e.occurred_at,'source',e.source,'detail',e.detail) ORDER BY e.occurred_at,e.kind) FROM delivery_events e WHERE e.delivery_id=d.id),'[]'::jsonb)`

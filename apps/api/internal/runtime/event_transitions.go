@@ -101,6 +101,9 @@ func applyEvent(ctx context.Context, tx pgx.Tx, workspace string, event Event, d
 		if goal := x.spec.GlobalExit; goal != nil && goal.EventName == event.EventName && !goal.MatchesEntry(x.entry, event.Properties) {
 			continue
 		}
+		if !node.Config.MatchesMessage(x.execution, event.Properties) {
+			continue
+		}
 		if node.Config.Filters != nil && !workflow.Evaluate(*node.Config.Filters, data) {
 			continue
 		}

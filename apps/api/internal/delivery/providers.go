@@ -184,7 +184,12 @@ func emailBytes(message messaging.Message, from, key string) ([]byte, error) {
 	writer := multipart.NewWriter(&data)
 	boundary := writer.Boundary()
 	data.Reset()
-	fmt.Fprintf(&data, "From: %s\r\nTo: %s\r\nSubject: %s\r\nMessage-ID: <%s>\r\nMIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=%q\r\n\r\n", (&mail.Address{Address: from}).String(), (&mail.Address{Address: message.To}).String(), mime.QEncoding.Encode("UTF-8", message.Subject), messageID(key), boundary)
+	fmt.Fprintf(&data, "From: %s\r\nTo: %s\r\nSubject: %s\r\nMessage-ID: <%s>\r\n", (&mail.Address{Address: from}).String(), (&mail.Address{Address: message.To}).String(), mime.QEncoding.Encode("UTF-8", message.Subject), messageID(key))
+	// RFC 8058 one-click unsubscribe: mail clients show their own button and POST to it.
+	if message.Unsubscribe != "" && !strings.ContainsAny(message.Unsubscribe, "\r\n<>") {
+		fmt.Fprintf(&data, "List-Unsubscribe: <%s>\r\nList-Unsubscribe-Post: List-Unsubscribe=One-Click\r\n", message.Unsubscribe)
+	}
+	fmt.Fprintf(&data, "MIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=%q\r\n\r\n", boundary)
 	for _, part := range []struct{ kind, body string }{{"text/plain", message.Text}, {"text/html", message.HTML}} {
 		if part.body == "" {
 			continue
