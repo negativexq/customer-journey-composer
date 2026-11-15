@@ -49,7 +49,7 @@ Event/timeout races serialize on the customer/execution state; only one branch w
 
 ## Messages, providers and preview
 
-`POST /messages/preview` renders a typed channel configuration against an existing customer and/or isolated overrides. It never changes the live profile or calls a provider. HTML values are escaped and sanitized, unknown expressions are rejected, and missing attributes, used values, links and SMS encoding/segment counts are returned. UI HTML previews use a sandboxed iframe with a restrictive CSP.
+`POST /messages/preview` renders a typed channel configuration against an existing customer and/or isolated overrides. It never changes the live profile or calls a provider. HTML values are escaped and sanitized, unknown expressions are rejected, and missing attributes, used values, links and SMS encoding/segment counts are returned. An SMS preview also returns `longest_case`: its encoding, units and segments with the costliest value of each `customer.attributes.*` variable among customers who accept SMS (or the fallback), and links at tracked length. A step's `discount_code` (3–30 of `A-Z`, `0-9`, `-`) fills `{{ offer.code }}`; an email shows it in its own box unless the body writes it. UI HTML previews use a sandboxed iframe with a restrictive CSP.
 
 Manage message templates under `/message-templates` (metadata list, individual detail, creation). Applying a template copies its content into the draft; later template edits cannot change an already published workflow snapshot.
 
@@ -57,9 +57,15 @@ Admins configure `/settings/messaging`: `frequency_limit`, `frequency_window_sec
 
 `POST /messages/test-send` needs a 16–128-character `Idempotency-Key`, `{preview, recipient}` and an allowlisted recipient. The same key/payload returns the same job; a different payload returns 409. These jobs have mode TEST and do not enroll or modify customers or reserve live cap slots. SMTP test email reaches Mailpit by default; test SMS uses the mock provider. Consent is a live-send gate; explicit, allowlisted test recipients are a separate decision.
 
-`GET /deliveries` lists bounded metadata; `GET /deliveries/{id}` returns rendered content, eligibility and attempt history. ACCEPTED means provider acceptance, not confirmed delivery. Transient failures retry at most five attempts with 2/4/8/16-second backoff. SMTP connection failures before acceptance can retry; a lost acceptance response or expired non-idempotent dispatch becomes UNKNOWN and is not automatically resent. Mock providers support stable idempotency keys.
+`GET /deliveries` lists bounded metadata; `GET /deliveries/{id}` returns rendered content, eligibility and attempt history. ACCEPTED means provider acceptance, not confirmed delivery. Transient failures retry at most five attempts with 2/4/8/16/32-second backoff plus up to half again of jitter; a 429, a refused key and a failed breaker probe cost no attempt ([DELIVERY-RESILIENCE.md](DELIVERY-RESILIENCE.md)). SMTP connection failures before acceptance can retry; a lost acceptance response or expired non-idempotent dispatch becomes UNKNOWN and is not automatically resent. Mock providers support stable idempotency keys.
 
 Global exit/failure cancels SCHEDULED or CLAIMED deliveries before dispatch. A dispatch already committed as in-flight can finish; `cancel_requested` records a later exit. External acceptance cannot be revoked transactionally. Consent, execution state and recipient identity are rechecked before committing dispatch, and stale claim tokens cannot dispatch another logical send.
+
+### Channel health and notifications
+
+- `GET /delivery/channels` lists the workspace's email (`smtp`) and SMS (`mock_sms`) channels with `state` (`healthy`, `rate_limited`, `throttled`, `credentials_refused`, `circuit_open`, `probing`), `until`, `rate_per_second`, any running simulation and 10-minute call counts and last problem.
+- `PUT /delivery/channels/{provider}` (Admin) sets `{rate_per_second, simulate: ""|throttle|outage|credentials, simulate_minutes: 1–30}`. While a simulation runs, the worker records the simulated answer instead of calling the provider.
+- `GET /notifications?limit=` returns `{unread, items[]}`: channel alerts and teammates' journey changes. `POST /notifications/read` marks everything up to now read for the caller.
 
 ### Engagement and tracking
 

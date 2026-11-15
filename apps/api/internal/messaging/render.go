@@ -35,9 +35,55 @@ type Message struct {
 	// Unsubscribe is the one-click address of a sent email, set only when the
 	// message is tracked for a delivery; previews never carry one.
 	Unsubscribe string `json:"unsubscribe_url,omitempty"`
+	// LongestCase is an SMS preview's length as sent to the customer with the
+	// longest values in the workspace, its links at their tracked length.
+	LongestCase *LengthCheck `json:"longest_case,omitempty"`
 }
 
-var variables = regexp.MustCompile(`\{\{\s*((?:customer|event|context)\.[a-zA-Z0-9_.]+)\s*\}\}`)
+// LengthCheck is how long an SMS gets with particular values.
+type LengthCheck struct {
+	Values       map[string]string `json:"values"`
+	Encoding     string            `json:"encoding"`
+	Units        int               `json:"units"`
+	Segments     int               `json:"segments"`
+	TrackedLinks int               `json:"tracked_links"`
+}
+
+// Variables lists the variable paths a text writes, once each, in order.
+func Variables(content string) []string {
+	out := []string{}
+	for _, match := range variables.FindAllStringSubmatch(content, -1) {
+		if !slices.Contains(out, match[1]) {
+			out = append(out, match[1])
+		}
+	}
+	return out
+}
+
+var variables = regexp.MustCompile(`\{\{\s*((?:customer|event|context|offer)\.[a-zA-Z0-9_.]+)\s*\}\}`)
+
+// DiscountCode is the variable a message shows its step's discount code with.
+const DiscountCode = "offer.code"
+
+// A code is 3 to 30 capital letters, digits and hyphens, so it reads the same
+// in every language and cannot break an SMS.
+var discountCode = regexp.MustCompile(`^[A-Z0-9][A-Z0-9-]{2,29}$`)
+
+// ValidDiscountCode accepts what a customer can type at checkout.
+func ValidDiscountCode(code string) bool { return discountCode.MatchString(code) }
+
+// UsesVariable reports whether any field of a message writes the variable.
+func UsesVariable(c workflow.Config, path string) bool {
+	for _, content := range []string{c.Subject, c.Preheader, c.HTML, c.Text} {
+		for _, match := range variables.FindAllStringSubmatch(content, -1) {
+			if match[1] == path {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 var policy = bluemonday.UGCPolicy()
 
 func Render(channel string, c workflow.Config, data map[string]any) (Message, error) {
@@ -82,6 +128,15 @@ func Render(channel string, c workflow.Config, data map[string]any) (Message, er
 	if channel != "email" && channel != "sms" {
 		return m, fmt.Errorf("unsupported channel")
 	}
+	if c.DiscountCode != "" {
+		// The step's code joins the data without changing the caller's map.
+		withOffer := make(map[string]any, len(data)+1)
+		for key, value := range data {
+			withOffer[key] = value
+		}
+		withOffer["offer"] = map[string]any{"code": c.DiscountCode}
+		data = withOffer
+	}
 	for _, content := range []string{c.Subject, c.Preheader, c.HTML, c.Text} {
 		if len(variables.FindAllStringIndex(content, 501)) > 500 {
 			return m, fmt.Errorf("template exceeds 500 variable references")
@@ -95,7 +150,23 @@ func Render(channel string, c workflow.Config, data map[string]any) (Message, er
 	m.Preheader = render(c.Preheader, false)
 	m.Text = render(c.Text, false)
 	rawHTML := render(c.HTML, true)
+	// An email with a code always shows it in a box of its own, so the code
+	// reaches the reader even when the body never writes it. A body that
+	// already shows it gets no second copy.
+	codeBox := ""
+	if channel == "email" && c.DiscountCode != "" && ValidDiscountCode(c.DiscountCode) && !UsesVariable(workflow.Config{HTML: c.HTML}, DiscountCode) {
+		// Our own markup, added after sanitizing so its styles stay; the code
+		// is capitals, digits and hyphens only.
+		codeBox = `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;border:2px dashed #365b35;border-radius:8px"><tr><td style="padding:12px 20px;text-align:center"><p style="margin:0;font-size:13px;color:#4c5a4d">Your code</p><p style="margin:4px 0 0;font-size:22px;font-weight:bold;letter-spacing:2px;color:#29362a">` + c.DiscountCode + `</p></td></tr></table>`
+		if c.Text != "" && !UsesVariable(workflow.Config{Text: c.Text}, DiscountCode) {
+			m.Text += "\n\nYour code: " + c.DiscountCode
+		}
+	}
 	m.HTML = policy.Sanitize(rawHTML)
+	sanitized := m.HTML != rawHTML
+	if codeBox != "" && m.HTML != "" {
+		m.HTML += codeBox
+	}
 	if strings.ContainsAny(m.Subject+m.Preheader, "\r\n") {
 		return m, fmt.Errorf("email header must not contain line breaks")
 	}
@@ -112,7 +183,7 @@ func Render(channel string, c workflow.Config, data map[string]any) (Message, er
 		}
 		m.Encoding, m.Units, m.Segments = Segments(m.Text)
 	}
-	if m.HTML != rawHTML {
+	if sanitized {
 		m.Warnings = append(m.Warnings, "HTML was sanitized; unsupported markup or attributes were removed")
 	}
 	tokenizer := htmlparse.NewTokenizer(strings.NewReader(m.HTML))

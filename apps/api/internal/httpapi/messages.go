@@ -62,7 +62,90 @@ func previewMessage(ctx context.Context, pool *pgxpool.Pool, input previewInput)
 	if err != nil {
 		return message, huma.Error422UnprocessableEntity(err.Error())
 	}
+	if input.Channel == "sms" {
+		longest, err := longestCase(ctx, pool, input, customer)
+		if err != nil {
+			return message, err
+		}
+		message.LongestCase = longest
+	}
 	return message, nil
+}
+
+// longestCase renders an SMS with the longest value each customer attribute it
+// writes has among this workspace's SMS-consenting customers, or its fallback
+// if longer, and its links as the tracked links it is sent with, so the
+// preview says how many segments the worst-off customer gets.
+func longestCase(ctx context.Context, pool *pgxpool.Pool, input previewInput, customer map[string]any) (*messaging.LengthCheck, error) {
+	attributes := map[string]any{}
+	if existing, ok := customer["attributes"].(map[string]any); ok {
+		for key, value := range existing {
+			attributes[key] = value
+		}
+	}
+	worst := map[string]string{}
+	render := func() messaging.Message {
+		values := map[string]any{}
+		for key, value := range customer {
+			values[key] = value
+		}
+		with := map[string]any{}
+		for key, value := range attributes {
+			with[key] = value
+		}
+		for key, value := range worst {
+			with[key] = value
+		}
+		values["attributes"] = with
+		m, err := messaging.Render("sms", input.Config, engine.ContextData(values, input.Event, map[string]any{}))
+		if err != nil {
+			return messaging.Message{}
+		}
+		delivery.Track(&m, delivery.TrackingBase())
+		return m
+	}
+	for _, path := range messaging.Variables(input.Config.Text) {
+		key, ok := strings.CutPrefix(path, "customer.attributes.")
+		if !ok || strings.Contains(key, ".") {
+			continue
+		}
+		// Only people the SMS can reach count; a missing value sends the fallback.
+		rows, err := pool.Query(ctx, `SELECT v FROM (SELECT DISTINCT attributes->>$2 v FROM customers WHERE workspace_id=$1 AND (consents->>'sms')::boolean IS TRUE AND jsonb_typeof(attributes->$2) IN ('string','number')) s ORDER BY char_length(v) DESC,v LIMIT 20`, who(ctx).WorkspaceID, key)
+		if err != nil {
+			return nil, dbError(err)
+		}
+		candidates, err := pgx.CollectRows(rows, pgx.RowTo[string])
+		if err != nil {
+			return nil, dbError(err)
+		}
+		if fallback, ok := input.Config.Fallbacks[path]; ok {
+			candidates = append(candidates, fallback)
+		}
+		// The longest value is not always the costliest: one non-GSM letter
+		// turns the whole SMS into Unicode, so each candidate is tried.
+		best, bestUnits := "", -1
+		for _, candidate := range candidates {
+			worst[key] = candidate
+			m := render()
+			if units := m.Segments*1000 + m.Units; units > bestUnits {
+				best, bestUnits = candidate, units
+			}
+		}
+		if bestUnits < 0 {
+			delete(worst, key)
+			continue
+		}
+		worst[key] = best
+	}
+	m := render()
+	if m.Segments == 0 {
+		return nil, nil
+	}
+	values := map[string]string{}
+	for key, value := range worst {
+		values["customer.attributes."+key] = value
+	}
+	return &messaging.LengthCheck{Values: values, Encoding: m.Encoding, Units: m.Units, Segments: m.Segments, TrackedLinks: strings.Count(m.Text, delivery.TrackingPath)}, nil
 }
 func registerMessages(api huma.API, pool *pgxpool.Pool) {
 	huma.Post(api, "/api/v1/messages/preview", func(ctx context.Context, in *struct{ Body previewInput }) (*Result[messaging.Message], error) {
@@ -129,6 +212,8 @@ func registerMessages(api huma.API, pool *pgxpool.Pool) {
 		if err != nil {
 			return nil, err
 		}
+		// The worst case belongs to the preview, not to the message that is sent.
+		message.LongestCase = nil
 		if len(message.Missing) > 0 {
 			return nil, huma.Error422UnprocessableEntity("Resolve missing personalization before test sending")
 		}

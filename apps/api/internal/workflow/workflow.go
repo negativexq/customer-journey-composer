@@ -37,10 +37,13 @@ type Config struct {
 	Text            string            `json:"text,omitempty" maxLength:"20000"`
 	TemplateID      string            `json:"template_id,omitempty"`
 	Fallbacks       map[string]string `json:"fallbacks,omitempty"`
-	Attribute       string            `json:"attribute,omitempty"`
-	Operation       string            `json:"operation,omitempty" enum:"set,increment,unset"`
-	Value           any               `json:"value,omitempty"`
-	Reason          string            `json:"reason,omitempty"`
+	// DiscountCode is filled in wherever the message writes {{ offer.code }},
+	// and an email shows it in a box of its own.
+	DiscountCode string `json:"discount_code,omitempty" maxLength:"30"`
+	Attribute    string `json:"attribute,omitempty"`
+	Operation    string `json:"operation,omitempty" enum:"set,increment,unset"`
+	Value        any    `json:"value,omitempty"`
+	Reason       string `json:"reason,omitempty"`
 	// A wait is a fixed delay by default. "time" waits for the next given time
 	// of day, "date" until a date held on the customer or event.
 	WaitMode      string `json:"wait_mode,omitempty" enum:"duration,time,date"`

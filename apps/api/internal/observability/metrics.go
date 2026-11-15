@@ -54,8 +54,13 @@ func ObserveLeaseRecovery(queue, result string, count int64) {
 }
 func ObserveRuntimeRetry() { runtimeRetries.Inc() }
 
+var channelEvents = prometheus.NewCounterVec(prometheus.CounterOpts{Name: "journey_channel_events_total", Help: "Provider channel gate changes: pauses, credential locks, breaker trips and alerts, without workspace labels."}, []string{"provider", "event"})
+
+// ObserveChannel counts a change of a provider channel's gate or alert.
+func ObserveChannel(provider, event string) { channelEvents.WithLabelValues(provider, event).Inc() }
+
 func init() {
-	Registry.MustRegister(admissionDuration, admissionRejected, leaseRecoveries, runtimeRetries, httpDuration, httpRequests, sqlDuration, acquireDuration, operationDuration, operations, providerDuration, providerCalls, jobLag, queueDepth, queueCapped, queueAge, queueSample, queueErrors, collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	Registry.MustRegister(channelEvents, admissionDuration, admissionRejected, leaseRecoveries, runtimeRetries, httpDuration, httpRequests, sqlDuration, acquireDuration, operationDuration, operations, providerDuration, providerCalls, jobLag, queueDepth, queueCapped, queueAge, queueSample, queueErrors, collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 }
 func Handler() http.Handler {
 	return promhttp.HandlerFor(Registry, promhttp.HandlerOpts{MaxRequestsInFlight: 2, Timeout: 5 * time.Second})

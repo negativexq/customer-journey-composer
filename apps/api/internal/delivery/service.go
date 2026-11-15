@@ -36,8 +36,19 @@ type Eligibility struct {
 type Job struct {
 	ID, WorkspaceID, CustomerID, ExecutionID, Token, Provider, LogicalKey, Mode, TraceParent string
 	Attempt                                                                                  int
-	Message                                                                                  messaging.Message
+	// Free counts earlier calls that cost no attempt, such as a 429.
+	Free    int
+	Message messaging.Message
+	// BreakerProbe marks a call that tests a failing provider; TestedLock is
+	// the credential lock a call tests, when the channel's key was refused.
+	BreakerProbe bool
+	TestedLock   *time.Time
+	// Fault is the provider problem the workspace is simulating, if any.
+	Fault string
 }
+
+// Counted is how many of the message's attempts this call has used.
+func (j Job) Counted() int { return j.Attempt - j.Free }
 
 var e164 = regexp.MustCompile(`^\+[1-9][0-9]{6,14}$`)
 
@@ -303,9 +314,10 @@ func (s *Service) Claim(ctx context.Context) (*Job, error) {
 	now := s.Clock.Now()
 	var id string
 	// Lock the customer before the delivery row, matching runtime/global-exit order.
-	err = tx.QueryRow(ctx, `SELECT d.id::text FROM delivery_jobs d JOIN customers c ON c.workspace_id=d.workspace_id AND c.customer_id=d.customer_id WHERE d.status='SCHEDULED' AND d.mode='LIVE' AND d.due_at<=$1 AND (SELECT j.status IN ('Active','Sunset') FROM journey_executions e JOIN journeys j ON j.id=e.journey_id WHERE e.id=d.execution_id) ORDER BY d.due_at,d.id LIMIT 1 FOR UPDATE OF c SKIP LOCKED`, now).Scan(&id)
+	// A held channel's messages are left where they are, so others go first.
+	err = tx.QueryRow(ctx, `SELECT d.id::text FROM delivery_jobs d JOIN customers c ON c.workspace_id=d.workspace_id AND c.customer_id=d.customer_id WHERE d.status='SCHEDULED' AND d.mode='LIVE' AND d.due_at<=$1 AND (SELECT j.status IN ('Active','Sunset') FROM journey_executions e JOIN journeys j ON j.id=e.journey_id WHERE e.id=d.execution_id) AND `+gatedChannel+` ORDER BY d.due_at,d.id LIMIT 1 FOR UPDATE OF c SKIP LOCKED`, now).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
-		err = tx.QueryRow(ctx, `SELECT id::text FROM delivery_jobs WHERE status='SCHEDULED' AND mode='TEST' AND due_at<=$1 ORDER BY due_at,id LIMIT 1 FOR UPDATE SKIP LOCKED`, now).Scan(&id)
+		err = tx.QueryRow(ctx, `SELECT d.id::text FROM delivery_jobs d WHERE d.status='SCHEDULED' AND d.mode='TEST' AND d.due_at<=$1 AND `+gatedChannel+` ORDER BY d.due_at,d.id LIMIT 1 FOR UPDATE SKIP LOCKED`, now).Scan(&id)
 	}
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -314,8 +326,23 @@ func (s *Service) Claim(ctx context.Context) (*Job, error) {
 		return nil, err
 	}
 	var job Job
+	var workspace, providerName string
+	if err := tx.QueryRow(ctx, `SELECT workspace_id::text,provider FROM delivery_jobs WHERE id=$1`, id).Scan(&workspace, &providerName); err != nil {
+		return nil, err
+	}
+	job.BreakerProbe, job.TestedLock, job.Fault, err = admit(ctx, tx, workspace, providerName, now)
+	if errors.Is(err, ErrGated) {
+		// The pause a full rate window wrote is kept; the message is untouched.
+		if err := tx.Commit(ctx); err != nil {
+			return nil, err
+		}
+		return nil, ErrGated
+	}
+	if err != nil {
+		return nil, err
+	}
 	var raw []byte
-	err = tx.QueryRow(ctx, `UPDATE delivery_jobs SET status='CLAIMED',claim_token=gen_random_uuid(),lease_until=$2::timestamptz+interval '30 seconds',attempts=attempts+1 WHERE id=$1 AND status='SCHEDULED' RETURNING id::text,workspace_id::text,COALESCE(customer_id,''),COALESCE(execution_id::text,''),claim_token::text,provider,logical_key,mode,attempts,message,COALESCE((SELECT trace_parent FROM journey_executions e WHERE e.id=delivery_jobs.execution_id),'')`, id, now).Scan(&job.ID, &job.WorkspaceID, &job.CustomerID, &job.ExecutionID, &job.Token, &job.Provider, &job.LogicalKey, &job.Mode, &job.Attempt, &raw, &job.TraceParent)
+	err = tx.QueryRow(ctx, `UPDATE delivery_jobs SET status='CLAIMED',claim_token=gen_random_uuid(),lease_until=$2::timestamptz+interval '30 seconds',attempts=attempts+1 WHERE id=$1 AND status='SCHEDULED' RETURNING id::text,workspace_id::text,COALESCE(customer_id,''),COALESCE(execution_id::text,''),claim_token::text,provider,logical_key,mode,attempts,free_attempts,message,COALESCE((SELECT trace_parent FROM journey_executions e WHERE e.id=delivery_jobs.execution_id),'')`, id, now).Scan(&job.ID, &job.WorkspaceID, &job.CustomerID, &job.ExecutionID, &job.Token, &job.Provider, &job.LogicalKey, &job.Mode, &job.Attempt, &job.Free, &raw, &job.TraceParent)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -325,7 +352,7 @@ func (s *Service) Claim(ctx context.Context) (*Job, error) {
 	if err := json.Unmarshal(raw, &job.Message); err != nil {
 		return nil, err
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO delivery_attempts(workspace_id,delivery_id,attempt,status,started_at) VALUES($1,$2,$3,'STARTED',$4)`, job.WorkspaceID, job.ID, job.Attempt, now); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO delivery_attempts(workspace_id,delivery_id,attempt,status,started_at,provider,gate) VALUES($1,$2,$3,'STARTED',$4,$5,$6)`, job.WorkspaceID, job.ID, job.Attempt, now, job.Provider, gateLabel(job.BreakerProbe, job.TestedLock != nil)); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -414,9 +441,15 @@ func (s *Service) Dispatch(ctx context.Context, job Job) (err error) {
 	}
 	provider := s.Providers[job.Provider]
 	out := Outcome{Status: "FAILED", Response: "Provider is not configured"}
-	if job.Attempt > 5 {
+	// called is whether the answer came from the provider, or stands in for it.
+	called := false
+	if job.Counted() > 5 {
 		out = Outcome{Status: "FAILED", Response: "Retry limit exhausted"}
+	} else if fault, ok := FaultOutcome(job.Fault); ok {
+		// The workspace is acting out a provider problem; nothing is called.
+		out, called = fault, true
 	} else if provider != nil {
+		called = true
 		request, cancel := context.WithTimeout(ctx, 10*time.Second)
 		providerCtx, providerSpan := observability.Start(request, "messaging.provider.send", attribute.String("provider.name", job.Provider), attribute.String("messaging.channel", job.Message.Channel))
 		began := time.Now()
@@ -437,9 +470,15 @@ func (s *Service) Dispatch(ctx context.Context, job Job) (err error) {
 	case "UNKNOWN":
 		observability.SetOutcome(ctx, "unknown")
 	}
+	verdict := classify(out)
+	free := job.free(verdict)
+	counted := job.Counted()
+	if free {
+		counted--
+	}
 	status := out.Status
 	if status == "RETRY" {
-		if job.Attempt >= 5 {
+		if counted >= 5 {
 			out.Status = "FAILED"
 			observability.SetOutcome(ctx, "failed")
 			out.Response += "; retry limit exhausted"
@@ -459,16 +498,25 @@ func (s *Service) Dispatch(ctx context.Context, job Job) (err error) {
 	}
 	defer func() { _ = tx2.Rollback(context.Background()) }()
 	finished := s.Clock.Now()
-	delay := time.Duration(RetryDelay(job.Attempt)) * time.Second
-	tag, err = tx2.Exec(completed, `UPDATE delivery_jobs SET status=$3,due_at=$4,accepted_at=CASE WHEN $3='ACCEPTED' THEN $5::timestamptz ELSE NULL END,lease_until=NULL,claim_token=NULL,last_error=CASE WHEN $3='ACCEPTED' THEN NULL ELSE $6 END WHERE id=$1 AND claim_token=$2 AND status='DISPATCHING'`, job.ID, job.Token, status, finished.Add(delay), finished, out.Response)
+	delay := retryAfter(verdict, out, counted)
+	tag, err = tx2.Exec(completed, `UPDATE delivery_jobs SET status=$3,due_at=$4,accepted_at=CASE WHEN $3='ACCEPTED' THEN $5::timestamptz ELSE NULL END,lease_until=NULL,claim_token=NULL,last_error=CASE WHEN $3='ACCEPTED' THEN NULL ELSE $6 END,free_attempts=free_attempts+$7 WHERE id=$1 AND claim_token=$2 AND status='DISPATCHING'`, job.ID, job.Token, status, finished.Add(delay), finished, out.Response, map[bool]int{true: 1}[free])
 	if err != nil {
 		return err
 	}
 	if tag.RowsAffected() == 0 {
 		return nil
 	}
-	if _, err := tx2.Exec(completed, `UPDATE delivery_attempts SET status=$3,provider_code=$4,provider_id=$5,response=$6,completed_at=$7 WHERE delivery_id=$1 AND attempt=$2 AND status='STARTED'`, job.ID, job.Attempt, out.Status, out.Code, out.ProviderID, out.Response, finished); err != nil {
+	var signal *string
+	if out.Signal != "" {
+		signal = &out.Signal
+	}
+	if _, err := tx2.Exec(completed, `UPDATE delivery_attempts SET status=$3,provider_code=$4,provider_id=$5,response=$6,completed_at=$7,signal=$8 WHERE delivery_id=$1 AND attempt=$2 AND status='STARTED'`, job.ID, job.Attempt, out.Status, out.Code, out.ProviderID, out.Response, finished, signal); err != nil {
 		return err
+	}
+	if called {
+		if err := observe(completed, tx2, job, job.Message.Channel, verdict, out, finished); err != nil {
+			return err
+		}
 	}
 	if err := tx2.Commit(completed); err != nil {
 		return err
@@ -533,6 +581,10 @@ func (s *Service) Run(ctx context.Context) error {
 				request, cancel := context.WithTimeout(ctx, 15*time.Second)
 				job, err := s.Claim(request)
 				cancel()
+				if errors.Is(err, ErrGated) {
+					// Another channel's messages may be waiting behind this one.
+					continue
+				}
 				if err != nil {
 					if ctx.Err() == nil {
 						s.Log.ErrorContext(ctx, "delivery claim failed")

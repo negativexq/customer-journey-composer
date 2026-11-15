@@ -15,6 +15,18 @@ func ValidateWorkflow(w workflow.Workflow) []workflow.Issue {
 		if err != nil {
 			issues = append(issues, workflow.Issue{NodeID: node.ID, Field: "content", Message: err.Error()})
 		}
+		// An SMS that drops its code, or a message showing a code nobody set,
+		// costs the campaign its point.
+		uses := UsesVariable(node.Config, DiscountCode)
+		switch code := node.Config.DiscountCode; {
+		case code != "" && !ValidDiscountCode(code):
+			issues = append(issues, workflow.Issue{NodeID: node.ID, Field: "discount_code", Message: "A discount code is 3 to 30 capital letters, digits and hyphens"})
+		case code != "" && !uses && node.Type == "sms":
+			// An email shows the code in its own box; an SMS has only its text.
+			issues = append(issues, workflow.Issue{NodeID: node.ID, Field: "discount_code", Message: "Show the discount code in the message with {{ offer.code }}"})
+		case code == "" && uses:
+			issues = append(issues, workflow.Issue{NodeID: node.ID, Field: "discount_code", Message: "Set the discount code this message shows"})
+		}
 	}
 	return issues
 }

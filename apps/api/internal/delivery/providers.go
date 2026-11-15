@@ -29,16 +29,23 @@ type Outcome struct {
 	Code       int
 	ProviderID string
 	Response   string
+	// RetryAfter is the provider's Retry-After on a 429.
+	RetryAfter time.Duration
+	// Signal says the answer is about the channel, not the message:
+	// "throttled" for a 429, "credentials" for refused credentials.
+	Signal string
 }
 type Provider interface {
 	Send(context.Context, messaging.Message, string) Outcome
 	Idempotent() bool
 }
 type Mock struct {
-	mu       sync.Mutex
-	Codes    []int
-	calls    int
-	accepted map[string]Outcome
+	mu    sync.Mutex
+	Codes []int
+	// RetryAfter is sent with an injected 429; zero leaves it out.
+	RetryAfter time.Duration
+	calls      int
+	accepted   map[string]Outcome
 }
 
 func (*Mock) Idempotent() bool { return true }
@@ -59,7 +66,13 @@ func (m *Mock) Send(ctx context.Context, message messaging.Message, key string) 
 		code = m.Codes[m.calls]
 	}
 	m.calls++
-	if code == 429 || code >= 500 {
+	if code == 429 {
+		return Outcome{Status: "RETRY", Code: 429, RetryAfter: m.RetryAfter, Signal: "throttled", Response: "Injected rate limit"}
+	}
+	if code == 401 {
+		return Outcome{Status: "RETRY", Code: 401, Signal: "credentials", Response: "Injected credential refusal"}
+	}
+	if code >= 500 {
 		return Outcome{Status: "RETRY", Code: code, Response: "Injected provider failure"}
 	}
 	if code == 408 {
@@ -165,6 +178,10 @@ func (s *SMTP) Send(ctx context.Context, message messaging.Message, key string) 
 func smtpError(err error, ambiguous bool) Outcome {
 	var status *textproto.Error
 	if errors.As(err, &status) {
+		// 530, 534 and 535 refuse the login: the key is wrong, not the message.
+		if status.Code == 530 || status.Code == 534 || status.Code == 535 {
+			return Outcome{Status: "RETRY", Code: status.Code, Signal: "credentials", Response: "SMTP provider refused the credentials"}
+		}
 		if status.Code >= 500 {
 			return Outcome{Status: "FAILED", Code: status.Code, Response: "SMTP provider rejected the message"}
 		}
