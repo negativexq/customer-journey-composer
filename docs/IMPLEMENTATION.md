@@ -233,8 +233,24 @@ Not covered:
 - An unreachable provider still uses an attempt.
 - Journeys do not pause after a long outage.
 - The rate window was not load-measured.
-- The AI composer does not yet set `discount_code`.
+- The AI composer did not yet set `discount_code` (added in the next entry).
 - No real provider was called.
+
+## Live engagement and discount-code generation — 2026-11-15
+
+- `composer.v6` lets the AI set a wait step's `message_node` and a message's `discount_code`. The prompt says to copy only a code the brief names and to show it in SMS as `{{ offer.code }}`.
+- Test Lab assigns an open or click that names no step to the latest accepted message, so contract cases can describe "clicks the email".
+- `scripts/live-engagement-scenarios.mjs` runs ten briefs against the local stack in fresh workspaces. For each, it checks the result in Test Lab and the test inbox, and reads the database back. It never publishes or sends.
+
+Verified locally:
+
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`.
+- An authorized live run with OpenAI `gpt-6-luna` passed 10/10 journeys and 47/47 cases. It used 13 provider calls and 95,151 tokens. Every journey stayed a Draft with no versions, executions, customers or deliveries. [Report](reports/live-engagement-2026-11-15.md).
+
+Not covered:
+
+- In a coded email, the "Your code" text line and the code box label are English whatever the copy's language.
+- One run per scenario. Claude was not run live.
 
 ## Spacing and sub-navigation sweep — 2026-11-15
 

@@ -6,6 +6,7 @@ local, targeted evaluations, not universal quality or production readiness claim
 
 | Date         | Scope                                          | Recorded outcome                                   | Evidence                                                                              |
 | ------------ | ---------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Nov 15, 2026 | Ten journeys: engagement waits, discount codes | 47/47 cases; 95,151 tokens; three repairs          | [Scenarios, findings and harness](live-engagement-2026-11-15.md)                      |
 | Nov 13, 2026 | Five fresh journeys, scoped contract v2        | 25/25 external cases; 49,594 tokens; three repairs | [Contracts, outputs and comparison](scoped-contract-live-2026-11-13.md)               |
 | Nov 12, 2026 | Five additional journey types, v1              | 15 PASS / 5 FAIL / 5 BLOCKED                       | [Stock/referral gaps and rejected support request](five-new-journeys-2026-11-12.md)   |
 | Nov 12, 2026 | Five fresh journeys with independent v1 checks | 25/25 cases, previously 16/25 for matched inputs   | [Outputs and accounting](reviewed-generation-2026-11-12.md)                           |
