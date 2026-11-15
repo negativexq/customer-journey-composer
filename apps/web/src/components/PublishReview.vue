@@ -4,6 +4,9 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from '../lib/api';
 import type { Workflow } from '../lib/workflow';
 import AppIcon from './ui/AppIcon.vue';
+import WorkflowChanges from './WorkflowChanges.vue';
+import { plural } from '../lib/format';
+import type { WorkflowDiff } from '../lib/version-diff';
 const props = defineProps<{
   modelValue: boolean;
   journeyId: string;
@@ -11,6 +14,8 @@ const props = defineProps<{
   workflow: Workflow;
   revision: number;
   publishedVersion?: number;
+  // Draft compared with the latest published version; absent before the first publish.
+  changes?: WorkflowDiff;
   publishing?: boolean;
   publishError?: string;
 }>();
@@ -120,6 +125,27 @@ onBeforeUnmount(() => controller?.abort());
       <p v-if="error || publishError" class="inline-alert error-alert" role="alert">
         {{ error || publishError }}
       </p>
+      <section class="publish-changes" aria-label="What this publish changes">
+        <h3>What this publish changes</h3>
+        <p v-if="!publishedVersion">
+          This is the first version. {{ plural(workflow.nodes.length, 'step') }} go live for new
+          entries.
+        </p>
+        <p v-else-if="!changes">
+          The comparison with version {{ publishedVersion }} is not available.
+        </p>
+        <p v-else-if="!changes.total">
+          Nothing behaves differently from version {{ publishedVersion }}. Publishing creates a new
+          version with the same steps.
+        </p>
+        <template v-else>
+          <p>
+            {{ plural(changes.total, 'change') }} since version {{ publishedVersion }}. New entries
+            get them; customers already in the journey keep their version.
+          </p>
+          <WorkflowChanges :diff="changes" />
+        </template>
+      </section>
       <div class="publish-review-grid">
         <section>
           <h3>Readiness checks</h3>
@@ -386,5 +412,22 @@ footer button {
   footer {
     padding: 14px;
   }
+}
+.publish-changes {
+  margin-bottom: 20px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--page);
+}
+.publish-changes h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+.publish-changes p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
 }
 </style>

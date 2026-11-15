@@ -10,6 +10,8 @@ const props = defineProps<{
   busy?: boolean;
 }>();
 const emit = defineEmits<{ 'update:modelValue': [boolean]; confirm: [] }>();
+// Several confirmations can live on one page; each needs its own label ids.
+const uid = 'confirm-' + Math.random().toString(36).slice(2, 9);
 const dialog = ref<HTMLDialogElement>();
 const cancelButton = ref<HTMLButtonElement>();
 async function sync() {
@@ -30,14 +32,14 @@ function backdrop(event: MouseEvent) {
   <dialog
     ref="dialog"
     class="confirm-dialog"
-    aria-labelledby="confirm-dialog-title"
-    aria-describedby="confirm-dialog-body"
+    :aria-labelledby="uid + '-title'"
+    :aria-describedby="uid + '-body'"
     @close="close"
     @cancel="busy && $event.preventDefault()"
     @click="backdrop"
   >
-    <h2 id="confirm-dialog-title">{{ title }}</h2>
-    <div id="confirm-dialog-body" class="confirm-dialog-body"><slot /></div>
+    <h2 :id="uid + '-title'">{{ title }}</h2>
+    <div :id="uid + '-body'" class="confirm-dialog-body"><slot /></div>
     <footer>
       <button ref="cancelButton" type="button" :disabled="busy" @click="close">Cancel</button
       ><button

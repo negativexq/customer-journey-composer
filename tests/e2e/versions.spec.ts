@@ -117,4 +117,26 @@ test('versions explain unpublished and published changes in product language', a
   const versionChanges = page.getByTestId('version-changes');
   await expect(versionChanges).toContainText('v1 → v2 · 1 change');
   await expect(versionChanges).toContainText('Wait 3 seconds → Wait 2 minutes');
+
+  // An old version can be put back on the draft; customers see nothing until it is published.
+  await page.getByRole('button', { name: /Version 1/ }).click();
+  await page.getByRole('button', { name: 'Restore to draft', exact: true }).click();
+  const confirm = page.getByRole('dialog', { name: 'Restore version 1 to the draft?' });
+  await expect(confirm).toContainText('Customers are not affected until you publish');
+  await confirm.getByRole('button', { name: 'Restore to draft', exact: true }).click();
+  await expect(page.getByTestId('toast')).toContainText('Version 1 restored to the draft');
+  await expect(draftChanges).toContainText('Draft has 1 unpublished change since v2');
+  await expect(draftChanges).toContainText('Wait 2 minutes → Wait 3 seconds');
+  const restored = await (await page.request.get(`/api/v1/journeys/${journey.id}`)).json();
+  expect(
+    restored.draft.nodes.find((node: { id: string }) => node.id === 'delay').config
+      .duration_seconds,
+  ).toBe(3);
+  expect(restored.version).toBe(2);
+
+  // The publish review states the same change before anything goes live.
+  await page.getByRole('button', { name: 'Publish', exact: true }).click();
+  const review = page.getByRole('region', { name: 'What this publish changes' });
+  await expect(review).toContainText('1 change since version 2');
+  await expect(review).toContainText('Wait 2 minutes → Wait 3 seconds');
 });

@@ -270,6 +270,10 @@ async function publish() {
   try {
     await flushDraft();
     publishRevision.value = revision.value;
+    // The review states what this publish changes for new entries.
+    if (!versions.value.length)
+      versions.value = await api<VersionRow[]>(`/journeys/${props.journey.id}/versions`);
+    await compareDraft();
     publishOpen.value = true;
   } catch (cause) {
     error.value = errorMessage(cause);
@@ -285,6 +289,9 @@ async function confirmPublish() {
     revision.value = updated.revision;
     emit('saved', updated);
     publishOpen.value = false;
+    // A new version exists now; the next comparison must load it.
+    versions.value = [];
+    draftDiff.value = undefined;
     notice.value = 'Journey published';
     toast('Journey published', { announce: false });
   } catch (cause) {
@@ -414,6 +421,30 @@ async function compareDraft() {
   await loadVersion(latest.version);
   const published = versionWorkflow(latest.version);
   if (published) draftDiff.value = compare(published, draft.value);
+}
+// Puts a published version back on the draft. Nothing customers see changes until it is published.
+const restoring = ref<VersionRow>();
+const restoreBusy = ref(false);
+async function confirmRestore() {
+  const version = restoring.value;
+  if (!version?.workflow || restoreBusy.value) return;
+  restoreBusy.value = true;
+  error.value = '';
+  try {
+    await applyProposal({
+      workflow: version.workflow,
+      name: name.value,
+      description: description.value,
+    });
+    await flushDraft();
+    await compareDraft();
+    toast(`Version ${version.version} restored to the draft`);
+  } catch (cause) {
+    error.value = errorMessage(cause);
+  } finally {
+    restoreBusy.value = false;
+    restoring.value = undefined;
+  }
 }
 async function showVersions() {
   versionsLoading.value = true;
@@ -807,6 +838,14 @@ function back() {
               <button type="button" class="text-button" @click="showDefinition = !showDefinition">
                 {{ showDefinition ? 'Hide technical definition' : 'Show technical definition' }}
               </button>
+              <button
+                v-if="!readonly && journey.status !== 'Archived'"
+                type="button"
+                class="restore-version"
+                @click="restoring = version"
+              >
+                <AppIcon name="history" :size="15" />Restore to draft
+              </button>
               <pre v-if="showDefinition">{{ JSON.stringify(version.workflow, null, 2) }}</pre>
             </template>
           </div>
@@ -864,6 +903,20 @@ function back() {
       <p>Its history is kept. There is no restore action.</p>
     </template>
   </ConfirmDialog>
+  <ConfirmDialog
+    :model-value="!!restoring"
+    :title="`Restore version ${restoring?.version} to the draft?`"
+    confirm-label="Restore to draft"
+    :busy="restoreBusy"
+    @update:model-value="restoring = undefined"
+    @confirm="confirmRestore"
+  >
+    <p>The draft is replaced with the steps of version {{ restoring?.version }}.</p>
+    <p>
+      Customers are not affected until you publish. Unpublished draft changes are overwritten; Undo
+      in the builder does not bring them back.
+    </p>
+  </ConfirmDialog>
   <PublishReview
     v-model="publishOpen"
     :journey-id="journey.id"
@@ -871,6 +924,7 @@ function back() {
     :workflow="draft"
     :revision="publishRevision"
     :published-version="publishedVersion"
+    :changes="draftDiff"
     :publishing="busy"
     :publish-error="publishError"
     @confirm="confirmPublish"
