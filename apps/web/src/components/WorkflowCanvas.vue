@@ -246,6 +246,7 @@ const groupTitle: Record<string, string> = {
   split: 'Experiment',
   email: 'Email content',
   sms: 'Message',
+  webhook: 'Request',
   update_attribute: 'Profile change',
   exit: 'Outcome',
 };
@@ -283,6 +284,7 @@ const iconFor: Record<string, string> = {
   split: 'split',
   email: 'email',
   sms: 'message',
+  webhook: 'webhook',
   update_attribute: 'user',
   exit: 'exit',
 };
@@ -299,6 +301,8 @@ const explanations: Record<string, string> = {
     'Sends a fixed share of customers to variant A and the rest to B. A customer always gets the same variant here.',
   email: 'Sends an email, if the customer allows email and the sending limit has room.',
   sms: 'Sends a text message, if the customer allows SMS and the sending limit has room.',
+  webhook:
+    'Posts the chosen customer and event fields to another system as JSON. Only hosts the server allows are called; others are recorded but not sent.',
   update_attribute: 'Changes a value on the customer profile for later steps and journeys.',
   exit: 'Ends the journey for this customer and records why.',
 };
@@ -311,6 +315,7 @@ const descriptions: Record<string, string> = {
   split: 'Test two variants',
   email: 'Send an email message',
   sms: 'Send a text message',
+  webhook: 'Notify another system',
   update_attribute: 'Change a customer attribute',
   exit: 'Complete this journey',
 };
@@ -322,7 +327,7 @@ const paletteGroups = computed(() =>
     { label: 'Entry', kinds: ['event_trigger'] },
     { label: 'Logic & timing', kinds: ['condition', 'switch', 'split', 'wait', 'wait_event'] },
     { label: 'Messages', kinds: ['email', 'sms'] },
-    { label: 'Customer & outcomes', kinds: ['update_attribute', 'exit'] },
+    { label: 'Customer & outcomes', kinds: ['update_attribute', 'webhook', 'exit'] },
   ]
     .map((group) => ({
       ...group,
@@ -434,6 +439,28 @@ const attribute = configField('attribute');
 const operation = configField('operation');
 const reason = configField('reason');
 const percent = configField('percent');
+const webhookURL = configField('url');
+// Fields are edited as rows so a half-typed name does not lose its value.
+const webhookFields = computed(() =>
+  Object.entries(selected.value?.data.config.fields || {}).map(([name, path]) => ({ name, path })),
+);
+function setWebhookFields(rows: { name: string; path: string }[]) {
+  patchConfig({ fields: Object.fromEntries(rows.map((row) => [row.name, row.path])) });
+}
+function updateWebhookField(index: number, patch: { name?: string; path?: string }) {
+  setWebhookFields(
+    webhookFields.value.map((row, position) => (position === index ? { ...row, ...patch } : row)),
+  );
+}
+function addWebhookField() {
+  const rows = webhookFields.value;
+  let n = rows.length + 1;
+  while (rows.some((row) => row.name === `field_${n}`)) n++;
+  setWebhookFields([...rows, { name: `field_${n}`, path: 'customer.attributes.' }]);
+}
+function removeWebhookField(index: number) {
+  setWebhookFields(webhookFields.value.filter((_, position) => position !== index));
+}
 // Branch outputs are positional, so adding or removing a branch renumbers the connections.
 function setBranches(branches: NonNullable<Config['branches']>) {
   const id = selectedID.value;
@@ -1289,6 +1316,62 @@ function setAttribute(value: string) {
             >
           </div>
           <small>Compare the variants in Analytics once customers have passed through both.</small>
+        </template>
+        <template v-if="selected.data.kind === 'webhook'">
+          <label
+            >Address<input
+              v-model.trim="webhookURL"
+              type="url"
+              inputmode="url"
+              placeholder="https://"
+              :disabled="readonly"
+          /></label>
+          <fieldset class="webhook-fields">
+            <legend>Fields sent</legend>
+            <div v-for="(row, index) in webhookFields" :key="index" class="webhook-field">
+              <input
+                :value="row.name"
+                :aria-label="`Name of field ${index + 1}`"
+                :disabled="readonly"
+                @change="
+                  updateWebhookField(index, {
+                    name: ($event.target as HTMLInputElement).value.trim(),
+                  })
+                "
+              />
+              <input
+                :value="row.path"
+                :aria-label="`Value of field ${index + 1}`"
+                placeholder="customer.attributes.plan"
+                :disabled="readonly"
+                @change="
+                  updateWebhookField(index, {
+                    path: ($event.target as HTMLInputElement).value.trim(),
+                  })
+                "
+              />
+              <button
+                v-if="!readonly"
+                type="button"
+                class="icon-button"
+                :aria-label="`Remove field ${index + 1}`"
+                @click="removeWebhookField(index)"
+              >
+                <AppIcon name="close" :size="14" />
+              </button>
+            </div>
+            <button
+              v-if="!readonly && webhookFields.length < 20"
+              type="button"
+              @click="addWebhookField"
+            >
+              <AppIcon name="plus" :size="14" />Add a field
+            </button>
+          </fieldset>
+          <small
+            >Sent as JSON with the customer and execution IDs. Each call carries an Idempotency-Key
+            header, and a missing value is sent as null.</small
+          >
         </template>
         <RuleEditor
           v-if="selected.data.kind === 'condition'"

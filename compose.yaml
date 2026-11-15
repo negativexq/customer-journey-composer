@@ -83,6 +83,8 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_REQUIRE_TLS: ${SMTP_REQUIRE_TLS:-false}
+      # Comma-separated hosts webhook steps may call; empty records calls without sending.
+      WEBHOOK_ALLOWED_HOSTS: ${WEBHOOK_ALLOWED_HOSTS:-}
     command: ['worker']
     depends_on:
       migrate:

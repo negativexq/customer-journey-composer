@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -77,6 +78,18 @@ func TestPureDecisionsUseProvidedClockAndPorts(t *testing.T) {
 	}
 	if got := workflow.NodePorts(tiers); len(got) != 4 || got[0] != "case_1" || got[3] != "else" {
 		t.Fatal(got)
+	}
+	hook := workflow.Node{ID: "crm", Label: "Tell the CRM", Type: "webhook", Config: workflow.Config{URL: "https://hooks.example.invalid/in", Fields: map[string]string{"orders": "customer.attributes.orders", "absent": "event.properties.none"}}}
+	d, err = Decide(hook, data, now, "")
+	if err != nil || d.Port != "next" || d.Webhook == nil || d.Webhook.URL != "https://hooks.example.invalid/in" {
+		t.Fatal(d, err)
+	}
+	sent, _ := d.Webhook.Payload["data"].(map[string]any)
+	if sent["orders"] != 2.0 || sent["absent"] != nil || d.Webhook.Payload["step"] != "crm" {
+		t.Fatal("unexpected webhook payload", d.Webhook.Payload)
+	}
+	if output, _ := json.Marshal(d); strings.Contains(string(output), "hooks.example") {
+		t.Fatal("the call must not be written into step history", string(output))
 	}
 	if _, err := Decide(workflow.Node{Type: "arbitrary_code"}, data, now, ""); err == nil {
 		t.Fatal("unregistered node must be rejected")

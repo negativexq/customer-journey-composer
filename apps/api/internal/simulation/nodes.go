@@ -63,6 +63,10 @@ func onNode(spec workflow.Workflow, scenario Scenario, s *State, task Task) erro
 		}
 		s.Customer["attributes"] = next
 	}
+	if decision.Webhook != nil {
+		// The sandbox never contacts anything outside itself.
+		s.trace("webhook", node.ID, "Would call "+decision.Webhook.URL)
+	}
 	if decision.Message != nil {
 		message := *decision.Message
 		reservations := scenario.PriorMessages

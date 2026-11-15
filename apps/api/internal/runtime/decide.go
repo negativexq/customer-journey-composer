@@ -27,6 +27,9 @@ type Decision struct {
 	Value      any                `json:"value,omitempty"`
 	Variant    string             `json:"variant,omitempty"`
 	Branch     string             `json:"branch,omitempty"`
+	// Webhook is recorded by the caller; it is not part of the step history
+	// because it carries customer data.
+	Webhook *WebhookCall `json:"-"`
 }
 
 // Decide is pure: production and the virtual-clock simulator share these node
@@ -83,6 +86,17 @@ func Decide(node workflow.Node, data map[string]any, now time.Time, resumePort s
 			return d, fmt.Errorf("missing personalization attributes: %v", rendered.Missing)
 		}
 		d.Message = &rendered
+	case "webhook":
+		d.Port = "next"
+		fields := map[string]any{}
+		for name, path := range c.Fields {
+			if value, ok := workflow.Lookup(data, path); ok {
+				fields[name] = value
+			} else {
+				fields[name] = nil
+			}
+		}
+		d.Webhook = &WebhookCall{URL: c.URL, Payload: map[string]any{"step": node.ID, "label": node.Label, "sent_at": now.UTC().Format(time.RFC3339), "data": fields}}
 	case "update_attribute":
 		d.Port = "next"
 		d.Attribute = c.Attribute

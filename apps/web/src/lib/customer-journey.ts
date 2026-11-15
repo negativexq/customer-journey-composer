@@ -18,6 +18,14 @@ export type ExecutionDelivery = {
   decision?: { reason?: string } | null;
   last_error?: string | null;
 };
+export type ExecutionWebhook = {
+  id: string;
+  node_id: string;
+  url: string;
+  state: string;
+  attempts: number;
+  response_status?: number | null;
+};
 export type ExecutionWaiter = {
   node_id: string;
   event_name: string;
@@ -37,6 +45,7 @@ export type ExecutionDetail = {
   completed_at?: string | null;
   steps: ExecutionStep[];
   deliveries: ExecutionDelivery[];
+  webhooks?: ExecutionWebhook[];
   waiters: ExecutionWaiter[];
 };
 export type PathTone = 'done' | 'current' | 'failed' | 'blocked';
@@ -170,6 +179,35 @@ function describe(
           deliveryID,
         };
       return { tone: 'done', outcome: `${name} ${words(status)}`, branch: '', deliveryID };
+    }
+    case 'webhook': {
+      const call = execution.webhooks?.find((item) => item.node_id === step.node_id);
+      let host = 'the address';
+      try {
+        host = new URL(call?.url || node?.config.url || '').host || host;
+      } catch {
+        // keep the generic wording
+      }
+      switch (call?.state) {
+        case 'SENT':
+          return { tone: 'done', outcome: `Webhook sent to ${host}`, branch: '' };
+        case 'FAILED':
+          return {
+            tone: 'failed',
+            outcome: `Webhook to ${host} failed${call.response_status ? ' (' + call.response_status + ')' : ''}`,
+            branch: '',
+          };
+        case 'RECORDED':
+          return {
+            tone: 'done',
+            outcome: `Webhook recorded; ${host} is not on the allowed list`,
+            branch: '',
+          };
+        case 'PENDING':
+          return { tone: 'done', outcome: `Webhook to ${host} queued`, branch: '' };
+        default:
+          return { tone: 'done', outcome: 'Webhook step passed', branch: '' };
+      }
     }
     case 'update_attribute':
       return { tone: 'done', outcome: 'Profile updated', branch: '' };

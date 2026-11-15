@@ -6570,3 +6570,30 @@ fieldset.scenario-form {
   min-width: 0;
   font-weight: 600;
 }
+
+/* Webhook step */
+.step-type-icon.webhook {
+  background: var(--gray-96);
+  color: var(--teal-68-text);
+}
+.webhook-fields {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.webhook-fields legend {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.webhook-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+.webhook-field input {
+  min-width: 0;
+}

@@ -97,6 +97,13 @@ export function stepSummary(step: Pick<Step, 'type' | 'config'>): string {
       return c.text ? templateSummary(c.text) : 'Add message content';
     case 'exit':
       return c.reason === 'converted' ? 'Conversion goal reached' : c.reason || 'Journey complete';
+    case 'webhook': {
+      const count = Object.keys(c.fields || {}).length;
+      const host = URL.canParse(c.url || '') ? new URL(c.url!).host : '';
+      return host
+        ? `POST to ${host} · ${count} ${count === 1 ? 'field' : 'fields'}`
+        : 'Add an address';
+    }
     case 'update_attribute':
       return `${c.operation || 'set'} ${c.attribute || 'Choose an attribute'}`;
     default:

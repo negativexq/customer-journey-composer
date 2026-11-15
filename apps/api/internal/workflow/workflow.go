@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"math"
+	"net/url"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -41,12 +42,15 @@ type Config struct {
 	Reason          string            `json:"reason,omitempty"`
 	// A wait is a fixed delay by default. "time" waits for the next given time
 	// of day, "date" until a date held on the customer or event.
-	WaitMode      string   `json:"wait_mode,omitempty" enum:"duration,time,date"`
-	AtTime        string   `json:"at_time,omitempty" maxLength:"5"`
-	Weekdays      []int    `json:"weekdays,omitempty" maxItems:"7"`
-	DatePath      string   `json:"date_path,omitempty" maxLength:"200"`
-	OffsetSeconds int64    `json:"offset_seconds,omitempty"`
-	Branches      []Branch `json:"branches,omitempty" maxItems:"5"`
+	WaitMode      string `json:"wait_mode,omitempty" enum:"duration,time,date"`
+	AtTime        string `json:"at_time,omitempty" maxLength:"5"`
+	Weekdays      []int  `json:"weekdays,omitempty" maxItems:"7"`
+	DatePath      string `json:"date_path,omitempty" maxLength:"200"`
+	OffsetSeconds int64  `json:"offset_seconds,omitempty"`
+	// A webhook step posts Fields (name -> data path) to URL.
+	URL      string            `json:"url,omitempty" maxLength:"2000"`
+	Fields   map[string]string `json:"fields,omitempty"`
+	Branches []Branch          `json:"branches,omitempty" maxItems:"5"`
 	// Percent is the share of customers a split sends to its "a" output.
 	Percent int `json:"percent,omitempty" minimum:"0" maximum:"99"`
 }
@@ -63,7 +67,7 @@ type Position struct {
 }
 type Node struct {
 	ID       string   `json:"id" minLength:"1" maxLength:"80"`
-	Type     string   `json:"type" enum:"event_trigger,wait,wait_event,condition,switch,split,email,sms,update_attribute,exit"`
+	Type     string   `json:"type" enum:"event_trigger,wait,wait_event,condition,switch,split,email,sms,webhook,update_attribute,exit"`
 	Label    string   `json:"label" minLength:"1" maxLength:"160"`
 	Position Position `json:"position"`
 	Config   Config   `json:"config"`
@@ -122,7 +126,7 @@ func Ports(kind string) []string {
 	case "switch":
 		// The arms depend on the step; see NodePorts.
 		return []string{"else"}
-	case "email", "sms", "update_attribute":
+	case "email", "sms", "webhook", "update_attribute":
 		return []string{"next"}
 	case "exit":
 		return []string{}
@@ -233,6 +237,22 @@ func Validate(w Workflow) []Issue {
 		case "sms":
 			if strings.TrimSpace(c.Text) == "" || len(c.Text) > 10000 {
 				add(n.ID, "text", "SMS body required (maximum 10000 bytes)")
+			}
+		case "webhook":
+			target, err := url.Parse(c.URL)
+			if err != nil || len(c.URL) > 2000 || (target.Scheme != "http" && target.Scheme != "https") || target.Host == "" || target.User != nil {
+				add(n.ID, "url", "Enter an http or https address without credentials")
+			}
+			if len(c.Fields) > 20 {
+				add(n.ID, "fields", "A webhook sends at most 20 fields")
+			}
+			for name, path := range c.Fields {
+				if !attribute.MatchString(name) {
+					add(n.ID, "fields", "Field names use letters, digits and underscores")
+				}
+				if !strings.HasPrefix(path, "customer.") && !strings.HasPrefix(path, "event.") && !strings.HasPrefix(path, "context.") {
+					add(n.ID, "fields", "Field values come from customer, event or context data")
+				}
 			}
 		case "update_attribute":
 			if !attribute.MatchString(c.Attribute) {

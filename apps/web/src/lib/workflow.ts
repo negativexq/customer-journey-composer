@@ -7,6 +7,7 @@ export const kinds = [
   'split',
   'email',
   'sms',
+  'webhook',
   'update_attribute',
   'exit',
 ] as const;
@@ -46,6 +47,9 @@ export type Config = {
   branches?: { label: string; rule?: Rule }[];
   // Share of customers a split sends to variant A.
   percent?: number;
+  // A webhook posts these fields (name -> data path) to url.
+  url?: string;
+  fields?: Record<string, string>;
 };
 export type Step = {
   id: string;
@@ -122,6 +126,7 @@ export function ports(kind: Kind, config?: Config): string[] {
     split: ['a', 'b'],
     email: ['next'],
     sms: ['next'],
+    webhook: ['next'],
     update_attribute: ['next'],
     exit: [],
   }[kind];
@@ -152,6 +157,10 @@ export function defaults(kind: Kind): Config {
       fallbacks: { 'customer.attributes.first_name': 'there' },
     },
     sms: { text: 'Your cart is waiting.' },
+    webhook: {
+      url: 'https://hooks.example.com/journey',
+      fields: { email: 'customer.email', plan: 'customer.attributes.plan' },
+    },
     update_attribute: { attribute: 'journey_seen', operation: 'set', value: true },
     exit: { reason: 'completed' },
   }[kind];
@@ -165,6 +174,7 @@ export const labels: Record<Kind, string> = {
   split: 'A/B Split',
   email: 'Send Email',
   sms: 'Send SMS',
+  webhook: 'Webhook',
   update_attribute: 'Update Attribute',
   exit: 'Exit',
 };

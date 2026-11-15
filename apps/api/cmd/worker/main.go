@@ -67,6 +67,9 @@ func run() error {
 	var group sync.WaitGroup
 	group.Go(func() { _ = sender.Run(ctx) })
 	group.Go(func() { analytics.Run(ctx, pool, log) })
+	hooks := engine.NewWebhookDispatcher(pool, engine.AllowedWebhookHosts(os.Getenv("WEBHOOK_ALLOWED_HOSTS")))
+	hooks.Log = log
+	group.Go(func() { hooks.Run(ctx) })
 	err = worker.Run(ctx)
 	group.Wait()
 	return err

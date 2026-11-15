@@ -31,6 +31,16 @@ func TestGraphValidation(t *testing.T) {
 		}, "unreachable"},
 		{"invalid email", func(w *Workflow) { w.Nodes[1].Type = "email" }, "Subject required"},
 		{"split without a share", func(w *Workflow) { w.Nodes[1].Type = "split" }, "Variant A share"},
+		{"webhook without an address", func(w *Workflow) { w.Nodes[1].Type = "webhook" }, "http or https address"},
+		{"webhook with credentials in the address", func(w *Workflow) {
+			w.Nodes[1].Type = "webhook"
+			w.Nodes[1].Config.URL = "https://user:secret@example.invalid/hook"
+		}, "without credentials"},
+		{"webhook field from an unknown source", func(w *Workflow) {
+			w.Nodes[1].Type = "webhook"
+			w.Nodes[1].Config.URL = "https://example.invalid/hook"
+			w.Nodes[1].Config.Fields = map[string]string{"x": "secrets.token"}
+		}, "customer, event or context"},
 		{"multi-way with one branch", func(w *Workflow) {
 			w.Nodes[1].Type = "switch"
 			w.Nodes[1].Config.Branches = []Branch{{Label: "Only", Rule: &Rule{Path: "customer.attributes.x", Operator: "exists"}}}

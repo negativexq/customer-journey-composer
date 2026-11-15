@@ -29,6 +29,7 @@ const paths: Record<string, string> = {
   branch: 'M6 3v12a4 4 0 0 0 4 4h8M6 8h8a4 4 0 0 0 4-4V3M16 17l2 2-2 2M4 5l2-2 2 2',
   email: 'M3 5h18v14H3V5Zm0 1 9 7 9-7',
   message: 'M21 15a3 3 0 0 1-3 3H8l-5 4V5a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v10ZM7 7h10M7 12h7',
+  webhook: 'M9 15a4 4 0 1 1-1-6.9M12 7l3 6M15 13a4 4 0 1 1 1.5 5.4M15 17H9a4 4 0 1 1-2.5-7',
   zap: 'm13 2-9 12h7l-1 8 10-12h-8l1-8Z',
   play: 'm8 4 12 8-12 8V4Z',
   pause: 'M7 4h3v16H7zM14 4h3v16h-3z',

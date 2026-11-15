@@ -324,6 +324,14 @@ func (w *Worker) Process(ctx context.Context, job Job) (err error) {
 					return err
 				}
 			}
+			if decision.Webhook != nil {
+				decision.Webhook.Payload["customer_id"] = job.CustomerID
+				decision.Webhook.Payload["execution_id"] = job.ExecutionID
+				body, _ := json.Marshal(decision.Webhook.Payload)
+				if _, err := tx.Exec(ctx, `INSERT INTO webhook_calls(workspace_id,execution_id,node_id,customer_id,url,payload,created_at) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING`, job.WorkspaceID, job.ExecutionID, node.ID, job.CustomerID, decision.Webhook.URL, body, now); err != nil {
+					return err
+				}
+			}
 			if decision.Attribute != "" {
 				attrs, _ := profile["attributes"].(map[string]any)
 				if attrs == nil {

@@ -27,6 +27,7 @@ func registerExecutions(api huma.API, pool *pgxpool.Pool) {
  'steps',COALESCE((SELECT jsonb_agg(to_jsonb(s)-'workspace_id') FROM (SELECT * FROM step_executions WHERE workspace_id=$1 AND execution_id=e.id ORDER BY started_at,id LIMIT 100) s),'[]'::jsonb),
  'jobs',COALESCE((SELECT jsonb_agg(to_jsonb(j)-'workspace_id'-'claim_token') FROM (SELECT * FROM scheduled_jobs WHERE workspace_id=$1 AND execution_id=e.id ORDER BY created_at,id LIMIT 200) j),'[]'::jsonb),
  'deliveries',COALESCE((SELECT jsonb_agg(to_jsonb(d)) FROM (SELECT id,node_id,channel,status,decision,attempts,accepted_at,last_error,cancel_requested FROM delivery_jobs WHERE workspace_id=$1 AND execution_id=e.id ORDER BY created_at,id LIMIT 100)d),'[]'::jsonb),
+ 'webhooks',COALESCE((SELECT jsonb_agg(to_jsonb(h)) FROM (SELECT id,node_id,url,state,attempts,response_status,detail,created_at,completed_at FROM webhook_calls WHERE workspace_id=$1 AND execution_id=e.id ORDER BY created_at,id LIMIT 100) h),'[]'::jsonb),
  'waiters',COALESCE((SELECT jsonb_agg(to_jsonb(w)-'workspace_id') FROM (SELECT * FROM event_waiters WHERE workspace_id=$1 AND execution_id=e.id ORDER BY created_at LIMIT 100) w),'[]'::jsonb))
  FROM journey_executions e WHERE e.workspace_id=$1 AND e.id=$2`, who(ctx).WorkspaceID, in.ID))
 	})

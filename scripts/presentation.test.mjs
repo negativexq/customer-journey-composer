@@ -115,3 +115,13 @@ test('waits and splits summarize what they do', () => {
   );
   assert.equal(stepSummary({ type: 'split', config: { percent: 30 } }), '30% A · 70% B');
 });
+
+test('webhook steps are summarised by host and field count', () => {
+  const hook = (config) => stepSummary({ type: 'webhook', config });
+  assert.equal(
+    hook({ url: 'https://hooks.example.com/a', fields: { email: 'customer.email' } }),
+    'POST to hooks.example.com · 1 field',
+  );
+  assert.equal(hook({ url: 'not a url', fields: {} }), 'Add an address');
+  assert.equal(hook({ url: 'http://localhost:8080/x' }), 'POST to localhost:8080 · 0 fields');
+});
