@@ -47,6 +47,8 @@ func validationSummary(issues []workflow.Issue) *ValidationSummary {
 		switch {
 		case strings.HasPrefix(issue.Field, "behavior_checks"), issue.Field == "acceptance_contract":
 			result.Behavior++
+		case issue.Field == "facts":
+			result.Facts++
 		case issue.Field == "schema" || issue.Field == "fallbacks":
 			result.Schema++
 		case issue.Field == "content" || issue.Field == "subject" || issue.Field == "html" || issue.Field == "text":

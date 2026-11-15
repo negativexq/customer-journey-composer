@@ -41,6 +41,7 @@ type Proposal = {
   workflow: Workflow;
   explanation: string;
   warnings: string[];
+  not_done?: string[];
   diff: Diff;
   action: string;
 };
@@ -219,6 +220,11 @@ async function compose() {
     broadcast();
   }
 }
+// Warnings and what the request asked but the draft left out both need a look.
+const needsAcknowledgement = computed(
+  () =>
+    !!proposal.value && proposal.value.warnings.length + (proposal.value.not_done?.length ?? 0) > 0,
+);
 async function apply() {
   if (
     props.readonly ||
@@ -227,7 +233,7 @@ async function apply() {
     !proposal.value ||
     stale.value ||
     !dataReady.value ||
-    (proposal.value.warnings.length && !acknowledged.value)
+    (needsAcknowledgement.value && !acknowledged.value)
   )
     return;
   busy.value = true;
@@ -487,12 +493,18 @@ onBeforeUnmount(() => {
           }
         "
       />
+      <section v-if="proposal.not_done?.length" class="not-done" aria-labelledby="ai-not-done">
+        <h3 id="ai-not-done">In the request, not in the draft</h3>
+        <ul>
+          <li v-for="note in proposal.not_done" :key="note">{{ note }}</li>
+        </ul>
+      </section>
       <ul v-if="proposal.warnings.length">
         <li v-for="warning in proposal.warnings" :key="warning" class="warning-message">
           {{ warning }}
         </li>
       </ul>
-      <label v-if="changed && proposal.warnings.length" class="acknowledge"
+      <label v-if="changed && needsAcknowledgement" class="acknowledge"
         ><input v-model="acknowledged" type="checkbox" /> I reviewed the warnings and
         assumptions</label
       >
@@ -501,11 +513,7 @@ onBeforeUnmount(() => {
           v-if="changed"
           class="primary"
           :disabled="
-            readonly ||
-            revising ||
-            stale ||
-            !dataReady ||
-            (proposal.warnings.length > 0 && !acknowledged)
+            readonly || revising || stale || !dataReady || (needsAcknowledgement && !acknowledged)
           "
           @click="apply"
         >

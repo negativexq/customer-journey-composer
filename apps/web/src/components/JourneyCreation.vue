@@ -622,6 +622,16 @@ async function back() {
       <aside class="creation-surface review-decisions">
         <h2>Review & next steps</h2>
         <p>Approval opens an editable draft. Publishing is a separate action in the builder.</p>
+        <section
+          v-if="state.proposal.not_done?.length"
+          class="not-done"
+          aria-labelledby="not-done-title"
+        >
+          <h3 id="not-done-title">In the brief, not in the draft</h3>
+          <ul>
+            <li v-for="note in state.proposal.not_done" :key="note">{{ note }}</li>
+          </ul>
+        </section>
         <ul v-if="state.proposal.warnings.length" class="review-warnings">
           <li v-for="warning in state.proposal.warnings" :key="warning">{{ warning }}</li>
         </ul>

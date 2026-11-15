@@ -28,6 +28,12 @@ The provider-compatible subset uses closed objects with required properties, typ
 
 Outputs pass local JSON Schema validation, typed decoding, graph validation and message syntax/sanitization validation. Applied migrations, runtime logic and allowed node types are outside the model's control. Oversized prompts/specifications and responses are rejected. Invalid output gets one bounded correction attempt and is never exposed as an applicable proposal.
 
+Generated message text is then compared with the request, without a model, as in the sister project Smart Campaign Composer ([factcheck](../apps/api/internal/factcheck/factcheck.go)):
+
+- **Refused.** A link, discount code or number that the request, the journey's name and description, and the messages a person already has do not contain is sent back to the model with the reason, like a schema failure. Examples are a different URL, "Son 3 gün!", a bigger percentage or an invented code. A length of time may change unit: "24 saat" passes for "1 gün". A code the request names is set as the step's `discount_code` and written as `{{ offer.code }}`, never typed out.
+- **Noted.** A link, code or discount percentage the brief asks for that no message carries is returned in `not_done`. The review page shows it under "In the brief, not in the draft", and approval asks for the usual acknowledgement. These are notes, because only the person knows whether the outcome is acceptable.
+- **Scope.** Only steps the model wrote or rewrote in this answer are checked; a person's edits may say anything. The reader knows closed patterns, so it catches these disagreements and proves nothing else. The ten reviewed live journeys of 2026-11-15 pass it unchanged, a test that keeps it from refusing good drafts. A percentage counts as a discount only near a word for one, so "%20'nin altındaysa" beside "indirim oranı" is read as an offer and can raise a note that does not apply.
+
 The response includes added/removed/updated nodes, condition/message changes, connection changes and exit/reentry changes. Explain actions do not propose mutations. Message actions deep-copy the input and can improve a node in an incomplete draft without pretending the graph is publishable.
 
 ## Human approval

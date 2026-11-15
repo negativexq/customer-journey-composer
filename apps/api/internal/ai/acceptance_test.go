@@ -6,8 +6,25 @@ import (
 	"github.com/negativexq/customer-journey-composer/apps/api/internal/catalog"
 	"github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
 	"os"
+	"strings"
 	"testing"
 )
+
+// recordedBrief is the brief the recovery fixtures were generated from.
+func recordedBrief(t *testing.T) string {
+	t.Helper()
+	raw, err := os.ReadFile("../../../../docs/validation/luna-live-2026-11-12/composer-request.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var request struct {
+		Prompt string `json:"prompt"`
+	}
+	if err := json.Unmarshal(raw, &request); err != nil || request.Prompt == "" {
+		t.Fatal(err)
+	}
+	return request.Prompt
+}
 
 func schemaFixture(t *testing.T, name string) string {
 	t.Helper()
@@ -44,6 +61,12 @@ func schemaFixture(t *testing.T, name string) string {
 			}
 			c["fallbacks"] = fs
 			c["discount_code"] = ""
+			// Recorded before steps carried codes: the code the brief names
+			// becomes the step's code, shown through its variable.
+			if text, _ := c["text"].(string); strings.Contains(text, "COMEBACK10") {
+				c["discount_code"] = "COMEBACK10"
+				c["text"] = strings.ReplaceAll(text, "COMEBACK10", "{{ offer.code }}")
+			}
 		}
 	}
 	p = map[string]any{"name": p["name"], "description": p["description"], "workflow": w, "explanation": "Reviewed cart recovery", "warnings": []string{}}
@@ -68,7 +91,7 @@ func TestComposerRejectsStructurallyValidBusinessOmissions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	in := Input{Provider: "openai", Action: "generate", Prompt: "Recover carts", AcceptanceContract: catalog.RecoveryEURContract, Workflow: workflow.Workflow{SchemaVersion: 1, Nodes: []workflow.Node{}, Edges: []workflow.Edge{}}}
+	in := Input{Provider: "openai", Action: "generate", Prompt: recordedBrief(t), AcceptanceContract: catalog.RecoveryEURContract, Workflow: workflow.Workflow{SchemaVersion: 1, Nodes: []workflow.Node{}, Edges: []workflow.Edge{}}}
 	p, err := c.Compose(context.Background(), in)
 	if err != nil {
 		t.Fatal(err)

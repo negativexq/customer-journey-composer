@@ -24,10 +24,12 @@ type sequence struct {
 	outputs []string
 	err     error
 	calls   int
+	prompts []string
 }
 
-func (s *sequence) Generate(context.Context, Request) (ProviderResult, error) {
+func (s *sequence) Generate(_ context.Context, r Request) (ProviderResult, error) {
 	s.calls++
+	s.prompts = append(s.prompts, r.Prompt)
 	if s.err != nil {
 		return ProviderResult{}, s.err
 	}

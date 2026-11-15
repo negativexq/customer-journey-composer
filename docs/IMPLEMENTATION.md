@@ -268,6 +268,28 @@ Verified locally:
 - `./scripts/test-integration.sh`: all packages.
 - On the rebuilt stack, `POST /messages/preview` labelled a coded email "İndirim kodun" for `tr-TR`, "Ihr Rabattcode" for `de` and "Your discount code" for `ru`.
 
+## Generated messages compared with the brief — 2026-11-15
+
+Taken from Smart Campaign Composer's "The rule and the messages are compared with the brief" and "What was asked and not done is shown".
+
+- New `internal/factcheck` reads links (with or without a scheme, Turkish suffixes trimmed), discount codes, numbers, lengths of time and discount percentages, ignoring variables, markup and entities.
+- The composer refuses generated text stating a link, code or number that the request and the person's existing messages do not contain. The model gets the reasons for its one repair; a second failure returns no proposal. Attempts count these issues as `validation.facts`.
+- A typed-out code must become `discount_code` and `{{ offer.code }}`.
+- `Proposal.not_done` lists the brief's links, codes and discounts that no message carries. The creation review and the AI panel show them, and the AI panel asks for acknowledgement.
+- The prompt also says not to state how a customer was selected; the backend does not check this.
+- The recovery acceptance test now uses its recorded brief. Its 2026-11-11 fixture is upgraded to set COMEBACK10 as the SMS step's code.
+
+Verified locally:
+
+- `make fmt-check`, `make lint`, `make typecheck`, `make test` and `git diff --check`.
+- `go test ./internal/factcheck ./internal/ai`: paired refusals and passes, repair feedback, the not-done notes, and the ten reviewed live journeys passing unchanged.
+- `npx playwright test --workers=2`: 102/102. `behavior-checks.spec.ts` shows the note on desktop and mobile. A first run failed 8 tests: `not_done` without `omitempty` became a required field, so saving an older proposal was refused. Making it optional fixed that.
+- The review panel was checked by eye.
+
+Not covered:
+
+- No live generation has run with this check. How often it costs gpt-6-luna a repair is not measured.
+
 ## Spacing and sub-navigation sweep — 2026-11-15
 
 - Preview & Test's "Message preview" / "Journey path & Test Lab" buttons sat directly under the journey tabs and looked like a second tab row with no selected state. They are now a segmented control with space above and below and `aria-pressed` on the chosen view.

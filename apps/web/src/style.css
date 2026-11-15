@@ -4935,6 +4935,30 @@ td {
 .review-warnings li {
   margin: 10px 0;
 }
+.not-done {
+  padding: 10px 12px;
+  border: 1px solid var(--amber-62);
+  border-radius: 8px;
+  background: var(--amber-97);
+  color: var(--amber-53-text);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.not-done h3 {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.not-done ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.not-done li {
+  overflow-wrap: anywhere;
+}
+.not-done li + li {
+  margin-top: 4px;
+}
 .diagram-context {
   border: 1px solid var(--border);
   background: var(--gray-99);

@@ -118,7 +118,7 @@ test('reviewed business checks survive AI layout and block a wrong channel after
     };
     return route.fulfill({
       contentType: 'text/event-stream',
-      body: `data: ${JSON.stringify({ type: 'ready', proposal: { schema_version: 'composer.v5', action: 'generate', name: 'Checked journey', description: 'Independent expectations', workflow, explanation: 'One email for eligible budgets.', warnings: [], diff: { metadata_changed: true, edges_changed: true, exit_changed: false, reentry_changed: false, added_nodes: ['start', 'budget', 'email', 'done', 'ineligible'], removed_nodes: [], updated_nodes: [], changed_conditions: [], changed_messages: [] } } })}\n\n`,
+      body: `data: ${JSON.stringify({ type: 'ready', proposal: { schema_version: 'composer.v5', action: 'generate', name: 'Checked journey', description: 'Independent expectations', workflow, explanation: 'One email for eligible budgets.', warnings: [], not_done: ['The brief gives the link https://example.com/start, but no message uses it.'], diff: { metadata_changed: true, edges_changed: true, exit_changed: false, reentry_changed: false, added_nodes: ['start', 'budget', 'email', 'done', 'ineligible'], removed_nodes: [], updated_nodes: [], changed_conditions: [], changed_messages: [] } } })}\n\n`,
     });
   });
   await page.goto('/journeys/new');
@@ -152,6 +152,9 @@ test('reviewed business checks survive AI layout and block a wrong channel after
   await expect(page.getByRole('region', { name: 'Reviewed behavior expectations' })).toContainText(
     '1 email · 0 SMS',
   );
+  await expect(
+    page.getByRole('region', { name: 'In the brief, not in the draft', exact: true }),
+  ).toContainText('https://example.com/start, but no message uses it');
   await page.getByLabel('I reviewed the flow, messages and assumptions').check();
   await page.getByRole('button', { name: 'Approve & open builder', exact: true }).click();
   await expect(page.getByText('Editing draft', { exact: true })).toBeVisible();

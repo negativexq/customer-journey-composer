@@ -17,6 +17,8 @@ export type Proposal = {
   workflow: Workflow;
   explanation: string;
   warnings: string[];
+  // Links, codes and discounts the brief asks for that no message carries.
+  not_done?: string[];
   generation?: {
     attempts: unknown[];
     usage: { input_tokens: number; output_tokens: number } | null;

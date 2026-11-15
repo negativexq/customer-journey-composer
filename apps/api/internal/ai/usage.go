@@ -26,6 +26,7 @@ type ValidationSummary struct {
 	Workflow int `json:"workflow"`
 	Message  int `json:"message"`
 	Behavior int `json:"behavior"`
+	Facts    int `json:"facts"`
 }
 type Attempt struct {
 	Validation *ValidationSummary `json:"validation,omitempty"`
