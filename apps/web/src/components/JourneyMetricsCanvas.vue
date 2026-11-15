@@ -167,7 +167,9 @@ function start() {
 function initial() {
   if (!placed) {
     placed = true;
-    start();
+    // A map opened with a step already chosen, e.g. on returning to it, shows that step.
+    if (props.selectedNode && positions.value[props.selectedNode]) focus(props.selectedNode);
+    else start();
   }
 }
 function focus(id: string) {

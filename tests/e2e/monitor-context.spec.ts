@@ -94,6 +94,8 @@ test('monitor keeps the latest selected customer when an older response arrives 
       .poll(async () => (await (await page.request.get('/api/v1/executions/' + id)).json()).state)
       .toBe('COMPLETED');
   await page.goto(`/journeys/${journey.id}?tab=live-monitor`);
+  const sections = page.getByRole('navigation', { name: 'Monitor sections' });
+  await sections.getByRole('button', { name: 'Executions', exact: true }).click();
   await expect(page.getByRole('button', { name: /monitor_b · COMPLETED/ })).toBeVisible();
   let release = () => {};
   const barrier = new Promise<void>((resolve) => {
@@ -127,6 +129,9 @@ test('monitor keeps the latest selected customer when an older response arrives 
     await expect(inspector).toContainText('monitor_b');
     await expect(inspector).not.toContainText('monitor_a');
     await expect(inspector.locator('.timeline-step')).toHaveCount(2);
+    // The selected customer stays selected on the map section.
+    await sections.getByRole('button', { name: 'Journey map', exact: true }).click();
+    await expect(inspector).toContainText('monitor_b');
     await expect(page.locator('.monitor-canvas .node-metrics')).toHaveCount(2);
     await page
       .locator('.journey-tabs')

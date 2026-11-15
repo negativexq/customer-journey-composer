@@ -90,10 +90,13 @@ test('builds a connected workflow, validates and publishes an immutable version'
     })
     .toBe('COMPLETED');
   await page.getByRole('button', { name: 'Live Monitor', exact: true }).click();
+  const sections = page.getByRole('navigation', { name: 'Monitor sections' });
+  await sections.getByRole('button', { name: 'Executions', exact: true }).click();
   await page.getByLabel('Track customer ID').fill('cart_customer');
   await page.getByRole('button', { name: 'Track customer', exact: true }).click();
   await page.getByRole('button', { name: /cart_customer · COMPLETED/ }).click();
   await expect(page.getByRole('heading', { name: 'Customer journey' })).toBeVisible();
+  await sections.getByRole('button', { name: 'Journey map', exact: true }).click();
   await expect(page.locator('.monitor-canvas .vue-flow__node')).toHaveCount(2);
   await expect
     .poll(async () => {

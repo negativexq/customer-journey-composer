@@ -279,6 +279,7 @@ function clearSelection() {
   emit('selection', {});
 }
 function selectNode(id: string) {
+  if (sectioned.value && section.value === 'messages') section.value = 'map';
   showMessages.value = false;
   overdueFilter.value = false;
   clearSelection();
@@ -292,16 +293,34 @@ function selectNode(id: string) {
   messageChannel.value = '';
   void refresh(true);
 }
+// Live mode splits the monitor into sections, like Settings: the map, the people in the journey
+// and the messages it sent. Analytics keeps everything on one page.
+type Section = 'map' | 'people' | 'messages';
+const section = ref<Section>(
+  props.initialExecutionId || props.initialDeliveryId ? 'people' : 'map',
+);
+const sectioned = computed(() => props.mode !== 'analytics');
+const shows = (part: Section) => !sectioned.value || section.value === part;
+function openSection(next: Section) {
+  if (next === section.value) return;
+  section.value = next;
+  if (next === 'messages') browseChannel('');
+  else if (showMessages.value) {
+    showMessages.value = false;
+    if (!selectedNode.value) void refresh(true);
+  }
+}
 // A count and the list it filters can be a screen apart. Bring the list to the
 // reader only when it is out of view, so clicks next to the list do not jump.
 const people = ref<HTMLElement>();
 async function revealPeople() {
+  if (sectioned.value) section.value = 'people';
   await nextTick();
-  const section = people.value;
-  if (!section) return;
-  const top = section.getBoundingClientRect().top;
+  const list = people.value;
+  if (!list) return;
+  const top = list.getBoundingClientRect().top;
   if (top >= 0 && top <= window.innerHeight * 0.6) return;
-  section.scrollIntoView({
+  list.scrollIntoView({
     block: 'start',
     behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
   });
@@ -374,6 +393,7 @@ function browseChannel(channel: string, status = '') {
   clearSelection();
   selectedNode.value = '';
   showMessages.value = true;
+  if (sectioned.value) section.value = 'messages';
   messageChannel.value = channel;
   messageStatus.value = status;
   messageReason.value = '';
@@ -710,6 +730,8 @@ onBeforeUnmount(() => {
           (id) => {
             if (id === 'all') browse();
             else {
+              // Choosing a step shows it on the map.
+              section = 'map';
               selectNode(id);
               nextTick(() => canvas?.focus(id));
             }
@@ -801,12 +823,32 @@ onBeforeUnmount(() => {
         </div>
         <TrendChart :data="chartData" />
       </section>
+      <nav v-if="sectioned" class="monitor-sections" aria-label="Monitor sections">
+        <button
+          v-for="part in [
+            { id: 'map', label: 'Journey map', icon: 'workflow' },
+            { id: 'people', label: 'Executions', icon: 'users' },
+            { id: 'messages', label: 'Messages', icon: 'email' },
+          ] as const"
+          :key="part.id"
+          type="button"
+          :aria-current="section === part.id ? 'page' : undefined"
+          @click="openSection(part.id)"
+        >
+          <AppIcon :name="part.icon" :size="15" />{{ part.label }}
+        </button>
+      </nav>
       <div
         class="observe-layout"
-        :class="{ 'has-details': selectedNode || selected || showMessages }"
+        :class="{
+          'has-details': selectedNode || selected || showMessages,
+          'messages-only': sectioned && section === 'messages',
+          'people-only': sectioned && section === 'people',
+        }"
       >
-        <div class="observe-main">
+        <div v-if="!sectioned || section !== 'messages'" class="observe-main">
           <JourneyMetricsCanvas
+            v-if="shows('map')"
             ref="canvas"
             :workflow="workflow"
             :insights="insights"
@@ -814,7 +856,7 @@ onBeforeUnmount(() => {
             :execution="selected"
             @select="selectNode"
           />
-          <section ref="people" class="surface observe-people">
+          <section v-if="shows('people')" ref="people" class="surface observe-people">
             <div class="surface-heading">
               <div>
                 <h3>Executions{{ selectedStep ? ' · ' + selectedStep.label : '' }}</h3>
@@ -1036,10 +1078,12 @@ onBeforeUnmount(() => {
                 <h3>{{ selectedStep?.label || 'Journey messages' }}</h3>
               </div>
               <button
+                v-if="!sectioned || section !== 'messages'"
                 aria-label="Close step breakdown"
                 @click="
                   selectedNode = '';
                   showMessages = false;
+                  if (sectioned && section === 'messages') section = 'map';
                   refresh(true);
                 "
               >

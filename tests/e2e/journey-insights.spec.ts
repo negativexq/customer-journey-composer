@@ -162,9 +162,13 @@ test('journey breakdowns preserve version, reveal blocked recipients and paginat
   await page.goto(`/journeys/${j.id}?tab=live-monitor`);
   await page.getByRole('combobox', { name: 'Published version', exact: true }).click();
   await page.getByRole('option', { name: 'Version 2', exact: true }).click();
+  await expect(page.locator('.canvas-zoom-level')).toContainText('90%');
+  // The monitor opens on the map; the people list is its own section.
+  const sections = page.getByRole('navigation', { name: 'Monitor sections' });
+  await expect(page.locator('.observe-people')).toHaveCount(0);
+  await sections.getByRole('button', { name: 'Executions', exact: true }).click();
   await expect(page.getByRole('button', { name: /v2_blocked · WAITING/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /v1_.* · WAITING/ })).toHaveCount(0);
-  await expect(page.locator('.canvas-zoom-level')).toContainText('90%');
   await page.getByRole('combobox', { name: 'Step', exact: true }).click();
   await page.getByRole('option', { name: 'Send reminder', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Step breakdown' });
@@ -200,9 +204,23 @@ test('journey breakdowns preserve version, reveal blocked recipients and paginat
   await page.getByRole('button', { name: 'Close customer journey', exact: true }).click();
   await page.getByRole('combobox', { name: 'Published version', exact: true }).click();
   await page.getByRole('option', { name: 'Version 1', exact: true }).click();
+  await sections.getByRole('button', { name: 'Executions', exact: true }).click();
   await expect(page.getByRole('button', { name: /v1_.* · WAITING/ })).toHaveCount(25);
   await page.getByRole('button', { name: 'Load more executions', exact: true }).click();
   await expect(page.getByRole('button', { name: /v1_.* · WAITING/ })).toHaveCount(27);
+  // Messages are a section of their own, shown full width without the map or the list.
+  await sections.getByRole('button', { name: 'Messages', exact: true }).click();
+  await expect(sections.getByRole('button', { name: 'Messages', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  const messages = page.getByRole('region', { name: 'Message breakdown' });
+  await expect(messages.getByRole('heading', { name: 'Journey messages' })).toBeVisible();
+  await expect(page.locator('.observe-people')).toHaveCount(0);
+  await expect(page.locator('.monitor-canvas')).toHaveCount(0);
+  await sections.getByRole('button', { name: 'Journey map', exact: true }).click();
+  await expect(page.locator('.monitor-canvas')).toBeVisible();
+  await expect(messages).toHaveCount(0);
   await page
     .locator('.journey-tabs')
     .getByRole('button', { name: 'Analytics', exact: true })
