@@ -95,7 +95,7 @@ test('virtual clock runs persisted sandbox without changing production', async (
   await page.locator('.inbox-row').first().click();
   await expect(page.getByTitle('Test email preview')).toBeVisible();
   await page.getByRole('button', { name: 'Attempts', exact: true }).click();
-  await expect(page.locator('.inbox-detail')).toContainText('ACCEPTED');
+  await expect(page.locator('.inbox-detail')).toContainText('Accepted');
   await page.getByRole('button', { name: 'Compare with previous run', exact: true }).click();
   await expect(page.locator('.inbox-detail pre')).toContainText('SIMULATED');
   await choose(page.getByLabel('Status', { exact: true }), 'Blocked');

@@ -195,6 +195,8 @@ Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test`, 
 
 Not covered: message status badges in Test Inbox rows still show upper-case codes; the insert-step menu and Test Lab advanced options were not looked at by eye.
 
+Follow-up: `StatusBadge` now shows status codes as words everywhere it is used (Test Inbox, Test Lab, Live Monitor, Customers, journey lists): `SIMULATED` → Simulated, `TEST_ACCEPTED` → Accepted, `PASS` → Passed, `CONDITION_NOT_MET` → Not eligible. The code stays on the badge as `data-status`, and its colour is unchanged. One `test-lab.spec.ts` assertion now expects "Accepted". Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`, rebuilt `web`, Playwright 96/96 desktop/mobile; Test Inbox rows checked by eye in the light theme at 1440 px.
+
 ## Product acceptance verification — 2026-11-11
 
 Verified locally against source `b1b7ab4`, before this documentation update:
