@@ -158,7 +158,7 @@ ol {
 .route-now {
   padding: 2px 6px;
   border-radius: 5px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   background: var(--accent-soft);
   color: var(--accent-text);

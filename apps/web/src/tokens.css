@@ -15,7 +15,7 @@
   --surface: light-dark(#ffffff, #181b20);
   --border: light-dark(#e6e9f0, #2c2f35);
   --text: light-dark(#263348, #d6e2f6);
-  --muted: light-dark(#667085, #a0a9bd);
+  --muted: light-dark(#556075, #a0a9bd);
   --on-solid: #ffffff;
   --accent: #6650e8;
   --accent-dark: light-dark(#513ccc, #7866f0);
@@ -131,6 +131,7 @@
   --blue-70-text: light-dark(#70a4cf, #7cb1dd);
   --blue-69: light-dark(#739ed4, #739ed4);
   --blue-67-text: light-dark(#6599d2, #7aafe9);
+  --blue-50-text: light-dark(#31688c, #82afe0);
   --blue-58-text: light-dark(#527dab, #82afe0);
   --blue-56-text: light-dark(#3e7b9e, #70aed3);
   /* teal */

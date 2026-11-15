@@ -290,6 +290,23 @@ Not covered:
 
 - No live generation has run with this check. How often it costs gpt-6-luna a repair is not measured.
 
+## Text contrast — 2026-11-15
+
+Frontend-only. Secondary and colored text was too pale: the sidebar menu measured 3.1:1 on white, below the 4.5:1 that WCAG AA and the UI/UX Pro Max guidance require for normal text.
+
+- `--muted` is darker in light mode (`#556075`). Text that used the pale gray tokens now uses it, and the sidebar menu uses a darker gray.
+- Selected tabs, filters, counts and avatars use the accent text tokens. Status badges, alerts, errors, notices, the virtual clock and Test Lab assertions use the darker green, red, amber and blue text steps; a new `--blue-50-text` was added for blue.
+- No text is smaller than 12px; the 11px labels in the stylesheet and five components were raised.
+- Disabled buttons keep their reduced opacity, which the guidance allows.
+
+Verified locally:
+
+- A Playwright script measured the rendered contrast of every text element on 20 screens, in light and dark, at 1440×900. Before: 499 elements below the threshold (26 distinct). After: 20, all disabled buttons (4 distinct).
+- Overview and the journey builder were checked by eye in light and dark.
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`, Docker web rebuild and `npx playwright test --workers=2`.
+
+Not covered: text over images or gradients was skipped by the measurement, and only the first page of each screen was measured; dialogs, menus and hover states were not opened.
+
 ## Spacing and sub-navigation sweep — 2026-11-15
 
 - Preview & Test's "Message preview" / "Journey path & Test Lab" buttons sat directly under the journey tabs and looked like a second tab row with no selected state. They are now a segmented control with space above and below and `aria-pressed` on the chosen view.

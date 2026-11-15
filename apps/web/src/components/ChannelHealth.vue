@@ -265,7 +265,7 @@ onBeforeUnmount(() => clearInterval(timer));
 }
 .channel-stats dt {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 .channel-stats dd {
   margin: 0;

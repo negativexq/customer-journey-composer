@@ -175,7 +175,7 @@ button svg {
   width: 28px;
   height: 28px;
   background: var(--accent-soft);
-  color: var(--violet-61-text);
+  color: var(--accent-text-strong);
   font-weight: 600;
   border-radius: 6px;
 }
@@ -199,7 +199,7 @@ button svg {
 .nav-item {
   border: none;
   background: none;
-  color: var(--gray-61);
+  color: var(--gray-46b);
   display: flex;
   gap: 11px;
   justify-content: flex-start;
@@ -218,7 +218,7 @@ button svg {
 }
 .nav-item.selected {
   background: var(--accent-soft);
-  color: var(--violet-57b-text);
+  color: var(--accent-text-strong);
   font-weight: 600;
 }
 .nav-item.selected svg {
@@ -228,7 +228,7 @@ button svg {
   margin-left: auto;
   border-radius: 4px;
   background: var(--violet-91);
-  color: var(--violet-63-text);
+  color: var(--accent-text-strong);
   padding: 2px 5px;
   font-size: 12px;
 }
@@ -249,8 +249,8 @@ button svg {
   width: 31px;
   height: 31px;
   border-radius: 50%;
-  background: var(--amber-94);
-  color: var(--amber-62);
+  background: var(--amber-97);
+  color: var(--amber-53-text);
   font-size: 12px;
   font-weight: 600;
   flex-shrink: 0;
@@ -402,7 +402,7 @@ h3 {
   margin: 8px 0 0;
 }
 .greeting-dot {
-  color: var(--violet-71-text);
+  color: var(--accent-text);
 }
 .surface,
 .panel {
@@ -458,7 +458,7 @@ h3 {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  color: var(--gray-61);
+  color: var(--muted);
   font-size: 12px;
 }
 .metric-icon {
@@ -713,7 +713,7 @@ h3 {
 }
 .status-filters button.active {
   background: var(--accent-soft);
-  color: var(--violet-64-text);
+  color: var(--accent-text-strong);
 }
 .status-filters button span {
   font-size: 12px;
@@ -793,7 +793,7 @@ h3 {
   white-space: nowrap;
   font-weight: 500;
   background: var(--gray-96);
-  color: var(--gray-62);
+  color: var(--muted);
 }
 .status-badge i {
   width: 4px;
@@ -803,23 +803,23 @@ h3 {
 }
 .tone-green {
   background: var(--green-97);
-  color: var(--green-55-text);
+  color: var(--green-43-text);
 }
 .tone-red {
   background: var(--red-96);
-  color: var(--red-65-text);
+  color: var(--red-49-text);
 }
 .tone-amber {
   background: var(--amber-97);
-  color: var(--amber-57-text);
+  color: var(--amber-53-text);
 }
 .tone-blue {
   background: var(--gray-96);
-  color: var(--blue-58-text);
+  color: var(--blue-50-text);
 }
 .tone-purple {
   background: var(--accent-soft);
-  color: var(--violet-56-text);
+  color: var(--accent-text-strong);
 }
 .live-label {
   display: flex;
@@ -949,7 +949,7 @@ h3 {
 }
 .getting-started-strip strong {
   font-size: 12px;
-  color: var(--violet-58);
+  color: var(--accent-text-strong);
   font-weight: 600;
 }
 .getting-started-strip p {
@@ -976,7 +976,7 @@ label {
   gap: 7px;
   font-size: 12px;
   font-weight: 500;
-  color: var(--gray-60);
+  color: var(--muted);
 }
 input,
 textarea,
@@ -1061,12 +1061,12 @@ label small {
 }
 .error-message {
   font-size: 12px;
-  color: var(--red-64-text);
+  color: var(--red-49-text);
   line-height: 1.6;
   margin: 0;
 }
 .warning-message {
-  color: var(--amber-71-text) !important;
+  color: var(--amber-53-text) !important;
 }
 .inline-alert {
   display: flex;
@@ -1076,14 +1076,14 @@ label small {
   background: var(--gray-99b);
   border-radius: 7px;
   padding: 11px 13px;
-  color: var(--amber-69-text);
+  color: var(--amber-53-text);
   font-size: 12px;
   margin-bottom: 16px;
 }
 .error-alert {
   border-color: var(--red-92);
   background: var(--gray-98b);
-  color: var(--red-64b-text);
+  color: var(--red-49-text);
 }
 .inline-alert > .icon-button {
   margin-left: auto;
@@ -1196,7 +1196,7 @@ tbody tr:hover {
   white-space: nowrap;
 }
 .list-status-tabs button.active {
-  color: var(--violet-63-text);
+  color: var(--accent-text-strong);
 }
 .list-status-tabs button.active:after {
   position: absolute;
@@ -1476,7 +1476,7 @@ tbody tr:hover {
   white-space: nowrap;
 }
 .journey-tabs > button.selected {
-  color: var(--violet-63-text);
+  color: var(--accent-text-strong);
 }
 .journey-tabs > button.selected:after {
   content: '';
@@ -1879,7 +1879,7 @@ tbody tr:hover {
 }
 .node-warning {
   font-size: 12px;
-  color: var(--red-67-text);
+  color: var(--red-49-text);
 }
 .vue-flow__handle {
   width: 7px;
@@ -2254,10 +2254,10 @@ tbody tr:hover {
 }
 .connection-status {
   font-size: 12px;
-  color: var(--green-72);
+  color: var(--green-43-text);
 }
 .connection-status.error {
-  color: var(--red-70);
+  color: var(--red-49-text);
 }
 .small-dot {
   width: 5px;
@@ -3162,7 +3162,7 @@ pre {
   width: 28px;
 }
 .accepted-number {
-  color: var(--green-61);
+  color: var(--green-43-text);
 }
 .table-caption {
   display: flex;
@@ -3195,7 +3195,7 @@ pre {
 .outcomes-summary > div:first-child strong {
   font-size: 26px;
   font-weight: 500;
-  color: var(--gray-62);
+  color: var(--muted);
 }
 .outcomes-summary small {
   font-size: 12px;
@@ -3433,12 +3433,12 @@ pre {
 .virtual-clock small {
   font-size: 12px;
   letter-spacing: normal;
-  color: var(--amber-76);
+  color: var(--amber-53-text);
 }
 .virtual-clock strong {
   font-size: 13px;
   font-weight: 600;
-  color: var(--violet-62);
+  color: var(--accent-text-strong);
 }
 .clock-controls {
   display: flex;
@@ -3512,19 +3512,19 @@ pre {
   align-items: center;
   gap: 4px;
   background: var(--gray-97);
-  color: var(--red-75b);
+  color: var(--red-49-text);
   border: 1px solid var(--red-93);
   border-radius: 4px;
   padding: 4px 6px;
 }
 .assertion-list > span.passed {
   background: var(--gray-97b);
-  color: var(--green-74b);
+  color: var(--green-43-text);
   border-color: var(--green-94);
 }
 .assertion-list small {
   font-size: 12px;
-  color: var(--green-80);
+  color: var(--green-43-text);
 }
 .execution-timeline {
   padding: 10px 22px 15px;
@@ -3690,7 +3690,7 @@ pre {
 }
 .notice-message {
   font-size: 12px;
-  color: var(--green-70);
+  color: var(--green-43-text);
   margin: 0 0 15px;
 }
 @media (max-width: 1100px) {
@@ -3957,7 +3957,7 @@ pre {
 }
 .filter-option small {
   font-size: 12px;
-  color: var(--gray-61);
+  color: var(--muted);
 }
 .filter-option[aria-selected='true'] {
   color: var(--violet-53-text);
@@ -3975,11 +3975,11 @@ pre {
   gap: 7px;
   align-items: center;
   font-size: 12px;
-  color: var(--gray-59);
+  color: var(--muted);
 }
 .filter-no-results {
   padding: 20px 10px;
-  color: var(--gray-59);
+  color: var(--muted);
   font-size: 12px;
 }
 .analytics-filter-bar {
@@ -4000,7 +4000,7 @@ pre {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--gray-60);
+  color: var(--muted);
   font-size: 12px;
 }
 .analytics-scope-note > span {
@@ -4497,7 +4497,7 @@ td {
   padding: 8px 0;
   background: var(--surface);
   color: var(--gray-44);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 16px;
   font-variant-numeric: tabular-nums;
   text-align: center;
@@ -4678,7 +4678,7 @@ td {
   margin: 16px 0;
 }
 .brief-examples > span {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
 }
@@ -4700,7 +4700,7 @@ td {
   font-size: 12px;
 }
 .brief-examples small {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--muted);
 }
@@ -4793,7 +4793,7 @@ td {
   place-items: center;
   border: 1px solid var(--border);
   border-radius: 50%;
-  font-size: 11px;
+  font-size: 12px;
   width: 23px;
   height: 23px;
   font-weight: 500;
@@ -4871,7 +4871,7 @@ td {
   border-bottom: 1px solid var(--border);
 }
 .submitted-brief small {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
 }
@@ -4984,7 +4984,7 @@ td {
   color: var(--muted);
 }
 .diagram-hint {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.6;
   color: var(--muted);
 }
@@ -5079,14 +5079,14 @@ td {
 }
 .diagram-branch-label {
   color: var(--violet-55-text);
-  font-size: 11px;
+  font-size: 12px;
 }
 .diagram-branch strong {
   font-size: 12px;
   line-height: 1.5;
 }
 .diagram-branch small {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--muted);
 }
@@ -5119,7 +5119,7 @@ td {
     gap: 6px;
   }
   .creation-stepper > span.active {
-    font-size: 11px;
+    font-size: 12px;
   }
   .creation-surface {
     padding: 18px;
@@ -5190,7 +5190,7 @@ fieldset.scenario-form {
 .journey-test-context p,
 .suggested-checks p,
 .journey-test-context li {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.6;
   color: var(--muted);
 }
@@ -5303,7 +5303,7 @@ fieldset.scenario-form {
   gap: 3px;
 }
 .scope-select-trigger small {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 .scope-select-trigger[data-state='open'] {
@@ -5353,7 +5353,7 @@ fieldset.scenario-form {
 }
 .observe-freshness small {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   margin-top: 4px;
 }
 .observe-kpis {
@@ -5448,7 +5448,7 @@ fieldset.scenario-form {
   border-radius: 6px;
 }
 .execution-facts dt {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 .execution-facts dd {
@@ -5482,7 +5482,7 @@ fieldset.scenario-form {
 }
 .node-detail-stats dt {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 .node-detail-stats dd {
   font-size: 22px;
@@ -5530,12 +5530,12 @@ fieldset.scenario-form {
 .observe-details .list-row small {
   display: block;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   margin-top: 5px;
 }
 .observe-record-list time {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 .load-more {
   display: block;
@@ -5602,7 +5602,7 @@ fieldset.scenario-form {
     gap: 4px;
   }
   .metrics-canvas-actions button {
-    font-size: 11px;
+    font-size: 12px;
   }
   .observe-record-list time {
     display: none;
@@ -6884,7 +6884,7 @@ fieldset.scenario-form {
   white-space: nowrap;
 }
 .app-select-value > small {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   margin-bottom: 1px;
 }
@@ -6946,7 +6946,7 @@ fieldset.scenario-form {
 }
 .app-select-group {
   padding: 8px 8px 4px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
 }
@@ -6975,7 +6975,7 @@ fieldset.scenario-form {
   min-width: 0;
 }
 .app-select-text > small {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.35;
   color: var(--muted);
 }
@@ -7002,7 +7002,7 @@ fieldset.scenario-form {
 .segmented-field > .field-label {
   font-size: 12px;
   font-weight: 500;
-  color: var(--gray-60);
+  color: var(--muted);
 }
 .segmented-control {
   display: flex;

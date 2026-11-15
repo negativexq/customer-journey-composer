@@ -424,7 +424,7 @@ onMounted(
   font-size: 13px;
 }
 .inbox-row-body small {
-  font-size: 11px;
+  font-size: 12px;
 }
 .inbox-row .status-badge,
 .inbox-row > :last-child {
