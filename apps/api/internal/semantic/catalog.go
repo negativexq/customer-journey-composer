@@ -172,7 +172,8 @@ func visit(w *workflow.Workflow, fn func(Reference) string) {
 			scope = ""
 		} else if strings.HasPrefix(*p, "event.properties.") {
 			kind = "event_field"
-		} else if *p == "event.event_name" || *p == "event.event_id" || *p == "event.occurred_at" {
+		} else if *p == "event.event_name" || *p == "event.event_id" || *p == "event.occurred_at" || *p == "offer.code" {
+			// offer.code is the message step's own discount code.
 			return
 		}
 		*p = fn(Reference{Key: Key(kind, scope, *p), Kind: kind, EventName: scope, Path: *p})

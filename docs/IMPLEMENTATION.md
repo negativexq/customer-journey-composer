@@ -290,6 +290,20 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Coded journeys can be approved — 2026-11-16
+
+Found while creating journeys through the browser with gpt-6-luna. A journey whose message showed `{{ offer.code }}` could not be approved: the data-mapping check looked for `offer.code` in workspace data, marked it "Not connected" and kept "Approve & open builder" disabled. The earlier live runs saved drafts through the API and never reached this screen.
+
+- `offer.code` is the message step's own discount code, so grounding now skips it like `event.event_name`.
+
+Verified locally:
+
+- New `TestOfferCodeIsNotWorkspaceData` failed before the change and passes after.
+- `make fmt-check`, `make lint`, `make typecheck`, `make test` and `git diff --check`.
+- In the browser, "Refresh data" on the cart proposal removed the "Not connected" row and enabled approval.
+
+Not covered: Test Lab still asks to "Review offer.code in Advanced options"; that hint is in the web client and was not changed.
+
 ## Text contrast — 2026-11-15
 
 Frontend-only. Secondary and colored text was too pale: the sidebar menu measured 3.1:1 on white, below the 4.5:1 that WCAG AA and the UI/UX Pro Max guidance require for normal text.

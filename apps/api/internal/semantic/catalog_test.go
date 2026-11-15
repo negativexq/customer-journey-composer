@@ -146,3 +146,17 @@ func TestCorrelationCannotConfirmIncompatibleIdentifierTypes(t *testing.T) {
 		t.Fatal("matching catalog identities were rejected")
 	}
 }
+
+// The discount code a message shows comes from the step itself, not from
+// workspace data, so it never needs a catalog definition.
+func TestOfferCodeIsNotWorkspaceData(t *testing.T) {
+	w := workflow.Workflow{SchemaVersion: 1, Nodes: []workflow.Node{{ID: "start", Type: "event_trigger", Config: workflow.Config{EventName: "signed_up"}}, {ID: "sms", Type: "sms", Config: workflow.Config{Text: "Code {{ offer.code }}", DiscountCode: "SEPET15"}}}}
+	for _, r := range References(w) {
+		if strings.Contains(r.Path, "offer") {
+			t.Fatal("offer.code treated as workspace data", r)
+		}
+	}
+	if !Analyze(w, append(Builtins(), event("signed_up", "Registration")), nil).Ready {
+		t.Fatal("a coded message blocked approval")
+	}
+}
