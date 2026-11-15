@@ -288,7 +288,7 @@ Verified locally:
 
 Not covered:
 
-- No live generation has run with this check. How often it costs gpt-6-luna a repair is not measured.
+- The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
 ## Text contrast — 2026-11-15
 

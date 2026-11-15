@@ -1,0 +1,5236 @@
+{
+  "started_at": "2026-11-15T20:12:01.962Z",
+  "source_commit": "f896fb4",
+  "settings": {
+    "default_provider": "openai",
+    "enabled": true,
+    "providers": {
+      "claude": {
+        "configured": false,
+        "model": ""
+      },
+      "openai": {
+        "configured": true,
+        "model": "gpt-6-luna"
+      }
+    },
+    "schema_version": "composer.v6"
+  },
+  "journeys": [
+    {
+      "id": "cart_code",
+      "name": "Sepet terk – SEPET15 kodu",
+      "feature": "discount code in email and SMS, correlated purchase exit, threshold",
+      "brief": "Sepet terk edildiğinde (cart_abandoned) müşteri akışa girsin. Sepet tutarı (event.properties.amount) 50’nin altındaysa uygun değil olarak çık. 2 saat bekle. Akışın herhangi bir anında aynı sepet için sipariş (order_completed, cart_id eşleşmesi) gelirse hemen dönüşüm olarak çık; başka bir sepetin siparişi akışı bitirmez. 2 saat sonunda sipariş yoksa SEPET15 indirim kodunu sunan bir e-posta gönder. Sonra 24 saat bekle; hâlâ sipariş yoksa ve müşterinin SMS izni varsa aynı kodu içeren kısa bir SMS gönder ve normal tamamla; SMS izni yoksa SMS göndermeden normal tamamla. Bağlantı olarak https://example.com/sepet kullan. Mesajlar Türkçe olsun ve müşterinin adını kullansın; ad yoksa \"Merhaba\" gibi bir yedek kullan.",
+      "catalog": [
+        {
+          "kind": "customer_field",
+          "path": "customer.attributes.first_name",
+          "label": "Müşterinin adı",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event",
+          "event_name": "cart_abandoned",
+          "label": "Sepet terk edildi",
+          "data_type": "event",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event_field",
+          "event_name": "cart_abandoned",
+          "path": "event.properties.cart_id",
+          "label": "Sepet numarası",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event_field",
+          "event_name": "cart_abandoned",
+          "path": "event.properties.amount",
+          "label": "Sepet tutarı",
+          "data_type": "number",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event",
+          "event_name": "order_completed",
+          "label": "Sipariş tamamlandı",
+          "data_type": "event",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event_field",
+          "event_name": "order_completed",
+          "path": "event.properties.cart_id",
+          "label": "Siparişin sepet numarası",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        }
+      ],
+      "workspace_id": "bf2e1ebc-05ac-49f7-a660-62c04ca682fd",
+      "behavior_checks": {
+        "version": 2,
+        "confirmed": true,
+        "entry_event": "cart_abandoned",
+        "case_name": "No order",
+        "email_count": 1,
+        "sms_count": 1,
+        "outcome": "completed",
+        "duration_seconds": 93600,
+        "inputs": {
+          "customer.attributes.first_name": "Deniz",
+          "event.properties.cart_id": "cart-1",
+          "event.properties.amount": 80
+        },
+        "thresholds": [
+          {
+            "path": "event.properties.amount",
+            "operator": "greater_than_or_equal",
+            "value": 50
+          }
+        ],
+        "ineligible_outcome": "condition_not_met",
+        "alternatives": [
+          {
+            "name": "Same cart ordered within two hours",
+            "events": [
+              {
+                "event_name": "order_completed",
+                "after_seconds": 3600,
+                "entry_binding": {
+                  "entry_path": "event.properties.cart_id",
+                  "event_path": "event.properties.cart_id",
+                  "operator": "equals"
+                },
+                "properties": {
+                  "cart_id": "cart-1"
+                }
+              }
+            ],
+            "email_count": 0,
+            "sms_count": 0,
+            "outcome": "converted",
+            "duration_seconds": 3600
+          },
+          {
+            "name": "No SMS consent",
+            "consents": {
+              "sms": false
+            },
+            "email_count": 1,
+            "sms_count": 0,
+            "outcome": "completed",
+            "duration_seconds": 93600
+          },
+          {
+            "name": "Below threshold",
+            "inputs": {
+              "event.properties.amount": 30
+            },
+            "email_count": 0,
+            "sms_count": 0,
+            "outcome": "condition_not_met",
+            "duration_seconds": 0
+          }
+        ]
+      },
+      "generation_requests": [
+        {
+          "attempt": 1,
+          "http_status": 200,
+          "ms": 21295
+        }
+      ],
+      "generation": {
+        "attempts": [
+          {
+            "provider": "openai",
+            "requested_model": "gpt-6-luna",
+            "model": "gpt-6-luna",
+            "request_id": "req_43966e0076644761a6cb579aa706ddab",
+            "duration_ms": 21276,
+            "http_status": 200,
+            "usage": {
+              "input_tokens": 4983,
+              "output_tokens": 2353,
+              "reasoning_tokens": 1236,
+              "cached_input_tokens": 0,
+              "cache_creation_tokens": 4980
+            },
+            "provider_succeeded": true,
+            "accepted": true
+          }
+        ],
+        "usage": {
+          "input_tokens": 4983,
+          "output_tokens": 2353,
+          "reasoning_tokens": 1236,
+          "cached_input_tokens": 0,
+          "cache_creation_tokens": 4980
+        }
+      },
+      "proposal": {
+        "name": "Sepet terk – SEPET15 kodu",
+        "explanation": "50 ve üzeri tutarlı sepetler akışa devam eder. Aynı sepet için sipariş akışın herhangi bir anında dönüşüm sayılır; farklı sepetin siparişi etkilemez. Sipariş yoksa iki saat sonra e-posta, 24 saat sonra SMS izni kontrolü yapılır.",
+        "warnings": [
+          "E-posta izni olmayan müşteriler için davranış belirtilmedi; e-posta öncesi izin kontrolü bu taslağa eklenmedi.",
+          "Dağıtım için e-posta ve SMS kanal ayarları ile gönderen bilgileri insan tarafından doğrulanmalıdır.",
+          "Bekleme adımlarında UTC kullanıldı; dağıtım ortamındaki saat dilimi ayarı insan tarafından doğrulanmalıdır.",
+          "The reviewed scoped obligations and eligibility boundaries passed. Unspecified customer states and event sequences still require review and Test Lab coverage."
+        ],
+        "grounding_ready": false,
+        "not_done": [],
+        "workflow": {
+          "behavior_checks": {
+            "version": 2,
+            "confirmed": true,
+            "entry_event": "cart_abandoned",
+            "inputs": {
+              "customer.attributes.first_name": "Deniz",
+              "event.properties.amount": 80,
+              "event.properties.cart_id": "cart-1"
+            },
+            "email_count": 1,
+            "sms_count": 1,
+            "outcome": "completed",
+            "duration_seconds": 93600,
+            "thresholds": [
+              {
+                "path": "event.properties.amount",
+                "operator": "greater_than_or_equal",
+                "value": 50
+              }
+            ],
+            "case_name": "No order",
+            "ineligible_outcome": "condition_not_met",
+            "alternatives": [
+              {
+                "name": "Same cart ordered within two hours",
+                "events": [
+                  {
+                    "entry_binding": {
+                      "entry_path": "event.properties.cart_id",
+                      "event_path": "event.properties.cart_id",
+                      "operator": "equals"
+                    },
+                    "event_name": "order_completed",
+                    "after_seconds": 3600,
+                    "properties": {
+                      "cart_id": "cart-1"
+                    }
+                  }
+                ],
+                "email_count": 0,
+                "sms_count": 0,
+                "outcome": "converted",
+                "duration_seconds": 3600
+              },
+              {
+                "name": "No SMS consent",
+                "consents": {
+                  "sms": false
+                },
+                "email_count": 1,
+                "sms_count": 0,
+                "outcome": "completed",
+                "duration_seconds": 93600
+              },
+              {
+                "name": "Below threshold",
+                "inputs": {
+                  "event.properties.amount": 30
+                },
+                "email_count": 0,
+                "sms_count": 0,
+                "outcome": "condition_not_met",
+                "duration_seconds": 0
+              }
+            ]
+          },
+          "schema_version": 1,
+          "nodes": [
+            {
+              "id": "trigger_cart",
+              "type": "event_trigger",
+              "label": "Sepet terk edildi",
+              "position": {
+                "x": 0,
+                "y": 160
+              },
+              "config": {
+                "event_name": "cart_abandoned"
+              }
+            },
+            {
+              "id": "eligibility",
+              "type": "condition",
+              "label": "Sepet tutarı en az 50 mi?",
+              "position": {
+                "x": 200,
+                "y": 160
+              },
+              "config": {
+                "rule": {
+                  "path": "event.properties.amount",
+                  "operator": "greater_than_or_equal",
+                  "value": 50
+                }
+              }
+            },
+            {
+              "id": "wait_order",
+              "type": "wait_event",
+              "label": "Aynı sepet için siparişi 2 saat bekle",
+              "position": {
+                "x": 420,
+                "y": 100
+              },
+              "config": {
+                "event_name": "order_completed",
+                "timeout_seconds": 7200
+              }
+            },
+            {
+              "id": "email_reminder",
+              "type": "email",
+              "label": "Sepet hatırlatma e-postası",
+              "position": {
+                "x": 650,
+                "y": 220
+              },
+              "config": {
+                "subject": "Sepetinize dönün",
+                "preheader": "Sepetiniz sizi bekliyor",
+                "html": "<p>Merhaba {{ customer.attributes.first_name }},</p><p>Sepetiniz sizi bekliyor.</p><p><a href=\"https://example.com/sepet\">Sepetinize dönün</a></p>",
+                "text": "Merhaba {{ customer.attributes.first_name }},\n\nSepetiniz sizi bekliyor.\n\nSepetinize dönün: https://example.com/sepet",
+                "fallbacks": {
+                  "customer.attributes.first_name": "Merhaba"
+                },
+                "discount_code": "SEPET15"
+              }
+            },
+            {
+              "id": "wait_after_email",
+              "type": "wait",
+              "label": "E-postadan sonra 24 saat bekle",
+              "position": {
+                "x": 870,
+                "y": 220
+              },
+              "config": {
+                "duration_seconds": 86400,
+                "timezone": "UTC"
+              }
+            },
+            {
+              "id": "sms_consent",
+              "type": "condition",
+              "label": "SMS izni var mı?",
+              "position": {
+                "x": 1080,
+                "y": 220
+              },
+              "config": {
+                "rule": {
+                  "path": "customer.consents.sms",
+                  "operator": "equals",
+                  "value": true
+                }
+              }
+            },
+            {
+              "id": "sms_reminder",
+              "type": "sms",
+              "label": "Sepet hatırlatma SMS'i",
+              "position": {
+                "x": 1300,
+                "y": 160
+              },
+              "config": {
+                "text": "Merhaba {{ customer.attributes.first_name }}, sepetiniz sizi bekliyor. Kodunuz: {{ offer.code }}. Sepetinize dönün: https://example.com/sepet",
+                "fallbacks": {
+                  "customer.attributes.first_name": "Merhaba"
+                },
+                "discount_code": "SEPET15"
+              }
+            },
+            {
+              "id": "exit_ineligible",
+              "type": "exit",
+              "label": "Uygun değil",
+              "position": {
+                "x": 420,
+                "y": 380
+              },
+              "config": {
+                "reason": "condition_not_met"
+              }
+            },
+            {
+              "id": "exit_converted",
+              "type": "exit",
+              "label": "Aynı sepet siparişi tamamlandı",
+              "position": {
+                "x": 650,
+                "y": 40
+              },
+              "config": {
+                "reason": "converted"
+              }
+            },
+            {
+              "id": "exit_completed",
+              "type": "exit",
+              "label": "Akış tamamlandı",
+              "position": {
+                "x": 1530,
+                "y": 280
+              },
+              "config": {
+                "reason": "completed"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "e1",
+              "source": "trigger_cart",
+              "target": "eligibility",
+              "port": "started"
+            },
+            {
+              "id": "e2",
+              "source": "eligibility",
+              "target": "wait_order",
+              "port": "true"
+            },
+            {
+              "id": "e3",
+              "source": "eligibility",
+              "target": "exit_ineligible",
+              "port": "false"
+            },
+            {
+              "id": "e4",
+              "source": "wait_order",
+              "target": "exit_converted",
+              "port": "matched"
+            },
+            {
+              "id": "e5",
+              "source": "wait_order",
+              "target": "email_reminder",
+              "port": "timeout"
+            },
+            {
+              "id": "e6",
+              "source": "email_reminder",
+              "target": "wait_after_email",
+              "port": "next"
+            },
+            {
+              "id": "e7",
+              "source": "wait_after_email",
+              "target": "sms_consent",
+              "port": "completed"
+            },
+            {
+              "id": "e8",
+              "source": "sms_consent",
+              "target": "sms_reminder",
+              "port": "true"
+            },
+            {
+              "id": "e9",
+              "source": "sms_consent",
+              "target": "exit_completed",
+              "port": "false"
+            },
+            {
+              "id": "e10",
+              "source": "sms_reminder",
+              "target": "exit_completed",
+              "port": "next"
+            }
+          ],
+          "global_exit": {
+            "correlation": {
+              "entry_path": "event.properties.cart_id",
+              "event_path": "event.properties.cart_id"
+            },
+            "reason": "converted",
+            "event_name": "order_completed"
+          }
+        }
+      },
+      "static_notes": [],
+      "journey_id": "2f0d4503-cc0f-43a8-a484-9c29ad4e0bc2",
+      "validation": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/Validation.json",
+        "valid": true,
+        "issues": []
+      },
+      "cases": [
+        {
+          "name": "A · No order",
+          "held_out": false,
+          "test_run_id": "f36ab48f-7e07-407e-b4a1-cff80ff895b0",
+          "expected": {
+            "email": 1,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": 93600
+          },
+          "actual": {
+            "email": 1,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": 93600,
+            "status": "COMPLETED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 2,
+          "pass": true
+        },
+        {
+          "name": "B · Same cart ordered within two hours",
+          "held_out": false,
+          "test_run_id": "158246e9-0bd2-4ef7-b96e-ec1a5a97c8df",
+          "expected": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": 3600
+          },
+          "actual": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": 3600,
+            "status": "EXITED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 0,
+          "pass": true
+        },
+        {
+          "name": "C · No SMS consent",
+          "held_out": false,
+          "test_run_id": "85f85083-5c88-44e1-a79e-906b521ca92e",
+          "expected": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 93600
+          },
+          "actual": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 93600,
+            "status": "COMPLETED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        },
+        {
+          "name": "D · Below threshold",
+          "held_out": false,
+          "test_run_id": "b36d4270-9b82-46ea-a955-3fb7a525eba4",
+          "expected": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "condition_not_met",
+            "duration": 0
+          },
+          "actual": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "condition_not_met",
+            "duration": 0,
+            "status": "EXITED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 0,
+          "pass": true
+        },
+        {
+          "name": "E · Exactly 50 qualifies",
+          "held_out": true,
+          "test_run_id": "39c89313-e4e9-4284-a9d0-17d869be2a35",
+          "expected": {
+            "email": 1,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": null
+          },
+          "actual": {
+            "email": 1,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": 93600,
+            "status": "COMPLETED"
+          },
+          "duration_matches": null,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 2,
+          "pass": true
+        },
+        {
+          "name": "F · Another cart ordered",
+          "held_out": true,
+          "test_run_id": "2539fa92-5280-4d4f-bd4f-f645275ce545",
+          "expected": {
+            "email": 1,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": null
+          },
+          "actual": {
+            "email": 1,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": 93600,
+            "status": "COMPLETED"
+          },
+          "duration_matches": null,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 2,
+          "pass": true
+        },
+        {
+          "name": "G · Same cart ordered after the email",
+          "held_out": true,
+          "test_run_id": "f35b1b65-89ca-4791-9318-66fb05a62170",
+          "expected": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": null
+          },
+          "actual": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": 36000,
+            "status": "EXITED"
+          },
+          "duration_matches": null,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        }
+      ],
+      "sample_messages": {
+        "email_reminder": {
+          "channel": "email",
+          "subject": "Sepetinize dönün",
+          "text": "Merhaba Deniz,\n\nSepetiniz sizi bekliyor.\n\nSepetinize dönün: https://example.com/sepet\n\nYour discount code: SEPET15"
+        },
+        "sms_reminder": {
+          "channel": "sms",
+          "subject": "",
+          "text": "Merhaba Deniz, sepetiniz sizi bekliyor. Kodunuz: SEPET15. Sepetinize dönün: https://example.com/sepet"
+        }
+      },
+      "publish_check": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/ResultStruct { Ready bool \"json:\\\"ready\\\"\"; Issues ListGateIssue \"json:\\\"issues\\\"\"; Policy string \"json:\\\"policy\\\"\" }Body.json",
+        "ready": true,
+        "issues": [],
+        "policy": "Consent is enforced for every send. Workspace frequency caps apply. Global exit: true. Publishing creates an immutable version."
+      },
+      "database_readback": {
+        "journeys": 1,
+        "versions": 0,
+        "live_executions": 0,
+        "live_customers": 0,
+        "delivery_jobs": 0,
+        "test_runs": 7,
+        "draft_status": "Draft"
+      },
+      "summary": {
+        "cases": 7,
+        "passed": 7,
+        "contract_passed": 4,
+        "contract_cases": 4,
+        "held_out_passed": 3,
+        "held_out_cases": 3,
+        "durations_matched": 4,
+        "durations_checked": 4,
+        "static_notes": 0,
+        "publish_ready": true
+      },
+      "verdict": "pass",
+      "wall_seconds": 22
+    },
+    {
+      "id": "welcome_click",
+      "name": "Hoş geldin – tıklama bekle",
+      "feature": "wait for a click on an earlier email (message_node)",
+      "brief": "Yeni üye olan (user_signed_up) müşteri akışa girsin. E-posta izni yoksa hemen uygun değil olarak çık. Hemen https://example.com/basla bağlantılı bir hoş geldin e-postası gönder. Bu e-postadaki bir bağlantıya 3 gün içinde tıklanırsa dönüşüm olarak çık. 3 gün içinde tıklanmazsa ikinci bir hatırlatma e-postası gönder ve normal tamamla. SMS hiç gönderme. Mesajlar Türkçe olsun ve müşterinin adını kullansın; ad yoksa \"Merhaba\" gibi bir yedek kullan.",
+      "catalog": [
+        {
+          "kind": "customer_field",
+          "path": "customer.attributes.first_name",
+          "label": "Müşterinin adı",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event",
+          "event_name": "user_signed_up",
+          "label": "Üye oldu",
+          "data_type": "event",
+          "aliases": [],
+          "enabled": true
+        }
+      ],
+      "workspace_id": "9623a707-aa63-4263-a37a-69954cbbba97",
+      "behavior_checks": {
+        "version": 2,
+        "confirmed": true,
+        "entry_event": "user_signed_up",
+        "case_name": "Never clicks",
+        "email_count": 2,
+        "sms_count": 0,
+        "outcome": "completed",
+        "duration_seconds": 259200,
+        "inputs": {
+          "customer.attributes.first_name": "Deniz"
+        },
+        "alternatives": [
+          {
+            "name": "Clicks the welcome email",
+            "events": [
+              {
+                "event_name": "message_clicked",
+                "after_seconds": 3600
+              }
+            ],
+            "email_count": 1,
+            "sms_count": 0,
+            "outcome": "converted",
+            "duration_seconds": 3600
+          },
+          {
+            "name": "No email consent",
+            "consents": {
+              "email": false
+            },
+            "email_count": 0,
+            "sms_count": 0,
+            "outcome": "condition_not_met",
+            "duration_seconds": 0
+          }
+        ]
+      },
+      "generation_requests": [
+        {
+          "attempt": 1,
+          "http_status": 200,
+          "ms": 16562
+        }
+      ],
+      "generation": {
+        "attempts": [
+          {
+            "provider": "openai",
+            "requested_model": "gpt-6-luna",
+            "model": "gpt-6-luna",
+            "request_id": "req_7fd73bdb828048c6902b62dbb84806da",
+            "duration_ms": 16552,
+            "http_status": 200,
+            "usage": {
+              "input_tokens": 4608,
+              "output_tokens": 2048,
+              "reasoning_tokens": 1142,
+              "cached_input_tokens": 0,
+              "cache_creation_tokens": 4605
+            },
+            "provider_succeeded": true,
+            "accepted": true
+          }
+        ],
+        "usage": {
+          "input_tokens": 4608,
+          "output_tokens": 2048,
+          "reasoning_tokens": 1142,
+          "cached_input_tokens": 0,
+          "cache_creation_tokens": 4605
+        }
+      },
+      "proposal": {
+        "name": "Hoş geldin – tıklama bekle",
+        "explanation": "Akış user_signed_up olayıyla başlar. E-posta izni kontrol edilir; izin varsa hoş geldin e-postası gönderilir ve bu e-postaya ait message_clicked olayı 3 gün beklenir. Tıklama dönüşümle, zaman aşımı hatırlatma e-postası ve normal tamamlanmayla sonuçlanır. İsim yoksa e-postalarda “Merhaba” yedeği kullanılır.",
+        "warnings": [
+          "Gönderim için e-posta sağlayıcısı ve diğer dağıtım ayarları insan tarafından yapılandırılmalıdır.",
+          "The reviewed scoped obligations and eligibility boundaries passed. Unspecified customer states and event sequences still require review and Test Lab coverage."
+        ],
+        "grounding_ready": true,
+        "not_done": [],
+        "workflow": {
+          "behavior_checks": {
+            "version": 2,
+            "confirmed": true,
+            "entry_event": "user_signed_up",
+            "inputs": {
+              "customer.attributes.first_name": "Deniz"
+            },
+            "email_count": 2,
+            "sms_count": 0,
+            "outcome": "completed",
+            "duration_seconds": 259200,
+            "case_name": "Never clicks",
+            "alternatives": [
+              {
+                "name": "Clicks the welcome email",
+                "events": [
+                  {
+                    "event_name": "message_clicked",
+                    "after_seconds": 3600
+                  }
+                ],
+                "email_count": 1,
+                "sms_count": 0,
+                "outcome": "converted",
+                "duration_seconds": 3600
+              },
+              {
+                "name": "No email consent",
+                "consents": {
+                  "email": false
+                },
+                "email_count": 0,
+                "sms_count": 0,
+                "outcome": "condition_not_met",
+                "duration_seconds": 0
+              }
+            ]
+          },
+          "schema_version": 1,
+          "nodes": [
+            {
+              "id": "trigger",
+              "type": "event_trigger",
+              "label": "Yeni üye oldu",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "config": {
+                "event_name": "user_signed_up"
+              }
+            },
+            {
+              "id": "consent",
+              "type": "condition",
+              "label": "E-posta izni var mı?",
+              "position": {
+                "x": 200,
+                "y": 0
+              },
+              "config": {
+                "rule": {
+                  "path": "customer.consents.email",
+                  "operator": "equals",
+                  "value": true
+                }
+              }
+            },
+            {
+              "id": "ineligible_exit",
+              "type": "exit",
+              "label": "E-posta izni yok – uygun değil",
+              "position": {
+                "x": 400,
+                "y": 160
+              },
+              "config": {
+                "reason": "condition_not_met"
+              }
+            },
+            {
+              "id": "welcome_email",
+              "type": "email",
+              "label": "Hoş geldin e-postası",
+              "position": {
+                "x": 400,
+                "y": 0
+              },
+              "config": {
+                "subject": "Hoş geldin!",
+                "preheader": "Hoş geldin!",
+                "html": "<p>{{ customer.attributes.first_name }}, hoş geldin!</p><p>Başlamak için: <a href=\"https://example.com/basla\">https://example.com/basla</a></p>",
+                "text": "{{ customer.attributes.first_name }}, hoş geldin! Başlamak için: https://example.com/basla",
+                "fallbacks": {
+                  "customer.attributes.first_name": "Merhaba"
+                }
+              }
+            },
+            {
+              "id": "click_wait",
+              "type": "wait_event",
+              "label": "Hoş geldin e-postasına tıklama bekle",
+              "position": {
+                "x": 600,
+                "y": 0
+              },
+              "config": {
+                "event_name": "message_clicked",
+                "timeout_seconds": 259200,
+                "message_node": "welcome_email"
+              }
+            },
+            {
+              "id": "converted_exit",
+              "type": "exit",
+              "label": "Tıklama – dönüşüm",
+              "position": {
+                "x": 800,
+                "y": -100
+              },
+              "config": {
+                "reason": "converted"
+              }
+            },
+            {
+              "id": "reminder_email",
+              "type": "email",
+              "label": "Hatırlatma e-postası",
+              "position": {
+                "x": 800,
+                "y": 100
+              },
+              "config": {
+                "subject": "Hoş geldin – hatırlatma",
+                "preheader": "Başlamak için",
+                "html": "<p>{{ customer.attributes.first_name }}, hoş geldin!</p><p>Başlamak için: <a href=\"https://example.com/basla\">https://example.com/basla</a></p>",
+                "text": "{{ customer.attributes.first_name }}, hoş geldin! Başlamak için: https://example.com/basla",
+                "fallbacks": {
+                  "customer.attributes.first_name": "Merhaba"
+                }
+              }
+            },
+            {
+              "id": "completed_exit",
+              "type": "exit",
+              "label": "Normal tamamlandı",
+              "position": {
+                "x": 1000,
+                "y": 100
+              },
+              "config": {
+                "reason": "completed"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "e1",
+              "source": "trigger",
+              "target": "consent",
+              "port": "started"
+            },
+            {
+              "id": "e2",
+              "source": "consent",
+              "target": "welcome_email",
+              "port": "true"
+            },
+            {
+              "id": "e3",
+              "source": "consent",
+              "target": "ineligible_exit",
+              "port": "false"
+            },
+            {
+              "id": "e4",
+              "source": "welcome_email",
+              "target": "click_wait",
+              "port": "next"
+            },
+            {
+              "id": "e5",
+              "source": "click_wait",
+              "target": "converted_exit",
+              "port": "matched"
+            },
+            {
+              "id": "e6",
+              "source": "click_wait",
+              "target": "reminder_email",
+              "port": "timeout"
+            },
+            {
+              "id": "e7",
+              "source": "reminder_email",
+              "target": "completed_exit",
+              "port": "next"
+            }
+          ]
+        }
+      },
+      "static_notes": [],
+      "journey_id": "fa6f603c-b691-4b7a-9179-322bb34a3cdc",
+      "validation": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/Validation.json",
+        "valid": true,
+        "issues": []
+      },
+      "cases": [
+        {
+          "name": "A · Never clicks",
+          "held_out": false,
+          "test_run_id": "cb3c0b99-0d59-4051-88db-4dac8a007417",
+          "expected": {
+            "email": 2,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 259200
+          },
+          "actual": {
+            "email": 2,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 259200,
+            "status": "COMPLETED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 2,
+          "pass": true
+        },
+        {
+          "name": "B · Clicks the welcome email",
+          "held_out": false,
+          "test_run_id": "38aad0ab-e987-4b3b-8210-047b4c5f41d9",
+          "expected": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": 3600
+          },
+          "actual": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": 3600,
+            "status": "EXITED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        },
+        {
+          "name": "C · No email consent",
+          "held_out": false,
+          "test_run_id": "6493b38f-66dc-46ab-960c-d836799b0fa8",
+          "expected": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "condition_not_met",
+            "duration": 0
+          },
+          "actual": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "condition_not_met",
+            "duration": 0,
+            "status": "EXITED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 0,
+          "pass": true
+        },
+        {
+          "name": "D · Opens but does not click",
+          "held_out": true,
+          "test_run_id": "57061bf2-a88e-438c-a8a1-a2b6ce12d906",
+          "expected": {
+            "email": 2,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": null
+          },
+          "actual": {
+            "email": 2,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 259200,
+            "status": "COMPLETED"
+          },
+          "duration_matches": null,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 2,
+          "pass": true
+        },
+        {
+          "name": "E · Click names the welcome step",
+          "held_out": true,
+          "test_run_id": "97bee174-c4a7-4532-a684-873335daea18",
+          "expected": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": null
+          },
+          "actual": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": 7200,
+            "status": "EXITED"
+          },
+          "duration_matches": null,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        }
+      ],
+      "sample_messages": {
+        "welcome_email": {
+          "channel": "email",
+          "subject": "Hoş geldin!",
+          "text": "Deniz, hoş geldin! Başlamak için: https://example.com/basla"
+        },
+        "reminder_email": {
+          "channel": "email",
+          "subject": "Hoş geldin – hatırlatma",
+          "text": "Deniz, hoş geldin! Başlamak için: https://example.com/basla"
+        }
+      },
+      "publish_check": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/ResultStruct { Ready bool \"json:\\\"ready\\\"\"; Issues ListGateIssue \"json:\\\"issues\\\"\"; Policy string \"json:\\\"policy\\\"\" }Body.json",
+        "ready": true,
+        "issues": [],
+        "policy": "Consent is enforced for every send. Workspace frequency caps apply. Global exit: false. Publishing creates an immutable version."
+      },
+      "database_readback": {
+        "journeys": 1,
+        "versions": 0,
+        "live_executions": 0,
+        "live_customers": 0,
+        "delivery_jobs": 0,
+        "test_runs": 5,
+        "draft_status": "Draft"
+      },
+      "summary": {
+        "cases": 5,
+        "passed": 5,
+        "contract_passed": 3,
+        "contract_cases": 3,
+        "held_out_passed": 2,
+        "held_out_cases": 2,
+        "durations_matched": 3,
+        "durations_checked": 3,
+        "static_notes": 0,
+        "publish_ready": true
+      },
+      "verdict": "pass",
+      "wall_seconds": 17.2
+    },
+    {
+      "id": "winback_code",
+      "name": "Geri kazanım – GERIDON20",
+      "feature": "discount code in email, customer-wide goal exit",
+      "brief": "Abonelik iptal edildiğinde (subscription_cancelled) akış başlasın. 7 gün bekle, sonra GERIDON20 kodunu sunan bir geri dönüş e-postası gönder (https://example.com/geri-don). Ardından 14 gün bekle ve normal tamamla. Akışın herhangi bir anında abonelik yeniden başlarsa (subscription_restarted) hemen dönüşüm olarak çık. SMS gönderme. Mesajlar Türkçe olsun ve müşterinin adını kullansın; ad yoksa \"Merhaba\" gibi bir yedek kullan.",
+      "catalog": [
+        {
+          "kind": "customer_field",
+          "path": "customer.attributes.first_name",
+          "label": "Müşterinin adı",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event",
+          "event_name": "subscription_cancelled",
+          "label": "Abonelik iptal edildi",
+          "data_type": "event",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event",
+          "event_name": "subscription_restarted",
+          "label": "Abonelik yeniden başladı",
+          "data_type": "event",
+          "aliases": [],
+          "enabled": true
+        }
+      ],
+      "workspace_id": "5c240f41-a1b3-4a48-80f0-4cd80a01782e",
+      "behavior_checks": {
+        "version": 2,
+        "confirmed": true,
+        "entry_event": "subscription_cancelled",
+        "case_name": "Does not return",
+        "email_count": 1,
+        "sms_count": 0,
+        "outcome": "completed",
+        "duration_seconds": 1814400,
+        "inputs": {
+          "customer.attributes.first_name": "Deniz"
+        },
+        "alternatives": [
+          {
+            "name": "Returns before the email",
+            "events": [
+              {
+                "event_name": "subscription_restarted",
+                "after_seconds": 172800
+              }
+            ],
+            "email_count": 0,
+            "sms_count": 0,
+            "outcome": "converted",
+            "duration_seconds": 172800
+          },
+          {
+            "name": "Returns after the email",
+            "events": [
+              {
+                "event_name": "subscription_restarted",
+                "after_seconds": 864000
+              }
+            ],
+            "email_count": 1,
+            "sms_count": 0,
+            "outcome": "converted",
+            "duration_seconds": 864000
+          }
+        ]
+      },
+      "generation_requests": [
+        {
+          "attempt": 1,
+          "http_status": 200,
+          "ms": 25768
+        }
+      ],
+      "generation": {
+        "attempts": [
+          {
+            "validation": {
+              "schema": 0,
+              "workflow": 2,
+              "message": 0,
+              "behavior": 0,
+              "facts": 0
+            },
+            "provider": "openai",
+            "requested_model": "gpt-6-luna",
+            "model": "gpt-6-luna",
+            "request_id": "req_9f60ac30b344445092acda0e3c87a88d",
+            "duration_ms": 18302,
+            "http_status": 200,
+            "usage": {
+              "input_tokens": 4668,
+              "output_tokens": 1699,
+              "reasoning_tokens": 1034,
+              "cached_input_tokens": 0,
+              "cache_creation_tokens": 4665
+            },
+            "provider_succeeded": true,
+            "accepted": false
+          },
+          {
+            "provider": "openai",
+            "requested_model": "gpt-6-luna",
+            "model": "gpt-6-luna",
+            "request_id": "req_c55c561c8e7546b1884897901aa97ef5",
+            "duration_ms": 7446,
+            "http_status": 200,
+            "usage": {
+              "input_tokens": 5367,
+              "output_tokens": 929,
+              "reasoning_tokens": 253,
+              "cached_input_tokens": 4505,
+              "cache_creation_tokens": 859
+            },
+            "provider_succeeded": true,
+            "accepted": true
+          }
+        ],
+        "usage": {
+          "input_tokens": 10035,
+          "output_tokens": 2628,
+          "reasoning_tokens": 1287,
+          "cached_input_tokens": 4505,
+          "cache_creation_tokens": 5524
+        }
+      },
+      "proposal": {
+        "name": "Geri kazanım – GERIDON20",
+        "explanation": "Akış, subscription_cancelled olayıyla başlar. subscription_restarted olayı akışın herhangi bir anında dönüşüm çıkışını tetikler. E-postada ad alanı için Merhaba yedeği kullanılır.",
+        "warnings": [
+          "subscription_cancelled ve subscription_restarted olayları için abonelik kimliği alanları katalogda bulunmuyor. Bu nedenle global çıkış abonelik yerine müşteri kapsamındadır; insan incelemesinde doğrulanmalıdır.",
+          "E-posta sağlayıcısı ve gönderim ayarları belirtilmemiştir; dağıtımdan önce yapılandırılmalıdır.",
+          "Bekleme adımlarında UTC kullanıldı; istenen iş saat dilimi belirtilmediyse insan incelemesinde doğrulayın.",
+          "The reviewed scoped obligations and eligibility boundaries passed. Unspecified customer states and event sequences still require review and Test Lab coverage."
+        ],
+        "grounding_ready": true,
+        "not_done": [],
+        "workflow": {
+          "behavior_checks": {
+            "version": 2,
+            "confirmed": true,
+            "entry_event": "subscription_cancelled",
+            "inputs": {
+              "customer.attributes.first_name": "Deniz"
+            },
+            "email_count": 1,
+            "sms_count": 0,
+            "outcome": "completed",
+            "duration_seconds": 1814400,
+            "case_name": "Does not return",
+            "alternatives": [
+              {
+                "name": "Returns before the email",
+                "events": [
+                  {
+                    "event_name": "subscription_restarted",
+                    "after_seconds": 172800
+                  }
+                ],
+                "email_count": 0,
+                "sms_count": 0,
+                "outcome": "converted",
+                "duration_seconds": 172800
+              },
+              {
+                "name": "Returns after the email",
+                "events": [
+                  {
+                    "event_name": "subscription_restarted",
+                    "after_seconds": 864000
+                  }
+                ],
+                "email_count": 1,
+                "sms_count": 0,
+                "outcome": "converted",
+                "duration_seconds": 864000
+              }
+            ]
+          },
+          "schema_version": 1,
+          "nodes": [
+            {
+              "id": "trigger",
+              "type": "event_trigger",
+              "label": "Abonelik iptal edildi",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "config": {
+                "event_name": "subscription_cancelled"
+              }
+            },
+            {
+              "id": "wait7",
+              "type": "wait",
+              "label": "7 gün bekle",
+              "position": {
+                "x": 200,
+                "y": 0
+              },
+              "config": {
+                "duration_seconds": 604800,
+                "timezone": "UTC"
+              }
+            },
+            {
+              "id": "email",
+              "type": "email",
+              "label": "Geri dönüş e-postası",
+              "position": {
+                "x": 400,
+                "y": 0
+              },
+              "config": {
+                "subject": "Aboneliğinizi yeniden başlatın",
+                "preheader": "Aboneliğinizi yeniden başlatmak için bağlantı",
+                "html": "<p>{{ customer.attributes.first_name }}, aboneliğinizi yeniden başlatmak için bağlantıyı kullanın:</p><p><a href=\"https://example.com/geri-don\">Aboneliği yeniden başlat</a></p>",
+                "text": "{{ customer.attributes.first_name }}, aboneliğinizi yeniden başlatmak için bu bağlantıyı kullanın: https://example.com/geri-don",
+                "fallbacks": {
+                  "customer.attributes.first_name": "Merhaba"
+                },
+                "discount_code": "GERIDON20"
+              }
+            },
+            {
+              "id": "wait14",
+              "type": "wait",
+              "label": "14 gün bekle",
+              "position": {
+                "x": 600,
+                "y": 0
+              },
+              "config": {
+                "duration_seconds": 1209600,
+                "timezone": "UTC"
+              }
+            },
+            {
+              "id": "exit",
+              "type": "exit",
+              "label": "Normal tamamlanma",
+              "position": {
+                "x": 800,
+                "y": 0
+              },
+              "config": {
+                "reason": "completed"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "e1",
+              "source": "trigger",
+              "target": "wait7",
+              "port": "started"
+            },
+            {
+              "id": "e2",
+              "source": "wait7",
+              "target": "email",
+              "port": "completed"
+            },
+            {
+              "id": "e3",
+              "source": "email",
+              "target": "wait14",
+              "port": "next"
+            },
+            {
+              "id": "e4",
+              "source": "wait14",
+              "target": "exit",
+              "port": "completed"
+            }
+          ],
+          "global_exit": {
+            "reason": "converted",
+            "event_name": "subscription_restarted"
+          }
+        }
+      },
+      "static_notes": [],
+      "journey_id": "16c20508-4863-4b0a-849f-863cd72dff8e",
+      "validation": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/Validation.json",
+        "valid": true,
+        "issues": []
+      },
+      "cases": [
+        {
+          "name": "A · Does not return",
+          "held_out": false,
+          "test_run_id": "7a8275cc-09f7-4286-ad00-b562c7702243",
+          "expected": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 1814400
+          },
+          "actual": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 1814400,
+            "status": "COMPLETED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        },
+        {
+          "name": "B · Returns before the email",
+          "held_out": false,
+          "test_run_id": "f3435f44-19c3-4a94-bc36-1afb6eec8c39",
+          "expected": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": 172800
+          },
+          "actual": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": 172800,
+            "status": "EXITED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 0,
+          "pass": true
+        },
+        {
+          "name": "C · Returns after the email",
+          "held_out": false,
+          "test_run_id": "ffff50c6-d4d6-42f1-9b16-8bd2d51c30a6",
+          "expected": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": 864000
+          },
+          "actual": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": 864000,
+            "status": "EXITED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        },
+        {
+          "name": "D · Returns on the last day",
+          "held_out": true,
+          "test_run_id": "98138522-2340-4f49-b5a5-7f2101da4d78",
+          "expected": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": null
+          },
+          "actual": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": 1728000,
+            "status": "EXITED"
+          },
+          "duration_matches": null,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        }
+      ],
+      "sample_messages": {
+        "email": {
+          "channel": "email",
+          "subject": "Aboneliğinizi yeniden başlatın",
+          "text": "Deniz, aboneliğinizi yeniden başlatmak için bu bağlantıyı kullanın: https://example.com/geri-don\n\nYour discount code: GERIDON20"
+        }
+      },
+      "publish_check": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/ResultStruct { Ready bool \"json:\\\"ready\\\"\"; Issues ListGateIssue \"json:\\\"issues\\\"\"; Policy string \"json:\\\"policy\\\"\" }Body.json",
+        "ready": true,
+        "issues": [],
+        "policy": "Consent is enforced for every send. Workspace frequency caps apply. Global exit: true. Publishing creates an immutable version."
+      },
+      "database_readback": {
+        "journeys": 1,
+        "versions": 0,
+        "live_executions": 0,
+        "live_customers": 0,
+        "delivery_jobs": 0,
+        "test_runs": 4,
+        "draft_status": "Draft"
+      },
+      "summary": {
+        "cases": 4,
+        "passed": 4,
+        "contract_passed": 3,
+        "contract_cases": 3,
+        "held_out_passed": 1,
+        "held_out_cases": 1,
+        "durations_matched": 3,
+        "durations_checked": 3,
+        "static_notes": 0,
+        "publish_ready": true
+      },
+      "verdict": "pass",
+      "wall_seconds": 26.4
+    },
+    {
+      "id": "browse_open",
+      "name": "İncelenen ürün – açılma bekle",
+      "feature": "wait for an open of an earlier email, SMS fallback with consent",
+      "brief": "Müşteri bir ürünü incelediğinde (product_viewed) akışa girsin. E-posta izni yoksa hemen uygun değil olarak çık. 1 saat bekle ve incelediği ürünü hatırlatan bir e-posta gönder (ürün adı event.properties.product_name, yoksa \"incelediğin ürün\"). Sonra 48 saat bu e-postanın açılmasını bekle. Açılırsa başka mesaj göndermeden normal tamamla. Açılmazsa ve SMS izni varsa https://example.com/urun bağlantılı kısa bir SMS hatırlatması gönder ve normal tamamla; SMS izni yoksa SMS göndermeden normal tamamla. Mesajlar Türkçe olsun ve müşterinin adını kullansın; ad yoksa \"Merhaba\" gibi bir yedek kullan.",
+      "catalog": [
+        {
+          "kind": "customer_field",
+          "path": "customer.attributes.first_name",
+          "label": "Müşterinin adı",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event",
+          "event_name": "product_viewed",
+          "label": "Ürün incelendi",
+          "data_type": "event",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event_field",
+          "event_name": "product_viewed",
+          "path": "event.properties.product_id",
+          "label": "Ürün numarası",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event_field",
+          "event_name": "product_viewed",
+          "path": "event.properties.product_name",
+          "label": "Ürün adı",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        }
+      ],
+      "workspace_id": "0f0eb299-d37c-4afe-b1bf-25139eac70fb",
+      "behavior_checks": {
+        "version": 2,
+        "confirmed": true,
+        "entry_event": "product_viewed",
+        "case_name": "Never opens",
+        "email_count": 1,
+        "sms_count": 1,
+        "outcome": "completed",
+        "duration_seconds": 176400,
+        "inputs": {
+          "customer.attributes.first_name": "Deniz",
+          "event.properties.product_id": "p-9",
+          "event.properties.product_name": "Yürüyüş botu"
+        },
+        "alternatives": [
+          {
+            "name": "Opens the email",
+            "events": [
+              {
+                "event_name": "message_opened",
+                "after_seconds": 7200
+              }
+            ],
+            "email_count": 1,
+            "sms_count": 0,
+            "outcome": "completed",
+            "duration_seconds": 7200
+          },
+          {
+            "name": "No SMS consent",
+            "consents": {
+              "sms": false
+            },
+            "email_count": 1,
+            "sms_count": 0,
+            "outcome": "completed",
+            "duration_seconds": 176400
+          },
+          {
+            "name": "No email consent",
+            "consents": {
+              "email": false
+            },
+            "email_count": 0,
+            "sms_count": 0,
+            "outcome": "condition_not_met",
+            "duration_seconds": 0
+          }
+        ]
+      },
+      "generation_requests": [
+        {
+          "attempt": 1,
+          "http_status": 200,
+          "ms": 17314
+        }
+      ],
+      "generation": {
+        "attempts": [
+          {
+            "provider": "openai",
+            "requested_model": "gpt-6-luna",
+            "model": "gpt-6-luna",
+            "request_id": "req_1cf254e94f4a4b61a7d6a0e0195542d3",
+            "duration_ms": 17306,
+            "http_status": 200,
+            "usage": {
+              "input_tokens": 4815,
+              "output_tokens": 2158,
+              "reasoning_tokens": 1136,
+              "cached_input_tokens": 0,
+              "cache_creation_tokens": 4812
+            },
+            "provider_succeeded": true,
+            "accepted": true
+          }
+        ],
+        "usage": {
+          "input_tokens": 4815,
+          "output_tokens": 2158,
+          "reasoning_tokens": 1136,
+          "cached_input_tokens": 0,
+          "cache_creation_tokens": 4812
+        }
+      },
+      "proposal": {
+        "name": "İncelenen ürün – açılma bekle",
+        "explanation": "E-posta izni olmayan kişiler uygun değil olarak çıkar. Ürün adı ve müşteri adı için yedekler kullanılır. Açılma bekleme adımı yalnızca bu akıştaki e-postanın açılmasını izler.",
+        "warnings": [
+          "E-posta ve SMS sağlayıcı/dağıtım ayarları belirtilmedi; kanalların yapılandırması insan tarafından gözden geçirilmelidir.",
+          "The reviewed scoped obligations and eligibility boundaries passed. Unspecified customer states and event sequences still require review and Test Lab coverage."
+        ],
+        "grounding_ready": true,
+        "not_done": [],
+        "workflow": {
+          "behavior_checks": {
+            "version": 2,
+            "confirmed": true,
+            "entry_event": "product_viewed",
+            "inputs": {
+              "customer.attributes.first_name": "Deniz",
+              "event.properties.product_id": "p-9",
+              "event.properties.product_name": "Yürüyüş botu"
+            },
+            "email_count": 1,
+            "sms_count": 1,
+            "outcome": "completed",
+            "duration_seconds": 176400,
+            "case_name": "Never opens",
+            "alternatives": [
+              {
+                "name": "Opens the email",
+                "events": [
+                  {
+                    "event_name": "message_opened",
+                    "after_seconds": 7200
+                  }
+                ],
+                "email_count": 1,
+                "sms_count": 0,
+                "outcome": "completed",
+                "duration_seconds": 7200
+              },
+              {
+                "name": "No SMS consent",
+                "consents": {
+                  "sms": false
+                },
+                "email_count": 1,
+                "sms_count": 0,
+                "outcome": "completed",
+                "duration_seconds": 176400
+              },
+              {
+                "name": "No email consent",
+                "consents": {
+                  "email": false
+                },
+                "email_count": 0,
+                "sms_count": 0,
+                "outcome": "condition_not_met",
+                "duration_seconds": 0
+              }
+            ]
+          },
+          "schema_version": 1,
+          "nodes": [
+            {
+              "id": "trigger",
+              "type": "event_trigger",
+              "label": "Ürün incelendi",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "config": {
+                "event_name": "product_viewed"
+              }
+            },
+            {
+              "id": "email_consent",
+              "type": "condition",
+              "label": "E-posta izni var mı?",
+              "position": {
+                "x": 200,
+                "y": 0
+              },
+              "config": {
+                "rule": {
+                  "logic": "and",
+                  "rules": [
+                    {
+                      "path": "customer.consents.email",
+                      "operator": "equals",
+                      "value": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "wait_hour",
+              "type": "wait",
+              "label": "1 saat bekle",
+              "position": {
+                "x": 400,
+                "y": 0
+              },
+              "config": {
+                "duration_seconds": 3600,
+                "timezone": "UTC"
+              }
+            },
+            {
+              "id": "product_email",
+              "type": "email",
+              "label": "Ürün hatırlatma e-postası",
+              "position": {
+                "x": 600,
+                "y": 0
+              },
+              "config": {
+                "subject": "İncelediğin ürünü hatırlatalım",
+                "text": "Merhaba {{ customer.attributes.first_name }}, incelediğin {{ event.properties.product_name }} ürününü hatırlatmak istedik.",
+                "fallbacks": {
+                  "customer.attributes.first_name": "Merhaba",
+                  "event.properties.product_name": "incelediğin ürün"
+                }
+              }
+            },
+            {
+              "id": "wait_open",
+              "type": "wait_event",
+              "label": "48 saat e-postanın açılmasını bekle",
+              "position": {
+                "x": 800,
+                "y": 0
+              },
+              "config": {
+                "event_name": "message_opened",
+                "timeout_seconds": 172800,
+                "message_node": "product_email"
+              }
+            },
+            {
+              "id": "exit_opened",
+              "type": "exit",
+              "label": "E-posta açıldı; normal tamamlandı",
+              "position": {
+                "x": 1000,
+                "y": -100
+              },
+              "config": {
+                "reason": "completed"
+              }
+            },
+            {
+              "id": "sms_consent",
+              "type": "condition",
+              "label": "SMS izni var mı?",
+              "position": {
+                "x": 1000,
+                "y": 100
+              },
+              "config": {
+                "rule": {
+                  "logic": "and",
+                  "rules": [
+                    {
+                      "path": "customer.consents.sms",
+                      "operator": "equals",
+                      "value": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "product_sms",
+              "type": "sms",
+              "label": "Ürün hatırlatma SMS'i",
+              "position": {
+                "x": 1200,
+                "y": 100
+              },
+              "config": {
+                "text": "Merhaba {{ customer.attributes.first_name }}, incelediğin ürün için hatırlatma: https://example.com/urun",
+                "fallbacks": {
+                  "customer.attributes.first_name": "Merhaba"
+                }
+              }
+            },
+            {
+              "id": "exit_no_sms",
+              "type": "exit",
+              "label": "SMS gönderilmeden normal tamamlandı",
+              "position": {
+                "x": 1200,
+                "y": 250
+              },
+              "config": {
+                "reason": "completed"
+              }
+            },
+            {
+              "id": "exit_sms_sent",
+              "type": "exit",
+              "label": "SMS gönderildi; normal tamamlandı",
+              "position": {
+                "x": 1400,
+                "y": 100
+              },
+              "config": {
+                "reason": "completed"
+              }
+            },
+            {
+              "id": "exit_ineligible",
+              "type": "exit",
+              "label": "E-posta izni yok; uygun değil",
+              "position": {
+                "x": 400,
+                "y": 200
+              },
+              "config": {
+                "reason": "condition_not_met"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "e1",
+              "source": "trigger",
+              "target": "email_consent",
+              "port": "started"
+            },
+            {
+              "id": "e2",
+              "source": "email_consent",
+              "target": "wait_hour",
+              "port": "true"
+            },
+            {
+              "id": "e3",
+              "source": "email_consent",
+              "target": "exit_ineligible",
+              "port": "false"
+            },
+            {
+              "id": "e4",
+              "source": "wait_hour",
+              "target": "product_email",
+              "port": "completed"
+            },
+            {
+              "id": "e5",
+              "source": "product_email",
+              "target": "wait_open",
+              "port": "next"
+            },
+            {
+              "id": "e6",
+              "source": "wait_open",
+              "target": "exit_opened",
+              "port": "matched"
+            },
+            {
+              "id": "e7",
+              "source": "wait_open",
+              "target": "sms_consent",
+              "port": "timeout"
+            },
+            {
+              "id": "e8",
+              "source": "sms_consent",
+              "target": "product_sms",
+              "port": "true"
+            },
+            {
+              "id": "e9",
+              "source": "sms_consent",
+              "target": "exit_no_sms",
+              "port": "false"
+            },
+            {
+              "id": "e10",
+              "source": "product_sms",
+              "target": "exit_sms_sent",
+              "port": "next"
+            }
+          ]
+        }
+      },
+      "static_notes": [],
+      "journey_id": "4dcc51e2-5b09-45e7-9b8c-1d502b00d9c3",
+      "validation": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/Validation.json",
+        "valid": true,
+        "issues": []
+      },
+      "cases": [
+        {
+          "name": "A · Never opens",
+          "held_out": false,
+          "test_run_id": "be152f71-9450-455e-b04f-17db26a47322",
+          "expected": {
+            "email": 1,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": 176400
+          },
+          "actual": {
+            "email": 1,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": 176400,
+            "status": "COMPLETED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 2,
+          "pass": true
+        },
+        {
+          "name": "B · Opens the email",
+          "held_out": false,
+          "test_run_id": "48a82682-c8c1-4d42-a06c-0641cfc894da",
+          "expected": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 7200
+          },
+          "actual": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 7200,
+            "status": "COMPLETED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        },
+        {
+          "name": "C · No SMS consent",
+          "held_out": false,
+          "test_run_id": "a38339ec-63fd-47dd-9e3f-8c2402c3fc22",
+          "expected": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 176400
+          },
+          "actual": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 176400,
+            "status": "COMPLETED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        },
+        {
+          "name": "D · No email consent",
+          "held_out": false,
+          "test_run_id": "e11cfd0f-4ccc-4d77-8fcf-3c52ec8463d7",
+          "expected": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "condition_not_met",
+            "duration": 0
+          },
+          "actual": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "condition_not_met",
+            "duration": 0,
+            "status": "EXITED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 0,
+          "pass": true
+        },
+        {
+          "name": "E · Clicks without an open",
+          "held_out": true,
+          "test_run_id": "7aec52c5-2525-4633-ae55-45e664a55f7e",
+          "expected": {
+            "email": 1,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": null
+          },
+          "actual": {
+            "email": 1,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": 176400,
+            "status": "COMPLETED"
+          },
+          "duration_matches": null,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 2,
+          "pass": true
+        }
+      ],
+      "sample_messages": {
+        "product_sms": {
+          "channel": "sms",
+          "subject": "",
+          "text": "Merhaba Deniz, incelediğin ürün için hatırlatma: https://example.com/urun"
+        },
+        "product_email": {
+          "channel": "email",
+          "subject": "İncelediğin ürünü hatırlatalım",
+          "text": "Merhaba Deniz, incelediğin Yürüyüş botu ürününü hatırlatmak istedik."
+        }
+      },
+      "publish_check": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/ResultStruct { Ready bool \"json:\\\"ready\\\"\"; Issues ListGateIssue \"json:\\\"issues\\\"\"; Policy string \"json:\\\"policy\\\"\" }Body.json",
+        "ready": true,
+        "issues": [],
+        "policy": "Consent is enforced for every send. Workspace frequency caps apply. Global exit: false. Publishing creates an immutable version."
+      },
+      "database_readback": {
+        "journeys": 1,
+        "versions": 0,
+        "live_executions": 0,
+        "live_customers": 0,
+        "delivery_jobs": 0,
+        "test_runs": 5,
+        "draft_status": "Draft"
+      },
+      "summary": {
+        "cases": 5,
+        "passed": 5,
+        "contract_passed": 4,
+        "contract_cases": 4,
+        "held_out_passed": 1,
+        "held_out_cases": 1,
+        "durations_matched": 4,
+        "durations_checked": 4,
+        "static_notes": 0,
+        "publish_ready": true
+      },
+      "verdict": "pass",
+      "wall_seconds": 17.9
+    },
+    {
+      "id": "review_request",
+      "name": "Değerlendirme isteği",
+      "feature": "order-scoped goal exit (correlation)",
+      "brief": "Sipariş teslim edildiğinde (order_delivered) akış başlasın. 3 gün bekle ve bu sipariş için değerlendirme isteyen bir e-posta gönder (https://example.com/degerlendir). Sonra 7 gün bekle ve normal tamamla. Aynı sipariş için değerlendirme (review_submitted, order_id eşleşmesi) gelirse akışın herhangi bir anında hemen dönüşüm olarak çık; başka bir siparişin değerlendirmesi bu akışı etkilemez. SMS gönderme. Mesajlar Türkçe olsun ve müşterinin adını kullansın; ad yoksa \"Merhaba\" gibi bir yedek kullan.",
+      "catalog": [
+        {
+          "kind": "customer_field",
+          "path": "customer.attributes.first_name",
+          "label": "Müşterinin adı",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event",
+          "event_name": "order_delivered",
+          "label": "Sipariş teslim edildi",
+          "data_type": "event",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event_field",
+          "event_name": "order_delivered",
+          "path": "event.properties.order_id",
+          "label": "Sipariş numarası",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event",
+          "event_name": "review_submitted",
+          "label": "Değerlendirme yapıldı",
+          "data_type": "event",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event_field",
+          "event_name": "review_submitted",
+          "path": "event.properties.order_id",
+          "label": "Değerlendirilen sipariş",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        }
+      ],
+      "workspace_id": "6fcfe05b-9ed6-4538-9ce4-dd7871f8cf3b",
+      "behavior_checks": {
+        "version": 2,
+        "confirmed": true,
+        "entry_event": "order_delivered",
+        "case_name": "No review",
+        "email_count": 1,
+        "sms_count": 0,
+        "outcome": "completed",
+        "duration_seconds": 864000,
+        "inputs": {
+          "customer.attributes.first_name": "Deniz",
+          "event.properties.order_id": "o-1"
+        },
+        "alternatives": [
+          {
+            "name": "Reviews after the email",
+            "events": [
+              {
+                "event_name": "review_submitted",
+                "after_seconds": 345600,
+                "entry_binding": {
+                  "entry_path": "event.properties.order_id",
+                  "event_path": "event.properties.order_id",
+                  "operator": "equals"
+                },
+                "properties": {
+                  "order_id": "o-1"
+                }
+              }
+            ],
+            "email_count": 1,
+            "sms_count": 0,
+            "outcome": "converted",
+            "duration_seconds": 345600
+          },
+          {
+            "name": "Reviews before the email",
+            "events": [
+              {
+                "event_name": "review_submitted",
+                "after_seconds": 86400,
+                "entry_binding": {
+                  "entry_path": "event.properties.order_id",
+                  "event_path": "event.properties.order_id",
+                  "operator": "equals"
+                },
+                "properties": {
+                  "order_id": "o-1"
+                }
+              }
+            ],
+            "email_count": 0,
+            "sms_count": 0,
+            "outcome": "converted",
+            "duration_seconds": 86400
+          }
+        ]
+      },
+      "generation_requests": [
+        {
+          "attempt": 1,
+          "http_status": 200,
+          "ms": 25922
+        }
+      ],
+      "generation": {
+        "attempts": [
+          {
+            "validation": {
+              "schema": 0,
+              "workflow": 1,
+              "message": 0,
+              "behavior": 0,
+              "facts": 0
+            },
+            "provider": "openai",
+            "requested_model": "gpt-6-luna",
+            "model": "gpt-6-luna",
+            "request_id": "req_1aa4ed8795d244ddbf43af8018a011e1",
+            "duration_ms": 17273,
+            "http_status": 200,
+            "usage": {
+              "input_tokens": 4835,
+              "output_tokens": 1956,
+              "reasoning_tokens": 1294,
+              "cached_input_tokens": 0,
+              "cache_creation_tokens": 4832
+            },
+            "provider_succeeded": true,
+            "accepted": false
+          },
+          {
+            "provider": "openai",
+            "requested_model": "gpt-6-luna",
+            "model": "gpt-6-luna",
+            "request_id": "req_deba88323260443180badb9e8ff3cf41",
+            "duration_ms": 8632,
+            "http_status": 200,
+            "usage": {
+              "input_tokens": 5518,
+              "output_tokens": 1044,
+              "reasoning_tokens": 385,
+              "cached_input_tokens": 4656,
+              "cache_creation_tokens": 859
+            },
+            "provider_succeeded": true,
+            "accepted": true
+          }
+        ],
+        "usage": {
+          "input_tokens": 10353,
+          "output_tokens": 3000,
+          "reasoning_tokens": 1679,
+          "cached_input_tokens": 4656,
+          "cache_creation_tokens": 5691
+        }
+      },
+      "proposal": {
+        "name": "Değerlendirme isteği",
+        "explanation": "Dönüşüm çıkışı, girişteki order_id ile review_submitted olayındaki order_id'yi karşılaştırır; başka bir siparişin değerlendirmesi bu akışı etkilemez.",
+        "warnings": [
+          "Dağıtımdan önce e-posta gönderici ve izin ayarlarını doğrulayın.",
+          "The reviewed scoped obligations and eligibility boundaries passed. Unspecified customer states and event sequences still require review and Test Lab coverage."
+        ],
+        "grounding_ready": true,
+        "not_done": [],
+        "workflow": {
+          "behavior_checks": {
+            "version": 2,
+            "confirmed": true,
+            "entry_event": "order_delivered",
+            "inputs": {
+              "customer.attributes.first_name": "Deniz",
+              "event.properties.order_id": "o-1"
+            },
+            "email_count": 1,
+            "sms_count": 0,
+            "outcome": "completed",
+            "duration_seconds": 864000,
+            "case_name": "No review",
+            "alternatives": [
+              {
+                "name": "Reviews after the email",
+                "events": [
+                  {
+                    "entry_binding": {
+                      "entry_path": "event.properties.order_id",
+                      "event_path": "event.properties.order_id",
+                      "operator": "equals"
+                    },
+                    "event_name": "review_submitted",
+                    "after_seconds": 345600,
+                    "properties": {
+                      "order_id": "o-1"
+                    }
+                  }
+                ],
+                "email_count": 1,
+                "sms_count": 0,
+                "outcome": "converted",
+                "duration_seconds": 345600
+              },
+              {
+                "name": "Reviews before the email",
+                "events": [
+                  {
+                    "entry_binding": {
+                      "entry_path": "event.properties.order_id",
+                      "event_path": "event.properties.order_id",
+                      "operator": "equals"
+                    },
+                    "event_name": "review_submitted",
+                    "after_seconds": 86400,
+                    "properties": {
+                      "order_id": "o-1"
+                    }
+                  }
+                ],
+                "email_count": 0,
+                "sms_count": 0,
+                "outcome": "converted",
+                "duration_seconds": 86400
+              }
+            ]
+          },
+          "schema_version": 1,
+          "nodes": [
+            {
+              "id": "trigger",
+              "type": "event_trigger",
+              "label": "Sipariş teslim edildi",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "config": {
+                "event_name": "order_delivered"
+              }
+            },
+            {
+              "id": "wait_3d",
+              "type": "wait",
+              "label": "3 gün bekle",
+              "position": {
+                "x": 200,
+                "y": 0
+              },
+              "config": {
+                "duration_seconds": 259200,
+                "timezone": "UTC"
+              }
+            },
+            {
+              "id": "review_email",
+              "type": "email",
+              "label": "Değerlendirme e-postası",
+              "position": {
+                "x": 400,
+                "y": 0
+              },
+              "config": {
+                "subject": "Siparişiniz için değerlendirme",
+                "preheader": "Siparişiniz için değerlendirmenizi paylaşın",
+                "html": "<p>{{ customer.attributes.first_name }}, teslim edilen siparişiniz için değerlendirmenizi paylaşabilirsiniz: <a href=\"https://example.com/degerlendir\">https://example.com/degerlendir</a></p>",
+                "text": "{{ customer.attributes.first_name }}, teslim edilen siparişiniz için değerlendirmenizi paylaşabilirsiniz: https://example.com/degerlendir",
+                "fallbacks": {
+                  "customer.attributes.first_name": "Merhaba"
+                }
+              }
+            },
+            {
+              "id": "wait_review",
+              "type": "wait_event",
+              "label": "7 gün değerlendirme bekle",
+              "position": {
+                "x": 600,
+                "y": 0
+              },
+              "config": {
+                "event_name": "review_submitted",
+                "timeout_seconds": 604800
+              }
+            },
+            {
+              "id": "converted_exit",
+              "type": "exit",
+              "label": "Değerlendirme gönderildi",
+              "position": {
+                "x": 800,
+                "y": -100
+              },
+              "config": {
+                "reason": "converted"
+              }
+            },
+            {
+              "id": "completed_exit",
+              "type": "exit",
+              "label": "7 gün içinde değerlendirme gelmedi",
+              "position": {
+                "x": 800,
+                "y": 100
+              },
+              "config": {
+                "reason": "completed"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "e1",
+              "source": "trigger",
+              "target": "wait_3d",
+              "port": "started"
+            },
+            {
+              "id": "e2",
+              "source": "wait_3d",
+              "target": "review_email",
+              "port": "completed"
+            },
+            {
+              "id": "e3",
+              "source": "review_email",
+              "target": "wait_review",
+              "port": "next"
+            },
+            {
+              "id": "e4",
+              "source": "wait_review",
+              "target": "converted_exit",
+              "port": "matched"
+            },
+            {
+              "id": "e5",
+              "source": "wait_review",
+              "target": "completed_exit",
+              "port": "timeout"
+            }
+          ],
+          "global_exit": {
+            "correlation": {
+              "entry_path": "event.properties.order_id",
+              "event_path": "event.properties.order_id"
+            },
+            "reason": "converted",
+            "event_name": "review_submitted"
+          }
+        }
+      },
+      "static_notes": [],
+      "journey_id": "fabecd2e-e122-4e76-a07d-f8205485ef2e",
+      "validation": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/Validation.json",
+        "valid": true,
+        "issues": []
+      },
+      "cases": [
+        {
+          "name": "A · No review",
+          "held_out": false,
+          "test_run_id": "7db6091f-791b-4d11-90f4-d21910208baf",
+          "expected": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 864000
+          },
+          "actual": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 864000,
+            "status": "COMPLETED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        },
+        {
+          "name": "B · Reviews after the email",
+          "held_out": false,
+          "test_run_id": "06400623-6360-4f1f-8630-8e7b140fafee",
+          "expected": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": 345600
+          },
+          "actual": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": 345600,
+            "status": "EXITED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        },
+        {
+          "name": "C · Reviews before the email",
+          "held_out": false,
+          "test_run_id": "6f979cae-9a6c-48ed-a0b0-b4e7b98ffad0",
+          "expected": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": 86400
+          },
+          "actual": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": 86400,
+            "status": "EXITED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 0,
+          "pass": true
+        },
+        {
+          "name": "D · Reviews another order",
+          "held_out": true,
+          "test_run_id": "bb0d0559-76b8-4541-bc67-2408716e76c2",
+          "expected": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": null
+          },
+          "actual": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 864000,
+            "status": "COMPLETED"
+          },
+          "duration_matches": null,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        }
+      ],
+      "sample_messages": {
+        "review_email": {
+          "channel": "email",
+          "subject": "Siparişiniz için değerlendirme",
+          "text": "Deniz, teslim edilen siparişiniz için değerlendirmenizi paylaşabilirsiniz: https://example.com/degerlendir"
+        }
+      },
+      "publish_check": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/ResultStruct { Ready bool \"json:\\\"ready\\\"\"; Issues ListGateIssue \"json:\\\"issues\\\"\"; Policy string \"json:\\\"policy\\\"\" }Body.json",
+        "ready": true,
+        "issues": [],
+        "policy": "Consent is enforced for every send. Workspace frequency caps apply. Global exit: true. Publishing creates an immutable version."
+      },
+      "database_readback": {
+        "journeys": 1,
+        "versions": 0,
+        "live_executions": 0,
+        "live_customers": 0,
+        "delivery_jobs": 0,
+        "test_runs": 4,
+        "draft_status": "Draft"
+      },
+      "summary": {
+        "cases": 4,
+        "passed": 4,
+        "contract_passed": 3,
+        "contract_cases": 3,
+        "held_out_passed": 1,
+        "held_out_cases": 1,
+        "durations_matched": 3,
+        "durations_checked": 3,
+        "static_notes": 0,
+        "publish_ready": true
+      },
+      "verdict": "pass",
+      "wall_seconds": 26.5
+    },
+    {
+      "id": "loyalty_gold",
+      "name": "Sadakat – altın üyelik",
+      "feature": "inclusive threshold, attribute update",
+      "brief": "Puan güncellendiğinde (points_updated) akış başlasın. Toplam puan (event.properties.points) 1000 veya üzerindeyse müşterinin tier özelliğini \"gold\" yap, \"Altın üyeliğe geçtin\" e-postası gönder (https://example.com/altin) ve normal tamamla. 1000’in altındaysa hiçbir şey yapmadan uygun değil olarak çık. SMS gönderme. Mesajlar Türkçe olsun ve müşterinin adını kullansın; ad yoksa \"Merhaba\" gibi bir yedek kullan.",
+      "catalog": [
+        {
+          "kind": "customer_field",
+          "path": "customer.attributes.first_name",
+          "label": "Müşterinin adı",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "customer_field",
+          "path": "customer.attributes.tier",
+          "label": "Üyelik seviyesi",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event",
+          "event_name": "points_updated",
+          "label": "Puan güncellendi",
+          "data_type": "event",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event_field",
+          "event_name": "points_updated",
+          "path": "event.properties.points",
+          "label": "Toplam puan",
+          "data_type": "number",
+          "aliases": [],
+          "enabled": true
+        }
+      ],
+      "workspace_id": "32aaad4e-6eff-4ca7-93ff-02a41787b568",
+      "behavior_checks": {
+        "version": 2,
+        "confirmed": true,
+        "entry_event": "points_updated",
+        "case_name": "Reaches gold",
+        "email_count": 1,
+        "sms_count": 0,
+        "outcome": "completed",
+        "duration_seconds": 0,
+        "expected_attributes": {
+          "tier": "gold"
+        },
+        "inputs": {
+          "customer.attributes.first_name": "Deniz",
+          "event.properties.points": 1500
+        },
+        "thresholds": [
+          {
+            "path": "event.properties.points",
+            "operator": "greater_than_or_equal",
+            "value": 1000
+          }
+        ],
+        "ineligible_outcome": "condition_not_met",
+        "alternatives": [
+          {
+            "name": "Below 1000",
+            "inputs": {
+              "event.properties.points": 999
+            },
+            "email_count": 0,
+            "sms_count": 0,
+            "outcome": "condition_not_met",
+            "duration_seconds": 0
+          }
+        ]
+      },
+      "generation_requests": [
+        {
+          "attempt": 1,
+          "http_status": 200,
+          "ms": 15554
+        }
+      ],
+      "generation": {
+        "attempts": [
+          {
+            "provider": "openai",
+            "requested_model": "gpt-6-luna",
+            "model": "gpt-6-luna",
+            "request_id": "req_ab0702bdad9249a99b404a8a4c16964c",
+            "duration_ms": 15540,
+            "http_status": 200,
+            "usage": {
+              "input_tokens": 4648,
+              "output_tokens": 1810,
+              "reasoning_tokens": 788,
+              "cached_input_tokens": 0,
+              "cache_creation_tokens": 4645
+            },
+            "provider_succeeded": true,
+            "accepted": true
+          }
+        ],
+        "usage": {
+          "input_tokens": 4648,
+          "output_tokens": 1810,
+          "reasoning_tokens": 788,
+          "cached_input_tokens": 0,
+          "cache_creation_tokens": 4645
+        }
+      },
+      "proposal": {
+        "name": "Sadakat – altın üyelik",
+        "explanation": "Akış points_updated olayıyla başlar. 1000 ve üzeri puanda tier güncellenir, ad için yedek kullanılarak e-posta gönderilir ve akış tamamlanır; 1000’in altında puanda herhangi bir mesaj gönderilmeden uygun değil olarak çıkar.",
+        "warnings": [
+          "Dağıtım ve e-posta kanal yapılandırmasının insan tarafından doğrulanması gerekir. E-posta izinlerinin nasıl denetleneceği istek kapsamında belirtilmediğinden akışa ayrıca bir izin koşulu eklenmemiştir.",
+          "The reviewed scoped obligations and eligibility boundaries passed. Unspecified customer states and event sequences still require review and Test Lab coverage."
+        ],
+        "grounding_ready": true,
+        "not_done": [],
+        "workflow": {
+          "behavior_checks": {
+            "version": 2,
+            "confirmed": true,
+            "entry_event": "points_updated",
+            "inputs": {
+              "customer.attributes.first_name": "Deniz",
+              "event.properties.points": 1500
+            },
+            "email_count": 1,
+            "sms_count": 0,
+            "outcome": "completed",
+            "duration_seconds": 0,
+            "thresholds": [
+              {
+                "path": "event.properties.points",
+                "operator": "greater_than_or_equal",
+                "value": 1000
+              }
+            ],
+            "case_name": "Reaches gold",
+            "expected_attributes": {
+              "tier": "gold"
+            },
+            "ineligible_outcome": "condition_not_met",
+            "alternatives": [
+              {
+                "name": "Below 1000",
+                "inputs": {
+                  "event.properties.points": 999
+                },
+                "email_count": 0,
+                "sms_count": 0,
+                "outcome": "condition_not_met",
+                "duration_seconds": 0
+              }
+            ]
+          },
+          "schema_version": 1,
+          "nodes": [
+            {
+              "id": "trigger",
+              "type": "event_trigger",
+              "label": "Puan güncellendi",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "config": {
+                "event_name": "points_updated"
+              }
+            },
+            {
+              "id": "check_points",
+              "type": "condition",
+              "label": "Puan 1000 veya üzeri mi?",
+              "position": {
+                "x": 220,
+                "y": 0
+              },
+              "config": {
+                "rule": {
+                  "path": "event.properties.points",
+                  "operator": "greater_than_or_equal",
+                  "value": 1000
+                }
+              }
+            },
+            {
+              "id": "set_gold",
+              "type": "update_attribute",
+              "label": "Üyelik seviyesini gold yap",
+              "position": {
+                "x": 440,
+                "y": -100
+              },
+              "config": {
+                "attribute": "tier",
+                "operation": "set",
+                "value": "gold"
+              }
+            },
+            {
+              "id": "gold_email",
+              "type": "email",
+              "label": "Altın üyelik e-postası",
+              "position": {
+                "x": 660,
+                "y": -100
+              },
+              "config": {
+                "subject": "Altın üyeliğe geçtin",
+                "preheader": "Altın üyeliğe geçtin",
+                "html": "<p>Merhaba {{ customer.attributes.first_name }},</p><p>Altın üyeliğe geçtin.</p><p><a href=\"https://example.com/altin\">https://example.com/altin</a></p>",
+                "text": "Merhaba {{ customer.attributes.first_name }},\n\nAltın üyeliğe geçtin.\n\nhttps://example.com/altin",
+                "fallbacks": {
+                  "customer.attributes.first_name": "Merhaba"
+                }
+              }
+            },
+            {
+              "id": "completed_exit",
+              "type": "exit",
+              "label": "Akışı tamamla",
+              "position": {
+                "x": 880,
+                "y": -100
+              },
+              "config": {
+                "reason": "completed"
+              }
+            },
+            {
+              "id": "ineligible_exit",
+              "type": "exit",
+              "label": "Uygun değil",
+              "position": {
+                "x": 440,
+                "y": 100
+              },
+              "config": {
+                "reason": "condition_not_met"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "e1",
+              "source": "trigger",
+              "target": "check_points",
+              "port": "started"
+            },
+            {
+              "id": "e2",
+              "source": "check_points",
+              "target": "set_gold",
+              "port": "true"
+            },
+            {
+              "id": "e3",
+              "source": "check_points",
+              "target": "ineligible_exit",
+              "port": "false"
+            },
+            {
+              "id": "e4",
+              "source": "set_gold",
+              "target": "gold_email",
+              "port": "next"
+            },
+            {
+              "id": "e5",
+              "source": "gold_email",
+              "target": "completed_exit",
+              "port": "next"
+            }
+          ]
+        }
+      },
+      "static_notes": [],
+      "journey_id": "e3fb4a69-1f62-4b10-b367-1d88a98904e8",
+      "validation": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/Validation.json",
+        "valid": true,
+        "issues": []
+      },
+      "cases": [
+        {
+          "name": "A · Reaches gold",
+          "held_out": false,
+          "test_run_id": "925d464a-b1ac-4796-82cb-6588f66fcc73",
+          "expected": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 0
+          },
+          "actual": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 0,
+            "status": "COMPLETED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        },
+        {
+          "name": "B · Below 1000",
+          "held_out": false,
+          "test_run_id": "eb943bc7-fbaa-4590-a1a8-4d5b1602572f",
+          "expected": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "condition_not_met",
+            "duration": 0
+          },
+          "actual": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "condition_not_met",
+            "duration": 0,
+            "status": "EXITED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 0,
+          "pass": true
+        },
+        {
+          "name": "C · Exactly 1000",
+          "held_out": true,
+          "test_run_id": "48d2ad2e-7ffc-4621-9868-6d247001fe13",
+          "expected": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": null
+          },
+          "actual": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 0,
+            "status": "COMPLETED"
+          },
+          "duration_matches": null,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        },
+        {
+          "name": "D · 999.5 stays out",
+          "held_out": true,
+          "test_run_id": "5acdd629-96ae-4d2b-84f7-509d5e7d41bc",
+          "expected": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "condition_not_met",
+            "duration": null
+          },
+          "actual": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "condition_not_met",
+            "duration": 0,
+            "status": "EXITED"
+          },
+          "duration_matches": null,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 0,
+          "pass": true
+        }
+      ],
+      "sample_messages": {
+        "gold_email": {
+          "channel": "email",
+          "subject": "Altın üyeliğe geçtin",
+          "text": "Merhaba Deniz,\n\nAltın üyeliğe geçtin.\n\nhttps://example.com/altin"
+        }
+      },
+      "publish_check": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/ResultStruct { Ready bool \"json:\\\"ready\\\"\"; Issues ListGateIssue \"json:\\\"issues\\\"\"; Policy string \"json:\\\"policy\\\"\" }Body.json",
+        "ready": true,
+        "issues": [],
+        "policy": "Consent is enforced for every send. Workspace frequency caps apply. Global exit: false. Publishing creates an immutable version."
+      },
+      "database_readback": {
+        "journeys": 1,
+        "versions": 0,
+        "live_executions": 0,
+        "live_customers": 0,
+        "delivery_jobs": 0,
+        "test_runs": 4,
+        "draft_status": "Draft"
+      },
+      "summary": {
+        "cases": 4,
+        "passed": 4,
+        "contract_passed": 2,
+        "contract_cases": 2,
+        "held_out_passed": 2,
+        "held_out_cases": 2,
+        "durations_matched": 2,
+        "durations_checked": 2,
+        "static_notes": 0,
+        "publish_ready": true
+      },
+      "verdict": "pass",
+      "wall_seconds": 16.2
+    },
+    {
+      "id": "price_drop",
+      "name": "Fiyat düştü – kanal seçimi",
+      "feature": "channel choice by consent, threshold",
+      "brief": "Takip edilen bir ürünün fiyatı düştüğünde (price_dropped) akış başlasın. İndirim oranı (event.properties.discount_percent) 20’nin altındaysa uygun değil olarak çık. 20 veya üzerindeyse: SMS izni varsa yalnızca kısa bir SMS gönder; SMS izni yoksa ama e-posta izni varsa yalnızca bir e-posta gönder; ikisi de yoksa uygun değil olarak çık. Mesajdan sonra normal tamamla. Bağlantı olarak https://example.com/indirim kullan. Mesajlar Türkçe olsun ve müşterinin adını kullansın; ad yoksa \"Merhaba\" gibi bir yedek kullan.",
+      "catalog": [
+        {
+          "kind": "customer_field",
+          "path": "customer.attributes.first_name",
+          "label": "Müşterinin adı",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event",
+          "event_name": "price_dropped",
+          "label": "Fiyat düştü",
+          "data_type": "event",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event_field",
+          "event_name": "price_dropped",
+          "path": "event.properties.product_id",
+          "label": "Ürün numarası",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event_field",
+          "event_name": "price_dropped",
+          "path": "event.properties.discount_percent",
+          "label": "İndirim oranı",
+          "data_type": "number",
+          "aliases": [],
+          "enabled": true
+        }
+      ],
+      "workspace_id": "2d833d1c-5b6a-4e8d-af53-710720565ec7",
+      "behavior_checks": {
+        "version": 2,
+        "confirmed": true,
+        "entry_event": "price_dropped",
+        "case_name": "SMS allowed",
+        "email_count": 0,
+        "sms_count": 1,
+        "outcome": "completed",
+        "duration_seconds": 0,
+        "inputs": {
+          "customer.attributes.first_name": "Deniz",
+          "event.properties.product_id": "p-3",
+          "event.properties.discount_percent": 25
+        },
+        "thresholds": [
+          {
+            "path": "event.properties.discount_percent",
+            "operator": "greater_than_or_equal",
+            "value": 20
+          }
+        ],
+        "ineligible_outcome": "condition_not_met",
+        "alternatives": [
+          {
+            "name": "Email only",
+            "consents": {
+              "sms": false
+            },
+            "email_count": 1,
+            "sms_count": 0,
+            "outcome": "completed",
+            "duration_seconds": 0
+          },
+          {
+            "name": "No channel",
+            "consents": {
+              "sms": false,
+              "email": false
+            },
+            "email_count": 0,
+            "sms_count": 0,
+            "outcome": "condition_not_met",
+            "duration_seconds": 0
+          },
+          {
+            "name": "Small discount",
+            "inputs": {
+              "event.properties.discount_percent": 10
+            },
+            "email_count": 0,
+            "sms_count": 0,
+            "outcome": "condition_not_met",
+            "duration_seconds": 0
+          }
+        ]
+      },
+      "generation_requests": [
+        {
+          "attempt": 1,
+          "http_status": 200,
+          "ms": 16679
+        }
+      ],
+      "generation": {
+        "attempts": [
+          {
+            "provider": "openai",
+            "requested_model": "gpt-6-luna",
+            "model": "gpt-6-luna",
+            "request_id": "req_f0b30762b1e545329f15111817a60e55",
+            "duration_ms": 16665,
+            "http_status": 200,
+            "usage": {
+              "input_tokens": 4787,
+              "output_tokens": 1906,
+              "reasoning_tokens": 955,
+              "cached_input_tokens": 0,
+              "cache_creation_tokens": 4784
+            },
+            "provider_succeeded": true,
+            "accepted": true
+          }
+        ],
+        "usage": {
+          "input_tokens": 4787,
+          "output_tokens": 1906,
+          "reasoning_tokens": 955,
+          "cached_input_tokens": 0,
+          "cache_creation_tokens": 4784
+        }
+      },
+      "proposal": {
+        "name": "Fiyat düştü – kanal seçimi",
+        "explanation": "SMS izni varsa SMS gönderilir. SMS izni yoksa e-posta izni kontrol edilir ve varsa e-posta gönderilir. İndirim oranı 20'nin altındaysa veya iki kanal için de izin yoksa uygun değil olarak çıkar.",
+        "warnings": [
+          "E-posta ve SMS gönderen/sağlayıcı ayarları dağıtımdan önce yapılandırılmalıdır.",
+          "The reviewed scoped obligations and eligibility boundaries passed. Unspecified customer states and event sequences still require review and Test Lab coverage."
+        ],
+        "grounding_ready": true,
+        "not_done": [],
+        "workflow": {
+          "behavior_checks": {
+            "version": 2,
+            "confirmed": true,
+            "entry_event": "price_dropped",
+            "inputs": {
+              "customer.attributes.first_name": "Deniz",
+              "event.properties.discount_percent": 25,
+              "event.properties.product_id": "p-3"
+            },
+            "email_count": 0,
+            "sms_count": 1,
+            "outcome": "completed",
+            "duration_seconds": 0,
+            "thresholds": [
+              {
+                "path": "event.properties.discount_percent",
+                "operator": "greater_than_or_equal",
+                "value": 20
+              }
+            ],
+            "case_name": "SMS allowed",
+            "ineligible_outcome": "condition_not_met",
+            "alternatives": [
+              {
+                "name": "Email only",
+                "consents": {
+                  "sms": false
+                },
+                "email_count": 1,
+                "sms_count": 0,
+                "outcome": "completed",
+                "duration_seconds": 0
+              },
+              {
+                "name": "No channel",
+                "consents": {
+                  "email": false,
+                  "sms": false
+                },
+                "email_count": 0,
+                "sms_count": 0,
+                "outcome": "condition_not_met",
+                "duration_seconds": 0
+              },
+              {
+                "name": "Small discount",
+                "inputs": {
+                  "event.properties.discount_percent": 10
+                },
+                "email_count": 0,
+                "sms_count": 0,
+                "outcome": "condition_not_met",
+                "duration_seconds": 0
+              }
+            ]
+          },
+          "schema_version": 1,
+          "nodes": [
+            {
+              "id": "trigger",
+              "type": "event_trigger",
+              "label": "Ürün fiyatı düştü",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "config": {
+                "event_name": "price_dropped"
+              }
+            },
+            {
+              "id": "discount_check",
+              "type": "condition",
+              "label": "İndirim oranı en az 20 mi?",
+              "position": {
+                "x": 220,
+                "y": 0
+              },
+              "config": {
+                "rule": {
+                  "path": "event.properties.discount_percent",
+                  "operator": "greater_than_or_equal",
+                  "value": 20
+                }
+              }
+            },
+            {
+              "id": "sms_consent_check",
+              "type": "condition",
+              "label": "SMS izni var mı?",
+              "position": {
+                "x": 440,
+                "y": 0
+              },
+              "config": {
+                "rule": {
+                  "path": "customer.consents.sms",
+                  "operator": "equals",
+                  "value": true
+                }
+              }
+            },
+            {
+              "id": "sms_message",
+              "type": "sms",
+              "label": "Fiyat düşüşü SMS'i",
+              "position": {
+                "x": 660,
+                "y": -120
+              },
+              "config": {
+                "text": "{{ customer.attributes.first_name }}, takip ettiğiniz ürünün fiyatı düştü. İncelemek için: https://example.com/indirim",
+                "fallbacks": {
+                  "customer.attributes.first_name": "Merhaba"
+                }
+              }
+            },
+            {
+              "id": "ineligible_discount",
+              "type": "exit",
+              "label": "İndirim oranı uygun değil",
+              "position": {
+                "x": 440,
+                "y": 180
+              },
+              "config": {
+                "reason": "condition_not_met"
+              }
+            },
+            {
+              "id": "email_consent_check",
+              "type": "condition",
+              "label": "E-posta izni var mı?",
+              "position": {
+                "x": 660,
+                "y": 100
+              },
+              "config": {
+                "rule": {
+                  "path": "customer.consents.email",
+                  "operator": "equals",
+                  "value": true
+                }
+              }
+            },
+            {
+              "id": "email_message",
+              "type": "email",
+              "label": "Fiyat düşüşü e-postası",
+              "position": {
+                "x": 880,
+                "y": 100
+              },
+              "config": {
+                "subject": "Takip ettiğiniz ürünün fiyatı düştü",
+                "preheader": "Takip ettiğiniz ürünün fiyatı düştü.",
+                "html": "<p>{{ customer.attributes.first_name }}, takip ettiğiniz ürünün fiyatı düştü.</p><p><a href=\"https://example.com/indirim\">Ürünü inceleyin</a></p>",
+                "text": "{{ customer.attributes.first_name }}, takip ettiğiniz ürünün fiyatı düştü. İncelemek için: https://example.com/indirim",
+                "fallbacks": {
+                  "customer.attributes.first_name": "Merhaba"
+                }
+              }
+            },
+            {
+              "id": "no_channel",
+              "type": "exit",
+              "label": "Kullanılabilir kanal izni yok",
+              "position": {
+                "x": 880,
+                "y": 260
+              },
+              "config": {
+                "reason": "condition_not_met"
+              }
+            },
+            {
+              "id": "sms_completed",
+              "type": "exit",
+              "label": "SMS sonrası tamamlandı",
+              "position": {
+                "x": 880,
+                "y": -120
+              },
+              "config": {
+                "reason": "completed"
+              }
+            },
+            {
+              "id": "email_completed",
+              "type": "exit",
+              "label": "E-posta sonrası tamamlandı",
+              "position": {
+                "x": 1100,
+                "y": 100
+              },
+              "config": {
+                "reason": "completed"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "e1",
+              "source": "trigger",
+              "target": "discount_check",
+              "port": "started"
+            },
+            {
+              "id": "e2",
+              "source": "discount_check",
+              "target": "sms_consent_check",
+              "port": "true"
+            },
+            {
+              "id": "e3",
+              "source": "discount_check",
+              "target": "ineligible_discount",
+              "port": "false"
+            },
+            {
+              "id": "e4",
+              "source": "sms_consent_check",
+              "target": "sms_message",
+              "port": "true"
+            },
+            {
+              "id": "e5",
+              "source": "sms_consent_check",
+              "target": "email_consent_check",
+              "port": "false"
+            },
+            {
+              "id": "e6",
+              "source": "sms_message",
+              "target": "sms_completed",
+              "port": "next"
+            },
+            {
+              "id": "e7",
+              "source": "email_consent_check",
+              "target": "email_message",
+              "port": "true"
+            },
+            {
+              "id": "e8",
+              "source": "email_consent_check",
+              "target": "no_channel",
+              "port": "false"
+            },
+            {
+              "id": "e9",
+              "source": "email_message",
+              "target": "email_completed",
+              "port": "next"
+            }
+          ]
+        }
+      },
+      "static_notes": [],
+      "journey_id": "eda49c16-f973-4479-a027-a4842f0d3a9f",
+      "validation": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/Validation.json",
+        "valid": true,
+        "issues": []
+      },
+      "cases": [
+        {
+          "name": "A · SMS allowed",
+          "held_out": false,
+          "test_run_id": "d752a46d-5eb9-4c6e-977f-5e3dbcbd8c4b",
+          "expected": {
+            "email": 0,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": 0
+          },
+          "actual": {
+            "email": 0,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": 0,
+            "status": "COMPLETED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        },
+        {
+          "name": "B · Email only",
+          "held_out": false,
+          "test_run_id": "44228609-e0a5-44a2-88db-c4db42288efc",
+          "expected": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 0
+          },
+          "actual": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 0,
+            "status": "COMPLETED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        },
+        {
+          "name": "C · No channel",
+          "held_out": false,
+          "test_run_id": "a3b68298-dbfe-4aa4-8c83-e9d9b36a2d18",
+          "expected": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "condition_not_met",
+            "duration": 0
+          },
+          "actual": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "condition_not_met",
+            "duration": 0,
+            "status": "EXITED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 0,
+          "pass": true
+        },
+        {
+          "name": "D · Small discount",
+          "held_out": false,
+          "test_run_id": "ae215910-b7df-4f82-95c9-b337a7e5cec6",
+          "expected": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "condition_not_met",
+            "duration": 0
+          },
+          "actual": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "condition_not_met",
+            "duration": 0,
+            "status": "EXITED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 0,
+          "pass": true
+        },
+        {
+          "name": "E · Exactly 20 percent",
+          "held_out": true,
+          "test_run_id": "8a3e9867-3d63-4de9-8d8a-180d8fd105cd",
+          "expected": {
+            "email": 0,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": null
+          },
+          "actual": {
+            "email": 0,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": 0,
+            "status": "COMPLETED"
+          },
+          "duration_matches": null,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        }
+      ],
+      "sample_messages": {
+        "sms_message": {
+          "channel": "sms",
+          "subject": "",
+          "text": "Deniz, takip ettiğiniz ürünün fiyatı düştü. İncelemek için: https://example.com/indirim"
+        },
+        "email_message": {
+          "channel": "email",
+          "subject": "Takip ettiğiniz ürünün fiyatı düştü",
+          "text": "Deniz, takip ettiğiniz ürünün fiyatı düştü. İncelemek için: https://example.com/indirim"
+        }
+      },
+      "publish_check": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/ResultStruct { Ready bool \"json:\\\"ready\\\"\"; Issues ListGateIssue \"json:\\\"issues\\\"\"; Policy string \"json:\\\"policy\\\"\" }Body.json",
+        "ready": true,
+        "issues": [],
+        "policy": "Consent is enforced for every send. Workspace frequency caps apply. Global exit: false. Publishing creates an immutable version."
+      },
+      "database_readback": {
+        "journeys": 1,
+        "versions": 0,
+        "live_executions": 0,
+        "live_customers": 0,
+        "delivery_jobs": 0,
+        "test_runs": 5,
+        "draft_status": "Draft"
+      },
+      "summary": {
+        "cases": 5,
+        "passed": 5,
+        "contract_passed": 4,
+        "contract_cases": 4,
+        "held_out_passed": 1,
+        "held_out_cases": 1,
+        "durations_matched": 4,
+        "durations_checked": 4,
+        "static_notes": 0,
+        "publish_ready": true
+      },
+      "verdict": "pass",
+      "wall_seconds": 17.3
+    },
+    {
+      "id": "invoice_reminder",
+      "name": "Fatura hatırlatma",
+      "feature": "invoice-scoped exit, staged email then SMS",
+      "brief": "Fatura kesildiğinde (invoice_issued) akış başlasın. Aynı fatura ödendiğinde (invoice_paid, invoice_id eşleşmesi) akışın her yerinde hemen dönüşüm olarak çık; başka bir faturanın ödemesi bu akışı bitirmez. 5 gün bekle; ödenmemişse hatırlatma e-postası gönder. Sonra 2 gün daha bekle; hâlâ ödenmemişse ve SMS izni varsa kısa bir SMS hatırlatması gönder ve normal tamamla; SMS izni yoksa SMS göndermeden normal tamamla. Bağlantı olarak https://example.com/fatura kullan. Mesajlar Türkçe olsun ve müşterinin adını kullansın; ad yoksa \"Merhaba\" gibi bir yedek kullan.",
+      "catalog": [
+        {
+          "kind": "customer_field",
+          "path": "customer.attributes.first_name",
+          "label": "Müşterinin adı",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event",
+          "event_name": "invoice_issued",
+          "label": "Fatura kesildi",
+          "data_type": "event",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event_field",
+          "event_name": "invoice_issued",
+          "path": "event.properties.invoice_id",
+          "label": "Fatura numarası",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event",
+          "event_name": "invoice_paid",
+          "label": "Fatura ödendi",
+          "data_type": "event",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event_field",
+          "event_name": "invoice_paid",
+          "path": "event.properties.invoice_id",
+          "label": "Ödenen fatura",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        }
+      ],
+      "workspace_id": "6ae25fd8-efeb-44b4-b204-80b1caf20237",
+      "behavior_checks": {
+        "version": 2,
+        "confirmed": true,
+        "entry_event": "invoice_issued",
+        "case_name": "Never paid",
+        "email_count": 1,
+        "sms_count": 1,
+        "outcome": "completed",
+        "duration_seconds": 604800,
+        "inputs": {
+          "customer.attributes.first_name": "Deniz",
+          "event.properties.invoice_id": "inv-1"
+        },
+        "alternatives": [
+          {
+            "name": "Paid on day one",
+            "events": [
+              {
+                "event_name": "invoice_paid",
+                "after_seconds": 86400,
+                "entry_binding": {
+                  "entry_path": "event.properties.invoice_id",
+                  "event_path": "event.properties.invoice_id",
+                  "operator": "equals"
+                },
+                "properties": {
+                  "invoice_id": "inv-1"
+                }
+              }
+            ],
+            "email_count": 0,
+            "sms_count": 0,
+            "outcome": "converted",
+            "duration_seconds": 86400
+          },
+          {
+            "name": "Paid after the email",
+            "events": [
+              {
+                "event_name": "invoice_paid",
+                "after_seconds": 518400,
+                "entry_binding": {
+                  "entry_path": "event.properties.invoice_id",
+                  "event_path": "event.properties.invoice_id",
+                  "operator": "equals"
+                },
+                "properties": {
+                  "invoice_id": "inv-1"
+                }
+              }
+            ],
+            "email_count": 1,
+            "sms_count": 0,
+            "outcome": "converted",
+            "duration_seconds": 518400
+          }
+        ]
+      },
+      "generation_requests": [
+        {
+          "attempt": 1,
+          "http_status": 200,
+          "ms": 27057
+        }
+      ],
+      "generation": {
+        "attempts": [
+          {
+            "provider": "openai",
+            "requested_model": "gpt-6-luna",
+            "model": "gpt-6-luna",
+            "request_id": "req_d2d5792440c24603931b05a52ad71e9e",
+            "duration_ms": 27048,
+            "http_status": 200,
+            "usage": {
+              "input_tokens": 4853,
+              "output_tokens": 3062,
+              "reasoning_tokens": 2065,
+              "cached_input_tokens": 0,
+              "cache_creation_tokens": 4850
+            },
+            "provider_succeeded": true,
+            "accepted": true
+          }
+        ],
+        "usage": {
+          "input_tokens": 4853,
+          "output_tokens": 3062,
+          "reasoning_tokens": 2065,
+          "cached_input_tokens": 0,
+          "cache_creation_tokens": 4850
+        }
+      },
+      "proposal": {
+        "name": "Fatura hatırlatma",
+        "explanation": "Akış 5 gün bekler. E-posta izni varsa fatura bağlantısını içeren e-posta gönderir; ardından 2 gün boyunca aynı faturanın ödenmesini bekler. Bu sürede ödeme gelmezse SMS iznini kontrol eder; izin varsa SMS gönderir, yoksa mesaj göndermeden normal tamamlanır.",
+        "warnings": [
+          "E-posta izni kullanıcı tarafından ayrıca belirtilmediği için e-posta adımı customer.consents.email=true koşuluna bağlandı. İzin yoksa e-posta gönderilmez; akış aynı bekleme ve SMS izin kontrolüyle devam eder. Bu davranışı insan incelemesinde doğrulayın.",
+          "Dağıtımdan önce e-posta ve SMS kanallarının etkinliğini ve sağlayıcı ayarlarını doğrulayın.",
+          "The reviewed scoped obligations and eligibility boundaries passed. Unspecified customer states and event sequences still require review and Test Lab coverage."
+        ],
+        "grounding_ready": true,
+        "not_done": [],
+        "workflow": {
+          "behavior_checks": {
+            "version": 2,
+            "confirmed": true,
+            "entry_event": "invoice_issued",
+            "inputs": {
+              "customer.attributes.first_name": "Deniz",
+              "event.properties.invoice_id": "inv-1"
+            },
+            "email_count": 1,
+            "sms_count": 1,
+            "outcome": "completed",
+            "duration_seconds": 604800,
+            "case_name": "Never paid",
+            "alternatives": [
+              {
+                "name": "Paid on day one",
+                "events": [
+                  {
+                    "entry_binding": {
+                      "entry_path": "event.properties.invoice_id",
+                      "event_path": "event.properties.invoice_id",
+                      "operator": "equals"
+                    },
+                    "event_name": "invoice_paid",
+                    "after_seconds": 86400,
+                    "properties": {
+                      "invoice_id": "inv-1"
+                    }
+                  }
+                ],
+                "email_count": 0,
+                "sms_count": 0,
+                "outcome": "converted",
+                "duration_seconds": 86400
+              },
+              {
+                "name": "Paid after the email",
+                "events": [
+                  {
+                    "entry_binding": {
+                      "entry_path": "event.properties.invoice_id",
+                      "event_path": "event.properties.invoice_id",
+                      "operator": "equals"
+                    },
+                    "event_name": "invoice_paid",
+                    "after_seconds": 518400,
+                    "properties": {
+                      "invoice_id": "inv-1"
+                    }
+                  }
+                ],
+                "email_count": 1,
+                "sms_count": 0,
+                "outcome": "converted",
+                "duration_seconds": 518400
+              }
+            ]
+          },
+          "schema_version": 1,
+          "nodes": [
+            {
+              "id": "trigger",
+              "type": "event_trigger",
+              "label": "Fatura kesildi",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "config": {
+                "event_name": "invoice_issued"
+              }
+            },
+            {
+              "id": "wait5",
+              "type": "wait",
+              "label": "5 gün bekle",
+              "position": {
+                "x": 200,
+                "y": 0
+              },
+              "config": {
+                "duration_seconds": 432000
+              }
+            },
+            {
+              "id": "emailConsent",
+              "type": "condition",
+              "label": "E-posta izni var mı?",
+              "position": {
+                "x": 400,
+                "y": 0
+              },
+              "config": {
+                "rule": {
+                  "logic": "and",
+                  "rules": [
+                    {
+                      "path": "customer.consents.email",
+                      "operator": "equals",
+                      "value": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "reminderEmail",
+              "type": "email",
+              "label": "Fatura hatırlatma e-postası",
+              "position": {
+                "x": 600,
+                "y": -100
+              },
+              "config": {
+                "subject": "Fatura hatırlatması",
+                "html": "<p>{{ customer.attributes.first_name }}, fatura hatırlatması: <a href=\"https://example.com/fatura\">https://example.com/fatura</a></p>",
+                "text": "{{ customer.attributes.first_name }}, fatura hatırlatması: https://example.com/fatura",
+                "fallbacks": {
+                  "customer.attributes.first_name": "Merhaba"
+                }
+              }
+            },
+            {
+              "id": "waitPayment",
+              "type": "wait_event",
+              "label": "Aynı faturanın ödemesini 2 gün bekle",
+              "position": {
+                "x": 800,
+                "y": 0
+              },
+              "config": {
+                "event_name": "invoice_paid",
+                "timeout_seconds": 172800
+              }
+            },
+            {
+              "id": "smsConsent",
+              "type": "condition",
+              "label": "SMS izni var mı?",
+              "position": {
+                "x": 1000,
+                "y": 100
+              },
+              "config": {
+                "rule": {
+                  "logic": "and",
+                  "rules": [
+                    {
+                      "path": "customer.consents.sms",
+                      "operator": "equals",
+                      "value": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "reminderSms",
+              "type": "sms",
+              "label": "Fatura hatırlatma SMS'i",
+              "position": {
+                "x": 1200,
+                "y": 0
+              },
+              "config": {
+                "text": "{{ customer.attributes.first_name }}, fatura hatırlatması: https://example.com/fatura",
+                "fallbacks": {
+                  "customer.attributes.first_name": "Merhaba"
+                }
+              }
+            },
+            {
+              "id": "converted",
+              "type": "exit",
+              "label": "Aynı fatura ödendi",
+              "position": {
+                "x": 1000,
+                "y": -150
+              },
+              "config": {
+                "reason": "converted"
+              }
+            },
+            {
+              "id": "completed",
+              "type": "exit",
+              "label": "Normal tamamlandı",
+              "position": {
+                "x": 1400,
+                "y": 100
+              },
+              "config": {
+                "reason": "completed"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "e1",
+              "source": "trigger",
+              "target": "wait5",
+              "port": "started"
+            },
+            {
+              "id": "e2",
+              "source": "wait5",
+              "target": "emailConsent",
+              "port": "completed"
+            },
+            {
+              "id": "e3",
+              "source": "emailConsent",
+              "target": "reminderEmail",
+              "port": "true"
+            },
+            {
+              "id": "e4",
+              "source": "emailConsent",
+              "target": "waitPayment",
+              "port": "false"
+            },
+            {
+              "id": "e5",
+              "source": "reminderEmail",
+              "target": "waitPayment",
+              "port": "next"
+            },
+            {
+              "id": "e6",
+              "source": "waitPayment",
+              "target": "converted",
+              "port": "matched"
+            },
+            {
+              "id": "e7",
+              "source": "waitPayment",
+              "target": "smsConsent",
+              "port": "timeout"
+            },
+            {
+              "id": "e8",
+              "source": "smsConsent",
+              "target": "reminderSms",
+              "port": "true"
+            },
+            {
+              "id": "e9",
+              "source": "smsConsent",
+              "target": "completed",
+              "port": "false"
+            },
+            {
+              "id": "e10",
+              "source": "reminderSms",
+              "target": "completed",
+              "port": "next"
+            }
+          ],
+          "global_exit": {
+            "correlation": {
+              "entry_path": "event.properties.invoice_id",
+              "event_path": "event.properties.invoice_id"
+            },
+            "reason": "converted",
+            "event_name": "invoice_paid"
+          }
+        }
+      },
+      "static_notes": [],
+      "journey_id": "54c588df-6197-4318-b5b0-51765e65dd44",
+      "validation": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/Validation.json",
+        "valid": true,
+        "issues": []
+      },
+      "cases": [
+        {
+          "name": "A · Never paid",
+          "held_out": false,
+          "test_run_id": "172f626e-6671-4ea1-8e72-c1c97976ee60",
+          "expected": {
+            "email": 1,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": 604800
+          },
+          "actual": {
+            "email": 1,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": 604800,
+            "status": "COMPLETED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 2,
+          "pass": true
+        },
+        {
+          "name": "B · Paid on day one",
+          "held_out": false,
+          "test_run_id": "f11770ae-0b4d-48c4-a0ff-693ac602bc75",
+          "expected": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": 86400
+          },
+          "actual": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": 86400,
+            "status": "EXITED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 0,
+          "pass": true
+        },
+        {
+          "name": "C · Paid after the email",
+          "held_out": false,
+          "test_run_id": "94c8f49f-d72f-4a62-ba99-280191907143",
+          "expected": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": 518400
+          },
+          "actual": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "converted",
+            "duration": 518400,
+            "status": "EXITED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        },
+        {
+          "name": "D · Another invoice paid",
+          "held_out": true,
+          "test_run_id": "d6d35054-5578-40fe-8122-a0f242c258cd",
+          "expected": {
+            "email": 1,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": null
+          },
+          "actual": {
+            "email": 1,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": 604800,
+            "status": "COMPLETED"
+          },
+          "duration_matches": null,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 2,
+          "pass": true
+        },
+        {
+          "name": "E · No SMS consent",
+          "held_out": true,
+          "test_run_id": "80f20fbe-e858-4be7-8261-229532c4582f",
+          "expected": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": null
+          },
+          "actual": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 604800,
+            "status": "COMPLETED"
+          },
+          "duration_matches": null,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        }
+      ],
+      "sample_messages": {
+        "reminderEmail": {
+          "channel": "email",
+          "subject": "Fatura hatırlatması",
+          "text": "Deniz, fatura hatırlatması: https://example.com/fatura"
+        },
+        "reminderSms": {
+          "channel": "sms",
+          "subject": "",
+          "text": "Deniz, fatura hatırlatması: https://example.com/fatura"
+        }
+      },
+      "publish_check": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/ResultStruct { Ready bool \"json:\\\"ready\\\"\"; Issues ListGateIssue \"json:\\\"issues\\\"\"; Policy string \"json:\\\"policy\\\"\" }Body.json",
+        "ready": true,
+        "issues": [],
+        "policy": "Consent is enforced for every send. Workspace frequency caps apply. Global exit: true. Publishing creates an immutable version."
+      },
+      "database_readback": {
+        "journeys": 1,
+        "versions": 0,
+        "live_executions": 0,
+        "live_customers": 0,
+        "delivery_jobs": 0,
+        "test_runs": 5,
+        "draft_status": "Draft"
+      },
+      "summary": {
+        "cases": 5,
+        "passed": 5,
+        "contract_passed": 3,
+        "contract_cases": 3,
+        "held_out_passed": 2,
+        "held_out_cases": 2,
+        "durations_matched": 3,
+        "durations_checked": 3,
+        "static_notes": 0,
+        "publish_ready": true
+      },
+      "verdict": "pass",
+      "wall_seconds": 27.6
+    },
+    {
+      "id": "webinar_click",
+      "name": "Webinar – SMS tıklaması",
+      "feature": "wait for a click on an earlier SMS (message_node)",
+      "brief": "Webinara kayıt olunduğunda (webinar_registered) akış başlasın. 1 gün bekle ve hatırlatma e-postası gönder. 1 gün daha bekle; SMS izni varsa https://example.com/canli katılım bağlantılı \"yayın başlıyor\" SMS’i gönder. Bu SMS’teki bağlantıya 2 saat içinde tıklanırsa dönüşüm olarak çık, tıklanmazsa normal tamamla. SMS izni yoksa SMS’i atla ve normal tamamla. Mesajlar Türkçe olsun ve müşterinin adını kullansın; ad yoksa \"Merhaba\" gibi bir yedek kullan.",
+      "catalog": [
+        {
+          "kind": "customer_field",
+          "path": "customer.attributes.first_name",
+          "label": "Müşterinin adı",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event",
+          "event_name": "webinar_registered",
+          "label": "Webinara kayıt oldu",
+          "data_type": "event",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event_field",
+          "event_name": "webinar_registered",
+          "path": "event.properties.webinar_id",
+          "label": "Webinar numarası",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        }
+      ],
+      "workspace_id": "3c9cc1c1-916f-4a97-a972-ff9bf4c80ff9",
+      "behavior_checks": {
+        "version": 2,
+        "confirmed": true,
+        "entry_event": "webinar_registered",
+        "case_name": "Does not click",
+        "email_count": 1,
+        "sms_count": 1,
+        "outcome": "completed",
+        "duration_seconds": 180000,
+        "inputs": {
+          "customer.attributes.first_name": "Deniz",
+          "event.properties.webinar_id": "w-7"
+        },
+        "alternatives": [
+          {
+            "name": "Clicks the SMS",
+            "events": [
+              {
+                "event_name": "message_clicked",
+                "after_seconds": 173400
+              }
+            ],
+            "email_count": 1,
+            "sms_count": 1,
+            "outcome": "converted",
+            "duration_seconds": 173400
+          },
+          {
+            "name": "No SMS consent",
+            "consents": {
+              "sms": false
+            },
+            "email_count": 1,
+            "sms_count": 0,
+            "outcome": "completed",
+            "duration_seconds": 172800
+          }
+        ]
+      },
+      "generation_requests": [
+        {
+          "attempt": 1,
+          "http_status": 200,
+          "ms": 33305
+        }
+      ],
+      "generation": {
+        "attempts": [
+          {
+            "validation": {
+              "schema": 0,
+              "workflow": 2,
+              "message": 0,
+              "behavior": 0,
+              "facts": 0
+            },
+            "provider": "openai",
+            "requested_model": "gpt-6-luna",
+            "model": "gpt-6-luna",
+            "request_id": "req_494437c190fe4e6ebcd9c1ce07f984a5",
+            "duration_ms": 21566,
+            "http_status": 200,
+            "usage": {
+              "input_tokens": 4672,
+              "output_tokens": 2654,
+              "reasoning_tokens": 1157,
+              "cached_input_tokens": 0,
+              "cache_creation_tokens": 4669
+            },
+            "provider_succeeded": true,
+            "accepted": false
+          },
+          {
+            "provider": "openai",
+            "requested_model": "gpt-6-luna",
+            "model": "gpt-6-luna",
+            "request_id": "req_f96681a3c21c45b0acac86be54d7b618",
+            "duration_ms": 11724,
+            "http_status": 200,
+            "usage": {
+              "input_tokens": 6205,
+              "output_tokens": 1486,
+              "reasoning_tokens": 544,
+              "cached_input_tokens": 4492,
+              "cache_creation_tokens": 1710
+            },
+            "provider_succeeded": true,
+            "accepted": true
+          }
+        ],
+        "usage": {
+          "input_tokens": 10877,
+          "output_tokens": 4140,
+          "reasoning_tokens": 1701,
+          "cached_input_tokens": 4492,
+          "cache_creation_tokens": 6379
+        }
+      },
+      "proposal": {
+        "name": "Webinar – SMS tıklaması",
+        "explanation": "İlgili SMS'e iki saat içinde tıklama dönüşümle; tıklama olmaması veya SMS izninin bulunmaması normal tamamlanmayla sonuçlanır. Ad alanı boşsa selamlama yedeği kullanılır.",
+        "warnings": [
+          "E-posta ve SMS gönderim kanallarının dağıtım ayarları insan tarafından gözden geçirilmelidir.",
+          "The reviewed scoped obligations and eligibility boundaries passed. Unspecified customer states and event sequences still require review and Test Lab coverage."
+        ],
+        "grounding_ready": true,
+        "not_done": [],
+        "workflow": {
+          "behavior_checks": {
+            "version": 2,
+            "confirmed": true,
+            "entry_event": "webinar_registered",
+            "inputs": {
+              "customer.attributes.first_name": "Deniz",
+              "event.properties.webinar_id": "w-7"
+            },
+            "email_count": 1,
+            "sms_count": 1,
+            "outcome": "completed",
+            "duration_seconds": 180000,
+            "case_name": "Does not click",
+            "alternatives": [
+              {
+                "name": "Clicks the SMS",
+                "events": [
+                  {
+                    "event_name": "message_clicked",
+                    "after_seconds": 173400
+                  }
+                ],
+                "email_count": 1,
+                "sms_count": 1,
+                "outcome": "converted",
+                "duration_seconds": 173400
+              },
+              {
+                "name": "No SMS consent",
+                "consents": {
+                  "sms": false
+                },
+                "email_count": 1,
+                "sms_count": 0,
+                "outcome": "completed",
+                "duration_seconds": 172800
+              }
+            ]
+          },
+          "schema_version": 1,
+          "nodes": [
+            {
+              "id": "trigger",
+              "type": "event_trigger",
+              "label": "Webinara kayıt",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "config": {
+                "event_name": "webinar_registered"
+              }
+            },
+            {
+              "id": "wait_day_one",
+              "type": "wait",
+              "label": "Bir gün bekle",
+              "position": {
+                "x": 200,
+                "y": 0
+              },
+              "config": {
+                "duration_seconds": 86400
+              }
+            },
+            {
+              "id": "reminder_email",
+              "type": "email",
+              "label": "Webinar hatırlatma e-postası",
+              "position": {
+                "x": 400,
+                "y": 0
+              },
+              "config": {
+                "subject": "Webinar hatırlatması",
+                "preheader": "Webinar hatırlatması",
+                "html": "<p>{{ customer.attributes.first_name }},</p><p>Webinarı hatırlatmak istedik. Katılımınızı bekliyoruz.</p>",
+                "text": "{{ customer.attributes.first_name }},\n\nWebinarı hatırlatmak istedik. Katılımınızı bekliyoruz.",
+                "fallbacks": {
+                  "customer.attributes.first_name": "Merhaba"
+                }
+              }
+            },
+            {
+              "id": "wait_day_two",
+              "type": "wait",
+              "label": "Bir gün daha bekle",
+              "position": {
+                "x": 600,
+                "y": 0
+              },
+              "config": {
+                "duration_seconds": 86400
+              }
+            },
+            {
+              "id": "check_sms_consent",
+              "type": "condition",
+              "label": "SMS izni var mı?",
+              "position": {
+                "x": 800,
+                "y": 0
+              },
+              "config": {
+                "rule": {
+                  "path": "customer.consents.sms",
+                  "operator": "equals",
+                  "value": true
+                }
+              }
+            },
+            {
+              "id": "webinar_sms",
+              "type": "sms",
+              "label": "Yayın başlıyor SMS'i",
+              "position": {
+                "x": 1000,
+                "y": -100
+              },
+              "config": {
+                "text": "{{ customer.attributes.first_name }}, yayın başlıyor! Katılım bağlantısı: https://example.com/canli",
+                "fallbacks": {
+                  "customer.attributes.first_name": "Merhaba"
+                }
+              }
+            },
+            {
+              "id": "wait_for_sms_click",
+              "type": "wait_event",
+              "label": "SMS bağlantısına tıklamayı bekle",
+              "position": {
+                "x": 1200,
+                "y": -100
+              },
+              "config": {
+                "event_name": "message_clicked",
+                "timeout_seconds": 7200,
+                "message_node": "webinar_sms"
+              }
+            },
+            {
+              "id": "converted",
+              "type": "exit",
+              "label": "SMS bağlantısına tıklandı",
+              "position": {
+                "x": 1400,
+                "y": -200
+              },
+              "config": {
+                "reason": "converted"
+              }
+            },
+            {
+              "id": "complete_no_click",
+              "type": "exit",
+              "label": "İki saat içinde tıklama olmadı",
+              "position": {
+                "x": 1400,
+                "y": 0
+              },
+              "config": {
+                "reason": "completed"
+              }
+            },
+            {
+              "id": "complete_without_sms",
+              "type": "exit",
+              "label": "SMS izni yok; akış tamamlandı",
+              "position": {
+                "x": 1000,
+                "y": 150
+              },
+              "config": {
+                "reason": "completed"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "e1",
+              "source": "trigger",
+              "target": "wait_day_one",
+              "port": "started"
+            },
+            {
+              "id": "e2",
+              "source": "wait_day_one",
+              "target": "reminder_email",
+              "port": "completed"
+            },
+            {
+              "id": "e3",
+              "source": "reminder_email",
+              "target": "wait_day_two",
+              "port": "next"
+            },
+            {
+              "id": "e4",
+              "source": "wait_day_two",
+              "target": "check_sms_consent",
+              "port": "completed"
+            },
+            {
+              "id": "e5",
+              "source": "check_sms_consent",
+              "target": "webinar_sms",
+              "port": "true"
+            },
+            {
+              "id": "e6",
+              "source": "check_sms_consent",
+              "target": "complete_without_sms",
+              "port": "false"
+            },
+            {
+              "id": "e7",
+              "source": "webinar_sms",
+              "target": "wait_for_sms_click",
+              "port": "next"
+            },
+            {
+              "id": "e8",
+              "source": "wait_for_sms_click",
+              "target": "converted",
+              "port": "matched"
+            },
+            {
+              "id": "e9",
+              "source": "wait_for_sms_click",
+              "target": "complete_no_click",
+              "port": "timeout"
+            }
+          ]
+        }
+      },
+      "static_notes": [],
+      "journey_id": "2654c555-f974-442f-badf-eaccca3d7d97",
+      "validation": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/Validation.json",
+        "valid": true,
+        "issues": []
+      },
+      "cases": [
+        {
+          "name": "A · Does not click",
+          "held_out": false,
+          "test_run_id": "56bcb427-9b0e-4c5d-ae88-9658a9f136f9",
+          "expected": {
+            "email": 1,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": 180000
+          },
+          "actual": {
+            "email": 1,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": 180000,
+            "status": "COMPLETED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 2,
+          "pass": true
+        },
+        {
+          "name": "B · Clicks the SMS",
+          "held_out": false,
+          "test_run_id": "14655b38-6de2-4896-9cc0-e6e9c877a88c",
+          "expected": {
+            "email": 1,
+            "sms": 1,
+            "outcome": "converted",
+            "duration": 173400
+          },
+          "actual": {
+            "email": 1,
+            "sms": 1,
+            "outcome": "converted",
+            "duration": 173400,
+            "status": "EXITED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 2,
+          "pass": true
+        },
+        {
+          "name": "C · No SMS consent",
+          "held_out": false,
+          "test_run_id": "6ba058d4-0e87-4e79-966e-bd07b1390a40",
+          "expected": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 172800
+          },
+          "actual": {
+            "email": 1,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 172800,
+            "status": "COMPLETED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        },
+        {
+          "name": "D · Clicks only the email",
+          "held_out": true,
+          "test_run_id": "533ae3b2-aff0-4b9e-adf2-c9ae5a03920d",
+          "expected": {
+            "email": 1,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": null
+          },
+          "actual": {
+            "email": 1,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": 180000,
+            "status": "COMPLETED"
+          },
+          "duration_matches": null,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 2,
+          "pass": true
+        }
+      ],
+      "sample_messages": {
+        "webinar_sms": {
+          "channel": "sms",
+          "subject": "",
+          "text": "Deniz, yayın başlıyor! Katılım bağlantısı: https://example.com/canli"
+        },
+        "reminder_email": {
+          "channel": "email",
+          "subject": "Webinar hatırlatması",
+          "text": "Deniz,\n\nWebinarı hatırlatmak istedik. Katılımınızı bekliyoruz."
+        }
+      },
+      "publish_check": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/ResultStruct { Ready bool \"json:\\\"ready\\\"\"; Issues ListGateIssue \"json:\\\"issues\\\"\"; Policy string \"json:\\\"policy\\\"\" }Body.json",
+        "ready": true,
+        "issues": [],
+        "policy": "Consent is enforced for every send. Workspace frequency caps apply. Global exit: false. Publishing creates an immutable version."
+      },
+      "database_readback": {
+        "journeys": 1,
+        "versions": 0,
+        "live_executions": 0,
+        "live_customers": 0,
+        "delivery_jobs": 0,
+        "test_runs": 4,
+        "draft_status": "Draft"
+      },
+      "summary": {
+        "cases": 4,
+        "passed": 4,
+        "contract_passed": 3,
+        "contract_cases": 3,
+        "held_out_passed": 1,
+        "held_out_cases": 1,
+        "durations_matched": 3,
+        "durations_checked": 3,
+        "static_notes": 0,
+        "publish_ready": true
+      },
+      "verdict": "pass",
+      "wall_seconds": 33.9
+    },
+    {
+      "id": "restock_sms",
+      "name": "Stok geldi – STOK10 SMS",
+      "feature": "SMS-only with code, event wait with timeout",
+      "brief": "Müşteri stok bildirimi istediğinde (stock_alert_requested) akış başlasın. SMS izni yoksa hemen uygun değil olarak çık; e-posta hiç gönderme. 14 gün boyunca ürünün stoğa girmesini (product_restocked) bekle. Gelirse STOK10 kodunu içeren kısa bir SMS gönder (https://example.com/stok) ve normal tamamla. Süre dolarsa mesaj göndermeden normal tamamla. Entegrasyon stok olayını yalnızca müşterinin beklediği ürün için üretir. Mesajlar Türkçe olsun ve müşterinin adını kullansın; ad yoksa \"Merhaba\" gibi bir yedek kullan.",
+      "catalog": [
+        {
+          "kind": "customer_field",
+          "path": "customer.attributes.first_name",
+          "label": "Müşterinin adı",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event",
+          "event_name": "stock_alert_requested",
+          "label": "Stok bildirimi istendi",
+          "data_type": "event",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event_field",
+          "event_name": "stock_alert_requested",
+          "path": "event.properties.product_id",
+          "label": "Ürün numarası",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event",
+          "event_name": "product_restocked",
+          "label": "Ürün stoğa girdi",
+          "data_type": "event",
+          "aliases": [],
+          "enabled": true
+        },
+        {
+          "kind": "event_field",
+          "event_name": "product_restocked",
+          "path": "event.properties.product_id",
+          "label": "Stoğa giren ürün",
+          "data_type": "string",
+          "aliases": [],
+          "enabled": true
+        }
+      ],
+      "workspace_id": "5645f098-c950-4b5d-9c10-03932c587ac7",
+      "behavior_checks": {
+        "version": 2,
+        "confirmed": true,
+        "entry_event": "stock_alert_requested",
+        "case_name": "Restocked on day two",
+        "events": [
+          {
+            "event_name": "product_restocked",
+            "after_seconds": 172800,
+            "entry_binding": {
+              "entry_path": "event.properties.product_id",
+              "event_path": "event.properties.product_id",
+              "operator": "equals"
+            },
+            "properties": {
+              "product_id": "p-5"
+            }
+          }
+        ],
+        "email_count": 0,
+        "sms_count": 1,
+        "outcome": "completed",
+        "duration_seconds": 172800,
+        "inputs": {
+          "customer.attributes.first_name": "Deniz",
+          "event.properties.product_id": "p-5"
+        },
+        "alternatives": [
+          {
+            "name": "Never restocked",
+            "email_count": 0,
+            "sms_count": 0,
+            "outcome": "completed",
+            "duration_seconds": 1209600
+          },
+          {
+            "name": "No SMS consent",
+            "consents": {
+              "sms": false
+            },
+            "email_count": 0,
+            "sms_count": 0,
+            "outcome": "condition_not_met",
+            "duration_seconds": 0
+          }
+        ]
+      },
+      "generation_requests": [
+        {
+          "attempt": 1,
+          "http_status": 200,
+          "ms": 34066
+        }
+      ],
+      "generation": {
+        "attempts": [
+          {
+            "validation": {
+              "schema": 0,
+              "workflow": 0,
+              "message": 0,
+              "behavior": 1,
+              "facts": 0
+            },
+            "provider": "openai",
+            "requested_model": "gpt-6-luna",
+            "model": "gpt-6-luna",
+            "request_id": "req_4fd7806304a142739bd57f3f513226ac",
+            "duration_ms": 20938,
+            "http_status": 200,
+            "usage": {
+              "input_tokens": 4811,
+              "output_tokens": 2265,
+              "reasoning_tokens": 1519,
+              "cached_input_tokens": 0,
+              "cache_creation_tokens": 4808
+            },
+            "provider_succeeded": true,
+            "accepted": false
+          },
+          {
+            "provider": "openai",
+            "requested_model": "gpt-6-luna",
+            "model": "gpt-6-luna",
+            "request_id": "req_5cf2c91feeb24c3ea6774eeda6e3b61a",
+            "duration_ms": 13111,
+            "http_status": 200,
+            "usage": {
+              "input_tokens": 5585,
+              "output_tokens": 1577,
+              "reasoning_tokens": 643,
+              "cached_input_tokens": 4625,
+              "cache_creation_tokens": 957
+            },
+            "provider_succeeded": true,
+            "accepted": true
+          }
+        ],
+        "usage": {
+          "input_tokens": 10396,
+          "output_tokens": 3842,
+          "reasoning_tokens": 2162,
+          "cached_input_tokens": 4625,
+          "cache_creation_tokens": 5765
+        }
+      },
+      "proposal": {
+        "name": "Stok geldi – STOK10 SMS",
+        "explanation": "Stok olayının yalnızca müşterinin beklediği ürün için üretildiği bilgisine dayanarak olayı bekliyorum; SMS izni olmayan müşteriler hemen uygun değil olarak çıkar.",
+        "warnings": [
+          "SMS gönderim sağlayıcısı ve kanal ayarları belirtilmemiş; dağıtımdan önce doğrulayın.",
+          "The reviewed scoped obligations and eligibility boundaries passed. Unspecified customer states and event sequences still require review and Test Lab coverage."
+        ],
+        "grounding_ready": false,
+        "not_done": [],
+        "workflow": {
+          "behavior_checks": {
+            "version": 2,
+            "confirmed": true,
+            "entry_event": "stock_alert_requested",
+            "inputs": {
+              "customer.attributes.first_name": "Deniz",
+              "event.properties.product_id": "p-5"
+            },
+            "email_count": 0,
+            "sms_count": 1,
+            "outcome": "completed",
+            "duration_seconds": 172800,
+            "case_name": "Restocked on day two",
+            "events": [
+              {
+                "entry_binding": {
+                  "entry_path": "event.properties.product_id",
+                  "event_path": "event.properties.product_id",
+                  "operator": "equals"
+                },
+                "event_name": "product_restocked",
+                "after_seconds": 172800,
+                "properties": {
+                  "product_id": "p-5"
+                }
+              }
+            ],
+            "alternatives": [
+              {
+                "name": "Never restocked",
+                "email_count": 0,
+                "sms_count": 0,
+                "outcome": "completed",
+                "duration_seconds": 1209600
+              },
+              {
+                "name": "No SMS consent",
+                "consents": {
+                  "sms": false
+                },
+                "email_count": 0,
+                "sms_count": 0,
+                "outcome": "condition_not_met",
+                "duration_seconds": 0
+              }
+            ]
+          },
+          "schema_version": 1,
+          "nodes": [
+            {
+              "id": "trigger",
+              "type": "event_trigger",
+              "label": "Stok bildirimi isteği",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "config": {
+                "event_name": "stock_alert_requested"
+              }
+            },
+            {
+              "id": "consent",
+              "type": "condition",
+              "label": "SMS izni var mı?",
+              "position": {
+                "x": 220,
+                "y": 0
+              },
+              "config": {
+                "rule": {
+                  "path": "customer.consents.sms",
+                  "operator": "equals",
+                  "value": true
+                }
+              }
+            },
+            {
+              "id": "wait-restock",
+              "type": "wait_event",
+              "label": "14 gün stok olayını bekle",
+              "position": {
+                "x": 450,
+                "y": -100
+              },
+              "config": {
+                "event_name": "product_restocked",
+                "timeout_seconds": 1209600
+              }
+            },
+            {
+              "id": "sms-restock",
+              "type": "sms",
+              "label": "Stok SMS'i gönder",
+              "position": {
+                "x": 700,
+                "y": -100
+              },
+              "config": {
+                "text": "{{ customer.attributes.first_name }}, beklediğin ürün stokta! İndirim kodun: {{ offer.code }} https://example.com/stok",
+                "fallbacks": {
+                  "customer.attributes.first_name": "Merhaba"
+                },
+                "discount_code": "STOK10"
+              }
+            },
+            {
+              "id": "no-consent",
+              "type": "exit",
+              "label": "SMS izni olmadığı için uygun değil",
+              "position": {
+                "x": 450,
+                "y": 100
+              },
+              "config": {
+                "reason": "condition_not_met"
+              }
+            },
+            {
+              "id": "done",
+              "type": "exit",
+              "label": "Tamamlandı",
+              "position": {
+                "x": 950,
+                "y": 0
+              },
+              "config": {
+                "reason": "completed"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "e1",
+              "source": "trigger",
+              "target": "consent",
+              "port": "started"
+            },
+            {
+              "id": "e2",
+              "source": "consent",
+              "target": "wait-restock",
+              "port": "true"
+            },
+            {
+              "id": "e3",
+              "source": "consent",
+              "target": "no-consent",
+              "port": "false"
+            },
+            {
+              "id": "e4",
+              "source": "wait-restock",
+              "target": "sms-restock",
+              "port": "matched"
+            },
+            {
+              "id": "e5",
+              "source": "wait-restock",
+              "target": "done",
+              "port": "timeout"
+            },
+            {
+              "id": "e6",
+              "source": "sms-restock",
+              "target": "done",
+              "port": "next"
+            }
+          ]
+        }
+      },
+      "static_notes": [],
+      "journey_id": "d591e19c-3f9c-4971-89f5-38ce3f128c60",
+      "validation": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/Validation.json",
+        "valid": true,
+        "issues": []
+      },
+      "cases": [
+        {
+          "name": "A · Restocked on day two",
+          "held_out": false,
+          "test_run_id": "695c4e45-1786-4794-899b-3a0cf5a1be57",
+          "expected": {
+            "email": 0,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": 172800
+          },
+          "actual": {
+            "email": 0,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": 172800,
+            "status": "COMPLETED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        },
+        {
+          "name": "B · Never restocked",
+          "held_out": false,
+          "test_run_id": "ab8b5cdf-a517-4460-9a9a-085e74fe747d",
+          "expected": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 1209600
+          },
+          "actual": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "completed",
+            "duration": 1209600,
+            "status": "COMPLETED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 0,
+          "pass": true
+        },
+        {
+          "name": "C · No SMS consent",
+          "held_out": false,
+          "test_run_id": "0ba3c6c5-cc35-4efa-b85e-c047cb100b56",
+          "expected": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "condition_not_met",
+            "duration": 0
+          },
+          "actual": {
+            "email": 0,
+            "sms": 0,
+            "outcome": "condition_not_met",
+            "duration": 0,
+            "status": "EXITED"
+          },
+          "duration_matches": true,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 0,
+          "pass": true
+        },
+        {
+          "name": "D · Restocked on day thirteen",
+          "held_out": true,
+          "test_run_id": "eec529e9-b7ca-47e5-be7a-608897bd6075",
+          "expected": {
+            "email": 0,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": null
+          },
+          "actual": {
+            "email": 0,
+            "sms": 1,
+            "outcome": "completed",
+            "duration": 1123200,
+            "status": "COMPLETED"
+          },
+          "duration_matches": null,
+          "attributes_ok": true,
+          "code_shown": true,
+          "inbox_messages": 1,
+          "pass": true
+        }
+      ],
+      "sample_messages": {
+        "sms-restock": {
+          "channel": "sms",
+          "subject": "",
+          "text": "Deniz, beklediğin ürün stokta! İndirim kodun: STOK10 https://example.com/stok"
+        }
+      },
+      "publish_check": {
+        "$schema": "http://127.0.0.1:8090/api/schemas/ResultStruct { Ready bool \"json:\\\"ready\\\"\"; Issues ListGateIssue \"json:\\\"issues\\\"\"; Policy string \"json:\\\"policy\\\"\" }Body.json",
+        "ready": true,
+        "issues": [],
+        "policy": "Consent is enforced for every send. Workspace frequency caps apply. Global exit: false. Publishing creates an immutable version."
+      },
+      "database_readback": {
+        "journeys": 1,
+        "versions": 0,
+        "live_executions": 0,
+        "live_customers": 0,
+        "delivery_jobs": 0,
+        "test_runs": 4,
+        "draft_status": "Draft"
+      },
+      "summary": {
+        "cases": 4,
+        "passed": 4,
+        "contract_passed": 3,
+        "contract_cases": 3,
+        "held_out_passed": 1,
+        "held_out_cases": 1,
+        "durations_matched": 3,
+        "durations_checked": 3,
+        "static_notes": 0,
+        "publish_ready": true
+      },
+      "verdict": "pass",
+      "wall_seconds": 34.7
+    }
+  ],
+  "finished_at": "2026-11-15T20:16:01.546Z"
+}

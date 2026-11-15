@@ -873,6 +873,7 @@ async function runScenario(s) {
     explanation: proposal.explanation,
     warnings: proposal.warnings,
     grounding_ready: proposal.grounding?.ready,
+    not_done: proposal.not_done || [],
     workflow: proposal.workflow,
   };
   const w = proposal.workflow;
