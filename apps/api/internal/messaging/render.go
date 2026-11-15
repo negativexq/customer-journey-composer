@@ -13,6 +13,7 @@ import (
 	"unicode/utf16"
 
 	"github.com/microcosm-cc/bluemonday"
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/language"
 	"github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
 	htmlparse "golang.org/x/net/html"
 )
@@ -32,6 +33,9 @@ type Message struct {
 	Units      int               `json:"units"`
 	Segments   int               `json:"segments"`
 	TemplateID string            `json:"template_id,omitempty"`
+	// Language is the customer's language for the text around the message:
+	// the code label here and the unsubscribe footer when it is tracked.
+	Language string `json:"language,omitempty"`
 	// Unsubscribe is the one-click address of a sent email, set only when the
 	// message is tracked for a delivery; previews never carry one.
 	Unsubscribe string `json:"unsubscribe_url,omitempty"`
@@ -65,6 +69,13 @@ var variables = regexp.MustCompile(`\{\{\s*((?:customer|event|context|offer)\.[a
 // DiscountCode is the variable a message shows its step's discount code with.
 const DiscountCode = "offer.code"
 
+// Locale is the profile locale in a message's data, if any.
+func Locale(data map[string]any) string {
+	customer, _ := data["customer"].(map[string]any)
+	locale, _ := customer["locale"].(string)
+	return locale
+}
+
 // A code is 3 to 30 capital letters, digits and hyphens, so it reads the same
 // in every language and cannot break an SMS.
 var discountCode = regexp.MustCompile(`^[A-Z0-9][A-Z0-9-]{2,29}$`)
@@ -87,7 +98,7 @@ func UsesVariable(c workflow.Config, path string) bool {
 var policy = bluemonday.UGCPolicy()
 
 func Render(channel string, c workflow.Config, data map[string]any) (Message, error) {
-	m := Message{Channel: channel, Used: map[string]string{}, Missing: []string{}, Links: []string{}, Warnings: []string{}, TemplateID: c.TemplateID}
+	m := Message{Channel: channel, Used: map[string]string{}, Missing: []string{}, Links: []string{}, Warnings: []string{}, TemplateID: c.TemplateID, Language: language.For(Locale(data)).Code}
 	render := func(content string, escape bool) string {
 		return variables.ReplaceAllStringFunc(content, func(token string) string {
 			path := variables.FindStringSubmatch(token)[1]
@@ -156,10 +167,11 @@ func Render(channel string, c workflow.Config, data map[string]any) (Message, er
 	codeBox := ""
 	if channel == "email" && c.DiscountCode != "" && ValidDiscountCode(c.DiscountCode) && !UsesVariable(workflow.Config{HTML: c.HTML}, DiscountCode) {
 		// Our own markup, added after sanitizing so its styles stay; the code
-		// is capitals, digits and hyphens only.
-		codeBox = `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;border:2px dashed #365b35;border-radius:8px"><tr><td style="padding:12px 20px;text-align:center"><p style="margin:0;font-size:13px;color:#4c5a4d">Your code</p><p style="margin:4px 0 0;font-size:22px;font-weight:bold;letter-spacing:2px;color:#29362a">` + c.DiscountCode + `</p></td></tr></table>`
+		// is capitals, digits and hyphens only, and the label is escaped.
+		label := language.For(m.Language).CodeLabel
+		codeBox = `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;border:2px dashed #365b35;border-radius:8px"><tr><td style="padding:12px 20px;text-align:center"><p style="margin:0;font-size:13px;color:#4c5a4d">` + html.EscapeString(label) + `</p><p style="margin:4px 0 0;font-size:22px;font-weight:bold;letter-spacing:2px;color:#29362a">` + c.DiscountCode + `</p></td></tr></table>`
 		if c.Text != "" && !UsesVariable(workflow.Config{Text: c.Text}, DiscountCode) {
-			m.Text += "\n\nYour code: " + c.DiscountCode
+			m.Text += "\n\n" + label + ": " + c.DiscountCode
 		}
 	}
 	m.HTML = policy.Sanitize(rawHTML)

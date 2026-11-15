@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/negativexq/customer-journey-composer/apps/api/internal/language"
 	"github.com/negativexq/customer-journey-composer/apps/api/internal/messaging"
 )
 
@@ -95,7 +96,9 @@ func Track(m *messaging.Message, base string) []TrackingCode {
 		unsubscribe, open := NewTrackingCode(), NewTrackingCode()
 		codes = append(codes, TrackingCode{Code: unsubscribe, Kind: "unsubscribe"}, TrackingCode{Code: open, Kind: "open"})
 		m.Unsubscribe = address(unsubscribe)
-		footer := `<p style="margin:24px 0 0;font:12px/1.5 Arial,Helvetica,sans-serif;color:#6b7280;text-align:center">Don't want these emails? <a href="` + html.EscapeString(m.Unsubscribe) + `" style="color:#6b7280">Unsubscribe</a></p><img src="` + html.EscapeString(address(open)) + `" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0">`
+		// The footer is in the customer's language, as rendered.
+		lang := language.For(m.Language)
+		footer := `<p style="margin:24px 0 0;font:12px/1.5 Arial,Helvetica,sans-serif;color:#6b7280;text-align:center">` + html.EscapeString(lang.NotWanted) + ` <a href="` + html.EscapeString(m.Unsubscribe) + `" style="color:#6b7280">` + html.EscapeString(lang.Unsubscribe) + `</a></p><img src="` + html.EscapeString(address(open)) + `" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0">`
 		if m.HTML != "" {
 			if i := strings.LastIndex(strings.ToLower(m.HTML), "</body>"); i >= 0 {
 				m.HTML = m.HTML[:i] + footer + m.HTML[i:]
@@ -103,7 +106,7 @@ func Track(m *messaging.Message, base string) []TrackingCode {
 				m.HTML += footer
 			}
 		}
-		m.Text = strings.TrimRight(m.Text, "\n") + "\n\nUnsubscribe: " + m.Unsubscribe
+		m.Text = strings.TrimRight(m.Text, "\n") + "\n\n" + lang.Unsubscribe + ": " + m.Unsubscribe
 	case "sms":
 		m.Text = text(m.Text)
 		m.Encoding, m.Units, m.Segments = messaging.Segments(m.Text)

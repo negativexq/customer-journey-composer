@@ -249,8 +249,24 @@ Verified locally:
 
 Not covered:
 
-- In a coded email, the "Your code" text line and the code box label are English whatever the copy's language.
+- In a coded email, the "Your code" text line and the code box label were English whatever the copy's language (fixed in the next entry).
 - One run per scenario. Claude was not run live.
+
+## Text around a message in the customer's language — 2026-11-15
+
+The live run showed "Your code: SEPET15" under Turkish copy. This follows the sister project Smart Campaign Composer, where a person's stored language decides what surrounds a message.
+
+- A new `internal/language` package lists Turkish, English, German, French and Spanish. Each has a discount-code label and the unsubscribe footer's words.
+- `messaging.Render` reads the customer's existing `locale` (`tr-TR`, `de_AT` and similar are accepted) and records the language on the message. Any other locale gets English.
+- The code box, the code's text line and the tracked email's unsubscribe footer use that language. Messages rendered before this change have no language and stay English.
+- The message copy is still the author's, one version per step. Writing a separate version for each language, as the sister project does, is not built.
+- Customers → Locale shows a `tr-TR` placeholder and lists the supported languages in its tooltip.
+
+Verified locally:
+
+- `make fmt-check`, `make lint`, `make typecheck`, `make test` and `git diff --check`.
+- `./scripts/test-integration.sh`: all packages.
+- On the rebuilt stack, `POST /messages/preview` labelled a coded email "İndirim kodun" for `tr-TR`, "Ihr Rabattcode" for `de` and "Your discount code" for `ru`.
 
 ## Spacing and sub-navigation sweep — 2026-11-15
 

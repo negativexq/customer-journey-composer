@@ -60,8 +60,16 @@ func TestAStepsDiscountCodeMustBeShownAndShownCodesMustBeSet(t *testing.T) {
 func TestAnEmailShowsItsCodeInABoxEvenWhenTheBodyDoesNot(t *testing.T) {
 	c := workflow.Config{Subject: "Your cart", HTML: `<p>Finish your order</p>`, Text: "Finish your order", DiscountCode: "SEPET15"}
 	m, err := Render("email", c, map[string]any{})
-	if err != nil || strings.Count(m.HTML, "SEPET15") != 1 || !strings.Contains(m.HTML, "dashed") || !strings.HasSuffix(m.Text, "Your code: SEPET15") || len(m.Warnings) != 0 {
+	if err != nil || strings.Count(m.HTML, "SEPET15") != 1 || !strings.Contains(m.HTML, "dashed") || !strings.HasSuffix(m.Text, "Your discount code: SEPET15") || m.Language != "en" || len(m.Warnings) != 0 {
 		t.Fatal(m.HTML, m.Text, m.Warnings, err)
+	}
+	// The label follows the customer's language, not a fixed one.
+	turkish := map[string]any{"customer": map[string]any{"locale": "tr-TR"}}
+	if m, _ := Render("email", c, turkish); m.Language != "tr" || !strings.Contains(m.HTML, "İndirim kodun") || !strings.HasSuffix(m.Text, "İndirim kodun: SEPET15") {
+		t.Fatal("a Turkish reader's code is labelled in Turkish", m.Language, m.Text)
+	}
+	if m, _ := Render("email", c, map[string]any{"customer": map[string]any{"locale": "ru"}}); m.Language != "en" || !strings.HasSuffix(m.Text, "Your discount code: SEPET15") {
+		t.Fatal("a language with no text falls back to English", m.Language, m.Text)
 	}
 	c.HTML = `<p>Use {{ offer.code }}</p>`
 	if m, _ := Render("email", c, map[string]any{}); strings.Count(m.HTML, "SEPET15") != 1 || strings.Contains(m.HTML, "dashed") {

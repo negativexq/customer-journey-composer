@@ -73,7 +73,7 @@ Settings → Messaging → Channels lets an Admin make a channel's provider act 
 - **Discount code.**
   - An email or SMS step may set `discount_code`: 3 to 30 capital letters, digits and hyphens, so it reads the same in every language and cannot break an SMS.
   - Messages write `{{ offer.code }}`, which is filled in at preview and at send time, so the code cannot be mistyped.
-  - An email always shows the code in a box of its own below its body, unless the body already writes it. Its plain text gets a "Your code" line.
+  - An email always shows the code in a box of its own below its body, unless the body already writes it. Its plain text gets a line with the same label. The label and the unsubscribe footer follow the customer's profile `locale` (Turkish, English, German, French or Spanish; anything else gets English), as in the sister project. The message copy itself is the author's.
   - Validation refuses an SMS that sets a code and never shows it, and any message that writes `{{ offer.code }}` without a code.
 - **Longest case.** An SMS preview is also measured as sent to the worst-off customer:
   - Each `customer.attributes.*` variable is filled with the costliest value among the workspace's customers who accept SMS, or the fallback when it costs more. A non-GSM letter such as "ş" turns the whole SMS into Unicode, so the costliest value is not always the longest.

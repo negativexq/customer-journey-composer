@@ -49,7 +49,7 @@ Event/timeout races serialize on the customer/execution state; only one branch w
 
 ## Messages, providers and preview
 
-`POST /messages/preview` renders a typed channel configuration against an existing customer and/or isolated overrides. It never changes the live profile or calls a provider. HTML values are escaped and sanitized, unknown expressions are rejected, and missing attributes, used values, links and SMS encoding/segment counts are returned. An SMS preview also returns `longest_case`: its encoding, units and segments with the costliest value of each `customer.attributes.*` variable among customers who accept SMS (or the fallback), and links at tracked length. A step's `discount_code` (3–30 of `A-Z`, `0-9`, `-`) fills `{{ offer.code }}`; an email shows it in its own box unless the body writes it. UI HTML previews use a sandboxed iframe with a restrictive CSP.
+`POST /messages/preview` renders a typed channel configuration against an existing customer and/or isolated overrides. It never changes the live profile or calls a provider. HTML values are escaped and sanitized, unknown expressions are rejected, and missing attributes, used values, links and SMS encoding/segment counts are returned. An SMS preview also returns `longest_case`: its encoding, units and segments with the costliest value of each `customer.attributes.*` variable among customers who accept SMS (or the fallback), and links at tracked length. A step's `discount_code` (3–30 of `A-Z`, `0-9`, `-`) fills `{{ offer.code }}`; an email shows it in its own box unless the body writes it. The response's `language` is the customer's `locale` read against the supported languages (`tr`, `en`, `de`, `fr`, `es`; region suffixes such as `tr-TR` are accepted, anything else is `en`); it labels the code box and, once tracked, the unsubscribe footer. UI HTML previews use a sandboxed iframe with a restrictive CSP.
 
 Manage message templates under `/message-templates` (metadata list, individual detail, creation). Applying a template copies its content into the draft; later template edits cannot change an already published workflow snapshot.
 
@@ -69,7 +69,7 @@ Global exit/failure cancels SCHEDULED or CLAIMED deliveries before dispatch. A d
 
 ### Engagement and tracking
 
-Live and test deliveries are tracked when created. Each http(s) link is rewritten to `PUBLIC_BASE_URL/api/t/{code}`, and an email also gets an open pixel, an unsubscribe link and one-click `List-Unsubscribe` headers. These public endpoints need no session:
+Live and test deliveries are tracked when created. Each http(s) link is rewritten to `PUBLIC_BASE_URL/api/t/{code}`, and an email also gets an open pixel, an unsubscribe link in the customer's language and one-click `List-Unsubscribe` headers. These public endpoints need no session:
 
 - `GET|HEAD /api/t/{code}`:
   - A click code redirects (302) to the stored URL.

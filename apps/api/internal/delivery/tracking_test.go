@@ -38,6 +38,11 @@ func TestTrackRewritesEveryEmailLinkThroughItsOwnCode(t *testing.T) {
 	if m.Unsubscribe == "" || !strings.Contains(m.HTML, m.Unsubscribe) || !strings.HasSuffix(m.Text, "Unsubscribe: "+m.Unsubscribe) {
 		t.Fatalf("unsubscribe link missing: %q / %q", m.HTML, m.Text)
 	}
+	turkish := messaging.Message{Channel: "email", Language: "tr", HTML: "<p>Merhaba</p>", Text: "Merhaba"}
+	Track(&turkish, "https://go.example")
+	if !strings.Contains(turkish.HTML, "Abonelikten çık</a>") || !strings.HasSuffix(turkish.Text, "Abonelikten çık: "+turkish.Unsubscribe) || strings.Contains(turkish.HTML, "Unsubscribe") {
+		t.Fatalf("the footer follows the customer's language: %q / %q", turkish.HTML, turkish.Text)
+	}
 }
 
 func TestTrackShortensSMSLinksAndRecountsTheMessage(t *testing.T) {

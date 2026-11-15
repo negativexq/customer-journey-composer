@@ -517,7 +517,12 @@ onMounted(() => {
             ><label
               >Phone<input v-model="form.phone" :disabled="readonly" placeholder="+905551234567"
             /></label>
-            <label>Locale<input v-model="form.locale" :disabled="readonly" /></label
+            <label
+              >Locale<input
+                v-model="form.locale"
+                :disabled="readonly"
+                placeholder="tr-TR"
+                title="Code labels and unsubscribe footers use tr, en, de, fr or es; any other locale gets English" /></label
             ><label>Timezone<input v-model="form.timezone" :disabled="readonly" /></label>
             <div class="consent-row wide">
               <label
