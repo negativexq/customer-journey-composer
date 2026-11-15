@@ -146,6 +146,14 @@ Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test` (
 
 Not covered: audiences are evaluated against stored profile fields only, not event history ("bought twice in 30 days"); there are no saved, reusable segments; a run reads at most 50,000 customers and runs synchronously when started by hand; the scheduled path was exercised with a test clock, not by waiting for a real slot. The AI composer schema does not include audience entry.
 
+## Live Monitor sections — 2026-11-15
+
+Frontend only. Live Monitor is split into three sections under the KPI row, like Settings: Journey map, Executions and Messages. The map is the default; a link to an execution or message opens Executions. Counts that filter people (a KPI, a step count, an overdue warning) switch to Executions instead of scrolling; choosing a step from the Step filter switches to the map, and the map now opens centred on an already selected step. Messages shows the journey's message list full width without the step chrome. A selected customer stays selected across sections. Journey Analytics keeps its single page. The Executions list is taller in its own section; on phones the section labels drop their icons to fit.
+
+Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test`, Docker web rebuild and `npx playwright test --workers=2`: 94 of 96 passed; the two failures were `builder.spec.ts` (desktop and mobile), which tracked a customer without opening Executions. The test was updated and then passed 2/2. `journey-insights.spec.ts` now also checks the default section and the Messages section; `monitor-context.spec.ts` and `builder.spec.ts` open Executions and return to the map. Checked by eye in the dark theme at 1440 px and 375 px.
+
+Not covered: the chosen section is not in the URL, so a reload returns to the map unless an execution or message is linked. The light theme was not checked by eye.
+
 ## Product acceptance verification — 2026-11-11
 
 Verified locally against source `b1b7ab4`, before this documentation update:
