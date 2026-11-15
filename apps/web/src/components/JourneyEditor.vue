@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppSelect from './ui/AppSelect.vue';
 import EmptyState from './ui/EmptyState.vue';
 import { toast } from '../lib/toast';
 import SkeletonBlock from './ui/SkeletonBlock.vue';
@@ -611,13 +612,16 @@ function back() {
           placeholder="e.g. purchase_completed"
       /></label>
       <label
-        >Global exit outcome<select v-model="exitReason" :disabled="readonly || !exitEvent">
-          <option value="converted">Goal reached — converted</option>
-          <option value="completed">Stop without conversion</option>
-          <option value="condition_not_met">No longer eligible</option>
-          <option value="manually_cancelled">Cancelled</option>
-        </select></label
-      >
+        >Global exit outcome<AppSelect
+          v-model="exitReason"
+          :disabled="readonly || !exitEvent"
+          :options="[
+            { value: 'converted', label: 'Goal reached — converted' },
+            { value: 'completed', label: 'Stop without conversion' },
+            { value: 'condition_not_met', label: 'No longer eligible' },
+            { value: 'manually_cancelled', label: 'Cancelled' },
+          ]"
+      /></label>
       <ScopeSelect
         v-model="exitScope"
         label="Exit matching"
@@ -652,11 +656,14 @@ function back() {
         </p>
       </template>
       <label
-        >Re-entry policy<select v-model="reentryMode" :disabled="readonly">
-          <option value="once">Only once</option>
-          <option value="after_completion">After previous execution ends</option>
-          <option value="cooldown">After cooldown</option>
-        </select></label
+        >Re-entry policy<AppSelect
+          v-model="reentryMode"
+          :disabled="readonly"
+          :options="[
+            { value: 'once', label: 'Only once' },
+            { value: 'after_completion', label: 'After previous execution ends' },
+            { value: 'cooldown', label: 'After cooldown' },
+          ]" /></label
       ><label v-if="reentryMode === 'cooldown'"
         >Cooldown (seconds)<input
           v-model.number="cooldown"
@@ -809,13 +816,13 @@ function back() {
       </div>
       <form v-if="versions.length > 1" class="version-compare" @submit.prevent="compareVersions">
         <label
-          >Compare from<select v-model.number="beforeVersion">
-            <option v-for="v in versions" :key="v.id" :value="v.version">v{{ v.version }}</option>
-          </select></label
+          >Compare from<AppSelect
+            v-model="beforeVersion"
+            :options="versions.map((v) => ({ value: v.version, label: 'v' + v.version }))" /></label
         ><label
-          >Compare to<select v-model.number="afterVersion">
-            <option v-for="v in versions" :key="v.id" :value="v.version">v{{ v.version }}</option>
-          </select></label
+          >Compare to<AppSelect
+            v-model="afterVersion"
+            :options="versions.map((v) => ({ value: v.version, label: 'v' + v.version }))" /></label
         ><button type="submit" :disabled="beforeVersion === afterVersion">Compare versions</button>
       </form>
       <div v-if="versionDiff" class="draft-changes has-changes" data-testid="version-changes">

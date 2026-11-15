@@ -1,6 +1,7 @@
 import { confirmEmptyBehavior } from './helpers/behavior';
 import { randomBytes } from 'node:crypto';
 import { expect, test } from '@playwright/test';
+import { choose } from './helpers/select';
 test('business brief mappings require workspace definitions and resume after explicit choices', async ({
   page,
 }, testInfo) => {
@@ -127,12 +128,16 @@ test('business brief mappings require workspace definitions and resume after exp
     data: { revision: composition.journey.revision },
   });
   expect(rejected.status()).toBe(422);
-  await mappings
-    .getByLabel('Definition for event:user_registered:', { exact: true })
-    .selectOption('event:registered:');
-  await mappings
-    .getByLabel('Definition for customer_field::customer.attributes.activated', { exact: true })
-    .selectOption('customer_field::customer.attributes.active');
+  await choose(
+    mappings.getByLabel('Definition for event:user_registered:', { exact: true }),
+    / — registered$/,
+  );
+  await choose(
+    mappings.getByLabel('Definition for customer_field::customer.attributes.activated', {
+      exact: true,
+    }),
+    / — customer\.attributes\.active$/,
+  );
   await mappings.getByRole('button', { name: 'Use selected definitions', exact: true }).click();
   await expect(mappings).toContainText('Your choice');
   await expect(mappings).toContainText('All references have an available definition');

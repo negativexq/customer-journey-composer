@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppSelect from './ui/AppSelect.vue';
 import { computed, nextTick, onBeforeUnmount, provide, ref, watch } from 'vue';
 import {
   VueFlow,
@@ -877,18 +878,18 @@ function setAttribute(value: string) {
         existing next step.
       </p>
       <label
-        >Step type<select v-model="insertKind">
-          <option v-for="kind in insertKinds" :key="kind" :value="kind">{{ labels[kind] }}</option>
-        </select></label
-      >
+        >Step type<AppSelect
+          v-model="insertKind"
+          :options="insertKinds.map((kind) => ({ value: kind, label: labels[kind] }))"
+      /></label>
       <label
-        >Continue through<select v-model="insertionPort" required>
-          <option v-if="ports(insertKind).length > 1" value="" disabled>Select an output</option>
-          <option v-for="port in ports(insertKind)" :key="port" :value="port">
-            {{ branchLabel(port) || port }}
-          </option>
-        </select></label
-      >
+        >Continue through<AppSelect
+          v-model="insertionPort"
+          placeholder="Select an output"
+          :options="
+            ports(insertKind).map((port) => ({ value: port, label: branchLabel(port) || port }))
+          "
+      /></label>
       <p v-if="ports(insertKind).length > 1" class="inline-alert">
         Connect the other output before publishing. It is left open for your decision.
       </p>
@@ -1193,11 +1194,15 @@ function setAttribute(value: string) {
       <section class="inspector-group">
         <h4>{{ groupTitle[selected.data.kind] }}</h4>
         <label v-if="selected.data.kind === 'event_trigger'"
-          >Entry type<select v-model="entryMode" aria-label="Entry type" :disabled="readonly">
-            <option value="event">When an event arrives</option>
-            <option value="audience">Audience on a schedule</option>
-          </select></label
-        >
+          >Entry type<AppSelect
+            v-model="entryMode"
+            aria-label="Entry type"
+            :disabled="readonly"
+            :options="[
+              { value: 'event', label: 'When an event arrives' },
+              { value: 'audience', label: 'Audience on a schedule' },
+            ]"
+        /></label>
         <template v-if="selected.data.kind === 'event_trigger' && entryMode === 'audience'">
           <div class="audience-rule">
             <span class="field-title">Who enters</span>
@@ -1230,12 +1235,16 @@ function setAttribute(value: string) {
           >Event name<input v-model="eventName" :disabled="readonly"
         /></label>
         <label v-if="selected.data.kind === 'wait'"
-          >Wait type<select v-model="waitMode" aria-label="Wait type" :disabled="readonly">
-            <option value="duration">For a set time</option>
-            <option value="time">Until a time of day</option>
-            <option value="date">Until a date on the customer</option>
-          </select></label
-        >
+          >Wait type<AppSelect
+            v-model="waitMode"
+            aria-label="Wait type"
+            :disabled="readonly"
+            :options="[
+              { value: 'duration', label: 'For a set time' },
+              { value: 'time', label: 'Until a time of day' },
+              { value: 'date', label: 'Until a date on the customer' },
+            ]"
+        /></label>
         <template v-if="selected.data.kind === 'wait' && waitMode === 'time'">
           <label
             >Time of day<input v-model="atTime" type="time" required :disabled="readonly"
@@ -1271,27 +1280,27 @@ function setAttribute(value: string) {
                 :disabled="readonly"
             /></label>
             <label
-              >Offset unit<select
-                :value="offsetUnit"
+              >Offset unit<AppSelect
+                :model-value="offsetUnit"
                 aria-label="Offset unit"
                 :disabled="readonly"
-                @change="changeOffsetUnit(Number(($event.target as HTMLSelectElement).value))"
-              >
-                <option :value="60">Minutes</option>
-                <option :value="3600">Hours</option>
-                <option :value="86400">Days</option>
-              </select></label
-            >
+                :options="[
+                  { value: 60, label: 'Minutes' },
+                  { value: 3600, label: 'Hours' },
+                  { value: 86400, label: 'Days' },
+                ]"
+                @update:model-value="changeOffsetUnit(Number($event))"
+            /></label>
             <label
-              >Direction<select
-                v-model.number="offsetSign"
+              >Direction<AppSelect
+                v-model="offsetSign"
                 aria-label="Direction"
                 :disabled="readonly"
-              >
-                <option :value="-1">Before the date</option>
-                <option :value="1">After the date</option>
-              </select></label
-            >
+                :options="[
+                  { value: -1, label: 'Before the date' },
+                  { value: 1, label: 'After the date' },
+                ]"
+            /></label>
           </div>
           <small
             >A customer without this date, or whose date has passed, continues straight away.</small
@@ -1309,18 +1318,18 @@ function setAttribute(value: string) {
             }}<input v-model.number="delayAmount" type="number" min="1" :disabled="readonly"
           /></label>
           <label
-            >Unit<select
-              :value="delayUnit"
+            >Unit<AppSelect
+              :model-value="delayUnit"
               aria-label="Delay unit"
               :disabled="readonly"
-              @change="changeDelayUnit(Number(($event.target as HTMLSelectElement).value))"
-            >
-              <option :value="1">Seconds</option>
-              <option :value="60">Minutes</option>
-              <option :value="3600">Hours</option>
-              <option :value="86400">Days</option>
-            </select></label
-          >
+              :options="[
+                { value: 1, label: 'Seconds' },
+                { value: 60, label: 'Minutes' },
+                { value: 3600, label: 'Hours' },
+                { value: 86400, label: 'Days' },
+              ]"
+              @update:model-value="changeDelayUnit(Number($event))"
+          /></label>
         </div>
         <label v-if="selected.data.kind === 'wait'"
           >Timezone<input v-model="timezone" :disabled="readonly"
@@ -1480,24 +1489,30 @@ function setAttribute(value: string) {
         ><template v-if="selected.data.kind === 'update_attribute'"
           ><label>Attribute<input v-model="attribute" :disabled="readonly" /></label
           ><label
-            >Operation<select v-model="operation" :disabled="readonly">
-              <option value="set">Set to a value</option>
-              <option value="increment">Add to a number</option>
-              <option value="unset">Remove the attribute</option>
-            </select></label
+            >Operation<AppSelect
+              v-model="operation"
+              :disabled="readonly"
+              :options="[
+                { value: 'set', label: 'Set to a value' },
+                { value: 'increment', label: 'Add to a number' },
+                { value: 'unset', label: 'Remove the attribute' },
+              ]" /></label
           ><label
             >Value (JSON)<input
               :value="JSON.stringify(selected.data.config.value)"
               :disabled="readonly"
               @change="setAttribute(($event.target as HTMLInputElement).value)" /></label></template
         ><label v-if="selected.data.kind === 'exit'"
-          >Exit reason<select v-model="reason" :disabled="readonly">
-            <option value="completed">Completed the journey</option>
-            <option value="converted">Converted (goal reached)</option>
-            <option value="condition_not_met">Did not qualify</option>
-            <option value="manually_cancelled">Cancelled by an operator</option>
-          </select></label
-        >
+          >Exit reason<AppSelect
+            v-model="reason"
+            :disabled="readonly"
+            :options="[
+              { value: 'completed', label: 'Completed the journey' },
+              { value: 'converted', label: 'Converted (goal reached)' },
+              { value: 'condition_not_met', label: 'Did not qualify' },
+              { value: 'manually_cancelled', label: 'Cancelled by an operator' },
+            ]"
+        /></label>
         <button
           v-if="['email', 'sms'].includes(selected.data.kind)"
           type="button"

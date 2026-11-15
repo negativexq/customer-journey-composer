@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppSelect from './ui/AppSelect.vue';
 import { errorMessage } from '../lib/format';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { api, generationStream, type GenerationProgress } from '../lib/api';
@@ -300,40 +301,46 @@ onBeforeUnmount(() => {
     <details open class="composer-options">
       <summary>AI options</summary>
       <label
-        >Provider<select v-model="provider" :disabled="busy">
-          <option value="claude">Claude</option>
-          <option value="openai">OpenAI</option>
-        </select></label
-      >
+        >Provider<AppSelect
+          v-model="provider"
+          :disabled="busy"
+          :options="[
+            { value: 'claude', label: 'Claude' },
+            { value: 'openai', label: 'OpenAI' },
+          ]"
+      /></label>
 
       <label
-        >Behavior contract<select
+        >Behavior contract<AppSelect
           v-model="acceptanceContract"
           :disabled="busy || readonly || !!workflow.acceptance_contract"
-        >
-          <option value="">General workflow — manual acceptance tests</option>
-          <option value="cart-recovery-eur.v1">EUR cart recovery — validated behavior</option>
-        </select></label
-      >
+          :options="[
+            { value: '', label: 'General workflow — manual acceptance tests' },
+            { value: 'cart-recovery-eur.v1', label: 'EUR cart recovery — validated behavior' },
+          ]"
+      /></label>
       <label v-if="!revising"
-        >Action<select v-model="action" :disabled="busy">
-          <option value="generate">Generate Journey</option>
-          <option value="modify">Modify Journey</option>
-          <option value="add_step">Add Step</option>
-          <option value="explain_journey">Explain Journey</option>
-          <option value="explain_node">Explain Node</option>
-          <option value="improve_message">Improve Message</option>
-          <option value="generate_message">Generate Message</option>
-          <option value="fix_validation">Fix Validation Errors</option>
-        </select></label
+        >Action<AppSelect
+          v-model="action"
+          :disabled="busy"
+          :options="[
+            { value: 'generate', label: 'Generate Journey' },
+            { value: 'modify', label: 'Modify Journey' },
+            { value: 'add_step', label: 'Add Step' },
+            { value: 'explain_journey', label: 'Explain Journey' },
+            { value: 'explain_node', label: 'Explain Node' },
+            { value: 'improve_message', label: 'Improve Message' },
+            { value: 'generate_message', label: 'Generate Message' },
+            { value: 'fix_validation', label: 'Fix Validation Errors' },
+          ]" /></label
       ><label v-if="needsNode"
-        >Selected node<select v-model="nodeID">
-          <option value="">Choose a node</option>
-          <option v-for="node in workflow.nodes" :key="node.id" :value="node.id">
-            {{ node.label }}
-          </option>
-        </select></label
-      >
+        >Selected node<AppSelect
+          v-model="nodeID"
+          :options="[
+            { value: '', label: 'Choose a node' },
+            ...workflow.nodes.map((node) => ({ value: node.id, label: node.label })),
+          ]"
+      /></label>
     </details>
     <BehaviorChecksEditor
       v-if="

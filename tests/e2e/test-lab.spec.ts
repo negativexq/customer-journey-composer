@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { expect, test } from '@playwright/test';
+import { choose } from './helpers/select';
 test('virtual clock runs persisted sandbox without changing production', async ({ page }) => {
   const signup = await page.request.post('/api/v1/auth/register', {
     data: {
@@ -97,6 +98,6 @@ test('virtual clock runs persisted sandbox without changing production', async (
   await expect(page.locator('.inbox-detail')).toContainText('ACCEPTED');
   await page.getByRole('button', { name: 'Compare with previous run', exact: true }).click();
   await expect(page.locator('.inbox-detail pre')).toContainText('SIMULATED');
-  await page.getByLabel('Status', { exact: true }).selectOption('BLOCKED');
+  await choose(page.getByLabel('Status', { exact: true }), 'BLOCKED');
   await expect(page.locator('.inbox-row')).toHaveCount(0);
 });

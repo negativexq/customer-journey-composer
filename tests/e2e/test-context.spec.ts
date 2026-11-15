@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { expect, test } from '@playwright/test';
+import { choose } from './helpers/select';
 test('Test Lab prepares onboarding inputs and reviewed checks from the selected workflow', async ({
   page,
 }) => {
@@ -99,7 +100,7 @@ test('Test Lab prepares onboarding inputs and reviewed checks from the selected 
   await expect(lab.getByRole('button', { name: 'Create test run', exact: true })).toBeDisabled();
   await expect(lab).toContainText('This journey expects user_registered');
   await lab.getByLabel('Entry event name', { exact: true }).fill('user_registered');
-  await lab.getByLabel('Suggested check', { exact: true }).selectOption('1');
+  await choose(lab.getByLabel('Suggested check', { exact: true }), 2);
   await expect(lab).toContainText('Sends the global exit event after one second');
   await lab.getByRole('button', { name: 'Save scenario', exact: true }).click();
   await expect(lab.getByRole('alert')).toContainText('Review the suggested inputs');

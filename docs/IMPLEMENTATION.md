@@ -182,6 +182,8 @@ Not covered: the light theme and phone widths were not checked by eye for these 
 
 Follow-up: Preview & Test's Message node field was a native `<select>`. Safari drew its menu in the system colours (dark over the light theme) and as wide as the full-width field, and it listed "First message" on top of the first message's own name. It is now the app's themed dropdown (`FilterSelect`), labelled "Message step", listing each email/SMS step once with its channel and position. Checked open in the dark and light themes at 1440 px; `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check` and Playwright 96/96 passed. The app's other native selects are unchanged.
 
+Follow-up: every remaining native `<select>` (45 across 13 components) now uses `ui/AppSelect.vue`, a themed listbox built on reka-ui. It accepts any value type, including `''` and numbers, opens inside a modal `<dialog>` when it sits in one (the edge-insertion dialog made an outside menu unclickable), and keeps `<label>` association. The Rule editor's operator list now stores the operator code rather than its display text. E2E tests pick options through `tests/e2e/helpers/select.ts` and read the chosen label instead of a value. Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`, rebuilt `web`, Playwright 96/96 desktop/mobile. Checked by eye: Test Inbox Status menu in the light theme at 1440 px.
+
 ## Product acceptance verification — 2026-11-11
 
 Verified locally against source `b1b7ab4`, before this documentation update:

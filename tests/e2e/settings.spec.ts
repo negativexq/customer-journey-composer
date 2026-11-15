@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { expect, test } from '@playwright/test';
+import { choose } from './helpers/select';
 
 test('settings are split into linkable sections with readable administration', async ({ page }) => {
   await page.request.post('/api/v1/auth/register', {
@@ -47,7 +48,7 @@ test('settings are split into linkable sections with readable administration', a
   await open('Team');
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Team', exact: true })).toBeVisible();
-  await expect(page.getByLabel('Role for Workspace Owner')).toHaveValue('Admin');
+  await expect(page.getByLabel('Role for Workspace Owner')).toHaveText('Admin');
   await expect(page.getByLabel('User email', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Add member', exact: true }).click();
   await page.getByLabel('User name', { exact: true }).fill('Ada Editor');
@@ -55,10 +56,10 @@ test('settings are split into linkable sections with readable administration', a
     .getByLabel('User email', { exact: true })
     .fill(randomBytes(8).toString('hex') + '@example.invalid');
   await page.getByLabel('Initial password', { exact: true }).fill(randomBytes(12).toString('hex'));
-  await page.getByLabel('New user role', { exact: true }).selectOption('Editor');
+  await choose(page.getByLabel('New user role', { exact: true }), 'Editor');
   await page.getByRole('button', { name: 'Create user', exact: true }).click();
-  await expect(page.getByLabel('Role for Ada Editor')).toHaveValue('Editor');
-  await page.getByLabel('Role for Ada Editor').selectOption('Viewer');
+  await expect(page.getByLabel('Role for Ada Editor')).toHaveText('Editor');
+  await choose(page.getByLabel('Role for Ada Editor'), 'Viewer');
   await expect(
     page.getByTestId('toast').filter({ hasText: 'Ada Editor is now Viewer' }),
   ).toBeVisible();

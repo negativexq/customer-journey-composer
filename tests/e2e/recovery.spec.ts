@@ -63,7 +63,9 @@ test('EUR recovery scenarios run in the sandbox with a run-scoped inline inbox',
   expect(generationRequests).toBe(0);
   await page.getByRole('button', { name: 'Preview & Test', exact: true }).click();
   await page.getByRole('button', { name: 'Journey path & Test Lab', exact: true }).click();
-  await expect(page.getByLabel('Recovery scenario', { exact: true })).toHaveValue('2');
+  await expect(page.getByLabel('Recovery scenario', { exact: true })).toHaveText(
+    'C · Email and SMS, no purchase',
+  );
   await page.getByRole('button', { name: 'Create test run', exact: true }).click();
   await page.getByRole('button', { name: 'Run to completion', exact: true }).click();
   await expect(page.getByTestId('test-result')).toHaveText('PASS');
@@ -85,8 +87,9 @@ test('EUR recovery scenarios run in the sandbox with a run-scoped inline inbox',
     .click();
   await expect(page.getByTestId('test-result')).toHaveText('PASS');
   await expect(inbox.locator('.inbox-row')).toHaveCount(2);
-  await expect(page.getByLabel('Recovery scenario', { exact: true })).toHaveValue('2');
-  await page.getByLabel('Recovery scenario', { exact: true }).selectOption('3');
+  await page.getByLabel('Recovery scenario', { exact: true }).click();
+  await expect(page.getByRole('option').nth(3)).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('option').nth(4).click();
   await expect(inbox).toBeHidden();
   await page.getByRole('button', { name: 'Create test run', exact: true }).click();
   await page.getByRole('button', { name: 'Run to completion', exact: true }).click();

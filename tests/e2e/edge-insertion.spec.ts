@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { expect, test } from '@playwright/test';
+import { choose } from './helpers/select';
 
 test('edge insertion preserves the original branch, requires an explicit new branch and undoes atomically', async ({
   page,
@@ -55,7 +56,7 @@ test('edge insertion preserves the original branch, requires an explicit new bra
   await page.getByRole('button', { name: 'Fit view', exact: true }).click();
   await page.getByRole('button', { name: 'Insert step · check → no · No', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Insert a step', exact: true });
-  await expect(dialog.getByLabel('Step type')).toHaveValue('wait');
+  await expect(dialog.getByLabel('Step type')).toHaveText('Wait / Delay');
   await dialog.getByRole('button', { name: 'Insert step', exact: true }).click();
   await expect(page.locator('.vue-flow__node')).toHaveCount(5);
   await page.getByRole('button', { name: 'Save', exact: true }).click();
@@ -75,9 +76,9 @@ test('edge insertion preserves the original branch, requires an explicit new bra
   expect(restored.draft.edges).toEqual(workflow.edges);
   await page.getByRole('button', { name: 'Fit view', exact: true }).click();
   await page.getByRole('button', { name: 'Insert step · check → no · No', exact: true }).click();
-  await dialog.getByLabel('Step type').selectOption('condition');
+  await choose(dialog.getByLabel('Step type'), 'Condition');
   await expect(dialog.getByRole('button', { name: 'Insert step', exact: true })).toBeDisabled();
-  await dialog.getByLabel('Continue through').selectOption('false');
+  await choose(dialog.getByLabel('Continue through'), 'No');
   await expect(
     dialog.getByText('Connect the other output before publishing.', { exact: false }),
   ).toBeVisible();

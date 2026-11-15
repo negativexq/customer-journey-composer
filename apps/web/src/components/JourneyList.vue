@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppSelect from './ui/AppSelect.vue';
 import EmptyState from './ui/EmptyState.vue';
 import { toast } from '../lib/toast';
 import SkeletonBlock from './ui/SkeletonBlock.vue';
@@ -127,10 +128,13 @@ onMounted(() => void load());
               placeholder="Search journeys by name..." /></label
           ><label class="compact-select"
             ><span>Sort by</span
-            ><select v-model="sort" aria-label="Sort">
-              <option value="updated">Last updated</option>
-              <option value="name">Name</option>
-            </select></label
+            ><AppSelect
+              v-model="sort"
+              aria-label="Sort"
+              :options="[
+                { value: 'updated', label: 'Last updated' },
+                { value: 'name', label: 'Name' },
+              ]" /></label
           ><button class="icon-button" aria-label="Refresh journeys" @click="load()">
             <AppIcon name="refresh" :size="17" />
           </button>

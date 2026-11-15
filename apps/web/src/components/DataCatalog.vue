@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppSelect from './ui/AppSelect.vue';
 import { errorMessage } from '../lib/format';
 import { computed, onMounted, ref } from 'vue';
 import { api } from '../lib/api';
@@ -150,16 +151,16 @@ onMounted(load);
       </p>
       <div class="settings-fields">
         <label
-          >Kind<select
+          >Kind<AppSelect
             v-model="draft.kind"
             :disabled="!!draft.key"
+            :options="[
+              { value: 'event', label: 'Customer event' },
+              { value: 'customer_field', label: 'Customer field' },
+              { value: 'event_field', label: 'Event field' },
+            ]"
             @change="draft.data_type = draft.kind === 'event' ? 'event' : 'string'"
-          >
-            <option value="event">Customer event</option>
-            <option value="customer_field">Customer field</option>
-            <option value="event_field">Event field</option>
-          </select></label
-        >
+        /></label>
         <label
           >Business name<input
             v-model="draft.label"
@@ -188,13 +189,15 @@ onMounted(load);
             "
         /></label>
         <label v-if="draft.kind !== 'event'"
-          >Value type<select v-model="draft.data_type">
-            <option value="string">Text</option>
-            <option value="number">Number</option>
-            <option value="boolean">Yes / no</option>
-            <option value="mixed">Conflicting types — needs review</option>
-          </select></label
-        >
+          >Value type<AppSelect
+            v-model="draft.data_type"
+            :options="[
+              { value: 'string', label: 'Text' },
+              { value: 'number', label: 'Number' },
+              { value: 'boolean', label: 'Yes / no' },
+              { value: 'mixed', label: 'Conflicting types — needs review' },
+            ]"
+        /></label>
         <label
           >Also called<input
             v-model="aliases"

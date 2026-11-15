@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppSelect from './ui/AppSelect.vue';
 import { computed, onMounted, ref } from 'vue';
 import AppIcon from './ui/AppIcon.vue';
 import EmptyState from './ui/EmptyState.vue';
@@ -160,9 +161,12 @@ onMounted(() => void refresh());
         </div>
         <div class="settings-field">
           <label for="member-role">New user role</label>
-          <select id="member-role" v-model="role" aria-describedby="member-role-hint">
-            <option v-for="item in roles" :key="item">{{ item }}</option>
-          </select>
+          <AppSelect
+            id="member-role"
+            v-model="role"
+            aria-describedby="member-role-hint"
+            :options="roles.map((item) => ({ value: item, label: item }))"
+          />
           <small id="member-role-hint">{{ roleHelp[role] }}</small>
         </div>
       </div>
@@ -183,14 +187,13 @@ onMounted(() => void refresh());
             <strong>{{ user.name }}</strong
             ><small>{{ user.email }}</small>
           </div>
-          <select
-            :value="user.role"
+          <AppSelect
+            :model-value="user.role"
             :disabled="busy"
             :aria-label="`Role for ${user.name}`"
-            @change="change(user, ($event.target as HTMLSelectElement).value)"
-          >
-            <option v-for="item in roles" :key="item">{{ item }}</option>
-          </select>
+            :options="roles.map((item) => ({ value: item, label: item }))"
+            @update:model-value="change(user, String($event))"
+          />
         </li>
       </ul>
       <p class="settings-help">The workspace always keeps at least one Admin.</p>

@@ -30,7 +30,7 @@ test('builder panels preserve the graph and duration controls persist typed seco
   await page.getByRole('button', { name: 'Fit view', exact: true }).click();
   await page.locator('.vue-flow__node').filter({ hasText: 'Wait 2 hours' }).click();
   const settings = page.getByRole('complementary', { name: 'Step settings' });
-  await expect(settings.getByLabel('Delay unit')).toHaveValue('3600');
+  await expect(settings.getByLabel('Delay unit')).toHaveText('Hours');
   await settings.getByLabel('Wait for', { exact: true }).fill('3');
   const libraryButton = page.getByRole('button', { name: 'Toggle step library', exact: true });
   if ((await libraryButton.getAttribute('aria-expanded')) === 'false') await libraryButton.click();

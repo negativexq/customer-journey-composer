@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppSelect from './ui/AppSelect.vue';
 import { errorMessage } from '../lib/format';
 import type { DataEntry } from '../lib/data-catalog';
 import DataMappingReview from './DataMappingReview.vue';
@@ -524,16 +525,22 @@ async function back() {
         <details class="composer-options">
           <summary>AI options</summary>
           <label
-            >Provider<select v-model="state.provider" :disabled="readonly">
-              <option value="openai">OpenAI</option>
-              <option value="claude">Claude</option>
-            </select></label
+            >Provider<AppSelect
+              v-model="state.provider"
+              :disabled="readonly"
+              :options="[
+                { value: 'openai', label: 'OpenAI' },
+                { value: 'claude', label: 'Claude' },
+              ]" /></label
           ><label
-            >Behavior contract<select v-model="state.acceptance_contract" :disabled="readonly">
-              <option :value="undefined">General workflow — reviewed scenarios</option>
-              <option value="cart-recovery-eur.v1">EUR cart recovery — validated behavior</option>
-            </select></label
-          >
+            >Behavior contract<AppSelect
+              v-model="state.acceptance_contract"
+              :disabled="readonly"
+              :options="[
+                { value: undefined, label: 'General workflow — reviewed scenarios' },
+                { value: 'cart-recovery-eur.v1', label: 'EUR cart recovery — validated behavior' },
+              ]"
+          /></label>
         </details>
         <BehaviorChecksEditor
           v-if="!state.acceptance_contract"

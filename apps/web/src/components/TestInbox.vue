@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppSelect from './ui/AppSelect.vue';
 import { runTitle, type TestRunSummary } from '../lib/test-runs';
 import EmptyState from './ui/EmptyState.vue';
 import { errorMessage, formatDateTime } from '../lib/format';
@@ -211,45 +212,52 @@ onMounted(
       <aside v-if="!embedded" class="panel inbox-filters">
         <h2>Recipients &amp; runs</h2>
         <label
-          >Test run<select v-model="run" aria-label="Test run" @change="load()">
-            <option value="">All runs and explicit sends</option>
-            <option v-for="r in runs" :key="r.id" :value="r.id">
-              {{ runTitle(r) }} · {{ r.journey_name || 'Journey' }} · {{ r.result }}
-            </option>
-          </select></label
+          >Test run<AppSelect
+            v-model="run"
+            aria-label="Test run"
+            :options="[
+              { value: '', label: 'All runs and explicit sends' },
+              ...runs.map((r) => ({
+                value: r.id,
+                label: runTitle(r) + ' · ' + (r.journey_name || 'Journey') + ' · ' + r.result,
+              })),
+            ]"
+            @change="load()" /></label
         ><label>Customer ID<input v-model="customer" @keyup.enter="load()" /></label
         ><button @click="load()">Filter customer</button
         ><button v-for="c in customers" :key="c" class="list-row" @click="filterCustomer(c)">
           {{ c }}</button
         ><label
-          >Journey<select v-model="journey" aria-label="Journey" @change="load()">
-            <option value="">All journeys</option>
-            <option v-for="j in journeys" :key="j.id" :value="j.id">{{ j.name }}</option>
-          </select></label
+          >Journey<AppSelect
+            v-model="journey"
+            aria-label="Journey"
+            :options="[
+              { value: '', label: 'All journeys' },
+              ...journeys.map((j) => ({ value: j.id, label: j.name })),
+            ]"
+            @change="load()" /></label
         ><label
-          >Channel<select v-model="channel" aria-label="Channel" @change="load()">
-            <option value="">All channels</option>
-            <option>email</option>
-            <option>sms</option>
-          </select></label
+          >Channel<AppSelect
+            v-model="channel"
+            aria-label="Channel"
+            :options="[
+              { value: '', label: 'All channels' },
+              { value: 'email', label: 'email' },
+              { value: 'sms', label: 'sms' },
+            ]"
+            @change="load()" /></label
         ><label
-          >Status<select v-model="status" aria-label="Status" @change="load()">
-            <option value="">All statuses</option>
-            <option
-              v-for="s in [
-                'SIMULATED',
-                'BLOCKED',
-                'SKIPPED',
-                'FAILED',
-                'TEST_ACCEPTED',
-                'TEST_PENDING',
-              ]"
-              :key="s"
-            >
-              {{ s }}
-            </option>
-          </select></label
-        >
+          >Status<AppSelect
+            v-model="status"
+            aria-label="Status"
+            :options="[
+              { value: '', label: 'All statuses' },
+              ...['SIMULATED', 'BLOCKED', 'SKIPPED', 'FAILED', 'TEST_ACCEPTED', 'TEST_PENDING'].map(
+                (s) => ({ value: s, label: s }),
+              ),
+            ]"
+            @change="load()"
+        /></label>
       </aside>
       <section class="panel inbox-list" :aria-busy="busy">
         <div class="inbox-list-heading">
@@ -318,10 +326,12 @@ onMounted(
           </div>
           <template v-if="tab === 'Preview'"
             ><label v-if="selected.channel === 'email'"
-              >Device<select v-model="device">
-                <option>desktop</option>
-                <option>mobile</option>
-              </select></label
+              >Device<AppSelect
+                v-model="device"
+                :options="[
+                  { value: 'desktop', label: 'desktop' },
+                  { value: 'mobile', label: 'mobile' },
+                ]" /></label
             ><iframe
               v-if="selected.channel === 'email'"
               title="Test email preview"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppSelect from './ui/AppSelect.vue';
 import { errorMessage } from '../lib/format';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import CustomerProfileFields from './ui/CustomerProfileFields.vue';
@@ -215,16 +216,16 @@ onBeforeUnmount(() => {
         <span class="pill">{{ channel.toUpperCase() }}</span>
       </div>
       <label
-        >Message template<select v-model="templateID" :disabled="readonly" @change="useTemplate">
-          <option value="">Custom content</option>
-          <option
-            v-for="template in templates.filter((t) => t.channel === channel)"
-            :key="template.id"
-            :value="template.id"
-          >
-            {{ template.name }}
-          </option>
-        </select></label
+        >Message template<AppSelect
+          v-model="templateID"
+          :disabled="readonly"
+          :options="[
+            { value: '', label: 'Custom content' },
+            ...templates
+              .filter((t) => t.channel === channel)
+              .map((template) => ({ value: template.id, label: template.name })),
+          ]"
+          @change="useTemplate" /></label
       ><template v-if="channel === 'email'"
         ><label
           >Subject<input
@@ -277,20 +278,18 @@ onBeforeUnmount(() => {
       <div class="panel editor-form">
         <h2>Preview as customer</h2>
         <label
-          >Profile<select v-model="profile" @change="chooseProfile">
-            <option
-              v-for="name in [
+          >Profile<AppSelect
+            v-model="profile"
+            :options="
+              [
                 'Existing Customer',
                 'New Customer',
                 'Returning Customer',
                 'Inactive Customer',
                 'Custom Test Customer',
-              ]"
-              :key="name"
-            >
-              {{ name }}
-            </option>
-          </select></label
+              ].map((name) => ({ value: name, label: name }))
+            "
+            @change="chooseProfile" /></label
         ><label v-if="profile === 'Existing Customer'"
           >Existing customer ID<input
             v-model="customerID"

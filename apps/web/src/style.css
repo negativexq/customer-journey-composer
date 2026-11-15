@@ -6811,3 +6811,65 @@ fieldset.scenario-form {
   width: min(100%, 340px);
   margin: 0 0 18px;
 }
+.app-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 11px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--gray-44b);
+  text-align: left;
+  border: 1px solid var(--gray-91);
+  border-radius: 7px;
+  background: var(--surface);
+  box-shadow: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.app-select-trigger > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-select-trigger > svg {
+  flex: none;
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+.app-select-trigger[data-state='open'] > svg {
+  transform: rotate(180deg);
+}
+.app-select-trigger:hover:not(:disabled) {
+  background: var(--surface);
+  border-color: var(--gray-85);
+}
+.app-select-trigger:focus-visible,
+.app-select-trigger[data-state='open'] {
+  border-color: var(--violet-77);
+  outline: 0;
+  box-shadow: 0 0 0 3px #b5a8ec12;
+}
+.app-select-trigger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.app-select-placeholder {
+  color: var(--muted);
+}
+.app-select-content .scope-select-option {
+  font-size: 12px;
+  padding: 8px 10px;
+}
+.scope-select-option[data-disabled] {
+  color: var(--muted);
+  cursor: default;
+}
+.scope-select-option[data-state='checked'] {
+  font-weight: 600;
+}

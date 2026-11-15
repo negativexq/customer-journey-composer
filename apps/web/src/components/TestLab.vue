@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppSelect from './ui/AppSelect.vue';
 import { runContext, runTitle, type TestRunSummary } from '../lib/test-runs';
 import SkeletonBlock from './ui/SkeletonBlock.vue';
 import { errorMessage, formatDateTime } from '../lib/format';
@@ -574,20 +575,17 @@ onMounted(
           </section>
           <section v-if="context && !savedScenario && !examples.length" class="suggested-checks">
             <label
-              >Suggested check<select
+              >Suggested check<AppSelect
                 v-model="selectedSuggestion"
                 aria-label="Suggested check"
-                @change="applySuggestion"
-              >
-                <option value="">Custom inputs</option>
-                <option
-                  v-for="(suggestion, index) in context.suggestions"
-                  :key="suggestion.label"
-                  :value="String(index)"
-                >
-                  {{ suggestion.label }}
-                </option>
-              </select></label
+                :options="[
+                  { value: '', label: 'Custom inputs' },
+                  ...context.suggestions.map((suggestion, index) => ({
+                    value: String(index),
+                    label: suggestion.label,
+                  })),
+                ]"
+                @change="applySuggestion" /></label
             ><template v-if="selectedSuggestion !== ''"
               ><p>{{ context.suggestions[Number(selectedSuggestion)]?.note }}</p>
               <label class="checkbox-label"
@@ -601,22 +599,19 @@ onMounted(
           </section>
           <div v-if="examples.length" class="example-scenarios">
             <label
-              >Recovery scenario<select
+              >Recovery scenario<AppSelect
                 v-model="selectedExample"
                 aria-label="Recovery scenario"
                 :disabled="busy || readonly"
+                :options="[
+                  { value: '', label: 'Custom inputs' },
+                  ...examples.map((example, index) => ({
+                    value: String(index),
+                    label: example.name,
+                  })),
+                ]"
                 @change="applyExample"
-              >
-                <option value="">Custom inputs</option>
-                <option
-                  v-for="(example, index) in examples"
-                  :key="example.name"
-                  :value="String(index)"
-                >
-                  {{ example.name }}
-                </option>
-              </select></label
-            >
+            /></label>
             <p>Synthetic Alex · €89.90 cart. Presets fill editable sandbox inputs.</p>
             <details>
               <summary>Journey rules &amp; assumptions</summary>
@@ -626,28 +621,29 @@ onMounted(
             </details>
           </div>
           <label v-if="!journeyId"
-            >Journey<select v-model="journey" @change="refresh">
-              <option value="">Select a journey</option>
-              <option v-for="j in journeys" :key="j.id" :value="j.id">{{ j.name }}</option>
-            </select></label
+            >Journey<AppSelect
+              v-model="journey"
+              :options="[
+                { value: '', label: 'Select a journey' },
+                ...journeys.map((j) => ({ value: j.id, label: j.name })),
+              ]"
+              @change="refresh" /></label
           ><label
-            >Saved scenario<select v-model="savedScenario">
-              <option value="">Create a new scenario</option>
-              <option
-                v-for="s in scenarios.filter((s) => !journey || s.journey_id === journey)"
-                :key="s.id"
-                :value="s.id"
-              >
-                {{ s.name }}
-              </option>
-            </select></label
+            >Saved scenario<AppSelect
+              v-model="savedScenario"
+              :options="[
+                { value: '', label: 'Create a new scenario' },
+                ...scenarios
+                  .filter((s) => !journey || s.journey_id === journey)
+                  .map((s) => ({ value: s.id, label: s.name })),
+              ]" /></label
           ><label
-            >Workflow version<select v-model.number="version">
-              <option :value="0">Current draft</option>
-              <option v-for="v in versions" :key="v.version" :value="v.version">
-                Published v{{ v.version }}
-              </option>
-            </select></label
+            >Workflow version<AppSelect
+              v-model="version"
+              :options="[
+                { value: 0, label: 'Current draft' },
+                ...versions.map((v) => ({ value: v.version, label: 'Published v' + v.version })),
+              ]" /></label
           ><label v-if="savedScenario" class="checkbox-label"
             ><input v-model="currentDraft" type="checkbox" />Use current draft for regression</label
           >
@@ -671,13 +667,16 @@ onMounted(
             ><label>Scenario name<input v-model="name" maxlength="160" /></label>
             <div class="form-section-title">Test customer</div>
             <label
-              >Profile<select v-model="profile" @change="preset">
-                <option>Custom Test Customer</option>
-                <option>Existing Customer</option>
-                <option>New Customer</option>
-                <option>Returning Customer</option>
-                <option>Inactive Customer</option>
-              </select></label
+              >Profile<AppSelect
+                v-model="profile"
+                :options="[
+                  { value: 'Custom Test Customer', label: 'Custom Test Customer' },
+                  { value: 'Existing Customer', label: 'Existing Customer' },
+                  { value: 'New Customer', label: 'New Customer' },
+                  { value: 'Returning Customer', label: 'Returning Customer' },
+                  { value: 'Inactive Customer', label: 'Inactive Customer' },
+                ]"
+                @change="preset" /></label
             ><label v-if="profile === 'Existing Customer'"
               >Source customer ID<input v-model="customerID" placeholder="Customer ID" /></label
             ><CustomerProfileFields v-model="customer" />
@@ -727,22 +726,26 @@ onMounted(
             </p>
             <template v-else>
               <label
-                >Expected outcome<select v-model="outcome">
-                  <option value="any">Choose the outcome expected from your brief</option>
-                  <option value="COMPLETED">Journey completes</option>
-                  <option value="EXITED">Customer exits</option>
-                  <option value="FAILED">Journey fails</option>
-                  <option value="WAITING">Still waiting</option>
-                </select></label
+                >Expected outcome<AppSelect
+                  v-model="outcome"
+                  :options="[
+                    { value: 'any', label: 'Choose the outcome expected from your brief' },
+                    { value: 'COMPLETED', label: 'Journey completes' },
+                    { value: 'EXITED', label: 'Customer exits' },
+                    { value: 'FAILED', label: 'Journey fails' },
+                    { value: 'WAITING', label: 'Still waiting' },
+                  ]" /></label
               ><label
-                >Expected messages<select v-model="expectedMessages">
-                  <option value="any">Use default assertions</option>
-                  <option value="both">Email and SMS</option>
-                  <option value="email">Email is generated</option>
-                  <option value="sms">SMS is generated</option>
-                  <option value="none">No messages</option>
-                </select></label
-              >
+                >Expected messages<AppSelect
+                  v-model="expectedMessages"
+                  :options="[
+                    { value: 'any', label: 'Use default assertions' },
+                    { value: 'both', label: 'Email and SMS' },
+                    { value: 'email', label: 'Email is generated' },
+                    { value: 'sms', label: 'SMS is generated' },
+                    { value: 'none', label: 'No messages' },
+                  ]"
+              /></label>
             </template>
             <details class="advanced-options">
               <summary>Advanced scenario options <AppIcon name="down" :size="13" /></summary>
@@ -750,10 +753,12 @@ onMounted(
                 <label
                   >Start time (UTC)<input v-model="start" type="datetime-local" step="1" /></label
                 ><label
-                  >Test mode<select v-model="mode">
-                    <option value="full">Full journey / event sequence</option>
-                    <option value="single_node">Single node</option>
-                  </select></label
+                  >Test mode<AppSelect
+                    v-model="mode"
+                    :options="[
+                      { value: 'full', label: 'Full journey / event sequence' },
+                      { value: 'single_node', label: 'Single node' },
+                    ]" /></label
                 ><label v-if="mode === 'single_node'">Node ID<input v-model="node" /></label
                 ><label
                   >Prior sandbox messages<input
@@ -762,17 +767,21 @@ onMounted(
                     min="0"
                     max="1000" /></label
                 ><label
-                  >Fault channel<select v-model="faultChannel">
-                    <option>email</option>
-                    <option>sms</option>
-                  </select></label
+                  >Fault channel<AppSelect
+                    v-model="faultChannel"
+                    :options="[
+                      { value: 'email', label: 'email' },
+                      { value: 'sms', label: 'sms' },
+                    ]" /></label
                 ><label
-                  >Provider faults<select v-model="faults">
-                    <option value="[]">Success</option>
-                    <option value="[429,500,200]">429 → 500 → success</option>
-                    <option value="[408]">Ambiguous timeout</option>
-                    <option value="[400]">Permanent failure</option>
-                  </select></label
+                  >Provider faults<AppSelect
+                    v-model="faults"
+                    :options="[
+                      { value: '[]', label: 'Success' },
+                      { value: '[429,500,200]', label: '429 → 500 → success' },
+                      { value: '[408]', label: 'Ambiguous timeout' },
+                      { value: '[400]', label: 'Permanent failure' },
+                    ]" /></label
                 ><label
                   >Customer overrides (JSON)<textarea
                     v-model="customer"

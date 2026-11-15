@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppSelect from './ui/AppSelect.vue';
 import { errorMessage } from '../lib/format';
 import { computed, onMounted, ref, watch } from 'vue';
 import { api } from '../lib/api';
@@ -133,17 +134,18 @@ onMounted(async () => {
           <code>{{ mapping.reference.event_name }} {{ mapping.reference.path }}</code>
         </details>
         <label v-if="!['matched', 'confirmed'].includes(mapping.status)"
-          >Use workspace definition<select
+          >Use workspace definition<AppSelect
             v-model="choices[mapping.reference.key]"
             :aria-label="`Definition for ${mapping.reference.key}`"
             :disabled="readonly || busy"
-          >
-            <option value="">Choose a definition…</option>
-            <option v-for="entry in options(mapping)" :key="entry.key" :value="entry.key">
-              {{ entry.label }} — {{ entry.event_name || entry.path }}
-            </option>
-          </select></label
-        >
+            :options="[
+              { value: '', label: 'Choose a definition…' },
+              ...options(mapping).map((entry) => ({
+                value: entry.key,
+                label: entry.label + ' — ' + (entry.event_name || entry.path),
+              })),
+            ]"
+        /></label>
       </li>
     </ul>
     <template v-if="unresolved.length"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppSelect from './ui/AppSelect.vue';
 import EmptyState from './ui/EmptyState.vue';
 import { errorMessage, plural } from '../lib/format';
 import { computed, onMounted, ref } from 'vue';
@@ -148,16 +149,16 @@ onMounted(() => void load());
             <p>Entries and conversions by entry date</p>
           </div>
           <label class="compact-select"
-            ><AppIcon name="calendar" :size="15" /><select
-              v-model.number="days"
+            ><AppIcon name="calendar" :size="15" /><AppSelect
+              v-model="days"
               aria-label="Activity period"
+              :options="[
+                { value: 7, label: 'Last 7 days' },
+                { value: 30, label: 'Last 30 days' },
+                { value: 90, label: 'Last 90 days' },
+              ]"
               @change="load"
-            >
-              <option :value="7">Last 7 days</option>
-              <option :value="30">Last 30 days</option>
-              <option :value="90">Last 90 days</option>
-            </select></label
-          >
+          /></label>
         </div>
         <div class="chart-legend">
           <span><i class="legend-dot violet" />Journey entries</span

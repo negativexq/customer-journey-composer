@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppSelect from './ui/AppSelect.vue';
 const operatorLabels: Record<string, string> = {
   equals: 'Equals',
   not_equals: 'Does not equal',
@@ -46,15 +47,15 @@ function child(index: number, rule: Rule) {
   <div class="rule-editor">
     <template v-if="modelValue?.rules"
       ><label
-        >Match<select
-          :value="modelValue.logic"
+        >Match<AppSelect
+          :model-value="modelValue.logic"
           :disabled="readonly"
-          @change="patch({ logic: ($event.target as HTMLSelectElement).value as 'and' | 'or' })"
-        >
-          <option value="and">All conditions (AND)</option>
-          <option value="or">Any condition (OR)</option>
-        </select></label
-      >
+          :options="[
+            { value: 'and', label: 'All conditions (AND)' },
+            { value: 'or', label: 'Any condition (OR)' },
+          ]"
+          @update:model-value="patch({ logic: $event as 'and' | 'or' })"
+      /></label>
       <div v-for="(rule, index) in modelValue.rules" :key="index">
         <RuleEditor
           :model-value="rule"
@@ -79,13 +80,11 @@ function child(index: number, rule: Rule) {
           placeholder="customer.attributes.total_orders"
           @input="patch({ path: ($event.target as HTMLInputElement).value })" /></label
       ><label
-        >Operator<select
-          :value="modelValue?.operator || 'equals'"
+        >Operator<AppSelect
+          :model-value="modelValue?.operator || 'equals'"
           :disabled="readonly"
-          @change="patch({ operator: ($event.target as HTMLSelectElement).value })"
-        >
-          <option
-            v-for="operator in [
+          :options="
+            [
               'equals',
               'not_equals',
               'greater_than',
@@ -96,12 +95,9 @@ function child(index: number, rule: Rule) {
               'exists',
               'before',
               'after',
-            ]"
-            :key="operator"
-          >
-            {{ operatorLabels[operator] || operator }}
-          </option>
-        </select></label
+            ].map((operator) => ({ value: operator, label: operatorLabels[operator] || operator }))
+          "
+          @update:model-value="patch({ operator: String($event) })" /></label
       ><label v-if="modelValue?.operator !== 'exists'"
         >Value<input
           :value="
