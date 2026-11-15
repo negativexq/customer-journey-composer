@@ -25,6 +25,7 @@ import {
 import WorkflowNode from './WorkflowNode.vue';
 import { portLabel } from '../lib/workflow-presentation';
 import { stepCaptions } from '../lib/step-captions';
+import { engagementEvent, engagementEvents } from '../lib/engagement';
 import { plural } from '../lib/format';
 import InsertableEdge from './InsertableEdge.vue';
 import RuleEditor from './RuleEditor.vue';
@@ -445,6 +446,55 @@ function configField<K extends keyof Config>(key: K) {
   });
 }
 const eventName = configField('event_name');
+// Email and SMS steps a customer passes before the selected step: the messages a "Wait for
+// event" step can wait on.
+const earlierMessages = computed(() => {
+  const id = selectedID.value;
+  if (!id) return [];
+  const seen = new Set<string>();
+  const queue = [id];
+  while (queue.length) {
+    const target = queue.shift()!;
+    for (const edge of edges.value)
+      if (edge.target === target && !seen.has(edge.source)) {
+        seen.add(edge.source);
+        queue.push(edge.source);
+      }
+  }
+  return nodes.value.filter(
+    (n) => seen.has(n.id) && (n.data.kind === 'email' || n.data.kind === 'sms'),
+  );
+});
+const listenFor = computed({
+  get: () => (selected.value?.data.config.message_node ? 'message' : 'event'),
+  set: (mode: string) => {
+    const message = earlierMessages.value[0];
+    if (mode === 'message' && message)
+      patchConfig({ message_node: message.id, event_name: 'message_clicked' });
+    else
+      patchConfig({
+        message_node: undefined,
+        event_name: engagementEvent(eventName.value) ? '' : eventName.value,
+      });
+  },
+});
+const messageNode = computed({
+  get: () => selected.value?.data.config.message_node,
+  set: (id: unknown) => {
+    const kind = nodes.value.find((n) => n.id === id)?.data.kind as 'email' | 'sms' | undefined;
+    const current = engagementEvent(eventName.value);
+    // An SMS has no open or unsubscribe report, so those fall back to a click.
+    patchConfig({
+      message_node: id as string,
+      event_name:
+        kind && current && !current.channels.includes(kind) ? 'message_clicked' : eventName.value,
+    });
+  },
+});
+const messageKind = computed(
+  () =>
+    nodes.value.find((n) => n.id === messageNode.value)?.data.kind as 'email' | 'sms' | undefined,
+);
 const timezone = configField('timezone');
 const nodeRule = configField('rule');
 const nodeFilters = configField('filters');
@@ -1253,7 +1303,49 @@ function setAttribute(value: string) {
             can enter again on a later run.</small
           >
         </template>
-        <label v-else-if="['event_trigger', 'wait_event'].includes(selected.data.kind)"
+        <template v-else-if="selected.data.kind === 'wait_event'">
+          <SegmentedControl
+            v-if="earlierMessages.length || listenFor === 'message'"
+            v-model="listenFor"
+            label="Listen for"
+            :disabled="readonly"
+            :options="[
+              { value: 'event', label: 'A customer event' },
+              { value: 'message', label: 'Message engagement' },
+            ]"
+          />
+          <template v-if="listenFor === 'message'">
+            <label
+              >Message<AppSelect
+                v-model="messageNode"
+                :disabled="readonly"
+                placeholder="Choose an earlier message"
+                :options="
+                  earlierMessages.map((n) => ({
+                    value: n.id,
+                    label: n.data.label,
+                    icon: iconFor[n.data.kind],
+                  }))
+                "
+            /></label>
+            <label
+              >The customer<AppSelect
+                v-model="eventName"
+                :disabled="readonly || !messageKind"
+                :options="
+                  engagementEvents
+                    .filter((e) => !messageKind || e.channels.includes(messageKind))
+                    .map((e) => ({ value: e.value, label: e.label, description: e.description }))
+                "
+            /></label>
+            <small
+              >Only this customer's copy of that message counts. Links are tracked and an
+              unsubscribe link is added to emails when they are sent.</small
+            >
+          </template>
+          <label v-else>Event name<input v-model="eventName" :disabled="readonly" /></label>
+        </template>
+        <label v-else-if="selected.data.kind === 'event_trigger'"
           >Event name<input v-model="eventName" :disabled="readonly"
         /></label>
         <SegmentedControl

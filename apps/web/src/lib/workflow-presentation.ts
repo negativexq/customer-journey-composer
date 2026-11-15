@@ -1,4 +1,5 @@
 import { labels, type Rule, type Step } from './workflow.ts';
+import { engagementEvent } from './engagement.ts';
 
 export const portLabel = (port: string) =>
   (
@@ -88,7 +89,7 @@ export function stepSummary(step: Pick<Step, 'type' | 'config'>): string {
     case 'wait':
       return waitSummary(c);
     case 'wait_event':
-      return `${c.event_name || 'Choose an event'} · up to ${durationLabel(c.timeout_seconds || 0)}`;
+      return `${(c.message_node && engagementEvent(c.event_name)?.label) || c.event_name || 'Choose an event'} · up to ${durationLabel(c.timeout_seconds || 0)}`;
     case 'event_trigger':
       if (c.entry_mode === 'audience') {
         const days = [...(c.weekdays || [])].sort((a, b) => a - b).map((day) => dayNames[day - 1]);

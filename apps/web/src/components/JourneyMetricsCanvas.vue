@@ -47,8 +47,16 @@ function observations(n: Workflow['nodes'][number]) {
     n.type === 'email' || n.type === 'sms'
       ? [
           { label: 'Accepted', value: value(n.id, 'ACCEPTED', 'node_delivery') },
-          { label: 'Blocked', value: value(n.id, 'BLOCKED', 'node_delivery') },
-          { label: 'Failed', value: value(n.id, 'FAILED', 'node_delivery') },
+          ...(n.type === 'email'
+            ? [{ label: 'Opened', value: value(n.id, 'opened', 'node_delivery') }]
+            : []),
+          { label: 'Clicked', value: value(n.id, 'clicked', 'node_delivery') },
+          // Problems show only when there are some, so engagement fits on the card.
+          ...[
+            { label: 'Blocked', value: value(n.id, 'BLOCKED', 'node_delivery') },
+            { label: 'Failed', value: value(n.id, 'FAILED', 'node_delivery') },
+            { label: 'Bounced', value: value(n.id, 'bounced', 'node_delivery') },
+          ].filter((item) => item.value > 0),
         ]
       : n.type === 'wait' || n.type === 'wait_event'
         ? [

@@ -8,12 +8,14 @@ import DetailDrawer from './ui/DetailDrawer.vue';
 import StatusBadge from './ui/StatusBadge.vue';
 import DecisionSummary from './ui/DecisionSummary.vue';
 import AttemptHistory from './ui/AttemptHistory.vue';
+import type { DeliveryEngagement } from '../lib/engagement';
 import JourneyRoute from './JourneyRoute.vue';
 import { journeyPath, type ExecutionDetail } from '../lib/customer-journey';
 import { loadDefinition, type Definition } from '../lib/journey-definition';
 import { stepSummary } from '../lib/workflow-presentation';
 type ExecutionLink = { id: string; journey_id: string; state: string; started_at: string };
 type Detail = {
+  engagement?: DeliveryEngagement[];
   id?: string;
   event_id?: string;
   event_name?: string;
@@ -263,6 +265,7 @@ onBeforeUnmount(() => {
           :attempts="detail.attempt_history || []"
           :provider="detail.provider"
           :response="detail.last_error"
+          :engagement="detail.engagement"
       /></template>
       <details class="activity-advanced">
         <summary>Advanced payload</summary>

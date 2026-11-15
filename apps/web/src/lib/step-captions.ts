@@ -1,5 +1,6 @@
 import type { Workflow } from './workflow.ts';
 import { durationLabel } from './workflow-presentation.ts';
+import { engagementEvent } from './engagement.ts';
 
 // The words that sit on top of a step and say when a customer arrives there, so a journey reads
 // from top to bottom as a sentence: "Starts when … If purchase arrives … Otherwise, after 1 day …".
@@ -9,6 +10,12 @@ export function stepCaptions(
   workflow: Pick<Workflow, 'nodes' | 'edges'>,
 ): Record<string, StepCaption> {
   const nodes = new Map(workflow.nodes.map((node) => [node.id, node]));
+  const arrival = (config: Workflow['nodes'][number]['config']) => {
+    const engagement = engagementEvent(config.event_name);
+    const message = config.message_node && nodes.get(config.message_node);
+    if (engagement && message) return engagement.phrase(message.label);
+    return `${config.event_name || 'the event'} arrives`;
+  };
   const arriving = new Map<string, StepCaption[]>();
   for (const edge of workflow.edges) {
     const source = nodes.get(edge.source);
@@ -21,7 +28,7 @@ export function stepCaptions(
               text: `Otherwise, after ${durationLabel(source.config.timeout_seconds || 0)}`,
               tone: 'else',
             }
-          : { text: `If ${source.config.event_name || 'the event'} arrives`, tone: 'if' };
+          : { text: `If ${arrival(source.config)}`, tone: 'if' };
     else if (source.type === 'switch') {
       const branch = source.config.branches?.[Number(edge.port.slice(5)) - 1];
       caption =

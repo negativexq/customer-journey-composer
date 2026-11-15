@@ -9,6 +9,7 @@ import AppIcon from './ui/AppIcon.vue';
 import StatusBadge from './ui/StatusBadge.vue';
 import DecisionSummary from './ui/DecisionSummary.vue';
 import AttemptHistory from './ui/AttemptHistory.vue';
+import type { DeliveryEngagement } from '../lib/engagement';
 import { api, type Journey } from '../lib/api';
 type Row = {
   id: string;
@@ -40,6 +41,7 @@ type Detail = Row & {
   };
   decision: unknown;
   attempt_history: unknown[];
+  engagement?: DeliveryEngagement[];
   provider_response?: string;
   provider_status?: string;
   provider?: string;
@@ -384,6 +386,7 @@ onMounted(
             :attempts="selected.attempt_history"
             :provider="selected.provider"
             :response="selected.provider_response"
+            :engagement="selected.delivery_id ? selected.engagement : undefined"
           />
           <pre v-else>{{ JSON.stringify(previous, null, 2) }}</pre>
         </template>

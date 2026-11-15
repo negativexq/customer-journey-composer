@@ -26,6 +26,7 @@ import AppIcon from './ui/AppIcon.vue';
 import StatusBadge from './ui/StatusBadge.vue';
 import DecisionSummary from './ui/DecisionSummary.vue';
 import AttemptHistory from './ui/AttemptHistory.vue';
+import type { DeliveryEngagement } from '../lib/engagement';
 import type { Workflow } from '../lib/workflow';
 const props = defineProps<{
   journeyId: string;
@@ -435,6 +436,7 @@ const delivery = ref<{
   status: string;
   decision: unknown;
   attempt_history: unknown[];
+  engagement?: DeliveryEngagement[];
   last_error?: string;
 }>();
 const stepLabel = (id: string) => workflow.value?.nodes.find((node) => node.id === id)?.label || id;
@@ -1061,6 +1063,7 @@ onBeforeUnmount(() => {
                 :attempts="delivery.attempt_history"
                 :provider="delivery.provider"
                 :response="delivery.last_error"
+                :engagement="delivery.engagement"
               />
             </section>
             <details class="execution-raw">
@@ -1132,12 +1135,35 @@ onBeforeUnmount(() => {
                     </dd>
                   </div>
                 </dl>
+                <dl
+                  v-if="selectedStep?.type === 'email' || selectedStep?.type === 'sms'"
+                  class="node-detail-stats"
+                  aria-label="Engagement"
+                >
+                  <div v-if="selectedStep?.type === 'email'">
+                    <dt>Opened</dt>
+                    <dd>{{ nodeValue('opened', 'node_delivery') }}</dd>
+                  </div>
+                  <div>
+                    <dt>Clicked a link</dt>
+                    <dd>{{ nodeValue('clicked', 'node_delivery') }}</dd>
+                  </div>
+                  <div>
+                    <dt>Bounced</dt>
+                    <dd>{{ nodeValue('bounced', 'node_delivery') }}</dd>
+                  </div>
+                  <div v-if="selectedStep?.type === 'email'">
+                    <dt>Unsubscribed</dt>
+                    <dd>{{ nodeValue('unsubscribed', 'node_delivery') }}</dd>
+                  </div>
+                </dl>
                 <p
                   v-if="selectedStep?.type === 'email' || selectedStep?.type === 'sms'"
                   class="help-text"
                 >
                   Completing a message step schedules the message; provider acceptance is a separate
-                  result.
+                  result. Each person counts once however often they open or click. Opens count when
+                  the mail client loads images, which some clients do on their own.
                 </p>
                 <h4>Paths taken</h4>
                 <button

@@ -171,6 +171,40 @@ Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test` (
 
 Not covered: Test Lab's scenario form and timeline were looked at but not changed; the light theme was not checked by eye.
 
+## Message engagement: tracking, unsubscribe and provider reports — 2026-11-15
+
+Adapted from the sister project Smart Campaign Composer, whose short links, signed unsubscribe and provider reports had no counterpart here.
+
+- **Reports after acceptance.** New `delivery_events` table keeps the first `delivered`, `bounced`, `opened`, `clicked` and `unsubscribed` report of each delivery (primary key per delivery and kind). A delivery's status still comes only from our own provider calls.
+- **Tracked links.** When a delivery is created, each http(s) link in its email or SMS is rewritten to `PUBLIC_BASE_URL/api/t/<12-character code>`, stored in `tracking_codes` with the delivery in the same statement. A retry resends the same codes. `GET` counts and redirects (302, `no-store`) only to the stored URL, so it is not an open redirect. `HEAD` redirects without counting. SMS segments are recounted after shortening.
+- **Opens and unsubscribe.** Tracked emails get a 1×1 open pixel, an unsubscribe footer link, and RFC 8058 `List-Unsubscribe`/`List-Unsubscribe-Post` headers on SMTP. Opening the unsubscribe link only shows a confirmation page (CSP `default-src 'none'`). The `POST` withdraws email consent, and dispatch already re-reads consent. A test send changes no customer. The Test Inbox preview blocks remote images, so viewing a message does not count as an open.
+- **Provider reports.** `POST /api/provider/events` accepts `delivered`/`bounced` reports signed with `PROVIDER_WEBHOOK_SECRET` (`X-Provider-Signature: sha256=<hex HMAC>`), naming the message by the idempotency key we sent. It is off without a secret. The in-process mock providers record a `simulated` report on acceptance. Recipients `bounce@…`, `…+bounce@…` and phones ending `0000` bounce. SMTP/Mailpit sends no delivery report.
+- **Journeys react.** Each report of a live journey message becomes a customer event (`message_delivered`, `message_bounced`, `message_opened`, `message_clicked`, `message_unsubscribed`) with a derived event ID, ingested once (`ingested_at`).
+  - A `wait_event` step can set `message_node`. It then matches only engagement with that earlier email/SMS step in the same run.
+  - Validation requires the message step to come before the wait and the event to exist for that channel (an SMS has no open or unsubscribe).
+  - The sandbox matches by step.
+  - The events are built into the data catalog after the workspace's own definitions.
+- **Analytics.** Engagement joins the delivery metric snapshot, so insights count opened/clicked/bounced/unsubscribed per message step and version once per delivery.
+- **UI.**
+  - Builder: "Wait for event" offers "Listen for: A customer event / Message engagement", with a message picker (earlier steps only) and an engagement picker filtered by channel. Captions read "If they click a link in Reminder".
+  - Metrics canvas and Live Monitor show Opened/Clicked (Bounced when non-zero).
+  - Delivery details show an "After sending" list.
+
+Verified locally:
+
+- `make fmt-check`, `make lint`, `make typecheck`, `make test` (Go unit and Node 31/31) and `git diff --check`.
+- `./scripts/test-integration.sh`: all packages, including new tests. These cover tracked click → waiting step → `converted`, a repeated click reaching the journey once, another message's click not matching, unsubscribe withdrawing only email consent, insights counting one click, and the HTTP endpoints (HEAD not counted, pixel, unsubscribe GET/POST, unknown codes 404, unsigned/wrong/unknown reports rejected, duplicate signed reports kept once).
+- Playwright 98/98 desktop/mobile, including the new `engagement.spec.ts`. That test publishes a journey and sends the real email through Mailpit, then follows the tracked link from Mailpit's copy and sees the run exit as converted.
+- Checked by eye: the Builder settings and caption (light, 1440 px) and the unsubscribe page (375 px).
+- `activity-navigation.spec.ts` now picks the entry event row, because the mock SMS delivery report is an event of that customer too.
+
+Not covered:
+
+- The AI composer schema does not yet offer `message_node`; AI drafts can use the events but not scope them to one message.
+- Email open counts include clients that load images on their own.
+- There is no SMS opt-out keyword, no per-link click breakdown and no Mailpit delivery webhook.
+- No real provider was called.
+
 ## Spacing and sub-navigation sweep — 2026-11-15
 
 - Preview & Test's "Message preview" / "Journey path & Test Lab" buttons sat directly under the journey tabs and looked like a second tab row with no selected state. They are now a segmented control with space above and below and `aria-pressed` on the chosen view.

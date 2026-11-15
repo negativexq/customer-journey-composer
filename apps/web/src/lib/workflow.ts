@@ -52,6 +52,8 @@ export type Config = {
   // A webhook posts these fields (name -> data path) to url.
   url?: string;
   fields?: Record<string, string>;
+  // A wait_event step that waits for engagement with this earlier email or SMS step only.
+  message_node?: string;
 };
 export type Step = {
   id: string;
