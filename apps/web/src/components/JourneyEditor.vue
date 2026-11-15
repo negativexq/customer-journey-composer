@@ -16,6 +16,7 @@ import AnalyticsView from './AnalyticsView.vue';
 import AppIcon from './ui/AppIcon.vue';
 import StatusBadge from './ui/StatusBadge.vue';
 import ScopeSelect from './ui/ScopeSelect.vue';
+import FilterSelect from './ui/FilterSelect.vue';
 import BehaviorChecksEditor from './BehaviorChecksEditor.vue';
 import { blankBehaviorChecks } from '../lib/behavior-checks';
 import type { DataEntry } from '../lib/data-catalog';
@@ -144,6 +145,15 @@ const messageStep = computed(
   () =>
     draft.value.nodes.find((n) => n.id === messageNodeID.value) ||
     draft.value.nodes.find((n) => n.type === 'email' || n.type === 'sms'),
+);
+const messageOptions = computed(() =>
+  draft.value.nodes
+    .filter((n) => n.type === 'email' || n.type === 'sms')
+    .map((n, i) => ({
+      value: n.id,
+      label: n.label,
+      description: (n.type === 'email' ? 'Email' : 'SMS') + ' · message ' + (i + 1),
+    })),
 );
 async function applyProposal(proposal: { workflow: Workflow; name: string; description: string }) {
   applying = true;
@@ -737,18 +747,14 @@ function back() {
       </button>
     </nav>
     <template v-if="previewTab !== 'Test Lab'">
-      <label
-        >Message node<select v-model="messageNodeID">
-          <option value="">First message</option>
-          <option
-            v-for="step in draft.nodes.filter((n) => n.type === 'email' || n.type === 'sms')"
-            :key="step.id"
-            :value="step.id"
-          >
-            {{ step.label }}
-          </option>
-        </select></label
-      ><MessageStudio
+      <FilterSelect
+        class="message-node-select"
+        label="Message step"
+        icon="email"
+        :model-value="messageStep?.id || ''"
+        :options="messageOptions"
+        @update:model-value="messageNodeID = $event"
+      /><MessageStudio
         v-if="messageStep"
         :key="messageStep.id"
         v-model="messageStep.config"

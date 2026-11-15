@@ -180,6 +180,8 @@ Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test`, 
 
 Not covered: the light theme and phone widths were not checked by eye for these changes.
 
+Follow-up: Preview & Test's Message node field was a native `<select>`. Safari drew its menu in the system colours (dark over the light theme) and as wide as the full-width field, and it listed "First message" on top of the first message's own name. It is now the app's themed dropdown (`FilterSelect`), labelled "Message step", listing each email/SMS step once with its channel and position. Checked open in the dark and light themes at 1440 px; `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check` and Playwright 96/96 passed. The app's other native selects are unchanged.
+
 ## Product acceptance verification — 2026-11-11
 
 Verified locally against source `b1b7ab4`, before this documentation update:
