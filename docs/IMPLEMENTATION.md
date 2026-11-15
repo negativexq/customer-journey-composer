@@ -307,7 +307,15 @@ Verified locally:
 - Browser, with AI disabled, on the cart journey of the test workspace: Test Lab shows no `offer.code` hint and fills amount 50 and the name; a run with the defaults passed with two sandbox messages. Changing the contract's cart number updated the bound order example. "Improve a message" listed only the email and SMS steps.
 - `npx playwright test --workers=2` against the rebuilt local stack: 102 passed.
 
-Not covered: the refusal reasons and the kept description were not seen with a live model; the unit tests use fixed provider output.
+Live check, same day, with the user's approval: the API ran with `AI_PROVIDER=openai` and `gpt-6-luna`. The key was passed only to the `docker compose` process, and the API went back to `disabled` with no key afterwards. No proposal was applied; both drafts are unchanged.
+
+- "Change this journey" on the birthday journey (subject with the first name) and on the cart journey (remove the email consent check) both kept the journey's name and description.
+- "Send the email at once, without waiting for the order" broke the reviewed contract. Both attempts were refused, and the panel showed "Last problems: Clause 1: virtual completion time differs from the reviewed expectation; …". The audit record holds 1 and 4 issues for the two attempts.
+
+New findings, not fixed:
+
+- The first try of that request failed with "AI provider failed or returned an incomplete response". The audit record shows `provider_request_failed` after 45,002 ms: the provider client has a fixed 45 s timeout (`internal/ai/providers.go`). The retry took 31 s and 24 s.
+- Asked to "change nothing else", the model still moved the order wait from 2 to 1 hour and the later wait from 24 to 25 hours. The contract passed, and the diff listed the nodes, so a reviewer can see it.
 
 ## Coded journeys can be approved — 2026-11-16
 
