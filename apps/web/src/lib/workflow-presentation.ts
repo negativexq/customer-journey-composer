@@ -1,4 +1,4 @@
-import { labels, type Rule, type Step } from './workflow';
+import { labels, type Rule, type Step } from './workflow.ts';
 
 export const portLabel = (port: string) =>
   ({ true: 'Yes', false: 'No', matched: 'Matched', timeout: 'Timeout' })[port] || 'Next';

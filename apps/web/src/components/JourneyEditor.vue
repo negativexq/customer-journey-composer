@@ -640,14 +640,7 @@ function back() {
       :class="{ selected: tab === label }"
       @click="tab = label"
     >
-      <AppIcon :name="icon" :size="16" />{{ label }}</button
-    ><button
-      v-if="tab === 'Builder'"
-      class="ai-toggle"
-      :class="{ selected: showAI }"
-      @click="showAI = !showAI"
-    >
-      <AppIcon name="sparkles" :size="16" />AI composer
+      <AppIcon :name="icon" :size="16" />{{ label }}
     </button>
   </nav>
   <section v-if="tab === 'Builder'" class="composer-layout" :class="{ 'ai-open': showAI }">
@@ -666,8 +659,10 @@ function back() {
         :readonly="readonly || journey.status === 'Archived'"
         :issues="issues"
         :hide-inspector="showAI"
+        :ai-open="showAI"
         @inspect="showAI = false"
         @preview="previewNode"
+        @ai="showAI = !showAI"
       />
     </div>
     <AIPanel

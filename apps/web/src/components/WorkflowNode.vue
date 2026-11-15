@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 import { Handle, Position } from '@xyflow/vue';
 import { ports, labels, type Kind, type Config } from '../lib/workflow';
 import AppIcon from './ui/AppIcon.vue';
 import { stepSummary } from '../lib/workflow-presentation';
+import type { StepCaption } from '../lib/step-captions';
 // NodeProps.draggable belongs to xyflow's wrapper, not native HTML drag-and-drop.
 defineOptions({ inheritAttrs: false });
 const props = defineProps<{
+  id?: string;
   data: {
     kind: Kind;
     label: string;
@@ -15,6 +17,10 @@ const props = defineProps<{
     active?: boolean;
     visited?: boolean;
     muted?: boolean;
+    // When a customer arrives here; shown as the card's first line.
+    caption?: StepCaption;
+    // Outputs with nothing connected yet. Each gets an add button in the builder.
+    openPorts?: string[];
     observations?: { label: string; value: number }[];
     metrics?: {
       entered: number;
@@ -36,6 +42,15 @@ const icons: Record<string, string> = {
   sms: 'message',
   update_attribute: 'user',
   exit: 'exit',
+};
+// Provided by the builder canvas only; read-only canvases have no add buttons.
+const addAfter = inject<((nodeID: string, port: string) => void) | undefined>(
+  'canvas-add-step',
+  undefined,
+);
+const portPosition = (port: string) => {
+  const all = ports(props.data.kind);
+  return `${((all.indexOf(port) + 1) * 100) / (all.length + 1)}%`;
 };
 const detail = computed(() =>
   stepSummary({ type: props.data.kind, config: props.data.config || {} }),
@@ -66,6 +81,9 @@ const label = (p: string) =>
     ]"
   >
     <Handle v-if="data.kind !== 'event_trigger'" id="in" type="target" :position="Position.Top" />
+    <p v-if="data.caption" class="node-caption" :class="data.caption.tone">
+      {{ data.caption.text }}
+    </p>
     <div class="workflow-node-heading">
       <span class="step-type-icon" :class="data.kind"
         ><AppIcon :name="icons[data.kind]" :size="18"
@@ -77,9 +95,6 @@ const label = (p: string) =>
       <span v-if="data.invalid" class="node-warning" title="Needs attention">!</span>
     </div>
     <p class="workflow-node-detail" :title="detail">{{ detail }}</p>
-    <div v-if="ports(data.kind).length > 1" class="node-ports">
-      <span v-for="p in ports(data.kind)" :key="p" :class="p">{{ label(p) }}</span>
-    </div>
     <div v-if="data.metrics" class="node-metrics">
       <template v-if="data.observations"
         ><span v-for="item in data.observations" :key="item.label"
@@ -100,12 +115,26 @@ const label = (p: string) =>
       >
     </div>
     <Handle
-      v-for="(p, i) in ports(data.kind)"
+      v-for="p in ports(data.kind)"
       :id="p"
       :key="p"
       type="source"
       :position="Position.Bottom"
-      :style="{ left: `${((i + 1) * 100) / (ports(data.kind).length + 1)}%` }"
+      :style="{ left: portPosition(p) }"
     />
+    <template v-if="addAfter && id">
+      <button
+        v-for="p in data.openPorts || []"
+        :key="'add-' + p"
+        type="button"
+        class="node-add nodrag nopan"
+        :style="{ left: portPosition(p) }"
+        :aria-label="`Add a step after ${data.label}${label(p) ? ' · ' + label(p) : ''}`"
+        :title="label(p) ? `Add a step on ${label(p)}` : 'Add the next step'"
+        @click.stop="addAfter(id, p)"
+      >
+        <AppIcon name="plus" :size="14" />
+      </button>
+    </template>
   </div>
 </template>

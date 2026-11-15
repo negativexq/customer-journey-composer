@@ -44,21 +44,34 @@ test('canvas follows the theme with readable zoom controls and a wide Elements p
   await expect
     .poll(() => luminance(page.locator('.node-title').first(), 'color'))
     .toBeGreaterThan(0.5);
-  const controls = page.locator('.vue-flow__controls');
-  await expect(controls).toHaveAttribute('aria-label', 'Canvas controls');
-  const zoomIn = controls.locator('.vue-flow__controls-zoomin');
-  await expect(zoomIn.locator('svg path')).toHaveAttribute('d', 'M12 5v14M5 12h14');
-  await expect.poll(() => luminance(zoomIn.locator('svg'), 'stroke')).toBeGreaterThan(0.5);
-  await expect.poll(() => luminance(zoomIn, 'background-color')).toBeLessThan(0.05);
-  const size = await zoomIn.boundingBox();
+  // One floating bar holds the canvas tools; the old toolbar row above the canvas is gone.
+  const controls = page.getByRole('toolbar', { name: 'Canvas controls', exact: true });
+  await expect(page.locator('.builder-toolbar')).toHaveCount(0);
+  const mobile = test.info().project.name === 'mobile';
+  // Every tool in the bar is a readable, finger-sized target on the themed surface.
+  const fit = controls.getByRole('button', { name: 'Fit view', exact: true });
+  await expect.poll(() => luminance(fit.locator('svg'), 'stroke')).toBeGreaterThan(0.5);
+  await expect.poll(() => luminance(fit, 'background-color')).toBeLessThan(0.05);
+  const size = await fit.boundingBox();
   expect(size!.width).toBeGreaterThanOrEqual(38);
   expect(size!.height).toBeGreaterThanOrEqual(38);
-  const zoom = controls.getByLabel('Zoom level', { exact: true });
-  const before = Number((await zoom.innerText()).replace('%', ''));
-  await zoomIn.click();
-  await expect
-    .poll(async () => Number((await zoom.innerText()).replace('%', '')))
-    .toBeGreaterThan(before);
+  const bar = await controls.boundingBox();
+  const canvas = await page.locator('.canvas').boundingBox();
+  expect(bar!.x).toBeGreaterThanOrEqual(canvas!.x);
+  expect(bar!.x + bar!.width).toBeLessThanOrEqual(canvas!.x + canvas!.width);
+  const zoomIn = controls.getByRole('button', { name: 'Zoom in', exact: true });
+  if (mobile) {
+    // Phones pinch to zoom; the buttons give their room to tools without a gesture.
+    await expect(zoomIn).toBeHidden();
+  } else {
+    await expect(zoomIn.locator('svg path')).toHaveAttribute('d', 'M12 5v14M5 12h14');
+    const zoom = controls.getByLabel('Zoom level', { exact: true });
+    const before = Number((await zoom.innerText()).replace('%', ''));
+    await zoomIn.click();
+    await expect
+      .poll(async () => Number((await zoom.innerText()).replace('%', '')))
+      .toBeGreaterThan(before);
+  }
   const elements = page.getByRole('button', { name: 'Toggle step library', exact: true });
   if ((await elements.getAttribute('aria-expanded')) === 'true') await elements.click();
   const canvasBefore = await page.locator('.canvas').boundingBox();
@@ -75,6 +88,7 @@ test('canvas follows the theme with readable zoom controls and a wide Elements p
   ).toBeVisible();
 
   const shortcuts = page.getByRole('dialog', { name: 'Keyboard shortcuts', exact: true });
+  await page.getByLabel('More canvas actions', { exact: true }).click();
   await page.getByRole('button', { name: 'Keyboard shortcuts', exact: true }).click();
   await expect(shortcuts).toContainText('Duplicate selected steps');
   await page.keyboard.press('Escape');

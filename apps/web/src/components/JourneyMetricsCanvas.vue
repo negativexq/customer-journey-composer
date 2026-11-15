@@ -10,6 +10,7 @@ import {
   type Edge,
 } from '@xyflow/vue';
 import { layoutFlow } from '../lib/flow-layout';
+import { stepCaptions } from '../lib/step-captions';
 import WorkflowNode from './WorkflowNode.vue';
 import CanvasControls from './CanvasControls.vue';
 import type { Workflow } from '../lib/workflow';
@@ -66,6 +67,7 @@ function observations(n: Workflow['nodes'][number]) {
   return items;
 }
 
+const captions = computed(() => stepCaptions(props.workflow));
 const nodes = computed<MetricNode[]>(() =>
   props.workflow.nodes.map((n) => ({
     id: n.id,
@@ -76,6 +78,7 @@ const nodes = computed<MetricNode[]>(() =>
       kind: n.type,
       label: n.label,
       config: n.config,
+      caption: captions.value[n.id],
       active:
         props.execution?.current_node_id === n.id &&
         ['RUNNING', 'WAITING'].includes(props.execution.state),

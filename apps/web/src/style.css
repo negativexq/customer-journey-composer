@@ -1485,10 +1485,6 @@ tbody tr:hover {
   left: 0;
   right: 0;
 }
-.journey-tabs > .ai-toggle {
-  margin-left: auto;
-  color: var(--muted);
-}
 .composer-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -1504,49 +1500,6 @@ tbody tr:hover {
 }
 .builder-column {
   min-width: 0;
-}
-.builder-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 13px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  height: 49px;
-}
-.canvas-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--muted);
-}
-.canvas-title strong {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--muted);
-}
-.canvas-title > span {
-  font-size: 12px;
-  color: var(--muted);
-  margin-left: 2px;
-}
-.canvas-tools {
-  display: flex;
-  align-items: center;
-  gap: 1px;
-}
-.canvas-tools .icon-button {
-  width: 27px;
-  height: 27px;
-  min-height: 27px;
-  color: var(--muted);
-}
-.toolbar-divider {
-  height: 16px;
-  width: 1px;
-  background: var(--border);
-  margin: 0 6px;
 }
 .builder-layout {
   display: flex;
@@ -1921,21 +1874,6 @@ tbody tr:hover {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.node-ports {
-  display: flex;
-  justify-content: space-around;
-  padding-top: 10px;
-  color: var(--muted);
-  font-size: 12px;
-}
-.node-ports .true,
-.node-ports .matched {
-  color: var(--green-74);
-}
-.node-ports .false,
-.node-ports .timeout {
-  color: var(--red-75);
 }
 .node-warning {
   font-size: 12px;
@@ -2645,9 +2583,6 @@ pre {
     overflow-x: auto;
     gap: 18px;
   }
-  .journey-tabs .ai-toggle {
-    margin-left: 10px;
-  }
   .page-heading {
     align-items: flex-start;
   }
@@ -2951,26 +2886,6 @@ pre {
   .step-search input {
     font-size: 12px;
   }
-  .builder-toolbar {
-    padding-inline: 8px;
-  }
-  .canvas-title > span {
-    display: none;
-  }
-  .canvas-title strong {
-    font-size: 12px;
-  }
-  .canvas-title > svg {
-    display: none;
-  }
-  .canvas-tools .icon-button {
-    width: 24px;
-    height: 26px;
-    min-height: 26px;
-  }
-  .canvas-tools .icon-button > svg {
-    width: 13px;
-  }
   .builder-layout {
     height: 540px;
     min-height: 540px;
@@ -2979,7 +2894,7 @@ pre {
   .node-config {
     position: absolute;
     right: 0;
-    top: 49px;
+    top: 0;
     bottom: 0;
     z-index: 10;
     width: min(280px, 85%);
@@ -4515,6 +4430,8 @@ td {
     box-shadow: 6px 0 20px #17213b14;
     border-right: 1px solid var(--border);
     background: var(--surface);
+    /* Room to scroll the last step type clear of the canvas bar. */
+    padding-bottom: 76px;
   }
   .library-toggle {
     min-height: 36px;
@@ -5233,37 +5150,6 @@ td {
   margin: 4px 0;
   white-space: normal;
   overflow-wrap: anywhere;
-}
-@media (max-width: 700px) {
-  .builder-toolbar .canvas-tools {
-    min-width: 0;
-    overflow-x: auto;
-    justify-content: flex-start;
-  }
-  .builder-toolbar .canvas-tools > button {
-    flex-shrink: 0;
-  }
-}
-.canvas-reading-bar {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  padding: 7px 13px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  font-size: 11px;
-  color: var(--muted);
-}
-.canvas-reading-bar label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-}
-@media (max-width: 700px) {
-  .canvas-reading-bar > span {
-    display: none;
-  }
 }
 fieldset.scenario-form {
   border: 0;
@@ -6126,4 +6012,354 @@ fieldset.scenario-form {
 }
 .settings-status.off {
   color: var(--amber-51-text);
+}
+
+/* Builder canvas: chrome floats over the canvas so the journey gets the room. */
+.canvas-chip {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  box-shadow: 0 2px 8px #17213b10;
+  /* Informational: steps underneath stay clickable. */
+  pointer-events: none;
+}
+.canvas-chip strong {
+  font-weight: 500;
+  color: var(--text);
+}
+.bar-more .menu-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.canvas-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  z-index: 6;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: calc(100% - 24px);
+  padding: 4px;
+  border: 1px solid var(--gray-90);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow:
+    0 8px 24px #17213b1f,
+    0 1px 3px #17213b14;
+}
+.canvas-bar > button,
+.bar-more > summary {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--gray-38-text);
+  cursor: pointer;
+  list-style: none;
+}
+.bar-more > summary::-webkit-details-marker {
+  display: none;
+}
+.canvas-bar > button:hover:not(:disabled),
+.bar-more > summary:hover,
+.bar-more[open] > summary {
+  background: var(--gray-96);
+  color: var(--gray-28-text);
+}
+.canvas-bar > button[aria-expanded='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.canvas-bar > .bar-label {
+  display: flex;
+  gap: 7px;
+  width: auto;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.canvas-bar > .bar-ai {
+  background: var(--accent);
+  color: var(--on-solid);
+}
+.canvas-bar > .bar-ai:hover:not(:disabled) {
+  background: var(--accent-dark);
+  color: var(--on-solid);
+}
+.canvas-bar > i {
+  flex: 0 0 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: var(--border);
+}
+.canvas-bar .canvas-zoom-level {
+  width: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.bar-more {
+  position: relative;
+}
+.bar-more > div {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  display: grid;
+  gap: 2px;
+  min-width: 200px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 12px 32px #17213b24;
+}
+.bar-more[open] > div {
+  animation: menu-in var(--motion-fast) var(--ease-out) both;
+  transform-origin: bottom right;
+}
+.bar-more > div button {
+  justify-content: flex-start;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+}
+.bar-more > div button:hover:not(:disabled) {
+  background: var(--page);
+}
+.bar-more hr {
+  width: 100%;
+  margin: 4px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+.canvas-empty {
+  inset: 34% 5% auto;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  font-size: 13px;
+  pointer-events: auto;
+}
+.canvas-empty p {
+  margin: 0;
+}
+/* Keep the mini map clear of the centered bar. */
+.canvas .vue-flow__minimap {
+  bottom: 14px;
+}
+@media (max-width: 1100px) {
+  .canvas .vue-flow__minimap {
+    display: none;
+  }
+}
+
+/* Step cards: when you arrive, what it is, then the detail. */
+.workflow-node {
+  padding: 0;
+  border-radius: 10px;
+}
+.node-caption {
+  margin: 0;
+  padding: 5px 13px;
+  border-bottom: 1px solid var(--border);
+  border-radius: 9px 9px 0 0;
+  background: var(--page);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.node-caption.if {
+  background: var(--green-97);
+  color: var(--green-47-text);
+}
+.node-caption.else {
+  background: var(--amber-97);
+  color: var(--amber-51-text);
+}
+.workflow-node-heading {
+  padding: 12px 13px;
+}
+.workflow-node .workflow-node-detail {
+  margin: 0;
+  padding: 9px 13px;
+  border-top: 1px solid var(--border);
+  background: var(--page);
+}
+.workflow-node > :last-child:not(.vue-flow__handle),
+.workflow-node .workflow-node-detail:not(:has(~ .node-metrics)) {
+  border-radius: 0 0 9px 9px;
+}
+.workflow-node .node-metrics {
+  margin: 0;
+  padding: 10px 13px;
+  border-radius: 0 0 9px 9px;
+  background: var(--page);
+}
+.node-add {
+  position: absolute;
+  top: calc(100% + 18px);
+  width: 26px;
+  height: 26px;
+  min-height: 26px;
+  padding: 0;
+  transform: translateX(-50%);
+  border: 1px dashed var(--gray-85);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--muted);
+}
+/* The stub that joins the open output to its add button. */
+.node-add::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  height: 15px;
+  border-left: 1px dashed var(--gray-85);
+}
+.node-add:hover {
+  border-style: solid;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.workflow-node.is-muted .node-add {
+  visibility: hidden;
+}
+.add-step-dialog {
+  width: min(420px, calc(100vw - 32px));
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 24px 90px #20263930;
+}
+.add-step-dialog::backdrop {
+  background: #1f25394d;
+}
+.add-step-dialog .surface-heading {
+  padding: 0;
+  margin-bottom: 12px;
+}
+.add-step-dialog h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.add-step-dialog .surface-heading p {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.add-step-options {
+  display: grid;
+  gap: 4px;
+}
+.add-step-options button {
+  justify-content: flex-start;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 10px;
+  border-color: transparent;
+  background: none;
+  text-align: left;
+}
+.add-step-options button:hover {
+  background: var(--page);
+  border-color: transparent;
+}
+.add-step-options strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+.add-step-options small {
+  font-size: 12px;
+  color: var(--muted);
+}
+.inspector-help {
+  margin: 12px 0 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+@media (max-width: 700px) {
+  /* On a phone the panels open over the canvas, so the bar docks to the screen above them. */
+  .canvas-bar {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    z-index: 40;
+    transform: none;
+    max-width: none;
+    justify-content: space-between;
+    gap: 0;
+  }
+  /* With the AI panel open nothing covers the canvas, and the panel's own actions sit at the
+     screen bottom, so the bar goes back inside the canvas. */
+  .canvas-bar.beside-ai {
+    position: absolute;
+    /* Still above the step library, which opens over the canvas on a phone. */
+    z-index: 20;
+  }
+  .builder-layout {
+    margin-bottom: 64px;
+  }
+
+  /* Pinch to zoom on a phone; the bar keeps what has no gesture. */
+  .canvas-bar .bar-zoom {
+    display: none;
+  }
+  .canvas-bar > button,
+  .bar-more > summary {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+  .canvas-bar > .bar-label span {
+    display: none;
+  }
+  .canvas-bar > .bar-label {
+    width: 44px;
+    padding: 0;
+  }
+  .canvas-bar > i {
+    display: none;
+  }
 }
