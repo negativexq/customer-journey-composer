@@ -14,6 +14,7 @@ import {
 import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui';
 import JourneyMetricsCanvas from './JourneyMetricsCanvas.vue';
 import ExperimentResults from './ExperimentResults.vue';
+import PathFlow from './PathFlow.vue';
 import ScopeSelect from './ui/ScopeSelect.vue';
 import MetricCard from './ui/MetricCard.vue';
 import TrendChart from './ui/TrendChart.vue';
@@ -1235,6 +1236,13 @@ onBeforeUnmount(() => {
           </section>
         </aside>
       </div>
+      <PathFlow
+        v-if="mode === 'analytics' && workflow && insights && version"
+        :workflow="workflow"
+        :insights="insights"
+        @branch="variantPeople($event.node, $event.port)"
+        @step="stepPeople($event)"
+      />
       <ExperimentResults
         v-if="mode === 'analytics' && workflow"
         :journey-id="journeyId"

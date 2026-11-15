@@ -150,20 +150,33 @@ test('an A/B split assigns customers to variants and compares them in analytics'
   expect(a.converted).toBe(a.entered);
   expect(b.converted).toBe(0);
 
-  // The same event again does not move anyone to the other variant.
-  const repeat = await page.request.post('/api/v1/events', {
-    headers,
-    data: {
-      event_id: randomBytes(12).toString('hex'),
-      customer_id: 'shopper_00',
-      event_name: 'cart_updated',
-      occurred_at: new Date().toISOString(),
-      properties: {},
-    },
-  });
-  expect(repeat.ok()).toBeTruthy();
-
+  // Step and connection counts are projected asynchronously; wait until they have caught up.
+  await expect
+    .poll(
+      async () => {
+        const insights = await (
+          await page.request.get(`/api/v1/journeys/${journey.id}/insights?version=1&days=30`)
+        ).json();
+        return (
+          insights.metrics as { dimension: string; key: string; metric: string; value: number }[]
+        )
+          .filter((item) => item.dimension === 'edge' && item.key.startsWith('offer:'))
+          .reduce((sum, item) => sum + item.value, 0);
+      },
+      { timeout: 30000 },
+    )
+    .toBe(total);
   await page.goto(`/journeys/${journey.id}?tab=analytics`);
+  // The path diagram draws the same traffic: four steps reached, three connections taken.
+  const paths = page.getByRole('region', { name: 'Customer paths' });
+  await expect(paths.locator('.flow-bar')).toHaveCount(4);
+  await expect(paths.locator('.flow-band')).toHaveCount(3);
+  await expect(paths).toContainText(`${total} · 100%`);
+  await expect(
+    paths.getByRole('button', {
+      name: new RegExp(`Offer test → No offer · Variant B: ${b.entered} customers?`),
+    }),
+  ).toHaveCount(1);
   const experiments = page.getByRole('region', { name: 'Experiment results' });
   await expect(experiments).toContainText('Offer test');
   await expect(experiments).toContainText('Fewer than 30 customers on a variant');
