@@ -162,6 +162,15 @@ Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test`, 
 
 Not covered: the light theme was not checked by eye.
 
+## Test Lab and Test Inbox review — 2026-11-15
+
+- Test Lab's Recent test runs named each run by the first characters of its ID. `GET /api/v1/test-runs` now also returns the journey name, scenario name and published version, and the list reads "Email and SMS · no purchase" over "Abandoned Cart Recovery · Draft rev 6 · date" (`lib/test-runs.ts`). The Test Inbox run filter uses the same names.
+- Test Inbox message rows were centred by an inherited `justify-content` and had no hierarchy. Each row now shows a channel icon, the message step as its title, channel and journey, recipient and time, and a status badge. The message header no longer repeats the status as plain text. On phones the message list comes first, then the preview, then the filters.
+
+Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test` (Node tests now 31 with `test-runs.test.mjs`), rebuilt `api` and `web`, and `npx playwright test --workers=2`: 96/96 desktop/mobile after updating one `recovery.spec.ts` assertion from the old upper-case "EMAIL" row text to "Email ·". Test Lab and Test Inbox checked by eye in the dark theme at 1440 px and 375 px.
+
+Not covered: Test Lab's scenario form and timeline were looked at but not changed; the light theme was not checked by eye.
+
 ## Product acceptance verification — 2026-11-11
 
 Verified locally against source `b1b7ab4`, before this documentation update:
