@@ -15,11 +15,11 @@ Docker gives AI credentials only to the API, and SMTP credentials only to the de
 
 ## Versioned output and validation
 
-[composer.v5.json](schemas/composer.v5.json) is the shared journey output contract. Tests compare its content to the Go schema generator. Generate it with:
+[composer.v6.json](schemas/composer.v6.json) is the shared journey output contract. v6 adds the wait step's `message_node` (wait for an open or click on an earlier message) and a message's `discount_code`. Tests compare its content to the Go schema generator. Generate it with:
 
 ```sh
 cd apps/api
-go run ./cmd/schema > ../../docs/schemas/composer.v5.json
+go run ./cmd/schema > ../../docs/schemas/composer.v6.json
 cd ../..
 npm run fmt
 ```

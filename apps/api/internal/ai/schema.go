@@ -7,7 +7,7 @@ import (
 	"slices"
 )
 
-const SchemaVersion = "composer.v5"
+const SchemaVersion = "composer.v6"
 
 type schema = map[string]any
 
@@ -55,10 +55,10 @@ func Schema(kind string) schema {
 	configs := schema{
 		"event_trigger":    object(schema{"event_name": text(), "filters": reference("MaybeRule")}),
 		"wait":             object(schema{"duration_seconds": schema{"type": "integer"}, "timezone": text()}),
-		"wait_event":       object(schema{"event_name": text(), "timeout_seconds": schema{"type": "integer"}, "filters": reference("MaybeRule")}),
+		"wait_event":       object(schema{"event_name": text(), "timeout_seconds": schema{"type": "integer"}, "filters": reference("MaybeRule"), "message_node": text()}),
 		"condition":        object(schema{"rule": reference("Rule2")}),
-		"email":            object(schema{"subject": text(), "preheader": text(), "html": text(), "text": text(), "fallbacks": fallbacks()}),
-		"sms":              object(schema{"text": text(), "fallbacks": fallbacks()}),
+		"email":            object(schema{"subject": text(), "preheader": text(), "html": text(), "text": text(), "fallbacks": fallbacks(), "discount_code": text()}),
+		"sms":              object(schema{"text": text(), "fallbacks": fallbacks(), "discount_code": text()}),
 		"update_attribute": object(schema{"attribute": text(), "operation": enumeration("set", "increment", "unset"), "value": reference("Scalar")}),
 		"exit":             object(schema{"reason": enumeration("completed", "converted", "condition_not_met", "manually_cancelled")}),
 	}

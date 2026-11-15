@@ -32,6 +32,9 @@ func schemaFixture(t *testing.T, name string) string {
 			if _, ok := c["filters"]; !ok {
 				c["filters"] = nil
 			}
+			if n["type"] == "wait_event" {
+				c["message_node"] = ""
+			}
 		case "email", "sms":
 			fs := []any{}
 			if m, ok := c["fallbacks"].(map[string]any); ok {
@@ -40,6 +43,7 @@ func schemaFixture(t *testing.T, name string) string {
 				}
 			}
 			c["fallbacks"] = fs
+			c["discount_code"] = ""
 		}
 	}
 	p = map[string]any{"name": p["name"], "description": p["description"], "workflow": w, "explanation": "Reviewed cart recovery", "warnings": []string{}}

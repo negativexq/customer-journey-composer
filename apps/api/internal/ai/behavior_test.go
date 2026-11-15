@@ -25,12 +25,12 @@ func TestSemanticMismatchTriggersBoundedRepair(t *testing.T) {
 	_ = json.Unmarshal([]byte(validOutput), &root)
 	w := root["workflow"].(map[string]any)
 	nodes := w["nodes"].([]any)
-	mail := map[string]any{"id": "mail", "type": "sms", "label": "Confirmation email", "position": map[string]any{"x": 0, "y": 200}, "config": map[string]any{"text": "Hello", "fallbacks": []any{}}}
+	mail := map[string]any{"id": "mail", "type": "sms", "label": "Confirmation email", "position": map[string]any{"x": 0, "y": 200}, "config": map[string]any{"text": "Hello", "fallbacks": []any{}, "discount_code": ""}}
 	w["nodes"] = []any{nodes[0], mail, nodes[1]}
 	w["edges"] = []any{map[string]any{"id": "a", "source": "start", "target": "mail", "port": "started"}, map[string]any{"id": "b", "source": "mail", "target": "done", "port": "next"}}
 	bad, _ := json.Marshal(root)
 	mail["type"] = "email"
-	mail["config"] = map[string]any{"subject": "Hello", "preheader": "", "html": "", "text": "Hello", "fallbacks": []any{}}
+	mail["config"] = map[string]any{"subject": "Hello", "preheader": "", "html": "", "text": "Hello", "fallbacks": []any{}, "discount_code": ""}
 	fixed, _ := json.Marshal(root)
 	checks := reviewedEmptyChecks()
 	one := 1

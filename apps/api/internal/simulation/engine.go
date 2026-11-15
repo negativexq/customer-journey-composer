@@ -320,6 +320,24 @@ func onEvent(spec workflow.Workflow, scenario Scenario, s *State, event Event, i
 		return nil
 	}
 	s.trace("event", "", "ACCEPTED: "+event.EventName)
+	// A scenario that says the customer clicked or opened without naming a
+	// message means the latest message this run had accepted, as in production
+	// where engagement always belongs to a delivered message.
+	if _, engagement := workflow.EngagementEvents[event.EventName]; engagement {
+		if _, named := event.Properties["node_id"]; !named {
+			for i := len(s.Messages) - 1; i >= 0; i-- {
+				if m := s.Messages[i]; m.Execution == s.Execution && m.AcceptedAt != nil {
+					properties := map[string]any{}
+					for key, value := range event.Properties {
+						properties[key] = value
+					}
+					properties["node_id"], properties["channel"] = m.NodeID, m.Channel
+					event.Properties = properties
+					break
+				}
+			}
+		}
+	}
 	data := engine.ContextData(s.Customer, eventData(event), s.Context)
 	if s.Active && spec.GlobalExit != nil && spec.GlobalExit.EventName == event.EventName && spec.GlobalExit.MatchesEntry(s.EntryProperties, event.Properties) && !event.OccurredAt.Before(s.EntryOccurredAt) && (spec.GlobalExit.Filters == nil || workflow.Evaluate(*spec.GlobalExit.Filters, data)) {
 		s.Status = "EXITED"
