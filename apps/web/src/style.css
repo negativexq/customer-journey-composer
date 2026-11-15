@@ -2127,6 +2127,19 @@ tbody tr:hover {
 .preview-studio {
   min-width: 0;
 }
+.discount-field {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+.discount-field label {
+  flex: 1;
+  min-width: 0;
+}
+.discount-field input {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  letter-spacing: 0.06em;
+}
 .email-frame {
   background: var(--page);
   border: 1px solid var(--border);

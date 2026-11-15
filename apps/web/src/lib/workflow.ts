@@ -34,6 +34,7 @@ export type Config = {
   text?: string;
   template_id?: string;
   fallbacks?: Record<string, string>;
+  discount_code?: string;
   attribute?: string;
   operation?: string;
   value?: unknown;

@@ -21,6 +21,13 @@ type Message = {
   encoding: string;
   units: number;
   segments: number;
+  longest_case?: {
+    values: Record<string, string>;
+    encoding: string;
+    units: number;
+    segments: number;
+    tracked_links: number;
+  };
 };
 const templates = ref<{ id: string; name: string; channel: string }[]>([]);
 const templateID = ref('');
@@ -138,6 +145,53 @@ async function useTemplate() {
     error.value = errorMessage(cause);
   }
 }
+const codeVariable = '{{ offer.code }}';
+const showsCode = computed(() =>
+  [
+    props.modelValue.subject,
+    props.modelValue.preheader,
+    props.modelValue.html,
+    props.modelValue.text,
+  ]
+    .filter(Boolean)
+    .some((content) => /\{\{\s*offer\.code\s*\}\}/.test(content as string)),
+);
+// A code a customer types at checkout: capitals, digits and hyphens.
+function setCode(value: string) {
+  const code = value
+    .toUpperCase()
+    .replace(/[^A-Z0-9-]/g, '')
+    .slice(0, 30);
+  patch({ discount_code: code || undefined });
+}
+const codeHelp = computed(() => {
+  if (props.channel === 'email')
+    return showsCode.value
+      ? `The body shows the code where it writes ${codeVariable}.`
+      : 'The email shows the code in a box of its own below the body.';
+  return showsCode.value
+    ? `Filled in where the SMS writes ${codeVariable}, so it cannot be mistyped.`
+    : `An SMS must show its code: add ${codeVariable} to the message.`;
+});
+function insertCode() {
+  const text = props.modelValue.text || '';
+  patch({ text: text + (text && !text.endsWith(' ') ? ' ' : '') + codeVariable });
+}
+const longestNote = computed(() => {
+  const worst = preview.value?.longest_case;
+  if (!worst || props.channel !== 'sms') return '';
+  const names = Object.entries(worst.values)
+    .map(([path, value]) => `${path.replace('customer.attributes.', '')} “${value}”`)
+    .join(', ');
+  const parts = [
+    `${worst.segments} segment${worst.segments === 1 ? '' : 's'} (${worst.encoding}, ${worst.units} units)`,
+    names ? `with ${names}, the costliest value among customers who accept SMS` : '',
+    worst.tracked_links
+      ? `${worst.tracked_links} link${worst.tracked_links === 1 ? '' : 's'} counted at tracked length`
+      : '',
+  ].filter(Boolean);
+  return 'As sent: ' + parts.join(', ');
+});
 function setFallbacks(value: string) {
   try {
     patch({ fallbacks: JSON.parse(value) });
@@ -259,6 +313,25 @@ onBeforeUnmount(() => {
         >Use variables such as &#123;&#123; customer.attributes.first_name &#125;&#125;. Values are
         rendered safely; no code or expressions run.</small
       >
+      <div class="discount-field">
+        <label
+          >Discount code<input
+            :value="modelValue.discount_code || ''"
+            :disabled="readonly"
+            maxlength="30"
+            placeholder="e.g. SEPET15"
+            autocapitalize="characters"
+            spellcheck="false"
+            @input="setCode(($event.target as HTMLInputElement).value)" /></label
+        ><button
+          v-if="!readonly && channel === 'sms' && modelValue.discount_code && !showsCode"
+          type="button"
+          @click="insertCode"
+        >
+          Add code to message
+        </button>
+      </div>
+      <small v-if="modelValue.discount_code">{{ codeHelp }}</small>
       <details>
         <summary>Missing-value fallbacks</summary>
         <label
@@ -357,6 +430,16 @@ onBeforeUnmount(() => {
           <p>
             {{ preview.encoding }} · {{ preview.units }} units · {{ preview.segments }} estimated
             segment(s)
+          </p>
+          <p
+            v-if="longestNote"
+            :class="
+              (preview.longest_case?.segments ?? 0) > preview.segments
+                ? 'warning-message'
+                : 'longest-note'
+            "
+          >
+            {{ longestNote }}
           </p></template
         >
         <p v-if="preview.missing_attributes.length" class="error-message">

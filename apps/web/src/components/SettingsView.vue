@@ -3,6 +3,7 @@ import { toast } from '../lib/toast';
 import { errorMessage } from '../lib/format';
 import DataCatalog from './DataCatalog.vue';
 import WorkspaceAdmin from './WorkspaceAdmin.vue';
+import ChannelHealth from './ChannelHealth.vue';
 import ConfirmDialog from './ui/ConfirmDialog.vue';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import AppIcon from './ui/AppIcon.vue';
@@ -165,7 +166,10 @@ onMounted(() => {
       <template v-if="current === 'messaging'">
         <header class="settings-heading">
           <h2>Messaging</h2>
-          <p>How often a customer can hear from you, and who may receive test sends.</p>
+          <p>
+            How often a customer can hear from you, who may receive test sends, and how each channel
+            is doing.
+          </p>
         </header>
         <form class="settings-card" @submit.prevent="savePolicy">
           <h3>Sending limit</h3>
@@ -208,19 +212,7 @@ onMounted(() => {
             </button>
           </div>
         </form>
-        <section class="settings-card">
-          <h3>Channels</h3>
-          <dl class="settings-rows">
-            <div>
-              <dt>Email</dt>
-              <dd>Sent through the SMTP server configured on your server.</dd>
-            </div>
-            <div>
-              <dt>SMS</dt>
-              <dd>Uses the built-in mock provider; no real text messages are sent.</dd>
-            </div>
-          </dl>
-        </section>
+        <ChannelHealth />
       </template>
       <DataCatalog v-else-if="current === 'data'" />
       <WorkspaceAdmin

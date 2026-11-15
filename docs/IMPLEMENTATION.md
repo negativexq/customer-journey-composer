@@ -205,6 +205,37 @@ Not covered:
 - There is no SMS opt-out keyword, no per-link click breakdown and no Mailpit delivery webhook.
 - No real provider was called.
 
+## Provider resilience, discount codes and the notification bell — 2026-11-15
+
+Adapted from Smart Campaign Composer's delivery worker, `docs/errors-and-retries.md` and `DECISIONS.md`. Its shared state lives in PostgreSQL here, not Redis. Full rules: [DELIVERY-RESILIENCE.md](DELIVERY-RESILIENCE.md).
+
+- **Channel gate.** New `provider_channels` row per workspace and provider. Claims skip held channels and re-check the gate under the row lock (`ErrGated`).
+  - A 429 pauses the channel for `Retry-After` (1–30 s).
+  - A 401 or SMTP 530/534/535 locks it until one probe per 30 s is accepted. Only the current lock's probe opens it.
+  - A breaker opens at ≥5 calls and ≥50% failures in 30 s, then probes 3 times with a doubling wait up to 30 s.
+  - A per-second rate window counts in-flight calls, answers for 1.1 s and unanswered calls for 13.1 s.
+- **Attempts.** 429s, 401s and failed probes cost no attempt (`free_attempts`, bounded at 50). Backoff gets up to 50% jitter. Attempts record `provider`, `gate` and `signal`.
+- **Alerts.** A breaker trip opens one critical notification. It closes only after a minute with most calls going through, so a flapping provider does not flap the bell. Credential locks notify on lock and unlock. New `journey_channel_events_total` metric.
+- **Notification bell.** New `notifications` table, per-user `notifications_seen_at`, and an `audit_logs` trigger for journey publish, lifecycle changes and audience runs. The topbar bell shows an unread count; items open their journey or the channel settings.
+- **Channel card.** Settings → Messaging → Channels shows live state, rate, 10-minute calls and the last problem. Admins edit the rate and can simulate a 429, outage or refused key for 1–30 minutes.
+- **Discount codes.** Email/SMS steps take `discount_code` (3–30 capitals, digits, hyphens), filled in at `{{ offer.code }}`. Emails show it in a code box unless the body writes it. Validation refuses an SMS that hides its code and a message showing an unset one.
+- **Longest-case SMS length.** The preview measures each SMS with the costliest attribute value among SMS-consenting customers (or the fallback) and tracked links, and warns when that needs more segments.
+
+Verified locally:
+
+- `make fmt-check`, `make lint`, `make typecheck`, `make test` and `git diff --check`.
+- `./scripts/test-integration.sh`: all packages, including the new channel, notification and preview tests.
+- `npx playwright test`: all desktop and mobile tests, including the new `channel-resilience.spec.ts`.
+- Checked by eye at 1440 px (light): the channel card in a held state, the open bell, the discount field and the SMS longest-case note.
+
+Not covered:
+
+- An unreachable provider still uses an attempt.
+- Journeys do not pause after a long outage.
+- The rate window was not load-measured.
+- The AI composer does not yet set `discount_code`.
+- No real provider was called.
+
 ## Spacing and sub-navigation sweep — 2026-11-15
 
 - Preview & Test's "Message preview" / "Journey path & Test Lab" buttons sat directly under the journey tabs and looked like a second tab row with no selected state. They are now a segmented control with space above and below and `aria-pressed` on the chosen view.

@@ -26,6 +26,7 @@ import TemplatesView from './components/TemplatesView.vue';
 import OverviewDashboard from './components/OverviewDashboard.vue';
 import AppIcon from './components/ui/AppIcon.vue';
 import JourneyCreation from './components/JourneyCreation.vue';
+import NotificationBell from './components/NotificationBell.vue';
 const identity = ref<Identity>();
 const loading = ref(true);
 const accessUnavailable = ref(false);
@@ -360,7 +361,10 @@ onErrorCaptured((cause) => {
               :name="theme === 'system' ? 'monitor' : theme === 'dark' ? 'moon' : 'sun'"
               :size="17"
             /></button
-          ><span class="role-chip">{{ identity.role }}</span>
+          ><NotificationBell
+            @journey="openID"
+            @channels="go({ page: 'Settings', section: 'messaging' })"
+          /><span class="role-chip">{{ identity.role }}</span>
         </div>
       </header>
       <nav class="mobile-nav" aria-label="Mobile navigation">
