@@ -154,6 +154,14 @@ Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test`, 
 
 Not covered: the chosen section is not in the URL, so a reload returns to the map unless an execution or message is linked. The light theme was not checked by eye.
 
+## Compact journey header — 2026-11-15
+
+Frontend only. The journey header drops from four rows to two: an icon back button ("Back to journeys"), the name and status share a row with the save note and actions, and the draft/published context, latest version and a one-line description sit on the row below. The placeholder description is no longer shown when a journey has none. Under 1050 px the actions wrap under the title, starting from the left; under 900 px the description gets its own line.
+
+Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test`, Docker web rebuild and `npx playwright test --workers=2`: 95 of 96 passed. The failure was `audience-entry.spec.ts` on desktop reading the customer route before the worker had finished the execution; it passed 3/3 alone, and the test now waits for the execution to complete, then passed 2/2. Checked by eye in the dark theme at 1440, 1024 and 375 px on Builder and Live Monitor.
+
+Not covered: the light theme was not checked by eye.
+
 ## Product acceptance verification — 2026-11-11
 
 Verified locally against source `b1b7ab4`, before this documentation update:
