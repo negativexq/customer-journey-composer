@@ -194,15 +194,42 @@ const neighbors = computed(() => {
     }
   return ids;
 });
-const connectedSteps = computed(() =>
+// What leads into the selected step and where each of its outputs goes.
+const incomingSteps = computed(() =>
   edges.value
-    .filter((edge) => edge.source === selectedID.value || edge.target === selectedID.value)
+    .filter((edge) => edge.target === selectedID.value)
     .map((edge) => ({
       id: edge.id,
-      target: edge.source === selectedID.value ? edge.target : edge.source,
-      label: `${edge.source === selectedID.value ? portLabel(edge.sourceHandle || 'next') + ' →' : '← From'} ${nodeLabels.value.get(edge.source === selectedID.value ? edge.target : edge.source)}`,
+      source: edge.source,
+      label: nodeLabels.value.get(edge.source) || edge.source,
+      branch: branchLabel(edge.sourceHandle || ''),
     })),
 );
+const outgoingSteps = computed(() => {
+  const step = nodes.value.find((node) => node.id === selectedID.value);
+  if (!step) return [];
+  return ports(step.data.kind).map((port) => {
+    const edge = edges.value.find(
+      (candidate) => candidate.source === step.id && (candidate.sourceHandle || 'next') === port,
+    );
+    return {
+      port,
+      name: portLabel(port),
+      target: edge?.target,
+      label: edge ? nodeLabels.value.get(edge.target) || edge.target : '',
+    };
+  });
+});
+const groupTitle: Record<string, string> = {
+  event_trigger: 'Entry event',
+  wait: 'Timing',
+  wait_event: 'Event to wait for',
+  condition: 'Rule',
+  email: 'Email content',
+  sms: 'Message',
+  update_attribute: 'Profile change',
+  exit: 'Outcome',
+};
 function focusNode(id: string) {
   const node = nodes.value.find((node) => node.id === id);
   if (!node) return;
@@ -955,6 +982,9 @@ function setAttribute(value: string) {
       aria-label="Step settings"
     >
       <div class="inspector-heading">
+        <span class="step-type-icon" :class="selected.data.kind"
+          ><AppIcon :name="iconFor[selected.data.kind]" :size="18"
+        /></span>
         <div>
           <span class="inspector-eyebrow">STEP SETTINGS</span>
           <h3>{{ labels[selected.data.kind] }}</h3>
@@ -964,107 +994,151 @@ function setAttribute(value: string) {
         </button>
       </div>
       <p class="inspector-help">{{ explanations[selected.data.kind] }}</p>
-      <details v-if="connectedSteps.length" class="connected-steps" open>
-        <summary>Connected steps · {{ connectedSteps.length }}</summary>
-        <button
-          v-for="connection in connectedSteps"
-          :key="connection.id"
-          type="button"
-          :title="connection.label"
-          @click="focusNode(connection.target)"
+      <div
+        v-if="issues.some((i) => i.node_id === selectedID)"
+        class="inspector-issues"
+        role="alert"
+      >
+        <strong>Needs attention before publishing</strong>
+        <p
+          v-for="issue in issues.filter((i) => i.node_id === selectedID)"
+          :key="issue.field + issue.message"
         >
-          {{ connection.label }}
-        </button>
-      </details>
-      <label>Step name<input v-model="nodeLabel" :disabled="readonly" /></label
-      ><label v-if="['event_trigger', 'wait_event'].includes(selected.data.kind)"
-        >Event name<input v-model="eventName" :disabled="readonly"
-      /></label>
-      <div v-if="['wait', 'wait_event'].includes(selected.data.kind)" class="duration-field">
-        <label
-          >{{ selected.data.kind === 'wait_event' ? 'Timeout' : 'Wait for'
-          }}<input v-model.number="delayAmount" type="number" min="1" :disabled="readonly"
-        /></label>
-        <label
-          >Unit<select
-            :value="delayUnit"
-            aria-label="Delay unit"
-            :disabled="readonly"
-            @change="changeDelayUnit(Number(($event.target as HTMLSelectElement).value))"
-          >
-            <option :value="1">Seconds</option>
-            <option :value="60">Minutes</option>
-            <option :value="3600">Hours</option>
-            <option :value="86400">Days</option>
-          </select></label
-        >
+          {{ issue.message }}
+        </p>
       </div>
-      <label v-if="selected.data.kind === 'wait'"
-        >Timezone<input v-model="timezone" :disabled="readonly" /></label
-      ><RuleEditor
-        v-if="selected.data.kind === 'condition'"
-        v-model="nodeRule"
-        :readonly="readonly"
-      />
-      <details v-if="['event_trigger', 'wait_event'].includes(selected.data.kind)">
-        <summary>Event filters</summary>
-        <button
-          v-if="!selected.data.config.filters"
-          :disabled="readonly"
-          @click="
-            nodeFilters = {
-              path: 'event.properties.amount',
-              operator: 'greater_than',
-              value: 0,
-            }
-          "
-        >
-          Add filter</button
-        ><RuleEditor v-else v-model="nodeFilters" :readonly="readonly" />
-      </details>
-      <p v-if="configError" role="alert">{{ configError }}</p>
-      <template v-if="selected.data.kind === 'email'"
-        ><label>Subject<input v-model="subject" :disabled="readonly" /></label
-        ><label>Preheader<input v-model="preheader" :disabled="readonly" /></label
-        ><label
-          >HTML content<textarea v-model="html" rows="8" :disabled="readonly" /></label></template
-      ><label v-if="['email', 'sms'].includes(selected.data.kind)"
-        >Message text<textarea v-model="text" :disabled="readonly" rows="5" /></label
-      ><template v-if="selected.data.kind === 'update_attribute'"
-        ><label>Attribute<input v-model="attribute" :disabled="readonly" /></label
-        ><label
-          >Operation<select v-model="operation" :disabled="readonly">
-            <option>set</option>
-            <option>increment</option>
-            <option>unset</option>
-          </select></label
-        ><label
-          >Value (JSON)<input
-            :value="JSON.stringify(selected.data.config.value)"
+      <section class="inspector-group">
+        <label>Step name<input v-model="nodeLabel" :disabled="readonly" /></label>
+      </section>
+      <section class="inspector-group">
+        <h4>{{ groupTitle[selected.data.kind] }}</h4>
+        <label v-if="['event_trigger', 'wait_event'].includes(selected.data.kind)"
+          >Event name<input v-model="eventName" :disabled="readonly"
+        /></label>
+        <div v-if="['wait', 'wait_event'].includes(selected.data.kind)" class="duration-field">
+          <label
+            >{{ selected.data.kind === 'wait_event' ? 'Timeout' : 'Wait for'
+            }}<input v-model.number="delayAmount" type="number" min="1" :disabled="readonly"
+          /></label>
+          <label
+            >Unit<select
+              :value="delayUnit"
+              aria-label="Delay unit"
+              :disabled="readonly"
+              @change="changeDelayUnit(Number(($event.target as HTMLSelectElement).value))"
+            >
+              <option :value="1">Seconds</option>
+              <option :value="60">Minutes</option>
+              <option :value="3600">Hours</option>
+              <option :value="86400">Days</option>
+            </select></label
+          >
+        </div>
+        <label v-if="selected.data.kind === 'wait'"
+          >Timezone<input v-model="timezone" :disabled="readonly"
+        /></label>
+        <RuleEditor
+          v-if="selected.data.kind === 'condition'"
+          v-model="nodeRule"
+          :readonly="readonly"
+        />
+        <details v-if="['event_trigger', 'wait_event'].includes(selected.data.kind)">
+          <summary>Event filters</summary>
+          <button
+            v-if="!selected.data.config.filters"
             :disabled="readonly"
-            @change="setAttribute(($event.target as HTMLInputElement).value)" /></label></template
-      ><label v-if="selected.data.kind === 'exit'"
-        >Exit reason<select v-model="reason" :disabled="readonly">
-          <option>completed</option>
-          <option>converted</option>
-          <option>condition_not_met</option>
-          <option>manually_cancelled</option>
-        </select></label
-      >
-      <p
-        v-for="issue in issues.filter((i) => i.node_id === selectedID)"
-        :key="issue.field + issue.message"
-        class="error-message"
-      >
-        {{ issue.message }}
-      </p>
-      <button
-        v-if="['email', 'sms'].includes(selected.data.kind)"
-        @click="emit('preview', selected.id)"
-      >
-        Preview / Test node</button
-      ><button :disabled="readonly" @click="remove">Delete node</button
-      ><small>Outputs: {{ ports(selected.data.kind).join(', ') || 'Completed' }}</small>
+            @click="
+              nodeFilters = {
+                path: 'event.properties.amount',
+                operator: 'greater_than',
+                value: 0,
+              }
+            "
+          >
+            Add filter</button
+          ><RuleEditor v-else v-model="nodeFilters" :readonly="readonly" />
+        </details>
+        <p v-if="configError" role="alert" class="error-message">{{ configError }}</p>
+        <template v-if="selected.data.kind === 'email'"
+          ><label>Subject<input v-model="subject" :disabled="readonly" /></label
+          ><label>Preheader<input v-model="preheader" :disabled="readonly" /></label
+          ><label
+            >HTML content<textarea
+              v-model="html"
+              rows="8"
+              class="code-input"
+              :disabled="readonly"
+            /></label></template
+        ><label v-if="['email', 'sms'].includes(selected.data.kind)"
+          >Message text<textarea v-model="text" :disabled="readonly" rows="5" /></label
+        ><template v-if="selected.data.kind === 'update_attribute'"
+          ><label>Attribute<input v-model="attribute" :disabled="readonly" /></label
+          ><label
+            >Operation<select v-model="operation" :disabled="readonly">
+              <option value="set">Set to a value</option>
+              <option value="increment">Add to a number</option>
+              <option value="unset">Remove the attribute</option>
+            </select></label
+          ><label
+            >Value (JSON)<input
+              :value="JSON.stringify(selected.data.config.value)"
+              :disabled="readonly"
+              @change="setAttribute(($event.target as HTMLInputElement).value)" /></label></template
+        ><label v-if="selected.data.kind === 'exit'"
+          >Exit reason<select v-model="reason" :disabled="readonly">
+            <option value="completed">Completed the journey</option>
+            <option value="converted">Converted (goal reached)</option>
+            <option value="condition_not_met">Did not qualify</option>
+            <option value="manually_cancelled">Cancelled by an operator</option>
+          </select></label
+        >
+        <button
+          v-if="['email', 'sms'].includes(selected.data.kind)"
+          type="button"
+          @click="emit('preview', selected.id)"
+        >
+          <AppIcon name="play" :size="14" />Preview and test this message
+        </button>
+      </section>
+      <section class="inspector-group">
+        <h4>Connections</h4>
+        <ul class="inspector-links">
+          <li v-for="link in incomingSteps" :key="link.id">
+            <span>From</span>
+            <button type="button" :title="'Go to ' + link.label" @click="focusNode(link.source)">
+              {{ link.label }}<template v-if="link.branch"> · {{ link.branch }}</template>
+            </button>
+          </li>
+          <li v-if="!incomingSteps.length && selected.data.kind !== 'event_trigger'">
+            <span>From</span><em>Nothing leads here yet</em>
+          </li>
+          <li v-for="link in outgoingSteps" :key="link.port">
+            <span>{{ link.name }}</span>
+            <button
+              v-if="link.target"
+              type="button"
+              :title="'Go to ' + link.label"
+              @click="focusNode(link.target)"
+            >
+              {{ link.label }}
+            </button>
+            <button
+              v-else-if="!readonly"
+              type="button"
+              class="inspector-add"
+              @click="chooseNext(selected.id, link.port)"
+            >
+              <AppIcon name="plus" :size="13" />Add a step
+            </button>
+            <em v-else>Not connected</em>
+          </li>
+          <li v-if="selected.data.kind === 'exit'"><span>Then</span><em>The journey ends</em></li>
+        </ul>
+      </section>
+      <footer v-if="!readonly" class="inspector-actions">
+        <button type="button" class="inspector-delete" @click="remove">Delete step</button>
+        <small>Undo brings it back.</small>
+      </footer>
     </aside>
   </div>
 </template>

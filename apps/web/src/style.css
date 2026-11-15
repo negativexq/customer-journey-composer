@@ -5130,27 +5130,6 @@ td {
 .workflow-node-detail {
   white-space: normal;
 }
-.connected-steps {
-  margin: 14px 0;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 12px;
-}
-.connected-steps summary {
-  font-size: 11px;
-  color: var(--muted);
-  cursor: pointer;
-  margin-bottom: 8px;
-}
-.connected-steps button {
-  display: block;
-  width: 100%;
-  font-size: 12px;
-  text-align: left;
-  padding: 7px 9px;
-  margin: 4px 0;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
 fieldset.scenario-form {
   border: 0;
   padding: 19px;
@@ -6361,5 +6340,121 @@ fieldset.scenario-form {
   }
   .canvas-bar > i {
     display: none;
+  }
+}
+
+/* Step settings: what it is, what needs fixing, its fields, where it leads. */
+.node-config {
+  width: 320px;
+  flex: 0 0 320px;
+  gap: 0;
+  padding: 0;
+}
+.node-config .inspector-heading {
+  gap: 10px;
+  padding: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface);
+}
+.node-config .inspector-heading > div {
+  flex: 1;
+  min-width: 0;
+}
+.node-config .inspector-heading h3 {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: var(--text);
+}
+.node-config .inspector-help {
+  margin: 0;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--page);
+}
+.inspector-issues {
+  margin: 12px 16px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--red-92);
+  border-radius: 8px;
+  background: var(--red-96);
+  color: var(--red-49-text);
+  font-size: 12px;
+}
+.inspector-issues strong {
+  font-weight: 600;
+}
+.inspector-issues p {
+  margin: 4px 0 0;
+  line-height: 1.45;
+}
+.inspector-group {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.inspector-group h4 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.inspector-group > button {
+  justify-self: start;
+}
+.inspector-links {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.inspector-links li {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+}
+.inspector-links li > span {
+  color: var(--muted);
+}
+.inspector-links em {
+  color: var(--muted);
+  font-style: normal;
+}
+.inspector-links button {
+  justify-content: flex-start;
+  min-height: 30px;
+  padding: 5px 9px;
+  font-size: 12px;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.inspector-links .inspector-add {
+  border-style: dashed;
+  color: var(--accent-text);
+}
+.inspector-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+}
+.inspector-delete {
+  border-color: var(--red-92);
+  color: var(--red-49-text);
+}
+.inspector-delete:hover {
+  background: var(--red-96);
+  border-color: var(--red-76);
+}
+@media (max-width: 700px) {
+  .node-config {
+    width: min(300px, 88%);
+    flex-basis: auto;
   }
 }
