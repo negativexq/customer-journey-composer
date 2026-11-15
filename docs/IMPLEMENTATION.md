@@ -105,6 +105,15 @@ Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test` (
 
 Not covered: the AI composer's structured-output schema does not include `split`, so AI proposals never contain one and an AI modification of a journey that has one is untested. The Experiments panel reports a raw difference and says so; there is no significance test, and it withholds a leader under 30 customers per variant. Splits have exactly two variants. There is no dedicated Go integration test for the split beyond the unit tests and the browser test against the running stack.
 
+## Publish changes, version restore and wait types — 2026-11-15
+
+- Publish review (frontend only) opens with what the publish changes compared with the latest version, or states that it is the first version or that nothing behaves differently. A published version can be restored to the draft from Versions after a confirmation. Confirm dialogs now use unique label ids.
+- Wait types: a wait is still a fixed delay by default. `wait_mode: "time"` waits for the next `at_time` (HH:MM in the step's timezone), optionally only on chosen weekdays; `wait_mode: "date"` waits until `date_path` on the customer or event plus `offset_seconds`. `workflow.WaitDeadline` is pure and shared by the worker and the simulator; a missing, unreadable or past date continues immediately and every wait is capped at 365 days. The settings panel offers the three types and clears the fields of the type left behind.
+
+Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test` (new `waits_test.go` deadline and validation cases; Node tests now 25), `make test-integration` (exit 0, 15 packages), rebuilt `api`, `worker` and `web`, and `npx playwright test --workers=2` (90/90 desktop/mobile) with the new `wait-types.spec.ts` and extended `versions.spec.ts`. The wait test checks the saved configuration and that the sandbox clock stops exactly three days before the customer's date.
+
+Not covered: time-of-day and date waits were exercised through unit tests and the sandbox, not by a live worker waiting on a real timer. Daylight-saving transitions rely on Go's local-time normalization and have no dedicated case. The AI composer schema does not include the new wait fields.
+
 ## Product acceptance verification — 2026-11-11
 
 Verified locally against source `b1b7ab4`, before this documentation update:
