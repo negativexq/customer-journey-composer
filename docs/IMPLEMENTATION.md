@@ -114,6 +114,14 @@ Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test` (
 
 Not covered: time-of-day and date waits were exercised through unit tests and the sandbox, not by a live worker waiting on a real timer. Daylight-saving transitions rely on Go's local-time normalization and have no dedicated case. The AI composer schema does not include the new wait fields.
 
+## Multi-way branch — 2026-11-15
+
+A new `switch` step holds 2 to 5 named branches, each with a condition. Branches are checked in order and the first match wins; everyone else leaves through `else`. Outputs are `case_1`…`case_n` and `else`, so outputs now depend on the step: `workflow.NodePorts` on the server and `ports(kind, config)` in the web app. The builder shows one handle per branch, captions the arriving steps ("If Gold", "Otherwise"), and the settings panel names, adds and removes branches, renumbering the connections when one is removed.
+
+Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test` (new decision and validation cases), `make test-integration` (exit 0, 15 packages), rebuilt `api`, `worker` and `web`, and `npx playwright test --workers=2` (92/92 desktop/mobile) with the new `multi-branch.spec.ts`, which checks four sandbox outcomes, the canvas, and that removing a branch keeps the others connected.
+
+Not covered: the step was exercised in the sandbox and the builder, not through a published journey on the live worker (the worker shares the same decision function). Auto layout orders multi-way targets by branch through the layout seed only; the column swap that guarantees order applies to two-way steps. Branch counts and conversion per branch are not broken out in Analytics beyond the existing edge traffic. The AI composer schema does not include the step.
+
 ## Product acceptance verification — 2026-11-11
 
 Verified locally against source `b1b7ab4`, before this documentation update:
