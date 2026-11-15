@@ -96,6 +96,15 @@ Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test` (
 
 Not covered: the phone layout was verified through the mobile test project, not by eye beyond one screenshot taken before the bar was docked. A step reached by several paths shows no caption. New steps are placed at a fixed offset under their handle and can overlap an existing step in a dense graph until Auto layout is used.
 
+## Step settings and A/B split — 2026-11-15
+
+- Step settings (frontend only): the panel opens with the step's icon and purpose, lists publishing issues first, groups fields under a named section and shows where the step comes from and where each output leads, with an add action for unconnected outputs.
+- A/B split: a new `split` step with a `percent` share for variant A and outputs `a` and `b`. Assignment is `workflow.SplitPort`, a pure hash of customer ID and step ID, so `runtime.Decide` stays free of random choice, the simulator and the worker agree, and a customer keeps the same variant on every pass. Migration `0024_split_variants.sql` counts edge traffic for any reported output instead of a fixed port list. `GET /api/v1/journeys/{id}/experiments?version=N` returns, per split and variant, customers entered, converted and still in progress. The builder has the step in the picker and library with a share slider; arriving steps are captioned "Variant A · 50% of customers"; journey Analytics shows an Experiments panel whose counts open the matching executions.
+
+Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test` (including new decision and validation cases for the split), `make test-integration` (all packages pass on an isolated PostgreSQL), rebuilt `api`, `worker` and `web` containers, and `npx playwright test --workers=2` (88/88 desktop/mobile) with the new `experiments.spec.ts`, which publishes a split journey, enrolls 24 customers through the real worker and checks both the endpoint and the Analytics panel.
+
+Not covered: the AI composer's structured-output schema does not include `split`, so AI proposals never contain one and an AI modification of a journey that has one is untested. The Experiments panel reports a raw difference and says so; there is no significance test, and it withholds a leader under 30 customers per variant. Splits have exactly two variants. There is no dedicated Go integration test for the split beyond the unit tests and the browser test against the running stack.
+
 ## Product acceptance verification — 2026-11-11
 
 Verified locally against source `b1b7ab4`, before this documentation update:
