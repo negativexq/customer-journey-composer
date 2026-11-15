@@ -130,6 +130,14 @@ Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test` (
 
 Not covered: customers who leave at a step through the journey's global exit simply shrink the next bar; there is no separate "left here" band. Light theme and phone width were not checked by eye. Column order uses a simple weighted ordering, not full crossing minimization, so a dense graph can still cross bands.
 
+## Webhook step — 2026-11-15
+
+A new `webhook` step posts chosen fields to another system as JSON: `url` (http or https, no credentials) and `fields`, up to 20 names mapped to `customer.`, `event.` or `context.` paths; a missing value is sent as null. `runtime.Decide` builds the call, and the worker writes it to `webhook_calls` (migration `0025_webhook_calls.sql`) in the same transaction as the step, unique per execution and step, so a retried step never calls twice. A `WebhookDispatcher` in the worker claims pending calls with `FOR UPDATE SKIP LOCKED`, sends them with a 5 s timeout, no redirects and an `Idempotency-Key` header equal to the call id, and retries up to three times before `FAILED`. Only hosts listed in `WEBHOOK_ALLOWED_HOSTS` are contacted; the default is empty, so the demo records calls as `RECORDED` and never sends data out. The sandbox only traces "Would call …". Execution detail returns the calls. The builder offers the step under Customer & outcomes with an address field and a field editor; the card reads "POST to host · n fields" and the customer route states whether the call was sent, failed, queued or only recorded.
+
+Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test` (new decision and validation cases; Node tests now 29), `make test-integration` (exit 0, 15 packages) including `webhooks_integration_test.go`, which uses a local receiver to check retries to `FAILED`, an unlisted host left `RECORDED`, the same idempotency key across attempts, null for a missing field, a single `SENT` on 204 and uniqueness per execution and step. Rebuilt `api`, `worker` and `web`, and `npx playwright test --workers=2` (94/94 desktop/mobile) with the new `webhook.spec.ts`, which edits the step on the canvas, catches an invalid address, checks the sandbox trace, publishes, enrolls a customer through the live worker and reads `RECORDED` from the execution and the customer route.
+
+Not covered: no browser or live-worker test sends to an allowed host; sending is covered only by the Go integration test. Calls are not signed (no HMAC secret), headers and method are fixed, and the response body is not used by later steps. Field order is not preserved because PostgreSQL `jsonb` reorders keys. The AI composer schema does not include the step.
+
 ## Product acceptance verification — 2026-11-11
 
 Verified locally against source `b1b7ab4`, before this documentation update:
