@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	composer "github.com/negativexq/customer-journey-composer/apps/api/internal/ai"
 	"github.com/negativexq/customer-journey-composer/apps/api/internal/observability"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -115,7 +116,9 @@ func middleware(log *slog.Logger, next http.Handler) http.Handler {
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		budget := 20 * time.Second
 		if strings.HasPrefix(r.URL.Path, "/api/v1/ai/") {
-			budget = 90 * time.Second
+			budget = composer.RequestBudget
+			// The server's write timeout is shorter than two provider calls.
+			_ = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(budget + 10*time.Second))
 		}
 		bounded, cancel := context.WithTimeout(r.Context(), budget)
 		defer cancel()

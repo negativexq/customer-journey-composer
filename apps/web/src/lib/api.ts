@@ -71,7 +71,7 @@ export async function generationStream<T>(
       ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
     },
     body: JSON.stringify(body),
-    signal: AbortSignal.any([signal, AbortSignal.timeout(90000)]),
+    signal: AbortSignal.any([signal, AbortSignal.timeout(215000)]),
   });
   if (!response.ok) {
     const problem = await response.json().catch(() => ({}));

@@ -853,7 +853,7 @@ async function runScenario(s) {
   record.generation_requests = [];
   let proposal;
   for (let attempt = 1; attempt <= 2 && !proposal; attempt++) {
-    const r = await c.call('/ai/journeys/generate', 'POST', input, 120000);
+    const r = await c.call('/ai/journeys/generate', 'POST', input, 215000);
     record.generation_requests.push({
       attempt,
       http_status: r.status,

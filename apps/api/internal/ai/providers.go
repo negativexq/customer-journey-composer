@@ -68,7 +68,7 @@ func (p *HTTPProvider) Generate(ctx context.Context, in Request) (result Provide
 	}
 	client := p.Client
 	if client == nil {
-		client = &http.Client{Timeout: 45 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+		client = &http.Client{Timeout: ProviderTimeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	}
 	response, err := client.Do(req)
 	if err != nil {
@@ -186,6 +186,15 @@ func (p *HTTPProvider) Generate(ctx context.Context, in Request) (result Provide
 	}
 	return result, &ProviderError{Code: "provider_returned_no_text"}
 }
+
+// ProviderTimeout bounds one provider call. Reasoning models can take more than
+// a minute on a large journey, so 45 s refused some valid requests.
+const ProviderTimeout = 90 * time.Second
+
+// RequestBudget bounds a whole AI request: two attempts and validation. The
+// web client and the proxy wait a little longer than this.
+const RequestBudget = 2*ProviderTimeout + 20*time.Second
+
 func ProvidersFromEnv() map[string]Provider {
 	return map[string]Provider{"openai": &HTTPProvider{Kind: "openai", Key: os.Getenv("OPENAI_API_KEY"), Model: os.Getenv("OPENAI_MODEL"), BaseURL: "https://api.openai.com"}, "claude": &HTTPProvider{Kind: "claude", Key: os.Getenv("ANTHROPIC_API_KEY"), Model: os.Getenv("ANTHROPIC_MODEL"), BaseURL: "https://api.anthropic.com"}}
 }

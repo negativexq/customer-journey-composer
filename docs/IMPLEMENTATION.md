@@ -290,6 +290,22 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Longer AI provider timeout — 2026-11-16
+
+A live "Change this journey" request failed after 45 s with "AI provider failed or returned an incomplete response". Each provider call had 45 s, so that two attempts fit the 90 s request budget and the web client's 90 s wait.
+
+- One provider call now has 90 s (`ai.ProviderTimeout`).
+- An AI request has 200 s, two calls plus 20 s for validation (`ai.RequestBudget`). The API extends the write deadline of AI routes past its 120 s server limit.
+- The proxy waits 220 s on AI routes and the web client 215 s, so neither cuts a request the API is still working on. The live harness waits 215 s.
+
+Verified locally:
+
+- New `TestAIRequestOutlastsTwoProviderCalls` checks the request deadline and reads the timeouts in `nginx.conf` and `api.ts`.
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`.
+- Rebuilt API and web with AI disabled; the web container serves the 220 s proxy timeout. `npx playwright test --workers=2`: 102 passed.
+
+Not covered: no live call has taken more than 45 s since the change, so a slow call finishing is not shown.
+
 ## Fixes from the browser LLM test — 2026-11-16
 
 The browser test of journeys made with gpt-6-luna found six more problems. All are fixed without a provider call.
@@ -314,7 +330,7 @@ Live check, same day, with the user's approval: the API ran with `AI_PROVIDER=op
 
 New findings, not fixed:
 
-- The first try of that request failed with "AI provider failed or returned an incomplete response". The audit record shows `provider_request_failed` after 45,002 ms: the provider client has a fixed 45 s timeout (`internal/ai/providers.go`). The retry took 31 s and 24 s.
+- The first try of that request failed with "AI provider failed or returned an incomplete response". The audit record shows `provider_request_failed` after 45,002 ms: the provider client has a fixed 45 s timeout (`internal/ai/providers.go`). The retry took 31 s and 24 s. Fixed in the next entry.
 - Asked to "change nothing else", the model still moved the order wait from 2 to 1 hour and the later wait from 24 to 25 hours. The contract passed, and the diff listed the nodes, so a reviewer can see it.
 
 ## Coded journeys can be approved — 2026-11-16
