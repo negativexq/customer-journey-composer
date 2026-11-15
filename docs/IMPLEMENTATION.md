@@ -82,6 +82,20 @@ Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test` (
 
 Not covered: the layout swap exchanges two branch columns and does not re-pack columns of different widths, so very uneven branches can leave extra space; it was verified on the demo recovery journey and in unit tests, not on every template.
 
+## Builder canvas refresh — 2026-11-15
+
+Frontend-only; the workflow document, API and runtime are unchanged.
+
+- Chrome: the toolbar row above the canvas is gone. One floating bar holds Steps, AI composer, undo/redo, zoom, fit and step settings; Auto layout, clipboard actions, navigation, Short exit links, lock and the shortcut list sit behind its More menu. The separate AI composer button on the tab row was folded into the bar. A small chip shows the step count. The step library starts closed.
+- Step cards: a first line says when a customer arrives ("Starts when", "If purchase_completed arrives", "Otherwise, after 1 day"), from `lib/step-captions.ts`; the detail moves to a tinted footer; the in-card branch row is removed because the branch is now stated once on the arriving step. The same captions show on the Live Monitor and customer route maps.
+- Adding steps: every unconnected output has an add button that opens a step picker and places and connects the new step under its handle; an empty canvas offers "Add a trigger". Clicking empty canvas clears the selection.
+- Step settings open with one sentence on what the step does.
+- Phones: the bar docks to the screen above the panels and drops zoom buttons in favor of pinch; with the AI panel open it stays inside the canvas so it does not cover the panel's actions.
+
+Verified locally: `make fmt-check`, `make lint`, `make typecheck`, `make test` (Node tests now 24, including `step-captions.test.mjs`), Docker web rebuild and `npx playwright test --workers=2` (86/86 desktop/mobile) with the new `canvas-add.spec.ts` and updated `canvas-controls`, `canvas-readability` and `templates` specs. The builder was checked in a browser in light and dark at desktop width.
+
+Not covered: the phone layout was verified through the mobile test project, not by eye beyond one screenshot taken before the bar was docked. A step reached by several paths shows no caption. New steps are placed at a fixed offset under their handle and can overlap an existing step in a dense graph until Auto layout is used.
+
 ## Product acceptance verification — 2026-11-11
 
 Verified locally against source `b1b7ab4`, before this documentation update:
