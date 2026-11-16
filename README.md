@@ -249,3 +249,7 @@ CI runs on every push and pull request: formatting, lint, the type check and uni
 | `docs/`              | Requirements, architecture, AI contracts, reports and the images in this file                        |
 
 Start with the [product requirements](docs/PRD.md) and [architecture](docs/ARCHITECTURE.md). The [API policies](docs/API.md), [analytics semantics](docs/ANALYTICS.md) and [security policy](docs/SECURITY.md) cover the rest. Changes follow the repository's [working agreement](AGENTS.md).
+
+## License
+
+[MIT](LICENSE)
