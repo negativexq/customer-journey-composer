@@ -100,7 +100,24 @@ watch(mailBody, (element, old) => {
   if (old) mailObserver?.unobserve(old);
   if (element) mailObserver?.observe(element);
 });
-onBeforeUnmount(() => mailObserver?.disconnect());
+// The phone shows the email at a real phone's width (390 px) scaled to its screen.
+const PHONE_WIDTH = 390;
+const phoneScreen = ref<HTMLElement>();
+const phoneScale = ref(0.77);
+const phoneObserver =
+  typeof ResizeObserver === 'undefined'
+    ? undefined
+    : new ResizeObserver(([entry]) => {
+        if (entry.contentRect.width) phoneScale.value = entry.contentRect.width / PHONE_WIDTH;
+      });
+watch(phoneScreen, (element, old) => {
+  if (old) phoneObserver?.unobserve(old);
+  if (element) phoneObserver?.observe(element);
+});
+onBeforeUnmount(() => {
+  mailObserver?.disconnect();
+  phoneObserver?.disconnect();
+});
 const tabBar = ref<HTMLElement>();
 const underline = ref<{ x: number; width: number; ready: boolean }>();
 function placeUnderline() {
@@ -129,7 +146,7 @@ const escape = (s: string) =>
   s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 const document = computed(
   () =>
-    `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none';style-src 'unsafe-inline';img-src data:;form-action 'none';base-uri 'none'"><meta name="viewport" content="width=device-width"><style>body{font:16px/1.7 Arial;padding:24px}img{max-width:100%}</style></head><body>${selected.value?.message.html || '<pre>' + escape(selected.value?.message.text || '') + '</pre>'}</body></html>`,
+    `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none';style-src 'unsafe-inline';img-src data:;form-action 'none';base-uri 'none'"><meta name="viewport" content="width=device-width"><style>body{margin:0;font:16px/1.6 Arial}body>:not(table){margin-left:20px;margin-right:20px}img{max-width:100%}</style></head><body>${selected.value?.message.html || '<pre>' + escape(selected.value?.message.text || '') + '</pre>'}</body></html>`,
 );
 async function perform(action: () => Promise<void>) {
   busy.value = true;
@@ -561,12 +578,17 @@ onMounted(
                     ><i /><i /><i /><i
                   /></span>
                 </div>
-                <iframe
-                  v-if="selected.channel === 'email'"
-                  title="Test email preview"
-                  sandbox=""
-                  :srcdoc="document"
-                />
+                <div v-if="selected.channel === 'email'" ref="phoneScreen" class="phone-screen">
+                  <iframe
+                    title="Test email preview"
+                    sandbox=""
+                    :srcdoc="document"
+                    :style="{
+                      transform: `scale(${phoneScale})`,
+                      height: `calc(100% / ${phoneScale})`,
+                    }"
+                  />
+                </div>
                 <template v-else>
                   <div class="phone-thread-head">
                     <span class="phone-avatar" aria-hidden="true"
@@ -1237,13 +1259,20 @@ onMounted(
   background: var(--text);
   opacity: 0.8;
 }
-.phone-email iframe {
+.phone-screen {
+  position: relative;
   flex: 1;
-  width: 100%;
-  height: auto;
-  margin-bottom: 8px;
+  margin: 0 -12px 8px;
+  overflow: hidden;
+}
+.phone-screen iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 390px;
   border: 0;
   border-radius: 0;
+  transform-origin: 0 0;
 }
 .phone-meta {
   font-size: 12px;

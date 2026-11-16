@@ -65,7 +65,7 @@ const escapeText = (text: string) =>
   text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 const document = computed(
   () =>
-    `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; form-action 'none'; base-uri 'none'"><meta name="viewport" content="width=device-width"><style>body{font-family:Arial,sans-serif;padding:24px;color:#29362a;line-height:1.7}a{color:#365b35}img{max-width:100%}</style></head><body>${preview.value?.html || '<pre>' + escapeText(preview.value?.text || '') + '</pre>'}</body></html>`,
+    `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; form-action 'none'; base-uri 'none'"><meta name="viewport" content="width=device-width"><style>body{margin:0;font-family:Arial,sans-serif;color:#29362a;line-height:1.7}body>:not(table){margin-left:24px;margin-right:24px}a{color:#365b35}img{max-width:100%}</style></head><body>${preview.value?.html || '<pre>' + escapeText(preview.value?.text || '') + '</pre>'}</body></html>`,
 );
 function patch(values: Partial<Config>) {
   emit('update:modelValue', { ...props.modelValue, ...values });

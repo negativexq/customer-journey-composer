@@ -304,7 +304,9 @@ Verified locally:
 - New Go tests keep the safe styles without a warning and remove the unsafe ones; the new template renders through `messaging.Render` with no warnings.
 - `make fmt-check`, `make lint`, `make typecheck`, `make test`, `make test-integration` and `git diff --check` pass.
 - The rendered email was captured at 680 and 390 px and checked by eye.
-- The Northstar demo data was not reseeded, so messages already in its Test Inbox still show the old email.
+- With the user's approval the API was rebuilt and the Northstar demo reseeded with `npm run demo:reset`; the previous workspace is kept archived, as the reset does.
+- The phone preview now renders an email at 390 px, a real phone's width, scaled to the drawn screen. The Test Inbox and Message Studio preview documents no longer pad the body by 24 px, which pushed full-width emails past the right edge; plain content keeps a side margin.
+- The new email was captured from the reseeded Test Inbox in the phone and desktop views; it shows no sanitize warning. `make fmt-check`, `make lint`, `make typecheck`, `make test` and the messaging, recovery, templates, test-lab, engagement, demo and acceptance Playwright specs (16 passed) pass.
 
 ## Test Inbox design — 2026-11-16
 
