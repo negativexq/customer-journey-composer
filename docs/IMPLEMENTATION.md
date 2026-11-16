@@ -290,6 +290,22 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Designed email bodies — 2026-11-16
+
+The user found the Northstar cart email plain: every line was bare text. The renderer sanitized email HTML with bluemonday's UGC policy, which removes every `style` attribute, so no template could carry a design.
+
+- Email HTML now keeps a fixed list of layout and typography properties (color, background color, font, size, weight, line height, letter spacing, alignment, margin, padding, borders, radius, width, max-width, height, display). bluemonday's handler for each property checks the value. Background images, positioning, z-index and expressions are still removed, and a personalized value cannot add a second property to a style.
+- Tables may carry `role="presentation"`, `cellpadding`, `cellspacing` and `border`.
+- Links no longer get `rel="nofollow"`, which means nothing in an email. Adding it made every email with a link report "HTML was sanitized" even when nothing was removed. Reformatted styles no longer raise that warning either.
+- The Northstar cart email in `scripts/showcase-recipe.mjs` is a 560 px card on a warm background: a letter-spaced NORTHSTAR header, the heading and greeting, a product card with a swatch, name, variant and price, a dark button back to the cart, and the existing sign-off. The copy is unchanged.
+
+Verified locally:
+
+- New Go tests keep the safe styles without a warning and remove the unsafe ones; the new template renders through `messaging.Render` with no warnings.
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `make test-integration` and `git diff --check` pass.
+- The rendered email was captured at 680 and 390 px and checked by eye.
+- The Northstar demo data was not reseeded, so messages already in its Test Inbox still show the old email.
+
 ## Test Inbox design — 2026-11-16
 
 The user reviewed the Test Inbox with the ui-ux-pro-max and impeccable skills and asked for a clearer filter column, a preview that looks like a real phone, a tab menu that fits on one line, readable payload details and a desktop preview that reads as an opened email.

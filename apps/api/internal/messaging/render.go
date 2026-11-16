@@ -95,7 +95,43 @@ func UsesVariable(c workflow.Config, path string) bool {
 	return false
 }
 
-var policy = bluemonday.UGCPolicy()
+// Email bodies may carry a small set of layout and typography styles, so a
+// template can look designed in every mail client. Each value is checked by
+// bluemonday's handler for that property; nothing that loads a resource
+// (background images, fonts by URL) or moves content out of the flow
+// (position, z-index, transforms) is allowed.
+var emailStyles = []string{
+	"color", "background-color",
+	"font-family", "font-size", "font-weight", "font-style", "line-height",
+	"letter-spacing", "text-align", "text-decoration", "text-transform", "vertical-align",
+	"margin", "margin-top", "margin-right", "margin-bottom", "margin-left",
+	"padding", "padding-top", "padding-right", "padding-bottom", "padding-left",
+	"border", "border-top", "border-right", "border-bottom", "border-left",
+	"border-color", "border-style", "border-width", "border-radius", "border-collapse",
+	"width", "max-width", "height", "display",
+}
+
+var styleAttr = regexp.MustCompile(`style="[^"]*"`)
+var styleSpace = regexp.MustCompile(`\s*([:;,])\s*`)
+
+// styleForm writes every style attribute the way the sanitizer does, so
+// reformatting a kept style is not mistaken for removing markup.
+func styleForm(markup string) string {
+	return styleAttr.ReplaceAllStringFunc(markup, func(attr string) string {
+		value := strings.TrimSuffix(strings.TrimSpace(attr[7:len(attr)-1]), ";")
+		return `style="` + styleSpace.ReplaceAllString(value, "$1") + `"`
+	})
+}
+
+var policy = func() *bluemonday.Policy {
+	p := bluemonday.UGCPolicy()
+	// nofollow is a search-engine hint for web pages and means nothing in an email.
+	p.RequireNoFollowOnLinks(false)
+	p.AllowStyles(emailStyles...).Globally()
+	p.AllowAttrs("role").Matching(regexp.MustCompile(`^presentation$`)).OnElements("table")
+	p.AllowAttrs("cellpadding", "cellspacing", "border").Matching(bluemonday.Integer).OnElements("table")
+	return p
+}()
 
 func Render(channel string, c workflow.Config, data map[string]any) (Message, error) {
 	m := Message{Channel: channel, Used: map[string]string{}, Missing: []string{}, Links: []string{}, Warnings: []string{}, TemplateID: c.TemplateID, Language: language.For(Locale(data)).Code}
@@ -175,7 +211,7 @@ func Render(channel string, c workflow.Config, data map[string]any) (Message, er
 		}
 	}
 	m.HTML = policy.Sanitize(rawHTML)
-	sanitized := m.HTML != rawHTML
+	sanitized := styleForm(m.HTML) != styleForm(rawHTML)
 	if codeBox != "" && m.HTML != "" {
 		m.HTML += codeBox
 	}
