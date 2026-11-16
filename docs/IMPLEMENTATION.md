@@ -319,6 +319,7 @@ New findings, not fixed:
 
 - The birthday email kept the labels "Mağazaya dönmek için:" and "Hediye kodun:" with nothing after them, because the brief gave no link or code. Nothing flags an empty label like this. Fixed in "Empty message labels".
 - "Explain the journey" returned a warning about the provider schema ("fallbacks … {path,value} dizisi"), which a marketer cannot act on.
+- The cart email says "İndirim kodunuz kısa süre geçerli; stoklar sınırlı". The brief stated neither; the model added them when asked to make the email more urgent. The fact check covers links, codes and numbers, not claims like scarcity or a deadline, so this passed with only a model warning. The user chose to leave this open for now.
 
 ## AI changes show before and after — 2026-11-16
 
