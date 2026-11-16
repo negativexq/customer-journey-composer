@@ -150,7 +150,9 @@ onBeforeUnmount(() => clearInterval(timer));
             <dd>{{ c.failed_last_10m }}</dd>
           </div>
           <div>
-            <dt>Held (429/401)</dt>
+            <dt title="Paused by the provider: rate limit (429) or rejected credentials (401)">
+              Held by provider
+            </dt>
             <dd>{{ c.held_last_10m }}</dd>
           </div>
         </dl>

@@ -242,7 +242,7 @@ onBeforeUnmount(() => {
           :path="path"
           @message="emit('inspect', { kind: 'message', id: $event })" />
         <h3>Messages</h3>
-        <p v-if="!detail.deliveries?.length" class="muted">No logical messages created.</p>
+        <p v-if="!detail.deliveries?.length" class="muted">No messages created.</p>
         <button
           v-for="message in detail.deliveries"
           :key="message.id"

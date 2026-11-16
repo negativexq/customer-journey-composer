@@ -564,7 +564,8 @@ async function back() {
           :disabled="readonly || generating"
         />
         <p v-if="settings && !configured" class="warning-message">
-          This provider needs a server-side key and model before generation is available.
+          This provider has no key on the server yet. Settings › AI providers explains how to add
+          one.
         </p>
         <p class="help-text">
           Your brief, workflow and workspace data definitions are sent. Customer values are

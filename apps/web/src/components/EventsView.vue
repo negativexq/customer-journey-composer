@@ -100,7 +100,8 @@ onMounted(load);
       </form>
       <small
         >Events older than 24 hours are stored as LATE and do not drive execution. Future timestamps
-        beyond 5 minutes are rejected. Duplicate IDs do not create another logical action.</small
+        beyond 5 minutes are rejected. A repeated event ID is ignored, so it never triggers the same
+        step twice.</small
       >
     </section>
   </div>

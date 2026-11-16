@@ -21,7 +21,7 @@ export function runContext(run: TestRunSummary): string {
   const source = run.version
     ? `Version ${run.version}`
     : run.draft_revision
-      ? `Draft rev ${run.draft_revision}`
+      ? `Draft edit ${run.draft_revision}`
       : 'Draft';
   return [run.journey_name, source, run.mode === 'SINGLE_NODE' ? 'One step' : '']
     .filter(Boolean)

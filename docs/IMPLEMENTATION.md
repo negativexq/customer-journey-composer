@@ -290,6 +290,20 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Plain labels and AI setup guidance — 2026-11-17
+
+The seventh group from the design review.
+
+- Internal terms in visible copy were replaced. "logical message/enrollment/sends" now read as messages and entries; "rev N" and "Draft rev N" read "edit N" and "Draft edit N"; "Projection healthy" reads "Counters up to date"; "goroutines" reads "background tasks"; "Held (429/401)" reads "Held by provider", and the status codes moved to a tooltip.
+- Settings › AI providers showed "Not configured" with no next step. When live generation is off or no provider has a key, a "How to turn it on" box lists `AI_PROVIDER`, `ANTHROPIC_API_KEY`/`ANTHROPIC_MODEL` and `OPENAI_API_KEY`/`OPENAI_MODEL`. These are set in the API server's environment and the API is restarted.
+- The AI panel opened with a yellow warning when AI is off. It now shows a neutral note: editing, testing and publishing still work, and Settings explains how to enable AI. The journey creation notice points to the same place.
+- `scripts/test-runs.test.mjs` and `tests/e2e/channel-resilience.spec.ts` follow the new labels.
+
+Verified locally:
+
+- Settings › AI providers on the Docker stack with AI disabled shows the setup box (checked by eye, dark theme).
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`, and the full `npx playwright test` (104 passed).
+
 ## Test Lab list and disabled reasons — 2026-11-17
 
 The sixth group from the design review.

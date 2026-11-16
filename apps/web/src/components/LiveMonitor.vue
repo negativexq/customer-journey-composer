@@ -205,7 +205,7 @@ const freshness = computed(() => {
     return 'Counters may be delayed';
   if (d.queue_oldest_at && Date.now() - Date.parse(d.queue_oldest_at) > 10000)
     return 'Counters catching up';
-  return 'Projection healthy';
+  return 'Counters up to date';
 });
 function scopedParams() {
   const p = new URLSearchParams({ version: String(version.value), limit: String(pageSize) });
@@ -780,7 +780,7 @@ onBeforeUnmount(() => {
           :value="value('execution', 'entries')"
           :caption="
             insights.unique_customers === null
-              ? 'Logical enrollments'
+              ? 'Retries count once'
               : insights.unique_customers + ' unique customers'
           "
           icon="users"
@@ -1041,7 +1041,7 @@ onBeforeUnmount(() => {
             </div>
             <h4>Messages &amp; decisions</h4>
             <p v-if="!selected.deliveries.length" class="muted">
-              No logical messages created for this execution.
+              No messages created for this execution.
             </p>
             <button
               v-for="d in selected.deliveries"
@@ -1405,7 +1405,7 @@ onBeforeUnmount(() => {
         <div class="surface-heading">
           <div>
             <h3>Channel performance</h3>
-            <p>Selected entry cohort · retries stay under one logical message.</p>
+            <p>Selected entry cohort · a retried send counts as one message.</p>
           </div>
         </div>
         <div class="table-scroll">

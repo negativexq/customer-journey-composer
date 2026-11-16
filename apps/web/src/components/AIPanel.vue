@@ -324,9 +324,9 @@ onBeforeUnmount(() => {
       </button>
       <p>1h email · 24h SMS window · 48h follow-up</p>
     </div>
-    <p v-if="status && !configured" class="warning-message">
-      Live generation is disabled or the selected provider needs a server-side API key and model.
-      Manual editing and tests remain available.
+    <p v-if="status && !configured" class="ai-off-note">
+      AI drafting is off on this server. You can still edit, test and publish the journey; Settings
+      › AI providers explains how to turn it on.
     </p>
     <details open class="composer-options">
       <summary>AI options</summary>

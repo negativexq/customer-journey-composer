@@ -279,7 +279,7 @@ onMounted(() => void refresh());
         <div v-if="system.process">
           <dt>API memory</dt>
           <dd>{{ megabytes(system.process.heap_alloc_bytes) }}</dd>
-          <small>{{ system.process.goroutines }} goroutines</small>
+          <small>{{ system.process.goroutines }} background tasks</small>
         </div>
       </dl>
       <details class="settings-card system-raw">

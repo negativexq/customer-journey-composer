@@ -106,7 +106,7 @@ onBeforeUnmount(() => controller?.abort());
     <header>
       <div>
         <h2 id="publish-review-title">Review before publishing</h2>
-        <p>{{ name }} · draft revision {{ revision }}</p>
+        <p>{{ name }} · draft edit {{ revision }}</p>
       </div>
       <button
         class="icon-button"

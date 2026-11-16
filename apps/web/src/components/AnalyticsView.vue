@@ -170,7 +170,7 @@ onMounted(() => {
       <MetricCard
         label="Journey entries"
         :value="entries"
-        caption="Logical enrollments · all time"
+        caption="Entries · all time"
         icon="workflow"
         @select="emit('browseJourneys', '')"
       /><MetricCard
@@ -214,7 +214,7 @@ onMounted(() => {
     <section class="surface analytics-channels">
       <div class="surface-heading">
         <div>
-          <h2>Channel performance · logical sends</h2>
+          <h2>Channel performance · messages</h2>
           <p>Retries are grouped under the original message.</p>
         </div>
       </div>
@@ -354,7 +354,7 @@ onMounted(() => {
       <div class="surface-heading">
         <div>
           <h2>Journey comparison</h2>
-          <p>Latest 100 journeys · lifetime logical entries</p>
+          <p>Latest 100 journeys · all-time entries</p>
         </div>
       </div>
       <div class="table-scroll">

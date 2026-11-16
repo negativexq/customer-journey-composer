@@ -69,6 +69,9 @@ const ai = ref<{
   enabled: boolean;
   providers: Record<string, { configured: boolean; model: string }>;
 }>();
+const needsSetup = computed(
+  () => !!ai.value && !Object.values(ai.value.providers).some((p) => p.configured),
+);
 async function load() {
   try {
     const [keyList, policy] = await Promise.all([
@@ -315,6 +318,18 @@ onMounted(() => {
               }}</span>
             </li>
           </ul>
+          <div v-if="!ai.enabled || needsSetup" class="settings-setup">
+            <strong>How to turn it on</strong>
+            <p>
+              Set these in the API server's environment, never in the browser, then restart the API:
+            </p>
+            <ul>
+              <li><code>AI_PROVIDER</code> = <code>claude</code> or <code>openai</code></li>
+              <li><code>ANTHROPIC_API_KEY</code> and <code>ANTHROPIC_MODEL</code> for Claude</li>
+              <li><code>OPENAI_API_KEY</code> and <code>OPENAI_MODEL</code> for OpenAI</li>
+            </ul>
+            <p>Without a key the editor, tests and publishing all keep working.</p>
+          </div>
         </section>
       </template>
     </div>

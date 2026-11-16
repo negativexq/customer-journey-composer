@@ -13,7 +13,7 @@ test('test runs are named by scenario, journey and source', () => {
     mode: 'FULL',
   };
   assert.equal(runTitle(run), 'Email and SMS · no purchase');
-  assert.equal(runContext(run), 'Abandoned Cart Recovery · Draft rev 6');
+  assert.equal(runContext(run), 'Abandoned Cart Recovery · Draft edit 6');
   assert.equal(runContext({ ...run, version: 2 }), 'Abandoned Cart Recovery · Version 2');
   assert.equal(runTitle({ ...run, scenario_name: ' ', mode: 'SINGLE_NODE' }), 'Single-step test');
   assert.equal(

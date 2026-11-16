@@ -48,7 +48,7 @@ test('a refused key holds the SMS channel, rings the bell and costs no attempt',
   const delivery = (await sent.json()).id;
 
   await expect(sms).toContainText('Credentials refused', { timeout: 15000 });
-  await expect(sms).toContainText('Held (429/401)');
+  await expect(sms).toContainText('Held by provider');
   const job = await (await page.request.get(`/api/v1/deliveries/${delivery}`)).json();
   expect(job.status).toBe('SCHEDULED');
 

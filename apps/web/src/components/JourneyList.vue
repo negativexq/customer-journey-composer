@@ -216,7 +216,7 @@ onMounted(() => void load());
               </td>
               <td>
                 <span class="version-badge">{{ j.version ? 'v' + j.version : 'Draft' }}</span
-                ><small class="table-subtext">rev {{ j.revision }}</small>
+                ><small class="table-subtext">edit {{ j.revision }}</small>
               </td>
               <td class="date-cell">
                 {{

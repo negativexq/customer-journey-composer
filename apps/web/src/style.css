@@ -6291,6 +6291,41 @@ fieldset.scenario-form {
   justify-content: space-between;
   gap: 12px;
 }
+.settings-setup {
+  display: grid;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--page);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.settings-setup strong {
+  color: var(--text);
+}
+.settings-setup p,
+.settings-setup ul {
+  margin: 0;
+}
+.settings-setup ul {
+  padding-left: 18px;
+  display: grid;
+  gap: 2px;
+}
+.settings-setup code {
+  font-size: 12px;
+}
+.ai-off-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--page);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
 .settings-card {
   padding: 20px;
   border: 1px solid var(--border);
