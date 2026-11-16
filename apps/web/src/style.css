@@ -7407,6 +7407,7 @@ fieldset.scenario-form {
   color: var(--muted);
 }
 .segmented-control {
+  position: relative;
   display: flex;
   gap: 2px;
   padding: 2px;
@@ -7416,7 +7417,30 @@ fieldset.scenario-form {
   max-width: 100%;
   overflow-x: auto;
 }
+.segmented-thumb {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 0;
+  border-radius: 6px;
+  background: var(--accent);
+  box-shadow: 0 2px 6px #6650e833;
+  pointer-events: none;
+}
+.segmented-thumb.sliding {
+  transition:
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .segmented-thumb.sliding {
+    transition: none;
+  }
+}
 .segmented-control > button {
+  position: relative;
+  z-index: 1;
+  transition: color 0.3s ease;
   flex: 1 1 0;
   display: inline-flex;
   align-items: center;
@@ -7437,13 +7461,10 @@ fieldset.scenario-form {
   background: none;
   color: var(--text);
 }
-.segmented-control > button[aria-checked='true'] {
-  background: var(--surface);
-  color: var(--text);
+.segmented-control > button[aria-checked='true'],
+.segmented-control > button[aria-checked='true']:hover:not(:disabled) {
+  color: var(--on-solid);
   font-weight: 600;
-  box-shadow:
-    0 1px 2px #1823470f,
-    0 0 0 1px var(--gray-91);
 }
 .segmented-control > button:focus-visible {
   outline: 2px solid var(--violet-78);

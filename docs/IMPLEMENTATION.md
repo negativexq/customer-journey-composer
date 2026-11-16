@@ -290,6 +290,24 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Test Inbox design — 2026-11-16
+
+The user reviewed the Test Inbox with the ui-ux-pro-max and impeccable skills and asked for a clearer filter column, a preview that looks like a real phone, a tab menu that fits on one line, readable payload details and a desktop preview that reads as an opened email.
+
+- Segmented controls (channel, device and every other use) have one accent thumb that slides to the chosen option over 0.45 s. The chosen label turns white; reduced motion turns the slide off.
+- The customer filter has a visible "Customer ID" label, a search box with a clear button and a labelled Filter button. Recipients appear as chips with initials that toggle the filter.
+- The list scrolls inside its column and the detail column stays in view on desktop, so the page is no longer thousands of pixels tall.
+- SMS and mobile email previews are drawn inside a phone: status bar, a thread header and one message bubble with links, then the character count and segments below the phone. The technical facts moved to Payload. The phone colors are theme tokens (`--phone-screen`, `--phone-bubble`, `--phone-link`).
+- The desktop email preview is a mail window with the subject, recipient, time and preheader. The email renders at 640 px and is scaled to the column; Open full size shows it unscaled in a dialog.
+- Detail tabs are a single-line tab list (`role="tab"`, arrow keys) with a sliding underline; "Execution trace" is now "Trace".
+- Payload shows template and source step as tiles, trace and workflow snapshot as short IDs with copy buttons, personalization as token → value rows, and the raw JSON in a disclosure.
+
+Verified locally:
+
+- `make fmt-check`, `make lint`, `make typecheck`, `make test` and `git diff --check` pass. The local `.agents/`, `.claude/` and `.impeccable/` folders are now ignored, which unblocked `make fmt-check` and `make lint`.
+- The 11 Playwright specs that reach the inbox, contract editor or test lab (behavior-checks, data-catalog, ai, engagement, scoped-contract, test-lab, messaging, navigation, recovery, templates, versions): 48 passed. The two tab clicks in recovery and test-lab now use the tab role.
+- Checked in the built-in browser at 1280 px in light and dark: thumb and underline positions match the chosen option, payload keys no longer overlap values, and the full-size dialog renders the email.
+
 ## Behavior contract editor design — 2026-11-16
 
 The user found the contract editor colorless and uneven: consent checkboxes sat above their labels, condition rows mixed labels inside and above their boxes, and every control looked alike. The design follows the impeccable and ui-ux-pro-max skills.

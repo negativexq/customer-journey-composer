@@ -78,7 +78,7 @@ test('EUR recovery scenarios run in the sandbox with a run-scoped inline inbox',
   await inbox.locator('.inbox-row').filter({ hasText: 'SMS' }).click();
   await expect(inbox.locator('.sms-phone')).toContainText('COMEBACK10');
   await expect(inbox.locator('.sms-phone')).toContainText('€89.90');
-  await inbox.getByRole('button', { name: 'Decision', exact: true }).click();
+  await inbox.getByRole('tab', { name: 'Decision', exact: true }).click();
   await expect(inbox.getByText('Eligible to send', { exact: true })).toBeVisible();
   await page.locator('.journey-tabs').getByRole('button', { name: 'Builder', exact: true }).click();
   await page

@@ -32,6 +32,9 @@
   --chart-entries: light-dark(#7564e9, #9d92ff);
   --chart-converted: light-dark(#31a18a, #4fc3aa);
   --chart-grid: light-dark(#e9edf3, #2c2f35);
+  --phone-screen: light-dark(#ffffff, #0f1115);
+  --phone-bubble: light-dark(#e9e9eb, #26272b);
+  --phone-link: light-dark(#0a66d8, #5aa9ff);
 
   /* gray */
   --gray-99: light-dark(#fafbfe, #1d1e25);

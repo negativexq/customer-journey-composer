@@ -3,7 +3,7 @@
  * Two to four short, mutually exclusive choices shown side by side, so the options are visible
  * without opening a menu. Arrow keys move the choice, as in a native radio group.
  */
-import { ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import AppIcon from './AppIcon.vue';
 
 export type SegmentOption = { value: unknown; label: string; icon?: string };
@@ -18,11 +18,39 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ 'update:modelValue': [unknown]; change: [unknown] }>();
 const buttons = ref<HTMLButtonElement[]>([]);
+const track = ref<HTMLElement>();
+// One thumb slides under the chosen option instead of each option lighting up on its own.
+const thumb = ref<{ x: number; width: number; ready: boolean } | null>(null);
+let observer: ResizeObserver | undefined;
 const id = 'segment-' + crypto.randomUUID();
 
 const isChosen = (value: unknown) =>
   value === props.modelValue ||
   (props.modelValue != null && String(value) === String(props.modelValue));
+function place() {
+  const i = props.options.findIndex((o) => isChosen(o.value));
+  const button = buttons.value[i];
+  if (!button) {
+    thumb.value = null;
+    return;
+  }
+  // The first placement jumps; later ones slide.
+  thumb.value = {
+    x: button.offsetLeft,
+    width: button.offsetWidth,
+    ready: thumb.value !== null,
+  };
+}
+onMounted(() => {
+  place();
+  observer = new ResizeObserver(() => place());
+  if (track.value) observer.observe(track.value);
+});
+onBeforeUnmount(() => observer?.disconnect());
+watch(
+  () => [props.modelValue, props.options.length],
+  () => nextTick(place),
+);
 function pick(value: unknown) {
   if (props.disabled || isChosen(value)) return;
   emit('update:modelValue', value);
@@ -41,12 +69,20 @@ function move(event: KeyboardEvent, i: number) {
   <div class="segmented-field">
     <span v-if="!hideLabel" :id="id" class="field-label">{{ label }}</span>
     <div
+      ref="track"
       class="segmented-control"
       role="radiogroup"
       :aria-label="hideLabel ? label : undefined"
       :aria-labelledby="hideLabel ? undefined : id"
       :aria-disabled="disabled || undefined"
     >
+      <span
+        v-if="thumb"
+        class="segmented-thumb"
+        :class="{ sliding: thumb.ready }"
+        aria-hidden="true"
+        :style="{ width: thumb.width + 'px', transform: `translateX(${thumb.x}px)` }"
+      />
       <button
         v-for="(option, i) in options"
         :key="String(option.value)"
