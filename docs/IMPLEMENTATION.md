@@ -290,6 +290,19 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Canvas overlap fixes — 2026-11-17
+
+The second group from the design review.
+
+- With the AI composer or step library open at 1280 px the canvas is about 710 px wide, and the mini map sat under the centered canvas bar. A container query on the canvas now hides the mini map when the canvas is narrower than 840 px.
+- On a phone the first step filled the width and opened under the "7 steps" chip. The initial view now starts the first step below the chip when the centered step would reach under it; wide canvases keep the old 32 px top.
+- The review's other two canvas overlaps were false positives. "Keyboard shortcuts" under the zoom level at 1280 px and "Auto layout" at 390 px are items in the closed ⋯ menu. Chrome reports a layout box for closed `<details>` content but does not paint it, and with the menu open at 390 px every item is visible.
+
+Verified locally:
+
+- A Playwright check of the reseeded Northstar journey: the mini map is hidden with the AI composer open and shown when it closes at 1280 px. At 390 px the first step clears the chip and the canvas bar and open menu are fully visible.
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`, and the full `npx playwright test` (104 passed).
+
 ## Mobile and accessibility fixes — 2026-11-17
 
 The first group from the full design review (ui-ux-pro-max and impeccable), in the order the user approved.

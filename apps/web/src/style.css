@@ -1519,6 +1519,13 @@ tbody tr:hover {
   min-width: 0;
   height: 100%;
   background: var(--page);
+  container-type: inline-size;
+}
+/* A narrow canvas (side panels open, small screens) has no room for the mini map beside the centered bar. */
+@container (max-width: 840px) {
+  .canvas .vue-flow__minimap {
+    display: none;
+  }
 }
 .canvas-empty {
   position: absolute;

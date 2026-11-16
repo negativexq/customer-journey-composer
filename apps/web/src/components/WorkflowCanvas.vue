@@ -62,10 +62,19 @@ function placeInitialViewport() {
   const entry = nodes.value.find((node) => node.data.kind === 'event_trigger') || nodes.value[0];
   if (!entry || !canvasElement.value?.clientWidth) return;
   initialViewportPlaced = true;
-  const zoom = Math.min(0.9, (canvasElement.value!.clientWidth - 24) / 224);
+  const width = canvasElement.value.clientWidth;
+  const zoom = Math.min(0.9, (width - 24) / 224);
+  // The first step is centered; when it would reach under the step count chip
+  // at the top left, it starts below the chip instead.
+  const chip = canvasElement.value.querySelector<HTMLElement>('.canvas-chip');
+  const chipRight = chip ? chip.offsetLeft + chip.offsetWidth + 8 : 0;
+  const top =
+    width / 2 - 112 * zoom < chipRight
+      ? (chip?.offsetTop ?? 0) + (chip?.offsetHeight ?? 0) + 16
+      : 32;
   void setViewport({
-    x: canvasElement.value!.clientWidth / 2 - (entry.position.x + 112) * zoom,
-    y: 32 - entry.position.y * zoom,
+    x: width / 2 - (entry.position.x + 112) * zoom,
+    y: top - entry.position.y * zoom,
     zoom,
   });
 }
