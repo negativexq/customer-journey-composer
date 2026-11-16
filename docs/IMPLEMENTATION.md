@@ -290,6 +290,17 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Test Inbox rows and canvas keyboard focus — 2026-11-17
+
+- In the Test Inbox list, the status badge wrapped into the icon column, so the icon column grew to the badge's width and pushed the text away from the icon. The badge now sits under the text. The channel name is bold and colour-coded: Email violet, SMS blue.
+- Tabbing to a step below the visible canvas made the browser scroll Vue Flow's own box (415px at 1280×800). The view then fell out of line with the canvas and its controls. The flow box now clips its overflow, and focus on an off-screen step pans the view to it.
+
+Verified locally:
+
+- At 1280×800, tabbing from Send Email to Recovery complete panned the view, and no element had a scroll offset.
+- The inbox rows were checked by eye in light and dark themes.
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`, and the full `npx playwright test` (104 passed).
+
 ## Screenshot refresh — 2026-11-17
 
 The eighth group from the design review.

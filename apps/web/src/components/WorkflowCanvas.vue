@@ -263,6 +263,28 @@ const groupTitle: Record<string, string> = {
   update_attribute: 'Profile change',
   exit: 'Outcome',
 };
+// Keyboard focus on a step outside the visible canvas pans the view to it. The flow box
+// clips its overflow, so the browser cannot scroll it out of line with the viewport.
+function revealFocusedNode(event: FocusEvent) {
+  const target = event.target as HTMLElement | null;
+  const pane = canvasElement.value?.querySelector('.vue-flow');
+  if (!target?.classList.contains('vue-flow__node') || !pane) return;
+  const box = target.getBoundingClientRect();
+  const view = pane.getBoundingClientRect();
+  const margin = 24;
+  let dx = 0;
+  let dy = 0;
+  if (box.left < view.left + margin) dx = view.left + margin - box.left;
+  else if (box.right > view.right - margin) dx = view.right - margin - box.right;
+  if (box.top < view.top + margin) dy = view.top + margin - box.top;
+  else if (box.bottom > view.bottom - margin) dy = view.bottom - margin - box.bottom;
+  if (!dx && !dy) return;
+  void setViewport({
+    x: viewport.value.x + dx,
+    y: viewport.value.y + dy,
+    zoom: viewport.value.zoom,
+  });
+}
 function focusNode(id: string) {
   const node = nodes.value.find((node) => node.id === id);
   if (!node) return;
@@ -1049,7 +1071,13 @@ function setAttribute(value: string) {
         <p>Prefer to describe it?<br />Try the AI composer.</p>
       </div>
     </aside>
-    <div ref="canvasElement" class="canvas" @drop="drop" @dragover.prevent>
+    <div
+      ref="canvasElement"
+      class="canvas"
+      @drop="drop"
+      @dragover.prevent
+      @focusin="revealFocusedNode"
+    >
       <VueFlow
         id="builder"
         v-model:nodes="nodes"

@@ -4485,6 +4485,10 @@ td {
   }
 }
 
+/* Focus must pan the flow, not scroll its box out of line with the viewport. */
+.canvas .vue-flow {
+  overflow: clip;
+}
 /* The canvas follows the app theme; controls use our stroked icons. */
 .vue-flow {
   --xy-minimap-node-background-color: var(--gray-91);

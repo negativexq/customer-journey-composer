@@ -437,7 +437,10 @@ onMounted(
           ><span class="inbox-row-body"
             ><strong>{{ r.node_label }}</strong
             ><span
-              >{{ r.channel === 'sms' ? 'SMS' : 'Email' }} · {{ r.journey_name || 'Explicit test'
+              ><b class="inbox-row-channel" :class="r.channel === 'sms' ? 'sms' : 'email'">{{
+                r.channel === 'sms' ? 'SMS' : 'Email'
+              }}</b>
+              · {{ r.journey_name || 'Explicit test'
               }}{{ r.version ? ' · v' + r.version : '' }}</span
             ><small
               >{{ r.customer_id || 'Test recipient' }} · {{ formatDateTime(r.simulated_at) }}</small
@@ -714,12 +717,22 @@ onMounted(
   font-size: 14px;
   font-weight: 600;
 }
+.inbox-row-channel {
+  font-weight: 600;
+}
+.inbox-row-channel.email {
+  color: var(--violet-56b-text);
+}
+.inbox-row-channel.sms {
+  color: var(--blue-50-text);
+}
 .inbox-row-body small {
   font-size: 12px;
 }
-.inbox-row .status-badge,
+/* The badge sits under the text, so the icon column stays as wide as the icon. */
 .inbox-row > :last-child {
-  justify-self: end;
+  grid-column: 2;
+  justify-self: start;
 }
 .embedded-inbox-heading {
   display: flex;
