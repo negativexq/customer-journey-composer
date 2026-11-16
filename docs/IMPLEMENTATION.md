@@ -290,6 +290,21 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Live verification of the latest AI changes — 2026-11-16
+
+The user asked to verify the open items except Claude. The API ran with `AI_PROVIDER=openai` and `gpt-6-luna`. The key was passed only to the `docker compose` process, and the API went back to `disabled` with no key afterwards. No proposal was applied; the test journeys are unchanged.
+
+- **Remote CI.** GitHub Actions passed `quality` and `integration` on `e439016`, the head that holds every commit of this session. `f896fb4` was cancelled because the next push replaced it. The Playwright suite does not run in CI; it ran locally only.
+- **Before and after.** "Remove the email consent check. Change nothing else." on the cart journey: the model again shortened the order wait, and also cut "stoklar sınırlı" from the email subject. The panel listed "order_completed · up to 2 hours → order_completed · up to 1 hour" and the subject change, warned about the wait, and kept Apply disabled until the box was ticked.
+- **Explain the journey.** The explanation matched the graph, and there was no Apply button.
+- **Facts the brief does not state.** `scripts/live-factcheck-invention.mjs` sent four briefs, each in a fresh workspace; three asked for a discount, gift code, link, price cut or end date without giving one, and one stated every fact. Raw evidence: [result.json](validation/live-invention-2026-11-16/result.json). All four were accepted on the first attempt. The model invented nothing: it left the values out and named each missing one in a warning, and the control email used `WELCOME20`, 20% and the link. So the fact check refused nothing, and how often it catches an invented fact is still not measured live.
+- **Timeout.** Nine calls took 7.5–30.6 s. The request that hit 45 s before took 25 s and 14 s this time, so no call has yet needed the longer limit.
+
+New findings, not fixed:
+
+- The birthday email kept the labels "Mağazaya dönmek için:" and "Hediye kodun:" with nothing after them, because the brief gave no link or code. Nothing flags an empty label like this.
+- "Explain the journey" returned a warning about the provider schema ("fallbacks … {path,value} dizisi"), which a marketer cannot act on.
+
 ## AI changes show before and after — 2026-11-16
 
 In the live check the model was told to "change nothing else" and still moved the order wait from 2 to 1 hour and another wait from 24 to 25 hours. The panel listed the steps as "Updated nodes" only, and the step label changed with the value, so the change was easy to miss.
@@ -306,7 +321,7 @@ Verified locally:
 - New Playwright test in `tests/e2e/ai.spec.ts`: a change that shortens a wait shows "Wait 2 hours → Wait 1 hour" and the warning, and Apply stays disabled until the box is ticked. A screenshot of the panel at mobile width was checked by eye.
 - `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`. `npx playwright test --workers=2` against the rebuilt web: 104 passed.
 
-Not covered: not tried with a live model.
+Not covered at the time: not tried with a live model. Verified live in the entry above.
 
 ## Longer AI provider timeout — 2026-11-16
 

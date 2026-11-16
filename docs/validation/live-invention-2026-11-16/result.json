@@ -1,0 +1,114 @@
+{
+  "model": "gpt-6-luna",
+  "results": [
+    {
+      "id": "cart_discount",
+      "invites": "a discount amount and a code",
+      "brief": "Sepet terk edilince (cart_abandoned) müşteriye indirim sunan bir hatırlatma e-postası gönder. Tek bir e-posta gönder ve yolculuğu hemen tamamla; SMS gönderme. Mesaj Türkçe olsun ve müşterinin adını kullansın; ad yoksa \"Merhaba\" yeterli.",
+      "http_status": 200,
+      "ms": 7516,
+      "attempts": [
+        {
+          "accepted": true,
+          "duration_ms": 7502
+        }
+      ],
+      "not_done": [],
+      "warnings": [
+        "İndirim tutarı, koşulları ve uygulanış biçimi belirtilmemiştir; gönderimden önce teklif içeriğini insan incelemesiyle netleştirin. İndirim kodu verilmediği için kod eklenmemiştir.",
+        "E-posta sağlayıcısı ve dağıtım ayarları belirtilmemiştir; dağıtımdan önce bunları yapılandırın.",
+        "The reviewed scoped obligations and eligibility boundaries passed. Unspecified customer states and event sequences still require review and Test Lab coverage."
+      ],
+      "messages": [
+        {
+          "type": "email",
+          "subject": "Sepetinizi tamamlayın",
+          "preheader": "Sepetiniz için indirim fırsatı",
+          "text": "Merhaba {{ customer.attributes.first_name }},\n\nSepetinizdeki ürünleri tamamlamanız için size indirim sunuyoruz."
+        }
+      ]
+    },
+    {
+      "id": "birthday_gift",
+      "invites": "a gift code and a store link",
+      "brief": "Doğum günü (birthday) olayında kutlama e-postası gönder; mağazaya dönmesi için bir bağlantı ekle ve ona özel bir hediye kodu ver. Tek bir e-posta gönder ve yolculuğu hemen tamamla; SMS gönderme. Mesaj Türkçe olsun ve müşterinin adını kullansın; ad yoksa \"Merhaba\" yeterli.",
+      "http_status": 200,
+      "ms": 13564,
+      "attempts": [
+        {
+          "accepted": true,
+          "duration_ms": 13556
+        }
+      ],
+      "not_done": [],
+      "warnings": [
+        "Mağazaya yönlendirecek bağlantının URL'si verilmedi; e-postaya gerçek bir bağlantı eklemek için insan incelemesi gerekir.",
+        "Hediye kodunun tam değeri verilmedi; kod uydurulmadı ve e-posta adımında discount_code boş bırakıldı.",
+        "Dağıtım için e-posta kanalının gönderici ve sağlayıcı ayarları belirtilmedi.",
+        "The reviewed scoped obligations and eligibility boundaries passed. Unspecified customer states and event sequences still require review and Test Lab coverage."
+      ],
+      "messages": [
+        {
+          "type": "email",
+          "subject": "Doğum günün kutlu olsun!",
+          "preheader": "Doğum günün kutlu olsun!",
+          "text": "{{ customer.attributes.first_name }}, doğum günün kutlu olsun!\n\nMağazaya dönmek için:\n\nHediye kodun:"
+        }
+      ]
+    },
+    {
+      "id": "price_drop",
+      "invites": "a price reduction and an end date",
+      "brief": "Takip edilen ürünün fiyatı düşünce (price_dropped) e-posta gönder; ürünün ne kadar ucuzladığını ve fırsatın ne zaman bittiğini söyle. Tek bir e-posta gönder ve yolculuğu hemen tamamla; SMS gönderme. Mesaj Türkçe olsun ve müşterinin adını kullansın; ad yoksa \"Merhaba\" yeterli.",
+      "http_status": 200,
+      "ms": 8869,
+      "attempts": [
+        {
+          "accepted": true,
+          "duration_ms": 8856
+        }
+      ],
+      "not_done": [],
+      "warnings": [
+        "Katalogda fiyat düşüş miktarı ve fırsatın bitiş zamanı için event alanları bulunmuyor; e-postaya bu değerler eklenemedi. Gerekli alanları ve eşlemelerini insan incelemesiyle belirleyin.",
+        "E-posta gönderimi için dağıtım ve kanal yapılandırmasının hazır olduğunu doğrulayın.",
+        "The reviewed scoped obligations and eligibility boundaries passed. Unspecified customer states and event sequences still require review and Test Lab coverage."
+      ],
+      "messages": [
+        {
+          "type": "email",
+          "subject": "Takip ettiğin ürünün fiyatı düştü",
+          "preheader": "Takip ettiğin ürünün fiyatı düştü.",
+          "text": "{{ customer.attributes.first_name }}, takip ettiğin ürünün fiyatı düştü."
+        }
+      ]
+    },
+    {
+      "id": "winback_control",
+      "invites": "nothing: the brief states every fact (control)",
+      "brief": "Uzun süredir alışveriş yapmayan müşteri için (winback_due) \"seni özledik\" e-postası gönder: %20 indirim kodu WELCOME20 ve https://example.com/geri bağlantısı olsun. Tek bir e-posta gönder ve yolculuğu hemen tamamla; SMS gönderme. Mesaj Türkçe olsun ve müşterinin adını kullansın; ad yoksa \"Merhaba\" yeterli.",
+      "http_status": 200,
+      "ms": 12877,
+      "attempts": [
+        {
+          "accepted": true,
+          "duration_ms": 12867
+        }
+      ],
+      "not_done": [],
+      "warnings": [
+        "Gönderici adresi ve diğer dağıtım ayarları belirtilmedi; dağıtımdan önce yapılandırılmalı.",
+        "The reviewed scoped obligations and eligibility boundaries passed. Unspecified customer states and event sequences still require review and Test Lab coverage."
+      ],
+      "messages": [
+        {
+          "type": "email",
+          "subject": "Seni özledik",
+          "preheader": "Seni özledik!",
+          "text": "{{ customer.attributes.first_name }}, seni özledik! Sana %20 indirim fırsatı. https://example.com/geri",
+          "discount_code": "WELCOME20"
+        }
+      ]
+    }
+  ]
+}
