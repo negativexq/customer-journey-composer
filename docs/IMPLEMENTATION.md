@@ -290,6 +290,16 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Brief first on the creation brief step — 2026-11-17
+
+- On the Brief step, the workspace data summary and the example cards sat above the brief box, so the brief itself was easy to miss. The step now reads: the "Your brief" box, one line under it saying how many workspace events and fields the AI can use (with a Refresh link, or an amber note when no events are defined), then "Or start from an example".
+- `docs/images/creation/brief.png` was recaptured with the new layout. It was not taken with `npm run screenshots:creation`, which would add a draft journey to the Northstar workspace. A one-off Playwright script showed an existing Northstar journey as a brief-step draft with the scripted brief, by faking the journey, composition and AI settings responses in the browser. It blocked every non-sign-in write (0 attempted) and was deleted after use. The other creation screenshots were not recaptured.
+
+Verified locally:
+
+- The new image checked by eye at 1280×800, device scale 2.
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`, and the full `npx playwright test` (104 passed) with the layout change.
+
 ## Screenshot refresh after the analytics changes — 2026-11-17
 
 - The 13 product screenshots were recaptured with `npm run screenshots:product`.

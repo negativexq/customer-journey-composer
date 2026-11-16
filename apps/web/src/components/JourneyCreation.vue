@@ -485,41 +485,8 @@ async function back() {
     <section v-else-if="state.step === 'brief'" class="creation-surface brief-page">
       <h2>Describe the journey</h2>
       <p>Explain who enters, what happens next and when the journey should end.</p>
-      <section class="brief-examples" aria-label="Example briefs">
-        <span>Start with an example</span>
-        <div>
-          <button
-            v-for="(sample, index) in briefExamples"
-            :key="sample.title"
-            type="button"
-            :disabled="readonly"
-            @click="example(index)"
-          >
-            <span class="brief-example-icon" aria-hidden="true"
-              ><AppIcon :name="sample.icon" :size="16" /></span
-            ><span class="brief-example-text"
-              ><strong>{{ sample.title }}</strong
-              ><small>{{ sample.description }}</small></span
-            >
-          </button>
-        </div>
-      </section>
-      <div class="brief-vocabulary">
-        <p v-if="catalogEvents">
-          Using {{ catalogEvents }} workspace events and {{ catalogFields }} fields. Write your
-          brief in everyday language.
-        </p>
-        <p v-else class="warning-message">
-          Your workspace needs event definitions before AI can connect a brief to real data.
-        </p>
-        <p class="help-text">
-          An administrator can define or discover them in
-          <a href="/settings" target="_blank" rel="noopener">Settings → Workspace data</a>.
-        </p>
-        <button type="button" @click="refreshVocabulary">Refresh workspace data</button>
-      </div>
       <form @submit.prevent="compose">
-        <label
+        <label class="brief-field"
           >Your brief<textarea
             v-model="state.brief"
             rows="8"
@@ -530,6 +497,39 @@ async function back() {
             @blur="persist().catch(() => {})"
           />
         </label>
+        <!-- What the brief can refer to, as one quiet line under the field it applies to. -->
+        <div class="brief-vocabulary" :class="{ missing: !catalogEvents }">
+          <AppIcon v-if="catalogEvents" name="check" :size="14" aria-hidden="true" />
+          <p v-if="catalogEvents">
+            Can use {{ catalogEvents }} workspace events and {{ catalogFields }} fields from
+            <a href="/settings" target="_blank" rel="noopener">Settings → Workspace data</a>.
+          </p>
+          <p v-else>
+            Add event definitions in
+            <a href="/settings" target="_blank" rel="noopener">Settings → Workspace data</a>
+            before AI can connect a brief to real data.
+          </p>
+          <button type="button" class="link-button" @click="refreshVocabulary">Refresh</button>
+        </div>
+        <section class="brief-examples" aria-label="Example briefs">
+          <span>Or start from an example</span>
+          <div>
+            <button
+              v-for="(sample, index) in briefExamples"
+              :key="sample.title"
+              type="button"
+              :disabled="readonly"
+              @click="example(index)"
+            >
+              <span class="brief-example-icon" aria-hidden="true"
+                ><AppIcon :name="sample.icon" :size="16" /></span
+              ><span class="brief-example-text"
+                ><strong>{{ sample.title }}</strong
+                ><small>{{ sample.description }}</small></span
+              >
+            </button>
+          </div>
+        </section>
         <details class="composer-options">
           <summary>AI options</summary>
           <SegmentedControl

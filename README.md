@@ -34,7 +34,7 @@ The screenshots come from the running application with the Northstar Commerce de
 
 Choose **New journey → Create with AI** and write what should happen in everyday language, or start from an example. The page lists the events and customer fields the workspace has, so the brief can use their names.
 
-![Brief page: four example journeys, the workspace's events and fields, and the abandoned-cart brief](docs/images/creation/brief.png)
+![Brief page: the abandoned-cart brief, the workspace events and fields it can use, and example journeys](docs/images/creation/brief.png)
 
 Before the model is called, you confirm what the journey must do in each situation: how many emails and SMS, and how it ends. These expectations are checked against every proposal.
 

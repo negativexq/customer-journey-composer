@@ -4710,8 +4710,44 @@ td {
     padding: 14px;
   }
 }
+.brief-field textarea {
+  min-height: 168px;
+}
+/* One quiet line under the brief: what it can refer to, and where that comes from. */
+.brief-vocabulary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.brief-vocabulary > svg {
+  flex-shrink: 0;
+  color: var(--green-50-text);
+}
+.brief-vocabulary p {
+  flex: 1 1 260px;
+  margin: 0;
+}
+.brief-vocabulary.missing {
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--amber-97);
+  color: var(--amber-51-text);
+}
+.brief-vocabulary a {
+  color: var(--accent-text);
+}
+.brief-vocabulary .link-button {
+  font-size: 12px;
+}
 .brief-examples {
-  margin: 16px 0;
+  margin: 20px 0 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
 }
 .brief-examples > span {
   font-size: 12px;
