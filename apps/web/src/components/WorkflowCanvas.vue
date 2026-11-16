@@ -276,8 +276,11 @@ function revealFocusedNode(event: FocusEvent) {
   let dy = 0;
   if (box.left < view.left + margin) dx = view.left + margin - box.left;
   else if (box.right > view.right - margin) dx = view.right - margin - box.right;
+  // The canvas toolbar floats over the bottom of the view; a step must clear it too.
+  const bar = canvasElement.value?.querySelector('.canvas-bar')?.getBoundingClientRect();
+  const bottom = Math.min(view.bottom - margin, bar && bar.height ? bar.top - 16 : Infinity);
   if (box.top < view.top + margin) dy = view.top + margin - box.top;
-  else if (box.bottom > view.bottom - margin) dy = view.bottom - margin - box.bottom;
+  else if (box.bottom > bottom) dy = bottom - box.bottom;
   if (!dx && !dy) return;
   void setViewport({
     x: viewport.value.x + dx,

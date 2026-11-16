@@ -227,7 +227,10 @@ try {
   await page.getByRole('button', { name: 'Fit view', exact: true }).click();
   const waitNode = proposal.workflow.nodes.find((node) => node.type === 'wait_event');
   if (!waitNode) throw new Error('Live workflow has no wait-for-event node to inspect');
-  await page.locator(`.canvas .vue-flow__node[data-id="${waitNode.id}"]`).click();
+  // Focus pans a step that sits under the canvas toolbar into view before it is clicked.
+  const waitStep = page.locator(`.canvas .vue-flow__node[data-id="${waitNode.id}"]`);
+  await waitStep.focus();
+  await waitStep.click();
   await page.getByLabel('More canvas actions').click();
   await page.getByRole('button', { name: 'Focus selected step', exact: true }).click();
   await expect(page.getByRole('complementary', { name: 'Step settings' })).toBeVisible();

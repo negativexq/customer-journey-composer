@@ -290,6 +290,20 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Screenshot refresh after the analytics changes — 2026-11-17
+
+- The 13 product screenshots were recaptured with `npm run screenshots:product`.
+- The flow box now clips its overflow, so Playwright can no longer scroll a step out from under the canvas toolbar before clicking it. The capture timed out on the Wait for purchase step. Keyboard focus on a step now pans it clear of the floating toolbar, not just the canvas edge; a keyboard user could hit the same thing. Both capture scripts focus the step before clicking it.
+
+Verified locally:
+
+- Builder, Test Inbox and journey analytics shots checked by eye.
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`, and the full `npx playwright test` (104 passed).
+
+Not covered:
+
+- `npm run screenshots:creation` was not run. Its focus-before-click change is untested.
+
 ## Customer paths as a step list, executions drawer — 2026-11-17
 
 - Customer paths is a step list instead of the Sankey chart. Each step is one row in workflow order, with its count and share of entries. A split lists its branches under the step. Customers who stopped show as "Left the journey here", and customers still waiting show as "Waiting here now". A step reached by two paths is listed once; the second path says "Continues at …". The heading sums it up: entries, finished, and where most customers left. `lib/path-flow.ts` builds the rows, and `scripts/path-flow.test.mjs` covers order, branches, waiting vs. left, merges and an empty journey.

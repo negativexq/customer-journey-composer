@@ -1,6 +1,6 @@
 {
-  "captured_at": "2026-11-16T22:11:33.452Z",
-  "source_commit": "bdf1ec322c52774fa071cb13e86e1283883ed927",
+  "captured_at": "2026-11-16T23:01:17.558Z",
+  "source_commit": "ee4f337621e85eb0f9657152f2a7dfaac2291b1d",
   "source_dirty": true,
   "synthetic_data": true,
   "workspace": "Northstar Commerce",
@@ -20,7 +20,7 @@
       "file": "docs/images/overview.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 308926
+      "bytes": 303358
     },
     {
       "file": "docs/images/journeys.png",
@@ -38,55 +38,55 @@
       "file": "docs/images/test-lab.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 355412
+      "bytes": 355133
     },
     {
       "file": "docs/images/test-inbox-email.png",
       "width": 2560,
       "height": 2360,
-      "bytes": 407073
+      "bytes": 406186
     },
     {
       "file": "docs/images/test-inbox-sms.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 348786
+      "bytes": 347486
     },
     {
       "file": "docs/images/live-monitor.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 336514
+      "bytes": 335433
     },
     {
       "file": "docs/images/journey-observability/node-breakdown.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 311959
+      "bytes": 315528
     },
     {
       "file": "docs/images/journey-observability/customer-path.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 424491
+      "bytes": 423429
     },
     {
       "file": "docs/images/journey-observability/analytics.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 293475
+      "bytes": 292290
     },
     {
       "file": "docs/images/analytics.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 240620
+      "bytes": 237797
     },
     {
       "file": "docs/images/customers.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 407065
+      "bytes": 402752
     },
     {
       "file": "docs/images/publish-review.png",

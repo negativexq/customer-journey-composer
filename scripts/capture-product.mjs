@@ -97,7 +97,11 @@ try {
   await shot('journeys');
   await page.setViewportSize(viewport);
   await open('/journeys/' + demo.journeyId);
-  await page.locator('.canvas .vue-flow__node[data-id="purchase_wait"]').click();
+  // Focus pans a step that sits under the canvas toolbar into view before it is clicked.
+  const purchaseWait = page.locator('.canvas .vue-flow__node[data-id="purchase_wait"]');
+  await purchaseWait.focus();
+  await settle();
+  await purchaseWait.click();
   await expect(page.getByRole('complementary', { name: 'Step settings' })).toBeVisible();
   // Close enough to read: centre the selected step rather than fit all seven.
   await page.getByLabel('More canvas actions').click();
