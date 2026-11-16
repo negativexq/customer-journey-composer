@@ -1,6 +1,6 @@
 {
-  "captured_at": "2026-11-16T16:50:52.848Z",
-  "source_commit": "79f0daba41d473a971031d58b5b7d72a00dcd2a8",
+  "captured_at": "2026-11-16T22:11:33.452Z",
+  "source_commit": "bdf1ec322c52774fa071cb13e86e1283883ed927",
   "source_dirty": true,
   "synthetic_data": true,
   "workspace": "Northstar Commerce",
@@ -20,79 +20,79 @@
       "file": "docs/images/overview.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 308867
+      "bytes": 308926
     },
     {
       "file": "docs/images/journeys.png",
       "width": 2560,
       "height": 1120,
-      "bytes": 205597
+      "bytes": 206049
     },
     {
       "file": "docs/images/journey-builder.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 353984
+      "bytes": 342369
     },
     {
       "file": "docs/images/test-lab.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 355008
+      "bytes": 355412
     },
     {
       "file": "docs/images/test-inbox-email.png",
       "width": 2560,
       "height": 2360,
-      "bytes": 398574
+      "bytes": 407073
     },
     {
       "file": "docs/images/test-inbox-sms.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 346590
+      "bytes": 348786
     },
     {
       "file": "docs/images/live-monitor.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 336955
+      "bytes": 336514
     },
     {
       "file": "docs/images/journey-observability/node-breakdown.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 314188
+      "bytes": 311959
     },
     {
       "file": "docs/images/journey-observability/customer-path.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 417919
+      "bytes": 424491
     },
     {
       "file": "docs/images/journey-observability/analytics.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 296773
+      "bytes": 293475
     },
     {
       "file": "docs/images/analytics.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 251629
+      "bytes": 240620
     },
     {
       "file": "docs/images/customers.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 388537
+      "bytes": 407065
     },
     {
       "file": "docs/images/publish-review.png",
       "width": 2560,
       "height": 2160,
-      "bytes": 388005
+      "bytes": 377671
     }
   ],
   "live_entries_before": 14,

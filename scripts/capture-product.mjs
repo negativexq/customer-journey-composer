@@ -102,11 +102,29 @@ try {
   // Close enough to read: centre the selected step rather than fit all seven.
   await page.getByLabel('More canvas actions').click();
   await page.getByRole('button', { name: 'Focus selected step', exact: true }).click();
-  // Pan left and down from an empty spot, clear of the mini map and the cut-off top card.
+  await settle();
+  // Selecting a step can scroll the page; measure with the header in view.
+  await page.locator('.canvas').evaluate((el) => {
+    for (let box = el; box; box = box.parentElement) box.scrollTop = 0;
+    for (const box of el.querySelectorAll('*')) if (box.scrollTop) box.scrollTop = 0;
+  });
+  // Pan so the selected wait sits near the top and both of its branches fit across the
+  // canvas, whatever height the canvas has. The drag starts on empty canvas left of the step.
   const pane = await page.locator('.canvas .vue-flow__pane').boundingBox();
-  await page.mouse.move(pane.x + 60, pane.y + 300);
+  const wait = await page.locator('.canvas .vue-flow__node[data-id="purchase_wait"]').boundingBox();
+  const left = await page.locator('.canvas .vue-flow__node[data-id="converted"]').boundingBox();
+  const right = await page.locator('.canvas .vue-flow__node[data-id="sms"]').boundingBox();
+  const dx = pane.x + pane.width / 2 - (left.x + right.x + right.width) / 2;
+  const dy = pane.y + 24 - wait.y;
+  const from = { x: wait.x - 40, y: wait.y + wait.height / 2 };
+  const target = await page.evaluate(
+    ({ x, y }) => document.elementFromPoint(x, y)?.classList.contains('vue-flow__pane'),
+    from,
+  );
+  if (!target) throw new Error('The builder pan must start on empty canvas.');
+  await page.mouse.move(from.x, from.y);
   await page.mouse.down();
-  await page.mouse.move(pane.x, pane.y + 360, { steps: 8 });
+  await page.mouse.move(from.x + dx, from.y + dy, { steps: 8 });
   await page.mouse.up();
   await page.mouse.move(5, 5);
   await shot('journey-builder');

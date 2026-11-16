@@ -290,6 +290,18 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Screenshot refresh — 2026-11-17
+
+The eighth group from the design review.
+
+- The 13 product screenshots were recaptured with `npm run screenshots:product` on the local Docker stack. They now show the redesigned Test Inbox, the new journey header line and the plain labels.
+- The builder shot dragged the canvas from a fixed point. Selecting a step had scrolled the canvas box, so the drag started on the tabs, selected header text and cut off the left branch. The script now resets that scroll, pans from empty canvas beside the selected step so both branches fit, and stops if the start point is not on the canvas.
+
+Verified locally:
+
+- Every screenshot was checked by eye. `docs/images/manifest.json` records the source commit.
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`.
+
 ## Plain labels and AI setup guidance — 2026-11-17
 
 The seventh group from the design review.
