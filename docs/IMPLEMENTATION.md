@@ -290,6 +290,19 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Test Lab list and disabled reasons — 2026-11-17
+
+The sixth group from the design review.
+
+- Recent test runs listed every run; the review saw 42 in one column. The list now shows the newest 8 and a "Show N more · 8 of 42" row that adds 8 at a time.
+- Create test run was disabled with no reason. A line under the actions now says why: the role can only view, no journey or saved scenario is chosen, the journey could not be loaded, or the entry event does not start the journey.
+- "VIRTUAL CLOCK" reads "Virtual clock".
+
+Verified locally:
+
+- Test Lab on the Northstar demo shows 8 of 10 runs with "Show 2 more", and "Choose a journey or a saved scenario first." when none is chosen.
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`, and the full `npx playwright test` (104 passed).
+
 ## Consistent labels and counts — 2026-11-17
 
 The fifth group from the design review.

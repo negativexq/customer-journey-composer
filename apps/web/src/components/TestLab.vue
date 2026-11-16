@@ -88,6 +88,17 @@ const mismatchedEntry = computed(
     !!context.value?.entryName &&
     entryName.value !== context.value.entryName,
 );
+// Why Create test run is unavailable, said next to the button.
+const createBlocker = computed(() => {
+  if (busy.value) return '';
+  if (props.readonly) return 'Your role can view test runs but not create them.';
+  if (!journey.value && !savedScenario.value) return 'Choose a journey or a saved scenario first.';
+  if (sourceFailed.value && !savedScenario.value)
+    return 'The journey could not be loaded; choose a saved scenario or try again.';
+  if (mismatchedEntry.value && !intentionalEntry.value)
+    return 'The entry event does not start this journey. Change it or mark it as intentional.';
+  return '';
+});
 const customerFields = computed(() =>
   (context.value?.fields || []).filter(
     (field) =>
@@ -293,6 +304,9 @@ watch(formSignature, () => {
 });
 const currentDraft = ref(false);
 const runs = ref<TestRunSummary[]>([]);
+// The newest runs first; older ones open on request so the column stays short.
+const RUN_PAGE = 8;
+const runLimit = ref(RUN_PAGE);
 const run = ref<Run>();
 const path = ref<State>();
 const error = ref('');
@@ -870,6 +884,7 @@ onMounted(
               Preview journey path <AppIcon name="arrow" :size="14" />
             </button>
           </div>
+          <p v-if="createBlocker" class="action-hint" role="status">{{ createBlocker }}</p>
         </fieldset>
       </aside>
       <div class="test-results-column">
@@ -877,7 +892,7 @@ onMounted(
           <div>
             <span class="clock-icon"><AppIcon name="clock" :size="20" /></span>
             <div>
-              <small>VIRTUAL CLOCK</small><strong>{{ time(run.state.now) }}</strong>
+              <small>Virtual clock</small><strong>{{ time(run.state.now) }}</strong>
             </div>
             <StatusBadge :status="run.state.paused ? 'PAUSED' : run.state.status" />
           </div>
@@ -1022,12 +1037,26 @@ onMounted(
           <div v-if="!runs.length" class="small-empty">
             Saved runs and their results will appear here.
           </div>
-          <button v-for="r in runs" :key="r.id" class="test-run-row" @click="open(r.id)">
+          <button
+            v-for="r in runs.slice(0, runLimit)"
+            :key="r.id"
+            class="test-run-row"
+            @click="open(r.id)"
+          >
             <span class="test-run-symbol"><AppIcon name="flask" :size="15" /></span
             ><span
               ><strong>{{ runTitle(r) }}</strong
               ><small>{{ runContext(r) }} · {{ formatDateTime(r.created_at || '') }}</small></span
             ><StatusBadge :status="r.result" /><AppIcon name="arrow" :size="14" />
+          </button>
+          <button
+            v-if="runs.length > runLimit"
+            type="button"
+            class="show-more-runs"
+            @click="runLimit += RUN_PAGE"
+          >
+            Show {{ Math.min(RUN_PAGE, runs.length - runLimit) }} more
+            <span>{{ runLimit }} of {{ runs.length }}</span>
           </button>
         </section>
       </div>
