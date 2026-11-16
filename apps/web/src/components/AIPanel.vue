@@ -318,7 +318,7 @@ onBeforeUnmount(() => {
     </div>
     <p>Describe the experience. Review each change before applying it.</p>
     <div class="ai-starter">
-      <span>START WITH A BRIEF</span
+      <span>Example brief</span
       ><button :disabled="busy || readonly || loadingBrief" @click="useRecoveryBrief">
         Recover a €50+ abandoned cart <span aria-hidden="true">↗</span>
       </button>

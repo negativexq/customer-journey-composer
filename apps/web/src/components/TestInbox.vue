@@ -289,7 +289,6 @@ onMounted(
   <section :class="{ 'embedded-inbox': embedded }">
     <div v-if="!embedded" class="page-heading">
       <div>
-        <div class="eyebrow">Testing workspace</div>
         <h1>Test Inbox</h1>
         <p class="page-description">
           Review every message before it reaches your customers. Simulations stay in the sandbox.

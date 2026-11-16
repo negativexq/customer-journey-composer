@@ -71,6 +71,12 @@ function observations(n: Workflow['nodes'][number]) {
     props.insights?.metrics
       .filter((m) => m.dimension === 'node_exit' && m.key === n.id)
       .reduce((s, m) => s + m.value, 0) || 0;
+  // A journey exit can end an execution before its step runs (a purchase right
+  // after entry ends it on the trigger). Whoever completed or exited a step
+  // reached it, so Reached never shows fewer than that.
+  const reached = items.find((item) => item.label === 'Reached');
+  const completed = items.find((item) => item.label === 'Completed step');
+  if (reached && completed) reached.value = Math.max(reached.value, completed.value + exits);
   if (exits) items.push({ label: 'Exited here', value: exits });
   return items;
 }

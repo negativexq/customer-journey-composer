@@ -57,7 +57,7 @@ func registerAnalytics(api huma.API, pool *pgxpool.Pool) {
 	})
 	huma.Get(api, "/api/v1/overview/activity", func(ctx context.Context, _ *struct{}) (*Result[map[string]any], error) {
 		// Bounded current/error lists use metadata indexes. Counts come from projections.
-		return jsonRow[map[string]any](pool.QueryRow(ctx, `SELECT jsonb_build_object('recent_executions',COALESCE((SELECT jsonb_agg(to_jsonb(e)) FROM (SELECT id,journey_id,customer_id,state,current_node_id,started_at FROM journey_executions WHERE workspace_id=$1 ORDER BY started_at DESC,id DESC LIMIT 10)e),'[]'::jsonb),'failed_executions',COALESCE((SELECT jsonb_agg(to_jsonb(e)) FROM (SELECT id,journey_id,customer_id,state,current_node_id,updated_at FROM journey_executions WHERE workspace_id=$1 AND state='FAILED' ORDER BY updated_at DESC,id DESC LIMIT 10)e),'[]'::jsonb))`, who(ctx).WorkspaceID))
+		return jsonRow[map[string]any](pool.QueryRow(ctx, `SELECT jsonb_build_object('recent_executions',COALESCE((SELECT jsonb_agg(to_jsonb(e)) FROM (SELECT id,journey_id,customer_id,state,exit_reason,current_node_id,started_at FROM journey_executions WHERE workspace_id=$1 ORDER BY started_at DESC,id DESC LIMIT 10)e),'[]'::jsonb),'failed_executions',COALESCE((SELECT jsonb_agg(to_jsonb(e)) FROM (SELECT id,journey_id,customer_id,state,current_node_id,updated_at FROM journey_executions WHERE workspace_id=$1 AND state='FAILED' ORDER BY updated_at DESC,id DESC LIMIT 10)e),'[]'::jsonb))`, who(ctx).WorkspaceID))
 	})
 }
 func analyticsTrend(ctx context.Context, pool *pgxpool.Pool, journey string, days int) (*Result[map[string]any], error) {

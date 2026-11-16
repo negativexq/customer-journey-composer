@@ -2,6 +2,7 @@
 import SegmentedControl from './ui/SegmentedControl.vue';
 import EmptyState from './ui/EmptyState.vue';
 import { errorMessage, plural } from '../lib/format';
+import { reasonLabel } from '../lib/insights';
 import { computed, onMounted, ref } from 'vue';
 import { api, type Journey } from '../lib/api';
 import AppIcon from './ui/AppIcon.vue';
@@ -23,12 +24,22 @@ type Activity = {
   journey_id: string;
   customer_id: string;
   state: string;
+  exit_reason?: string;
   started_at?: string;
   updated_at?: string;
 };
 const metrics = ref<Metric[]>([]);
 const daily = ref<Daily[]>([]);
 const recent = ref<Activity[]>([]);
+// The same outcome words as Analytics, instead of the raw execution state.
+const outcome = (e: Activity) =>
+  e.exit_reason
+    ? reasonLabel(e.exit_reason)
+    : e.state === 'FAILED'
+      ? 'Failed'
+      : ['COMPLETED', 'EXITED', 'CANCELLED'].includes(e.state)
+        ? e.state[0] + e.state.slice(1).toLowerCase()
+        : 'In progress';
 const failed = ref<Activity[]>([]);
 const updated = ref('');
 const entries24 = ref(0);
@@ -97,7 +108,6 @@ onMounted(() => void load());
   <section class="overview-dashboard" :aria-busy="busy">
     <div class="page-heading">
       <div>
-        <p class="eyebrow">Workspace overview</p>
         <h1>{{ greeting }}, {{ name.split(' ')[0] }}<span class="greeting-dot">.</span></h1>
         <p class="page-description">Manage your journeys and follow every customer moment.</p>
       </div>
@@ -186,9 +196,12 @@ onMounted(() => void load());
             /></span>
             <div>
               <strong>{{ c === 'email' ? 'Email' : 'SMS' }}</strong
-              ><small>{{ value('channel', 'scheduled', c) }} logical message plans</small>
+              ><small>{{ plural(value('channel', 'scheduled', c), 'planned message') }}</small>
             </div>
-            <b>{{ value('channel', 'ACCEPTED', c) }}</b>
+            <b
+              >{{ value('channel', 'ACCEPTED', c) }}
+              <small class="channel-accepted-label">accepted</small></b
+            >
           </div>
           <div class="channel-progress">
             <span
@@ -271,7 +284,7 @@ onMounted(() => void load());
             ><AppIcon :name="e.state === 'COMPLETED' ? 'check' : 'zap'" :size="13" /></span
           ><span
             ><strong>{{ e.customer_id }}</strong
-            ><small>{{ journeyName(e.journey_id) }} · {{ e.state.toLowerCase() }}</small></span
+            ><small>{{ journeyName(e.journey_id) }} · {{ outcome(e) }}</small></span
           ><time>{{ shortTime(e.started_at) }}</time>
         </button>
         <div v-if="failed.length" class="inline-alert">

@@ -1250,7 +1250,6 @@ function setAttribute(value: string) {
           ><AppIcon :name="iconFor[selected.data.kind]" :size="18"
         /></span>
         <div>
-          <span class="inspector-eyebrow">STEP SETTINGS</span>
           <h2>{{ labels[selected.data.kind] }}</h2>
         </div>
         <button class="icon-button" aria-label="Close step settings" @click="selectedID = ''">

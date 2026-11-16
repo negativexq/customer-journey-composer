@@ -290,6 +290,20 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Consistent labels and counts — 2026-11-17
+
+The fifth group from the design review.
+
+- Small uppercase labels above headings were removed from Overview, Customers, Events, Settings, Test Inbox, the sign-in page, the publish review, the activity drawer and step settings. They repeated the heading below them in mixed casing. The AI panel's "START WITH A BRIEF" reads "Example brief". The unused `.eyebrow` and `.inspector-eyebrow` rules are gone.
+- On the Northstar journey the start step said "Reached 12" while the journey had 14 entries. Two purchases arrived before the start step ran, so those executions ended on the trigger and showed as "Exited here 2" without being counted as reaching it. A step's Reached count is now at least its completed plus exited count, so the start step reads 14.
+- Overview's recent entries showed the raw state ("completed") where Analytics says "Completed without conversion". The overview activity query now returns `exit_reason`, and the row uses the same outcome labels as Analytics.
+- Overview's channel cards showed a bare "11" next to "12 logical message plans". They now read "12 planned messages" and "11 accepted".
+
+Verified locally:
+
+- The rebuilt Overview, workspace Analytics and journey Analytics on the Northstar demo: entries 14, start step reached 14 (12 completed, 2 exited), recent rows "Completed without conversion", channel cards "12 planned messages · 11 accepted" and "9 · 8".
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `make test-integration`, `git diff --check`, and the full `npx playwright test` (104 passed).
+
 ## Journey editor header — 2026-11-17
 
 The fourth group from the design review: the header showed Active, Editing draft and Latest published v1 side by side, gave six actions the same weight, and kept Publish as the primary button when publishing would change nothing.

@@ -66,7 +66,6 @@ async function submit() {
       ><span>journey<span class="brand-subtitle">COMPOSER</span></span></a
     >
     <div class="auth-intro">
-      <p class="eyebrow">AI-GENERATED. HUMAN-APPROVED.</p>
       <h1>Build journeys. Make connections.</h1>
       <p>Design, test, and follow every customer experience.</p>
     </div>

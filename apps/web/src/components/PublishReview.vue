@@ -105,7 +105,6 @@ onBeforeUnmount(() => controller?.abort());
   >
     <header>
       <div>
-        <span class="eyebrow">PUBLISH / PREFLIGHT</span>
         <h2 id="publish-review-title">Review before publishing</h2>
         <p>{{ name }} · draft revision {{ revision }}</p>
       </div>

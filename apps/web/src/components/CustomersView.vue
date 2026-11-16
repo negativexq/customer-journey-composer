@@ -249,7 +249,6 @@ onMounted(() => {
 <template>
   <div class="page-heading">
     <div>
-      <p class="eyebrow">YOUR AUDIENCE</p>
       <h1>Customers</h1>
       <p class="page-description">
         Pick a person to see the route they took, what they received and what they did.

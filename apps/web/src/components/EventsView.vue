@@ -49,7 +49,6 @@ onMounted(load);
 <template>
   <div class="page-heading">
     <div>
-      <p class="eyebrow">CUSTOMER MOMENTS</p>
       <h1>Events</h1>
       <p class="page-description">
         Inspect incoming activity and follow each entry into a journey.

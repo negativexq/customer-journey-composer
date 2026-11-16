@@ -21,7 +21,6 @@ onMounted(sync);
   >
     <header>
       <div>
-        <span class="eyebrow">ACTIVITY INSPECTOR</span>
         <h2 id="detail-drawer-title">{{ title }}</h2>
       </div>
       <button class="icon-button" aria-label="Close activity inspector" @click="emit('close')">

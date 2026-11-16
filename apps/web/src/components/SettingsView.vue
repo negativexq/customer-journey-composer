@@ -139,7 +139,6 @@ onMounted(() => {
 <template>
   <div class="page-heading">
     <div>
-      <p class="eyebrow">WORKSPACE</p>
       <h1>Settings</h1>
       <p class="page-description">
         Sending rules, your data, people and access for this workspace.
