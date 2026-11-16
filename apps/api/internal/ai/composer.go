@@ -325,6 +325,7 @@ func (c *Composer) Compose(ctx context.Context, in Input) (proposal Proposal, er
 						if renderErr != nil {
 							lastIssues = append(lastIssues, workflow.Issue{NodeID: node.ID, Field: "content", Message: renderErr.Error()})
 						}
+						lastIssues = append(lastIssues, messaging.LabelIssues(node)...)
 					}
 					if len(lastIssues) == 0 {
 						lastIssues = factIssues(in, proposal.Workflow, in.NodeID)

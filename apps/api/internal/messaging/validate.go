@@ -15,6 +15,7 @@ func ValidateWorkflow(w workflow.Workflow) []workflow.Issue {
 		if err != nil {
 			issues = append(issues, workflow.Issue{NodeID: node.ID, Field: "content", Message: err.Error()})
 		}
+		issues = append(issues, LabelIssues(node)...)
 		// An SMS that drops its code, or a message showing a code nobody set,
 		// costs the campaign its point.
 		uses := UsesVariable(node.Config, DiscountCode)

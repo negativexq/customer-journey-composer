@@ -249,3 +249,25 @@ func TestCorrelatedExitSharedProviderSchema(t *testing.T) {
 		})
 	}
 }
+
+// Told to invent no code, a live model left "Gift code:" with nothing after it.
+// The empty label sends the message back for repair.
+func TestMessageWithAnEmptyLabelIsRepaired(t *testing.T) {
+	message := func(text string) string {
+		return `{"subject":"Happy birthday","preheader":"A gift","html":"<p>` + strings.ReplaceAll(text, "\n", "</p><p>") + `</p>","text":"` + strings.ReplaceAll(text, "\n", `\n`) + `","fallbacks":[],"explanation":"A birthday email.","warnings":[]}`
+	}
+	provider := &sequence{outputs: []string{message("Happy birthday!\nYour gift code:"), message("Happy birthday! A gift is waiting for you.")}}
+	composer, _ := New(map[string]Provider{"claude": provider})
+	flow := workflow.Workflow{SchemaVersion: 1, Nodes: []workflow.Node{{ID: "message", Type: "email", Label: "Birthday", Config: workflow.Config{Subject: "Old", Text: "Old"}}}, Edges: []workflow.Edge{}}
+	proposal, err := composer.Compose(context.Background(), Input{BehaviorChecks: reviewedEmptyChecks(), Provider: "claude", Action: "improve_message", Prompt: "Add a gift", Workflow: flow, NodeID: "message"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := proposal.Generation.Attempts[0]
+	if provider.calls != 2 || first.Accepted || first.Validation.Message != 2 || !strings.Contains(first.Issues[0].Message, `"Your gift code:" introduces nothing`) {
+		t.Fatalf("calls %d, first attempt %+v", provider.calls, first)
+	}
+	if !strings.Contains(provider.prompts[1], "introduces nothing") {
+		t.Fatal("the repair prompt must name the empty label")
+	}
+}

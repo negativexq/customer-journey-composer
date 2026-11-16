@@ -290,6 +290,21 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Empty message labels — 2026-11-16
+
+In the live check a birthday email ended with "Mağazaya dönmek için:" and "Hediye kodun:" and nothing after them: the brief gave no link or code, and the model rightly invented none, but left the labels.
+
+- A message line that ends with a colon and is followed by nothing, or only by another such line, is now a message issue: `"Hediye kodun:" introduces nothing; add what it announces or remove the line`. Text and HTML are both checked. A list, link or `{{ offer.code }}` after the label counts as content, and so does the email's discount code box.
+- The check is part of `messaging.ValidateWorkflow`, so AI journey proposals are sent back for repair, and the editor's validation and the publish check report it. "Write a message" and "Improve a message" check it too.
+
+Verified locally:
+
+- `TestDanglingLabel`, `TestEmptyLabelIsAMessageIssue` and `TestMessageWithAnEmptyLabelIsRepaired`: the first attempt is refused with the label named, and the repair prompt carries it.
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`; existing templates, the showcase and the EUR recovery catalog still validate.
+- `npx playwright test --workers=2` against the rebuilt API: the first run, started as the API container restarted, had 12 failures; a second full run passed 104 of 104, and the before/after test passed 10 of 10 repeats.
+
+Not covered: not tried with a live model.
+
 ## Live verification of the latest AI changes — 2026-11-16
 
 The user asked to verify the open items except Claude. The API ran with `AI_PROVIDER=openai` and `gpt-6-luna`. The key was passed only to the `docker compose` process, and the API went back to `disabled` with no key afterwards. No proposal was applied; the test journeys are unchanged.
@@ -302,7 +317,7 @@ The user asked to verify the open items except Claude. The API ran with `AI_PROV
 
 New findings, not fixed:
 
-- The birthday email kept the labels "Mağazaya dönmek için:" and "Hediye kodun:" with nothing after them, because the brief gave no link or code. Nothing flags an empty label like this.
+- The birthday email kept the labels "Mağazaya dönmek için:" and "Hediye kodun:" with nothing after them, because the brief gave no link or code. Nothing flags an empty label like this. Fixed in "Empty message labels".
 - "Explain the journey" returned a warning about the provider schema ("fallbacks … {path,value} dizisi"), which a marketer cannot act on.
 
 ## AI changes show before and after — 2026-11-16
