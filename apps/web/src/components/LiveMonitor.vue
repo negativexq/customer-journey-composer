@@ -1330,8 +1330,10 @@ onBeforeUnmount(() => {
       <div v-if="mode === 'analytics'" class="observe-analytics-bottom">
         <section class="surface">
           <div class="surface-heading">
-            <h3>Step reach · workflow order</h3>
-            <p>Alternative branches are not sequential drop-off.</p>
+            <div>
+              <h3>Step reach</h3>
+              <p>In workflow order. Customers on another branch did not drop off.</p>
+            </div>
           </div>
           <div class="table-scroll">
             <table>
@@ -1422,7 +1424,7 @@ onBeforeUnmount(() => {
             </thead>
             <tbody>
               <tr v-for="c in ['email', 'sms']" :key="c">
-                <td>{{ c.toUpperCase() }}</td>
+                <td>{{ c === 'sms' ? 'SMS' : 'Email' }}</td>
                 <td>
                   <button class="metric-link" @click="browseChannel(c, '')">
                     {{ value('channel', 'scheduled', c) }}

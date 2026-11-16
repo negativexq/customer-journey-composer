@@ -13,7 +13,7 @@ const props = defineProps<{ workflow: Workflow; insights: Insights }>();
 const emit = defineEmits<{ branch: [{ node: string; port: string }]; step: [string] }>();
 const frame = ref<HTMLDivElement>();
 const available = ref(960);
-const height = 300;
+const height = 220;
 const barWidth = 10;
 let observer: ResizeObserver | undefined;
 onMounted(() => {
@@ -51,6 +51,38 @@ const linkText = (link: FlowLink) =>
 const nodeText = (node: FlowNode) =>
   `${node.label}: ${plural(node.value, 'customer')} (${percent(flow.value.total ? node.value / flow.value.total : 0)} of entries)`;
 
+// Customers who reached a step but took none of its connections ended there: the run exited,
+// reached the goal or is still waiting. Exit steps end every run, so they are not marked.
+const leftHere = computed(() =>
+  flow.value.nodes
+    .filter((node) => node.type !== 'exit')
+    .map((node) => ({
+      node,
+      left:
+        node.value -
+        flow.value.links
+          .filter((link) => link.source === node.id)
+          .reduce((sum, link) => sum + link.value, 0),
+    }))
+    .filter((entry) => entry.left > 0),
+);
+// A band leaving a branching step is named after its branch, in the middle of the band where
+// it bends, clear of the step labels at either end.
+const branchLabels = computed(() =>
+  flow.value.links
+    .filter((link) => branching(link.source))
+    .map((link) => {
+      // The path is "M x0,top C bend,top bend,bottom x1,bottom L x1,bottom+thickness ...".
+      const [, top, bend, , , , , bottom, , end] = (link.path.match(/-?[\d.]+/g) || []).map(Number);
+      const thickness = (end ?? 0) - (bottom ?? 0);
+      return {
+        id: link.id,
+        x: bend ?? 0,
+        y: ((top ?? 0) + (bottom ?? 0)) / 2 + thickness / 2 + 4,
+        text: `${portLabel(link.port)} · ${link.value}`,
+      };
+    }),
+);
 const hovered = ref('');
 const tip = ref<{ text: string; x: number; y: number }>();
 function show(event: MouseEvent, key: string, text: string) {
@@ -73,8 +105,8 @@ function hide() {
       <div>
         <h3>Customer paths</h3>
         <p>
-          Bar height is customers who reached a step; band width is customers who took that
-          connection. Select a band to list them.
+          Each bar is a step, as tall as the customers who reached it. Bands show where they went
+          next. Select a bar or a band to list those customers.
         </p>
       </div>
     </div>
@@ -84,8 +116,8 @@ function hide() {
     <div v-else ref="frame" class="path-flow-frame" @mouseleave="hide">
       <svg
         :width="width"
-        :height="height + 28"
-        :viewBox="`0 -14 ${width} ${height + 28}`"
+        :height="height + 44"
+        :viewBox="`0 -14 ${width} ${height + 44}`"
         role="group"
         aria-label="Flow of customers between steps"
       >
@@ -140,6 +172,25 @@ function hide() {
             {{ node.value }} · {{ percent(flow.total ? node.value / flow.total : 0) }}
           </text>
         </g>
+        <text
+          v-for="label in branchLabels"
+          :key="'b' + label.id"
+          :x="label.x"
+          :y="label.y"
+          class="flow-branch"
+          aria-hidden="true"
+        >
+          {{ label.text }}
+        </text>
+        <text
+          v-for="entry in leftHere"
+          :key="'x' + entry.node.id"
+          :x="entry.node.x"
+          :y="entry.node.y + entry.node.height + 16"
+          class="flow-left"
+        >
+          {{ entry.left }} left the journey here
+        </text>
       </svg>
       <p
         v-if="tip"
@@ -190,6 +241,26 @@ svg {
 .flow-step:focus-visible {
   outline: 2px solid var(--accent-text);
   outline-offset: 2px;
+}
+.flow-label,
+.flow-value,
+.flow-branch {
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+.flow-branch {
+  text-anchor: middle;
+  fill: var(--accent-text-strong);
+  font-size: 11px;
+  font-weight: 600;
+  pointer-events: none;
+}
+.flow-left {
+  fill: var(--muted);
+  font-size: 11px;
+  font-style: italic;
 }
 .flow-label {
   fill: var(--text);

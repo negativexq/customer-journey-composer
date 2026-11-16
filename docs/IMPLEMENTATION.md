@@ -290,6 +290,18 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Customer paths and section heading spacing — 2026-11-17
+
+- Customer paths was hard to read. Where customers stop at a step without continuing, the chart now says "N left the journey here" under the bar. Before, 12 → 9 at "Wait for purchase" showed nothing for the 3. Bands leaving a branching step carry their branch name and count in the middle of the band ("Timeout · 9"). Labels have a background halo so they read over bands, the chart is 220px tall instead of 300, and the caption is plainer.
+- Section headings had 20px above and nothing below, so tables and lists started right under the title (Step reach, Journey outcomes, Channel performance and other sections). `.surface-heading` now has 16px below; places that set their own padding keep it.
+- "Step reach · workflow order" is a stacked heading, "Step reach", with the note under it. Channel cells read "Email" and "SMS" instead of all caps.
+- `journey-insights.spec.ts` follows the new heading.
+
+Verified locally:
+
+- Journey analytics, the overview and workspace analytics were checked by eye at 1280×900.
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`, and the full `npx playwright test` (104 passed).
+
 ## Test Inbox rows and canvas keyboard focus — 2026-11-17
 
 - In the Test Inbox list, the status badge wrapped into the icon column, so the icon column grew to the badge's width and pushed the text away from the icon. The badge now sits under the text. The channel name is bold and colour-coded: Email violet, SMS blue.

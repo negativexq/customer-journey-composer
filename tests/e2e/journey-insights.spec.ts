@@ -230,9 +230,7 @@ test('journey breakdowns preserve version, reveal blocked recipients and paginat
   ).toContainText('Version 1');
   await page.getByRole('combobox', { name: 'Entry period', exact: true }).click();
   await page.getByRole('option', { name: 'Last 7 days', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: 'Step reach · workflow order', exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Step reach', exact: true })).toBeVisible();
   const steps = page.getByRole('table').first().locator('tbody tr');
   await expect(steps.first()).toContainText('Cart updated');
   await expect(steps.last()).toContainText('Completed');
