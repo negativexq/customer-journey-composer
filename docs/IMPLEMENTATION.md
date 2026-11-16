@@ -290,6 +290,24 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## AI changes show before and after — 2026-11-16
+
+In the live check the model was told to "change nothing else" and still moved the order wait from 2 to 1 hour and another wait from 24 to 25 hours. The panel listed the steps as "Updated nodes" only, and the step label changed with the value, so the change was easy to miss.
+
+- A proposal for an existing journey lists each changed step with its old and new setting, for example "Wait 2 hours → Wait 1 hour", and "Renamed from …" when the label changed. It reuses the version comparison.
+- When timing, conditions or other non-message settings change, a warning names the steps and "I reviewed the warnings and assumptions" must be ticked before Apply. A rewritten email or SMS, or a rename alone, does not ask for this.
+- Durations read in the largest whole unit: 90,000 s is "25 hours", not "1.0416666666666667 days". This also changes the canvas and Test Lab captions.
+
+The panel does not tell which changes were asked for; it shows every change and asks a person to confirm the ones that change behavior.
+
+Verified locally:
+
+- `scripts/proposal-review.test.mjs`: three tests for the change lines, which changes need confirmation, and duration labels.
+- New Playwright test in `tests/e2e/ai.spec.ts`: a change that shortens a wait shows "Wait 2 hours → Wait 1 hour" and the warning, and Apply stays disabled until the box is ticked. A screenshot of the panel at mobile width was checked by eye.
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`. `npx playwright test --workers=2` against the rebuilt web: 104 passed.
+
+Not covered: not tried with a live model.
+
 ## Longer AI provider timeout — 2026-11-16
 
 A live "Change this journey" request failed after 45 s with "AI provider failed or returned an incomplete response". Each provider call had 45 s, so that two attempts fit the 90 s request budget and the web client's 90 s wait.
@@ -331,7 +349,7 @@ Live check, same day, with the user's approval: the API ran with `AI_PROVIDER=op
 New findings, not fixed:
 
 - The first try of that request failed with "AI provider failed or returned an incomplete response". The audit record shows `provider_request_failed` after 45,002 ms: the provider client has a fixed 45 s timeout (`internal/ai/providers.go`). The retry took 31 s and 24 s. Fixed in the next entry.
-- Asked to "change nothing else", the model still moved the order wait from 2 to 1 hour and the later wait from 24 to 25 hours. The contract passed, and the diff listed the nodes, so a reviewer can see it.
+- Asked to "change nothing else", the model still moved the order wait from 2 to 1 hour and the later wait from 24 to 25 hours. The contract passed, and the diff listed the nodes, so a reviewer can see it. Addressed in "AI changes show before and after".
 
 ## Coded journeys can be approved — 2026-11-16
 

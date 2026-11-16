@@ -2027,6 +2027,25 @@ tbody tr:hover {
   border-radius: 7px;
   padding: 12px;
 }
+.step-changes h5 {
+  margin: 10px 0 6px;
+  font-size: 12px;
+}
+.step-changes ul {
+  margin: 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 6px;
+}
+.step-changes li {
+  display: grid;
+  gap: 2px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.step-changes span {
+  color: var(--muted);
+}
 .acknowledge {
   display: flex;
   align-items: flex-start;

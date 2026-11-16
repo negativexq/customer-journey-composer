@@ -14,15 +14,20 @@ export const portLabel = (port: string) =>
   )[port] ||
   (port === 'else' ? 'Otherwise' : port.startsWith('case_') ? `Branch ${port.slice(5)}` : 'Next');
 
+const units: [number, string][] = [
+  [86400, 'day'],
+  [3600, 'hour'],
+  [60, 'minute'],
+  [1, 'second'],
+];
+// The largest unit that divides the duration, so 90000 s reads "25 hours",
+// not "1.0416666666666667 days". Uneven durations round to two decimals.
 export function durationLabel(seconds: number) {
-  const [amount, unit] =
-    seconds >= 86400
-      ? [seconds / 86400, 'day']
-      : seconds >= 3600
-        ? [seconds / 3600, 'hour']
-        : seconds >= 60
-          ? [seconds / 60, 'minute']
-          : [seconds, 'second'];
+  const [size, unit] =
+    units.find(([size]) => seconds >= size && seconds % size === 0) ||
+    units.find(([size]) => seconds >= size) ||
+    units.at(-1)!;
+  const amount = Math.round((seconds / size) * 100) / 100;
   return `${amount} ${unit}${amount === 1 ? '' : 's'}`;
 }
 

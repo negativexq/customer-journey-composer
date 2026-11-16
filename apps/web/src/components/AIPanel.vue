@@ -11,6 +11,7 @@ import BehaviorChecksEditor from './BehaviorChecksEditor.vue';
 import BehaviorChecksSummary from './BehaviorChecksSummary.vue';
 import { behaviorChecksReady } from '../lib/behavior-checks';
 import { layoutGeneratedWorkflow } from '../lib/generated-layout';
+import { proposalChanges } from '../lib/proposal-review';
 import type { Workflow, BehaviorChecks } from '../lib/workflow';
 const props = defineProps<{
   workflow: Workflow;
@@ -231,10 +232,21 @@ async function compose() {
     broadcast();
   }
 }
-// Warnings and what the request asked but the draft left out both need a look.
+// Changes to steps that already exist, before → after. A new journey has none.
+const review = computed(() =>
+  proposal.value && changed.value && action.value !== 'generate'
+    ? proposalChanges(props.workflow, proposal.value.workflow)
+    : { changed: [], behavior: [] },
+);
+// Warnings, what the request asked but the draft left out, and changed step
+// settings all need a look: the model can change more than it was asked.
 const needsAcknowledgement = computed(
   () =>
-    !!proposal.value && proposal.value.warnings.length + (proposal.value.not_done?.length ?? 0) > 0,
+    !!proposal.value &&
+    proposal.value.warnings.length +
+      (proposal.value.not_done?.length ?? 0) +
+      review.value.behavior.length >
+      0,
 );
 async function apply() {
   if (
@@ -474,6 +486,19 @@ onBeforeUnmount(() => {
             Changed messages: {{ proposal.diff.changed_messages.map(label).join(', ') || 'None' }}
           </p>
           <p v-if="proposal.diff.behavior_checks_changed">Independent behavior checks changed</p>
+          <section
+            v-if="review.changed.length"
+            class="step-changes"
+            aria-labelledby="ai-step-changes"
+          >
+            <h5 id="ai-step-changes">What changes in existing steps</h5>
+            <ul>
+              <li v-for="item in review.changed" :key="item.step.id">
+                <strong>{{ item.step.label }}</strong>
+                <span v-for="line in item.changes" :key="line">{{ line }}</span>
+              </li>
+            </ul>
+          </section>
           <p v-if="proposal.diff.edges_changed">Connections changed</p>
           <p v-if="proposal.diff.exit_changed">Global exit changed</p>
           <p v-if="proposal.diff.reentry_changed">Re-entry policy changed</p>
@@ -507,7 +532,13 @@ onBeforeUnmount(() => {
           <li v-for="note in proposal.not_done" :key="note">{{ note }}</li>
         </ul>
       </section>
-      <ul v-if="proposal.warnings.length">
+      <ul v-if="proposal.warnings.length || review.behavior.length">
+        <li v-if="review.behavior.length" class="warning-message">
+          Timing, conditions or other settings change in
+          {{ review.behavior.length === 1 ? '1 step' : review.behavior.length + ' steps' }}:
+          {{ review.behavior.map((item) => item.step.label).join(', ') }}. Check each change above
+          is one you asked for; the AI can change more than requested.
+        </li>
         <li v-for="warning in proposal.warnings" :key="warning" class="warning-message">
           {{ warning }}
         </li>

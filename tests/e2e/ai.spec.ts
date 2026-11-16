@@ -444,3 +444,78 @@ test('a failed composition restore cannot overwrite the saved brief', async ({ p
     'This saved text must survive a read outage',
   );
 });
+
+test('a change shows each step setting before and after and asks to confirm timing', async ({
+  page,
+}) => {
+  await setup(page);
+  const step = (id: string, type: string, label: string, config: object, y: number) => ({
+    id,
+    type,
+    label,
+    position: { x: 0, y },
+    config,
+  });
+  const timed = (hours: number) => ({
+    schema_version: 1,
+    nodes: [
+      step('start', 'event_trigger', 'Cart updated', { event_name: 'cart_updated' }, 0),
+      step(
+        'pause',
+        'wait',
+        `Wait ${hours} hour${hours === 1 ? '' : 's'}`,
+        { duration_seconds: hours * 3600 },
+        180,
+      ),
+      step('done', 'exit', 'Complete', { reason: 'completed' }, 360),
+    ],
+    edges: [
+      { id: 'e1', source: 'start', target: 'pause', port: 'started' },
+      { id: 'e2', source: 'pause', target: 'done', port: 'completed' },
+    ],
+  });
+  const draft = { ...fixture, warnings: [], workflow: timed(2) };
+  await page.route('**/api/v1/ai/journeys/generate/stream', (route) =>
+    route.fulfill({
+      contentType: 'text/event-stream',
+      body: `data: ${JSON.stringify({ type: 'ready', proposal: draft })}\n\n`,
+    }),
+  );
+  await page.getByRole('button', { name: 'Compose proposal', exact: true }).click();
+  await page.getByRole('button', { name: 'Apply proposal', exact: true }).click();
+  await expect(page.locator('.vue-flow__node')).toHaveCount(3);
+
+  // Asked for something else, the model also shortened the wait.
+  const changed = {
+    ...draft,
+    action: 'modify',
+    workflow: timed(1),
+    diff: { ...fixture.diff, metadata_changed: false, added_nodes: [], updated_nodes: ['pause'] },
+  };
+  await page.route('**/api/v1/ai/journeys/modify/stream', (route) =>
+    route.fulfill({
+      contentType: 'text/event-stream',
+      body: `data: ${JSON.stringify({ type: 'ready', proposal: changed })}\n\n`,
+    }),
+  );
+  await page.getByRole('combobox', { name: 'Action', exact: true }).click();
+  await page.getByRole('option', { name: 'Change this journey' }).click();
+  await page
+    .getByLabel('What should happen?', { exact: true })
+    .fill('Rename the exit. Change nothing else.');
+  const region = page.getByRole('region', { name: 'Independent behavior checks', exact: true });
+  const reviewed = region.getByLabel('I reviewed these expectations and the synthetic example.', {
+    exact: true,
+  });
+  if (!(await reviewed.isChecked())) await reviewed.check();
+  await page.getByRole('button', { name: 'Compose proposal', exact: true }).click();
+  const changes = page.getByRole('region', { name: 'What changes in existing steps' });
+  await expect(changes).toContainText('Renamed from “Wait 2 hours”');
+  await expect(changes).toContainText('Wait 2 hours → Wait 1 hour');
+  await expect(page.locator('.ai-proposal')).toContainText(
+    'Timing, conditions or other settings change in 1 step: Wait 1 hour.',
+  );
+  await expect(page.getByRole('button', { name: 'Apply proposal', exact: true })).toBeDisabled();
+  await page.getByLabel('I reviewed the warnings and assumptions').check();
+  await expect(page.getByRole('button', { name: 'Apply proposal', exact: true })).toBeEnabled();
+});
