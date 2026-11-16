@@ -1,6 +1,6 @@
 {
-  "captured_at": "2026-11-16T16:46:07.470Z",
-  "source_commit": "79f0daba41d473a971031d58b5b7d72a00dcd2a8",
+  "captured_at": "2026-11-16T17:08:13.957Z",
+  "source_commit": "72be5f07b8fb179edb30ca6bf71d18d7893eadc9",
   "source_dirty": true,
   "viewport": {
     "width": 1280,
@@ -23,13 +23,13 @@
       "file": "docs/images/creation/brief.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 290223
+      "bytes": 296892
     },
     {
       "file": "docs/images/creation/contract.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 263249
+      "bytes": 259130
     },
     {
       "file": "docs/images/creation/generating.png",
@@ -62,5 +62,5 @@
       "bytes": 319872
     }
   ],
-  "journey_id": "dec05849-f3a3-426f-9e49-cf3df34a0ab3"
+  "journey_id": "1b3fc475-becc-426e-965c-54a9efe04501"
 }

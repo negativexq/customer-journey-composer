@@ -14,6 +14,8 @@ import AppIcon from './AppIcon.vue';
 defineProps<{
   modelValue: string;
   label: string;
+  // Shorter visible text when the accessible label must name the row, e.g. "Field".
+  caption?: string;
   options: { value: string; label: string }[];
   disabled?: boolean;
 }>();
@@ -26,7 +28,7 @@ const emit = defineEmits<{ 'update:modelValue': [string] }>();
     @update:model-value="emit('update:modelValue', String($event))"
     ><SelectTrigger class="scope-select-trigger" :aria-label="label"
       ><span
-        ><small>{{ label }}</small
+        ><small>{{ caption || label }}</small
         ><SelectValue>{{
           options.find((option) => option.value === (modelValue || 'all'))?.label
         }}</SelectValue></span

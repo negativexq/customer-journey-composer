@@ -4751,6 +4751,37 @@ td {
   text-align: left;
   line-height: 1.5;
 }
+.brief-examples button {
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+  background: var(--surface);
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    box-shadow 0.15s;
+}
+.brief-examples button:hover {
+  box-shadow: 0 4px 12px #6650e814;
+}
+.brief-example-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.brief-example-text {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.brief-examples button strong {
+  font-size: 13px;
+  color: var(--text);
+}
 .brief-examples button small {
   font-size: 12px;
   font-weight: 400;
@@ -5636,45 +5667,374 @@ fieldset.scenario-form {
 }
 
 .behavior-checks {
-  padding: 16px;
+  padding: 22px;
   margin: 16px 0;
 }
-.behavior-checks h3,
-.behavior-checks h4 {
-  margin: 0 0 8px;
-}
 .behavior-checks fieldset {
+  display: grid;
+  gap: 16px;
   border: 0;
   padding: 0;
+  margin: 0;
   min-width: 0;
+}
+.behavior-checks h3,
+.behavior-checks h4,
+.behavior-checks h5 {
+  margin: 0;
+}
+.behavior-checks h4 {
+  font-size: 14px;
+  color: var(--text);
+}
+/* The creation page spaces its own labels; inside the contract the grid does. */
+.creation-surface .behavior-checks label {
+  margin: 0;
+}
+.behavior-checks .help-text {
+  margin: 3px 0 0;
+}
+.contract-head {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+.contract-head p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.contract-head-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+/* One numbered card per part of the contract. */
+/* Parts of the contract are sections on one surface, divided rather than boxed. */
+.contract-block {
+  display: grid;
+  gap: 14px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.behavior-checks fieldset > .contract-block:first-child,
+.behavior-checks fieldset > button + .contract-block {
+  padding-top: 0;
+  border-top: 0;
+}
+.contract-block-head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.contract-step {
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+/* The one tinted panel: what the journey must do. */
+.behavior-checks .contract-expect {
+  padding: 18px;
+  border: 1px solid var(--violet-89);
+  border-radius: 10px;
+  background: var(--violet-97);
+}
+.contract-expect .contract-step {
+  background: var(--accent);
+  color: var(--on-solid);
+}
+.contract-expect .behavior-checks-grid {
+  margin: 0;
+}
+/* Channel consent as two switches with the channel's icon. */
+.consent-toggles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.behavior-checks .consent-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.consent-toggle:hover {
+  border-color: var(--gray-85);
+}
+.consent-toggle.on {
+  border-color: var(--violet-85);
+  background: var(--violet-97);
+}
+.consent-toggle input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.consent-toggle:has(input:focus-visible) {
+  outline: 3px solid var(--violet-78);
+  outline-offset: 2px;
+}
+.consent-toggle-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--gray-95);
+  color: var(--gray-55);
+}
+.consent-toggle.on .consent-toggle-icon {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.consent-toggle-text {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.consent-toggle-text strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.consent-toggle-text small {
+  font-size: 12px;
+  color: var(--muted);
+}
+.switch {
+  position: relative;
+  flex: 0 0 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--gray-85);
+  transition: background 0.15s;
+}
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--on-solid);
+  box-shadow: 0 1px 2px #0000002e;
+  transition: transform 0.15s;
+}
+.consent-toggle.on .switch {
+  background: var(--accent);
+}
+.consent-toggle.on .switch::after {
+  transform: translateX(14px);
+}
+.contract-subhead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.contract-subhead h5 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.contract-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--gray-95);
+  color: var(--gray-49);
+  font-size: 11px;
+  font-weight: 600;
+}
+.contract-empty {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px dashed var(--gray-90);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.contract-rows {
+  display: grid;
+  gap: 8px;
+}
+/* A condition reads as a sentence: if <field> <comparison> <value>. */
+.contract-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 0.9fr) 36px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border-radius: 9px;
+  background: var(--gray-96);
+}
+.contract-row .scope-select-trigger {
+  min-width: 0;
+  width: 100%;
+}
+.contract-join {
+  justify-self: center;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent-text-strong);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+/* An input dressed like the selects beside it: caption inside the box. */
+.behavior-checks .field-box {
+  display: grid;
+  gap: 3px;
+  min-height: 42px;
+  padding: 7px 11px;
+  border: 1px solid var(--gray-91);
+  border-radius: 7px;
+  background: var(--surface);
+  cursor: text;
+}
+.field-box:focus-within {
+  border-color: var(--violet-77);
+  box-shadow: 0 0 0 3px #b5a8ec12;
+}
+.field-box small {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.field-box input {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font-size: 14px;
+  color: var(--text);
+}
+.field-box input:focus {
+  box-shadow: none;
+}
+.field-box input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+}
+.behavior-checks .contract-remove {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  color: var(--gray-55);
+}
+.contract-remove:hover {
+  color: var(--red-49-text);
+  background: var(--red-96);
+  border-color: var(--red-92);
+}
+.behavior-checks .contract-add {
+  justify-self: start;
+  border-style: dashed;
+  border-color: var(--violet-85);
+  background: var(--surface);
+  color: var(--accent-text);
+}
+.behavior-checks .contract-add:hover:not(:disabled) {
+  background: var(--violet-97);
+  border-color: var(--accent);
+}
+.contract-add-wide {
+  justify-self: stretch !important;
+  min-height: 42px;
 }
 .behavior-checks-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
-  margin: 12px 0;
 }
-.behavior-threshold-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
-  gap: 8px;
-  align-items: end;
-  margin: 10px 0;
+.contract-event-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.link-button.danger-link {
+  color: var(--red-49-text);
 }
 .behavior-checks details {
-  margin: 14px 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.contract-event details {
+  padding-top: 0;
+  border-top: 0;
+}
+.behavior-checks details summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.behavior-checks details[open] summary {
+  margin-bottom: 10px;
 }
 .behavior-checks .behavior-confirm {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
+  padding: 14px 16px;
+  border: 1px solid var(--violet-89);
+  border-radius: 9px;
+  background: var(--violet-97);
+  font-size: 13px;
+  color: var(--text);
 }
 .behavior-confirm input {
   width: auto;
 }
 @media (max-width: 700px) {
-  .behavior-threshold-row {
+  .consent-toggles {
     grid-template-columns: 1fr;
+  }
+  .contract-row {
+    grid-template-columns: 1fr 44px;
+  }
+  .behavior-checks .contract-remove {
+    width: 44px;
+    height: 44px;
+  }
+  .contract-row .contract-join {
+    justify-self: start;
+  }
+  .contract-row > :not(.contract-remove):not(.contract-join) {
+    grid-column: 1 / -1;
+  }
+  .contract-row .contract-remove {
+    grid-row: 1;
+    grid-column: 2;
   }
 }
 
@@ -5691,19 +6051,32 @@ fieldset.scenario-form {
 }
 
 .contract-alternative {
-  margin-top: 16px;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid var(--violet-89);
+  border-radius: 10px;
+  background: var(--surface);
 }
 .contract-alternative .surface {
   border: 0;
   box-shadow: none;
   padding: 0;
+  margin: 0;
+  background: none;
+}
+.contract-alternative > .link-button {
+  justify-self: start;
 }
 .contract-event {
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 9px;
+  background: var(--gray-96);
+}
+.contract-event .behavior-checks-grid {
+  margin: 0;
 }
 .contract-clause-list {
   display: grid;

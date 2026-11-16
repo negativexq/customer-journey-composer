@@ -1,5 +1,7 @@
 export const briefExamples: {
   title: string;
+  // An AppIcon name shown on the example card.
+  icon: string;
   description: string;
   brief: string;
   contract?: string;
@@ -7,6 +9,7 @@ export const briefExamples: {
 }[] = [
   {
     title: 'Trial conversion',
+    icon: 'sparkles',
     expectations: { emails: 2, sms: 1, hours: 168 },
     description: 'Usage-based guidance · subscription goal',
     brief:
@@ -14,12 +17,14 @@ export const briefExamples: {
   },
   {
     title: 'Abandoned cart',
+    icon: 'zap',
     description: '€50+ carts · email and SMS recovery',
     brief: '',
     contract: 'cart-recovery-eur.v1',
   },
   {
     title: 'Welcome & activation',
+    icon: 'users',
     expectations: { emails: 1, sms: 1, hours: 72 },
     description: 'Welcome email · activation reminder',
     brief:
@@ -27,6 +32,7 @@ export const briefExamples: {
   },
   {
     title: 'Win-back',
+    icon: 'clock',
     expectations: { emails: 1, sms: 1, hours: 240 },
     description: 'Inactive customers · one gentle follow-up',
     brief:

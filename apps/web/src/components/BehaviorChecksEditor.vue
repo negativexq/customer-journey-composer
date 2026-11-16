@@ -5,6 +5,7 @@ import type { DataEntry } from '../lib/data-catalog';
 import type { BehaviorChecks, BehaviorCase, BehaviorEvent, Rule } from '../lib/workflow';
 import { blankBehaviorChecks } from '../lib/behavior-checks';
 import ScopeSelect from './ui/ScopeSelect.vue';
+import AppIcon from './ui/AppIcon.vue';
 const props = defineProps<{
   modelValue?: BehaviorChecks;
   disabled?: boolean;
@@ -240,14 +241,22 @@ onMounted(async () => {
 <template>
   <section
     class="behavior-checks surface"
+    :class="{ embedded }"
     :aria-label="embedded ? 'Alternative contract clause' : 'Independent behavior checks'"
   >
-    <h3>{{ embedded ? 'Alternative situation' : 'What must be true?' }}</h3>
-    <p>
-      Each expected result belongs to the situation and event sequence below. Add alternative
-      situations for different business outcomes. These obligations are independent of the generated
-      graph.
-    </p>
+    <header class="contract-head">
+      <span class="contract-head-icon" aria-hidden="true"
+        ><AppIcon :name="embedded ? 'split' : 'check'" :size="18"
+      /></span>
+      <div>
+        <h3>{{ embedded ? 'Alternative situation' : 'What must be true?' }}</h3>
+        <p v-if="!embedded">
+          Each expected result belongs to the situation and event sequence below. Add alternative
+          situations for different business outcomes. These obligations are independent of the
+          generated graph.
+        </p>
+      </div>
+    </header>
     <fieldset :disabled="disabled">
       <button
         v-if="c.version === 1"
@@ -263,291 +272,381 @@ onMounted(async () => {
         Upgrade to scoped contract
       </button>
       <template v-if="c.version === 2">
-        <label
-          >Situation name<input
-            :value="c.case_name"
-            maxlength="160"
-            @input="patch({ case_name: ($event.target as HTMLInputElement).value })"
-        /></label>
-        <p class="help-text">
-          Conditions and event timing are shared with the model as business rules. Private example
-          values and event payloads stay on the server.
-        </p>
-        <div class="behavior-checks-grid">
-          <label v-for="channel in ['email', 'sms']" :key="channel"
-            ><input
-              type="checkbox"
-              :checked="c.consents?.[channel] ?? true"
-              @change="
-                patch({
-                  consents: {
-                    ...c.consents,
-                    [channel]: ($event.target as HTMLInputElement).checked,
-                  },
-                })
-              "
-            />{{ channel === 'email' ? 'Email' : 'SMS' }} consent in this situation</label
-          >
-        </div>
-        <div v-for="(r, index) in c.conditions" :key="index" class="behavior-threshold-row">
-          <ScopeSelect
-            :model-value="r.path || 'all'"
-            :label="'Situation field ' + (index + 1)"
-            :options="[
-              { value: 'all', label: 'Choose a business field' },
-              ...fields.map((f) => ({ value: f.path!, label: f.label })),
-            ]"
-            :disabled="disabled"
-            @update:model-value="scope(index, { path: $event === 'all' ? '' : $event })"
-          />
-          <ScopeSelect
-            :model-value="r.operator || 'equals'"
-            :label="'Situation comparison ' + (index + 1)"
-            :options="[{ value: 'equals', label: 'Equals' }, ...operators]"
-            :disabled="disabled"
-            @update:model-value="scope(index, { operator: $event })"
-          />
+        <div class="contract-block">
+          <div class="contract-block-head">
+            <span class="contract-step" aria-hidden="true"
+              ><AppIcon :name="'users'" :size="15"
+            /></span>
+            <div>
+              <h4>Situation</h4>
+              <p class="help-text">
+                Conditions and event timing are shared with the model as business rules. Private
+                example values and event payloads stay on the server.
+              </p>
+            </div>
+          </div>
           <label
-            >Situation value<input
-              :type="
-                fields.find((f) => f.path === r.path)?.data_type === 'boolean'
-                  ? 'checkbox'
-                  : fields.find((f) => f.path === r.path)?.data_type === 'number'
-                    ? 'number'
-                    : 'text'
-              "
-              :value="r.value"
-              :checked="r.value === true"
-              step="any"
-              maxlength="512"
-              @input="scopedValue(index, $event)"
+            >Situation name<input
+              :value="c.case_name"
+              maxlength="160"
+              @input="patch({ case_name: ($event.target as HTMLInputElement).value })"
           /></label>
-          <button
-            type="button"
-            @click="patch({ conditions: c.conditions.filter((_, i) => i !== index) })"
-          >
-            Remove condition
-          </button>
-        </div>
-        <button
-          type="button"
-          :disabled="c.conditions.length >= 8 || !fields.length"
-          @click="
-            patch({ conditions: [...c.conditions, { path: '', operator: 'equals', value: false }] })
-          "
-        >
-          Add initial condition
-        </button>
-        <h4>Subsequent events</h4>
-        <p class="help-text">
-          No events means none arrive before the journey completes or times out. It does not forbid
-          messages on other paths.
-        </p>
-        <div v-for="(e, index) in c.events" :key="index" class="contract-event">
-          <div class="behavior-checks-grid">
-            <ScopeSelect
-              :model-value="e.event_name || 'all'"
-              :label="'Follow-up event ' + (index + 1)"
-              :options="eventOptions"
-              :disabled="disabled"
-              @update:model-value="timeline(index, 'event_name', $event)"
-            />
+          <div class="consent-toggles" role="group" aria-label="Channel consent">
             <label
-              >Hours after entry<input
-                type="number"
-                min="0"
-                max="8760"
-                step="any"
-                :value="e.after_seconds / 3600"
-                @input="
-                  timeline(index, 'after_seconds', ($event.target as HTMLInputElement).value)
-                "
+              v-for="channel in ['email', 'sms']"
+              :key="channel"
+              class="consent-toggle"
+              :class="{ on: c.consents?.[channel] ?? true }"
+              ><input
+                type="checkbox"
+                role="switch"
+                :aria-label="(channel === 'email' ? 'Email' : 'SMS') + ' consent in this situation'"
+                :checked="c.consents?.[channel] ?? true"
+                @change="
+                  patch({
+                    consents: {
+                      ...c.consents,
+                      [channel]: ($event.target as HTMLInputElement).checked,
+                    },
+                  })
+                " /><span class="consent-toggle-icon" aria-hidden="true"
+                ><AppIcon :name="channel === 'email' ? 'email' : 'message'" :size="16" /></span
+              ><span class="consent-toggle-text"
+                ><strong>{{ channel === 'email' ? 'Email' : 'SMS' }} consent</strong
+                ><small>{{
+                  (c.consents?.[channel] ?? true)
+                    ? 'Customer has opted in'
+                    : 'Customer has opted out'
+                }}</small></span
+              ><span class="switch" aria-hidden="true"
             /></label>
           </div>
-          <div v-if="e.entry_binding" class="behavior-checks-grid">
-            <ScopeSelect
-              :model-value="e.entry_binding.entry_path || 'all'"
-              label="Entry identifier"
-              :options="[
-                { value: 'all', label: 'Choose entry identifier' },
-                ...entries
-                  .filter(
-                    (f) =>
-                      f.enabled &&
-                      f.kind === 'event_field' &&
-                      f.event_name === c.entry_event &&
-                      f.path &&
-                      ['string', 'number'].includes(f.data_type),
-                  )
-                  .map((f) => ({ value: f.path!, label: f.label })),
-              ]"
-              :disabled="disabled"
-              @update:model-value="binding(index, { entry_path: $event === 'all' ? '' : $event })"
-            />
-            <ScopeSelect
-              :model-value="e.entry_binding.event_path || 'all'"
-              label="Event identifier"
-              :options="[
-                { value: 'all', label: 'Choose event identifier' },
-                ...entries
-                  .filter(
+          <div class="contract-subhead">
+            <h5>Initial conditions</h5>
+            <span class="contract-count">{{ c.conditions.length }}</span>
+          </div>
+          <p v-if="!c.conditions.length" class="contract-empty">
+            No conditions: everyone who enters is in this situation.
+          </p>
+          <div v-else class="contract-rows">
+            <div v-for="(r, index) in c.conditions" :key="index" class="contract-row">
+              <span class="contract-join">{{ index ? 'and' : 'if' }}</span>
+              <ScopeSelect
+                :model-value="r.path || 'all'"
+                :label="'Situation field ' + (index + 1)"
+                caption="Field"
+                :options="[
+                  { value: 'all', label: 'Choose a business field' },
+                  ...fields.map((f) => ({ value: f.path!, label: f.label })),
+                ]"
+                :disabled="disabled"
+                @update:model-value="scope(index, { path: $event === 'all' ? '' : $event })"
+              />
+              <ScopeSelect
+                :model-value="r.operator || 'equals'"
+                :label="'Situation comparison ' + (index + 1)"
+                caption="Comparison"
+                :options="[{ value: 'equals', label: 'Equals' }, ...operators]"
+                :disabled="disabled"
+                @update:model-value="scope(index, { operator: $event })"
+              />
+              <label class="field-box"
+                ><small>Value</small
+                ><input
+                  :aria-label="'Situation value ' + (index + 1)"
+                  :type="
+                    fields.find((f) => f.path === r.path)?.data_type === 'boolean'
+                      ? 'checkbox'
+                      : fields.find((f) => f.path === r.path)?.data_type === 'number'
+                        ? 'number'
+                        : 'text'
+                  "
+                  :value="r.value"
+                  :checked="r.value === true"
+                  step="any"
+                  maxlength="512"
+                  @input="scopedValue(index, $event)"
+              /></label>
+              <button
+                type="button"
+                class="icon-button contract-remove"
+                :aria-label="'Remove condition ' + (index + 1)"
+                title="Remove condition"
+                @click="patch({ conditions: c.conditions.filter((_, i) => i !== index) })"
+              >
+                <AppIcon name="close" :size="15" />
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="contract-add"
+            :disabled="c.conditions.length >= 8 || !fields.length"
+            @click="
+              patch({
+                conditions: [...c.conditions, { path: '', operator: 'equals', value: false }],
+              })
+            "
+          >
+            <AppIcon name="plus" :size="14" />Add initial condition
+          </button>
+        </div>
+        <div class="contract-block">
+          <div class="contract-block-head">
+            <span class="contract-step" aria-hidden="true"
+              ><AppIcon :name="'zap'" :size="15"
+            /></span>
+            <div>
+              <h4>Subsequent events</h4>
+              <p class="help-text">
+                No events means none arrive before the journey completes or times out. It does not
+                forbid messages on other paths.
+              </p>
+            </div>
+          </div>
+          <div v-for="(e, index) in c.events" :key="index" class="contract-event">
+            <div class="behavior-checks-grid">
+              <ScopeSelect
+                :model-value="e.event_name || 'all'"
+                :label="'Follow-up event ' + (index + 1)"
+                :options="eventOptions"
+                :disabled="disabled"
+                @update:model-value="timeline(index, 'event_name', $event)"
+              />
+              <label class="field-box"
+                ><small>Hours after entry</small
+                ><input
+                  type="number"
+                  min="0"
+                  max="8760"
+                  step="any"
+                  :value="e.after_seconds / 3600"
+                  @input="
+                    timeline(index, 'after_seconds', ($event.target as HTMLInputElement).value)
+                  "
+              /></label>
+            </div>
+            <div v-if="e.entry_binding" class="behavior-checks-grid">
+              <ScopeSelect
+                :model-value="e.entry_binding.entry_path || 'all'"
+                label="Entry identifier"
+                :options="[
+                  { value: 'all', label: 'Choose entry identifier' },
+                  ...entries
+                    .filter(
+                      (f) =>
+                        f.enabled &&
+                        f.kind === 'event_field' &&
+                        f.event_name === c.entry_event &&
+                        f.path &&
+                        ['string', 'number'].includes(f.data_type),
+                    )
+                    .map((f) => ({ value: f.path!, label: f.label })),
+                ]"
+                :disabled="disabled"
+                @update:model-value="binding(index, { entry_path: $event === 'all' ? '' : $event })"
+              />
+              <ScopeSelect
+                :model-value="e.entry_binding.event_path || 'all'"
+                label="Event identifier"
+                :options="[
+                  { value: 'all', label: 'Choose event identifier' },
+                  ...entries
+                    .filter(
+                      (f) =>
+                        f.enabled &&
+                        f.kind === 'event_field' &&
+                        f.event_name === e.event_name &&
+                        f.path &&
+                        ['string', 'number'].includes(f.data_type),
+                    )
+                    .map((f) => ({ value: f.path!, label: f.label })),
+                ]"
+                :disabled="disabled"
+                @update:model-value="binding(index, { event_path: $event === 'all' ? '' : $event })"
+              />
+              <ScopeSelect
+                :model-value="e.entry_binding.operator"
+                label="Event relationship"
+                :options="[
+                  { value: 'equals', label: 'Same object as entry' },
+                  { value: 'not_equals', label: 'Different object from entry' },
+                ]"
+                :disabled="disabled"
+                @update:model-value="
+                  binding(index, { operator: $event as 'equals' | 'not_equals' })
+                "
+              />
+            </div>
+            <div class="contract-event-actions">
+              <button
+                v-if="!e.entry_binding"
+                type="button"
+                class="link-button"
+                @click="binding(index, {})"
+              >
+                Define event identity scope
+              </button>
+              <button
+                v-else
+                type="button"
+                class="link-button"
+                @click="
+                  patch({
+                    events: c.events.map((event, i) =>
+                      i === index ? { ...event, entry_binding: undefined } : event,
+                    ),
+                  })
+                "
+              >
+                Remove event identity scope
+              </button>
+              <button
+                type="button"
+                class="link-button danger-link"
+                @click="patch({ events: c.events.filter((_, i) => i !== index) })"
+              >
+                Remove event
+              </button>
+            </div>
+            <details>
+              <summary>Private event example</summary>
+              <div class="behavior-checks-grid">
+                <label
+                  v-for="f in entries.filter(
                     (f) =>
                       f.enabled &&
                       f.kind === 'event_field' &&
                       f.event_name === e.event_name &&
-                      f.path &&
-                      ['string', 'number'].includes(f.data_type),
-                  )
-                  .map((f) => ({ value: f.path!, label: f.label })),
-              ]"
-              :disabled="disabled"
-              @update:model-value="binding(index, { event_path: $event === 'all' ? '' : $event })"
-            />
-            <ScopeSelect
-              :model-value="e.entry_binding.operator"
-              label="Event relationship"
-              :options="[
-                { value: 'equals', label: 'Same object as entry' },
-                { value: 'not_equals', label: 'Different object from entry' },
-              ]"
-              :disabled="disabled"
-              @update:model-value="binding(index, { operator: $event as 'equals' | 'not_equals' })"
-            />
+                      f.path,
+                  )"
+                  :key="f.key"
+                  >{{ f.label
+                  }}<input
+                    :type="
+                      f.data_type === 'boolean'
+                        ? 'checkbox'
+                        : f.data_type === 'number'
+                          ? 'number'
+                          : 'text'
+                    "
+                    :value="e.properties?.[f.path!.replace('event.properties.', '')]"
+                    :checked="e.properties?.[f.path!.replace('event.properties.', '')] === true"
+                    step="any"
+                    maxlength="512"
+                    @input="
+                      eventProperty(
+                        index,
+                        f.path!.replace('event.properties.', ''),
+                        f.data_type,
+                        $event,
+                      )
+                    "
+                /></label>
+              </div>
+            </details>
           </div>
-          <button v-if="!e.entry_binding" type="button" @click="binding(index, {})">
-            Define event identity scope
-          </button>
           <button
-            v-else
             type="button"
+            class="contract-add"
+            :disabled="c.events.length >= 8"
             @click="
               patch({
-                events: c.events.map((event, i) =>
-                  i === index ? { ...event, entry_binding: undefined } : event,
-                ),
+                events: [
+                  ...c.events,
+                  { event_name: '', after_seconds: c.events.at(-1)?.after_seconds || 0 },
+                ],
               })
             "
           >
-            Remove event identity scope
-          </button>
-          <details>
-            <summary>Private event example</summary>
-            <div class="behavior-checks-grid">
-              <label
-                v-for="f in entries.filter(
-                  (f) =>
-                    f.enabled &&
-                    f.kind === 'event_field' &&
-                    f.event_name === e.event_name &&
-                    f.path,
-                )"
-                :key="f.key"
-                >{{ f.label
-                }}<input
-                  :type="
-                    f.data_type === 'boolean'
-                      ? 'checkbox'
-                      : f.data_type === 'number'
-                        ? 'number'
-                        : 'text'
-                  "
-                  :value="e.properties?.[f.path!.replace('event.properties.', '')]"
-                  :checked="e.properties?.[f.path!.replace('event.properties.', '')] === true"
-                  step="any"
-                  maxlength="512"
-                  @input="
-                    eventProperty(
-                      index,
-                      f.path!.replace('event.properties.', ''),
-                      f.data_type,
-                      $event,
-                    )
-                  "
-              /></label>
-            </div>
-          </details>
-          <button type="button" @click="patch({ events: c.events.filter((_, i) => i !== index) })">
-            Remove event
+            <AppIcon name="plus" :size="14" />Add subsequent event
           </button>
         </div>
-        <button
-          type="button"
-          :disabled="c.events.length >= 8"
-          @click="
-            patch({
-              events: [
-                ...c.events,
-                { event_name: '', after_seconds: c.events.at(-1)?.after_seconds || 0 },
-              ],
-            })
-          "
-        >
-          Add subsequent event
-        </button>
       </template>
-      <div class="behavior-checks-grid">
-        <ScopeSelect
-          v-if="!embedded"
-          :model-value="c.entry_event || 'all'"
-          label="Expected entry"
-          :options="eventOptions"
-          :disabled="disabled"
-          @update:model-value="entry"
-        />
-        <label
-          >Expected emails<input
-            type="number"
-            min="0"
-            max="100"
-            :value="c.email_count"
-            required
-            @input="count('email_count', $event)"
-        /></label>
-        <label
-          >Expected SMS<input
-            type="number"
-            min="0"
-            max="100"
-            :value="c.sms_count"
-            required
-            @input="count('sms_count', $event)"
-        /></label>
-        <ScopeSelect
-          :model-value="c.outcome"
-          label="Expected outcome"
-          :disabled="disabled"
-          :options="[
-            { value: 'completed', label: 'Completed without conversion' },
-            { value: 'converted', label: 'Goal reached' },
-            { value: 'condition_not_met', label: 'Not eligible' },
-            { value: 'manually_cancelled', label: 'Cancelled' },
-          ]"
-          @update:model-value="patch({ outcome: $event as BehaviorChecks['outcome'] })"
-        />
-        <label
-          >Expected duration (hours, optional)<input
-            type="number"
-            min="0"
-            max="8760"
-            step="any"
-            :value="c.duration_seconds === undefined ? '' : c.duration_seconds / 3600"
-            @input="
-              patch({
-                duration_seconds:
-                  numericValue(($event.target as HTMLInputElement).value) === undefined
-                    ? undefined
-                    : Math.round(Number(($event.target as HTMLInputElement).value) * 3600),
-              })
-            "
-        /></label>
+      <div class="contract-block contract-expect">
+        <div class="contract-block-head">
+          <span class="contract-step" aria-hidden="true"
+            ><AppIcon :name="'check'" :size="15"
+          /></span>
+          <div>
+            <h4>Expected result</h4>
+            <p class="help-text">What the journey must do for this situation.</p>
+          </div>
+        </div>
+        <div class="behavior-checks-grid">
+          <ScopeSelect
+            v-if="!embedded"
+            :model-value="c.entry_event || 'all'"
+            label="Expected entry"
+            :options="eventOptions"
+            :disabled="disabled"
+            @update:model-value="entry"
+          />
+          <label class="field-box"
+            ><small>Expected emails</small
+            ><input
+              type="number"
+              min="0"
+              max="100"
+              :value="c.email_count"
+              required
+              @input="count('email_count', $event)"
+          /></label>
+          <label class="field-box"
+            ><small>Expected SMS</small
+            ><input
+              type="number"
+              min="0"
+              max="100"
+              :value="c.sms_count"
+              required
+              @input="count('sms_count', $event)"
+          /></label>
+          <ScopeSelect
+            :model-value="c.outcome"
+            label="Expected outcome"
+            :disabled="disabled"
+            :options="[
+              { value: 'completed', label: 'Completed without conversion' },
+              { value: 'converted', label: 'Goal reached' },
+              { value: 'condition_not_met', label: 'Not eligible' },
+              { value: 'manually_cancelled', label: 'Cancelled' },
+            ]"
+            @update:model-value="patch({ outcome: $event as BehaviorChecks['outcome'] })"
+          />
+          <label class="field-box"
+            ><small>Expected duration (hours, optional)</small
+            ><input
+              type="number"
+              min="0"
+              max="8760"
+              step="any"
+              :value="c.duration_seconds === undefined ? '' : c.duration_seconds / 3600"
+              @input="
+                patch({
+                  duration_seconds:
+                    numericValue(($event.target as HTMLInputElement).value) === undefined
+                      ? undefined
+                      : Math.round(Number(($event.target as HTMLInputElement).value) * 3600),
+                })
+              "
+          /></label>
+        </div>
       </div>
-      <div v-if="!embedded" class="behavior-thresholds">
-        <h4>Eligibility boundaries</h4>
-        <p class="help-text">
-          These are eligibility rules, not examples. Ineligible inputs must not send messages or
-          change attributes; their exit reason is specified separately. Exact and adjacent values
-          are checked.
-        </p>
+      <div v-if="!embedded" class="contract-block behavior-thresholds">
+        <div class="contract-block-head">
+          <span class="contract-step" aria-hidden="true"
+            ><AppIcon :name="'lock'" :size="15"
+          /></span>
+          <div>
+            <h4>Eligibility boundaries</h4>
+            <p class="help-text">
+              These are eligibility rules, not examples. Ineligible inputs must not send messages or
+              change attributes; their exit reason is specified separately. Exact and adjacent
+              values are checked.
+            </p>
+          </div>
+        </div>
         <ScopeSelect
           v-if="c.version === 2 && c.thresholds.length"
           :model-value="c.ineligible_outcome || 'condition_not_met'"
@@ -562,10 +661,12 @@ onMounted(async () => {
             patch({ ineligible_outcome: $event as BehaviorChecks['ineligible_outcome'] })
           "
         />
-        <div v-for="(t, index) in c.thresholds" :key="index" class="behavior-threshold-row">
+        <div v-for="(t, index) in c.thresholds" :key="index" class="contract-row">
+          <span class="contract-join">{{ index ? 'and' : 'only' }}</span>
           <ScopeSelect
             :model-value="t.path || 'all'"
             :label="'Boundary field ' + (index + 1)"
+            caption="Field"
             :options="[{ value: 'all', label: 'Choose a numeric field' }, ...numeric]"
             :disabled="disabled"
             @update:model-value="threshold(index, 'path', $event)"
@@ -573,12 +674,14 @@ onMounted(async () => {
           <ScopeSelect
             :model-value="t.operator"
             :label="'Boundary comparison ' + (index + 1)"
+            caption="Comparison"
             :options="operators"
             :disabled="disabled"
             @update:model-value="threshold(index, 'operator', $event)"
           />
-          <label
-            >Boundary value<input
+          <label class="field-box"
+            ><small>Boundary value</small
+            ><input
               type="number"
               step="any"
               :value="t.value"
@@ -586,13 +689,17 @@ onMounted(async () => {
           /></label>
           <button
             type="button"
+            class="icon-button contract-remove"
+            :aria-label="'Remove boundary ' + (index + 1)"
+            title="Remove boundary"
             @click="patch({ thresholds: c.thresholds.filter((_, i) => i !== index) })"
           >
-            Remove
+            <AppIcon name="close" :size="15" />
           </button>
         </div>
         <button
           type="button"
+          class="contract-add"
           :disabled="c.thresholds.length >= 4 || !numeric.length"
           @click="
             patch({
@@ -603,10 +710,10 @@ onMounted(async () => {
             })
           "
         >
-          Add boundary
+          <AppIcon name="plus" :size="14" />Add boundary
         </button>
       </div>
-      <details>
+      <details class="contract-details">
         <summary>Synthetic example values</summary>
         <p>
           Fictional test data only. Goal flags start false and numbers start at zero; eligibility
@@ -649,6 +756,7 @@ onMounted(async () => {
           />
           <button
             type="button"
+            class="link-button danger-link"
             @click="patch({ alternatives: c.alternatives.filter((_, i) => i !== index) })"
           >
             Remove alternative situation
@@ -656,6 +764,7 @@ onMounted(async () => {
         </section>
         <button
           type="button"
+          class="contract-add contract-add-wide"
           :disabled="c.alternatives.length >= 7"
           @click="
             patch({
@@ -675,7 +784,7 @@ onMounted(async () => {
             })
           "
         >
-          Add alternative situation
+          <AppIcon name="split" :size="14" />Add alternative situation
         </button>
       </template>
       <label v-if="!embedded" class="behavior-confirm"

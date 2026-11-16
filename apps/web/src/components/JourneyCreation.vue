@@ -495,8 +495,12 @@ async function back() {
             :disabled="readonly"
             @click="example(index)"
           >
-            <strong>{{ sample.title }}</strong
-            ><small>{{ sample.description }}</small>
+            <span class="brief-example-icon" aria-hidden="true"
+              ><AppIcon :name="sample.icon" :size="16" /></span
+            ><span class="brief-example-text"
+              ><strong>{{ sample.title }}</strong
+              ><small>{{ sample.description }}</small></span
+            >
           </button>
         </div>
       </section>

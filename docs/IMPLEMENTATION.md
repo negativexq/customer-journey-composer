@@ -290,6 +290,24 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Behavior contract editor design — 2026-11-16
+
+The user found the contract editor colorless and uneven: consent checkboxes sat above their labels, condition rows mixed labels inside and above their boxes, and every control looked alike. The design follows the impeccable and ui-ux-pro-max skills.
+
+- Each part of the contract (situation, subsequent events, expected result, eligibility boundaries) has a heading with an icon, divided by rules instead of boxed in nested cards. Expected result is the one tinted panel.
+- Email and SMS consent are switches with the channel's icon and say whether the customer opted in. Each input keeps an accessible name, such as "Email consent in this situation".
+- A condition reads as a sentence: an IF or AND tag, then the field, comparison and value, all with the caption inside the box, and a remove icon. Number fields in expected result and events use the same box. On a phone the parts stack and the remove target is 44 px.
+- Add buttons are dashed with a plus; remove links are red. Empty conditions say what that means. An alternative situation no longer repeats the long introduction.
+- The creation page's 18 px label margin no longer pads rows inside the editor.
+- The brief page's example cards carry an icon.
+
+Verified locally:
+
+- Impeccable's detector found nothing in the changed components.
+- `make typecheck`, `make test`, `git diff --check`, and ESLint and Prettier on the repository's own files. `make fmt-check` and `make lint` also read the untracked `.agents/` and `.claude/` skill folders the user installed, and fail on their files.
+- `npx playwright test` against the rebuilt web: 104 passed.
+- The editor checked by eye at 1280 and 390 px; the creation screenshots were captured again.
+
 ## Screenshot refresh and README — 2026-11-16
 
 The 21 screenshots were from November 13 and showed an older interface, at a 1600 px viewport that made the text small on a page. All were captured again from the running app, and the README was rewritten in the plainer layout of Smart Campaign Composer.
