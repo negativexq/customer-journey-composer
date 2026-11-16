@@ -3,7 +3,7 @@ import AppSelect from './ui/AppSelect.vue';
 import SegmentedControl from './ui/SegmentedControl.vue';
 import { runTitle, type TestRunSummary } from '../lib/test-runs';
 import EmptyState from './ui/EmptyState.vue';
-import { errorMessage, formatDateTime } from '../lib/format';
+import { errorMessage, formatDateTime, plural } from '../lib/format';
 import { computed, onMounted, ref, watch } from 'vue';
 import AppIcon from './ui/AppIcon.vue';
 import StatusBadge from './ui/StatusBadge.vue';
@@ -317,7 +317,10 @@ onMounted(
                 .join(' · ')
             }}</span>
           </div>
-          <p>To: {{ selected.message.to }} · {{ selected.message.preheader }}</p>
+          <p>
+            To: {{ selected.message.to
+            }}{{ selected.message.preheader ? ' · ' + selected.message.preheader : '' }}
+          </p>
           <div v-if="!embedded" class="inbox-actions">
             <button type="button" @click="copy">
               <AppIcon name="copy" :size="14" />Copy rendered content</button
@@ -365,7 +368,8 @@ onMounted(
             <div v-else class="sms-phone">
               <p>{{ selected.message.text }}</p>
               <small
-                >{{ selected.message.encoding }} · {{ selected.message.segments }} segments</small
+                >{{ selected.message.encoding }} ·
+                {{ plural(selected.message.segments ?? 0, 'segment') }}</small
               >
             </div>
             <h3>Personalization values</h3>

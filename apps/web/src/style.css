@@ -5457,6 +5457,13 @@ fieldset.scenario-form {
   padding: 0;
   gap: 8px;
 }
+.execution-overview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  font-size: 13px;
+}
 .observe-details .execution-facts {
   display: grid;
   grid-template-columns: 1fr;
@@ -6252,8 +6259,11 @@ fieldset.scenario-form {
 }
 .workflow-node .workflow-node-detail {
   margin: 0;
-  padding: 9px 13px;
+  /* A clamped third line would show in bottom padding; a transparent border
+     keeps the same space and background without revealing it. */
+  padding: 9px 13px 0;
   border-top: 1px solid var(--border);
+  border-bottom: 9px solid transparent;
   background: var(--page);
 }
 .workflow-node > :last-child:not(.vue-flow__handle),

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AppSelect from './ui/AppSelect.vue';
-import { errorMessage } from '../lib/format';
+import { errorMessage, plural } from '../lib/format';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import CustomerProfileFields from './ui/CustomerProfileFields.vue';
 import { api } from '../lib/api';
@@ -428,8 +428,8 @@ onBeforeUnmount(() => {
             <div class="sms-bubble">{{ preview.text }}</div>
           </div>
           <p>
-            {{ preview.encoding }} · {{ preview.units }} units · {{ preview.segments }} estimated
-            segment(s)
+            {{ preview.encoding }} · {{ preview.units }} units ·
+            {{ plural(preview.segments, 'estimated segment') }}
           </p>
           <p
             v-if="longestNote"

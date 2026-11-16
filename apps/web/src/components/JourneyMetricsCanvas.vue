@@ -168,7 +168,8 @@ function start() {
   const p = positions.value[n.id]!;
   const zoom = Math.min(0.9, (root.value.clientWidth - 24) / 248);
   void setViewport(
-    { x: root.value.clientWidth / 2 - (p.x + 124) * zoom, y: 32 - p.y * zoom, zoom },
+    // Start below the floating map actions so they never cover the first step.
+    { x: root.value.clientWidth / 2 - (p.x + 124) * zoom, y: 56 - p.y * zoom, zoom },
     { duration: 160 },
   );
 }
@@ -209,7 +210,11 @@ defineExpose({ focus, start });
       <button @click="start">Go to start</button
       ><button :disabled="!selectedNode" @click="selectedNode && focus(selectedNode)">
         Focus step</button
-      ><button @click="fitView({ padding: 0.15 })">Fit all</button>
+      ><button
+        @click="fitView({ padding: { top: '56px', right: '24px', bottom: '24px', left: '24px' } })"
+      >
+        Fit all
+      </button>
     </div>
     <VueFlow
       :id="flowID"

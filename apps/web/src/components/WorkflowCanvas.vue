@@ -1168,7 +1168,9 @@ function setAttribute(value: string) {
           type="button"
           aria-label="Fit view"
           title="Fit view"
-          @click="fitView({ padding: 0.22 })"
+          @click="
+            fitView({ padding: { top: '56px', right: '40px', bottom: '104px', left: '40px' } })
+          "
         >
           <AppIcon name="maximize" :size="18" />
         </button>
