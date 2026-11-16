@@ -65,14 +65,13 @@ and unchanged live entry count during capture. Publish review is acknowledged
 without activating the draft.
 
 The creation gallery has eight images: method, brief, scoped contract, generation
-feedback, contract/path review and builder start/focus. A separate fictional
-Northstar workspace submitted the displayed brief to real OpenAI `gpt-6-luna`.
-Its generated graph passed validation after one automatic repair and was applied
-through human approval. It remains Draft in a separate workspace. The operational
-demo uses the independently authored recipe, not this generated graph.
-[Live capture evidence](reports/live-creation-capture-2026-11-13.md).
+feedback, contract/path review and builder start/focus. Each run registers a
+separate fictional Northstar workspace and replays the showcase recipe as a
+recorded generation stream; the application validates it and a person approves it
+into a Draft. The November 13 gallery instead used a real OpenAI `gpt-6-luna`
+generation of the same brief ([live capture evidence](reports/live-creation-capture-2026-11-13.md)).
 
-All 21 PNGs are native **2×** captures, 3200 pixels wide. Most use a 1600 × 1050 CSS viewport; the single-row journey list uses 1600 × 760 to avoid excessive empty space.
+All 21 PNGs are native **2×** captures, 2560 pixels wide. Most use a 1280 × 800 CSS viewport, so the interface reads at a normal size when the picture is scaled to a page. The single-row journey list uses 1280 × 560 to avoid empty space; the email preview (1280 × 1180) and publish review (1280 × 1080) are taller so they show whole.
 Images are not composited or patched. Only normal UI navigation, focus and scroll
 are used; fonts/layout/data are rendered by the application. Creation and product
 manifests record source and capture details.

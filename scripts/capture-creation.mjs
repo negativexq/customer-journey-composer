@@ -13,7 +13,7 @@ const live = process.env.CJC_LIVE_AI === '1';
 const recipe = showcaseRecipe();
 await mkdir(directory, { recursive: true });
 await mkdir('.tmp', { recursive: true });
-const viewport = { width: 1600, height: 1050 };
+const viewport = { width: 1280, height: 800 };
 const manifest = {
   captured_at: new Date().toISOString(),
   source_commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
@@ -93,7 +93,12 @@ async function shot(name) {
   });
   const file = `${directory}/${name}.png`;
   await page.screenshot({ path: file, animations: 'disabled', caret: 'hide' });
-  manifest.screenshots.push({ file, width: 3200, height: 2100, bytes: (await stat(file)).size });
+  manifest.screenshots.push({
+    file,
+    width: viewport.width * 2,
+    height: viewport.height * 2,
+    bytes: (await stat(file)).size,
+  });
   console.log('Captured creation/' + name);
 }
 try {
@@ -113,6 +118,22 @@ try {
     data: { entries: recipe.catalog },
   });
   if (!catalog.ok()) throw new Error('Could not prepare the fictional workspace catalog.');
+  // The replay needs no provider key, so the stack can run with AI disabled;
+  // the app is told OpenAI is configured as it would be in a real setup.
+  if (!live)
+    await page.route('**/api/v1/settings/ai', (route) =>
+      route.fulfill({
+        json: {
+          enabled: true,
+          default_provider: 'openai',
+          schema_version: 'composer.v6',
+          providers: {
+            claude: { configured: false, model: '' },
+            openai: { configured: true, model: 'gpt-6-luna' },
+          },
+        },
+      }),
+    );
   if (!live)
     await page.route('**/api/v1/ai/**', (route) => {
       if (route.request().url().endsWith('/journeys/generate/stream'))
@@ -207,6 +228,7 @@ try {
   const waitNode = proposal.workflow.nodes.find((node) => node.type === 'wait_event');
   if (!waitNode) throw new Error('Live workflow has no wait-for-event node to inspect');
   await page.locator(`.canvas .vue-flow__node[data-id="${waitNode.id}"]`).click();
+  await page.getByLabel('More canvas actions').click();
   await page.getByRole('button', { name: 'Focus selected step', exact: true }).click();
   await expect(page.getByRole('complementary', { name: 'Step settings' })).toBeVisible();
   await shot('canvas-focus');

@@ -1,8 +1,8 @@
 # Journey observation screenshots
 
-Refreshed November 13, 2026 from the running local application and its new
-Northstar Commerce workspace and Abandoned Cart Recovery journey. Native screenshots at 1600 × 1050 CSS pixels, 2× display
-scale (**3200 × 2100**). Counts and paths come from persisted published-version
+Refreshed November 16, 2026 from the running local application and its
+Northstar Commerce workspace and Abandoned Cart Recovery journey. Native screenshots at 1280 × 800 CSS pixels, 2× display
+scale (**2560 × 1600**). Counts and paths come from persisted published-version
 execution records. No analytics values or geometry are substituted.
 
 - [Node and message breakdown](node-breakdown.png)

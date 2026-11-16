@@ -1,6 +1,6 @@
 # Product gallery
 
-Refreshed November 13, 2026. Real application captures at **3200 pixels wide** (2× display scale); the single-journey list uses a tighter native frame. One clean Northstar workspace, one Abandoned Cart Recovery journey and 14 fictional customers. Live email uses local Mailpit, SMS uses the mock provider and Inbox previews use isolated simulations. No historical activity or open/click rates are invented.
+Refreshed November 16, 2026. Real application captures at a 1280 × 800 CSS viewport and 2× display scale (**2560 × 1600 PNGs**). The single-journey list is shorter, and the email preview and publish review are taller so they show whole. One clean Northstar workspace, one Abandoned Cart Recovery journey and 14 fictional customers. Live email uses local Mailpit, SMS uses the mock provider and Inbox previews use isolated simulations. No historical activity or open/click rates are invented.
 
 [Run the demo or reproduce these captures](../SHOWCASE.md) · [Capture manifest](manifest.json) · [Project README](../../README.md)
 
@@ -25,9 +25,10 @@ Searchable Elements, branch insertion and a contextual step inspector on a light
 ## AI creation and scoped review
 
 A dedicated brief page, per-situation business expectations, visible generation
-progress and human approval before the editable canvas. These creation captures use a real OpenAI `gpt-6-luna` response: 40.9 seconds,
-11,320 tokens including one automatic repair. The generated draft is separate
-from the operational demo workflow. [Run evidence](../reports/live-creation-capture-2026-11-13.md).
+progress and human approval before the editable canvas. These captures replay
+the showcase recipe as a recorded generation stream, so they need no provider key;
+the November 13 gallery came from a real OpenAI `gpt-6-luna` response
+([run evidence](../reports/live-creation-capture-2026-11-13.md)).
 
 ![Natural-language brief entry before generation](creation/brief.png)
 

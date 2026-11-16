@@ -290,6 +290,24 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Screenshot refresh and README — 2026-11-16
+
+The 21 screenshots were from November 13 and showed an older interface, at a 1600 px viewport that made the text small on a page. All were captured again from the running app, and the README was rewritten in the plainer layout of Smart Campaign Composer.
+
+- Captures now use a 1280 × 800 CSS viewport at 2× (2560 × 1600 PNGs). The journey list is 1280 × 560; the email preview (1280 × 1180) and publish review (1280 × 1080) are taller so they show whole. Live Monitor drilldowns scroll to the map and executions instead of the page header.
+- The capture scripts follow the current UI: Focus selected step is in the More canvas actions menu, the scenario and test run pickers are custom selects, and the customer profile is read-only. The creation capture serves its own AI settings, so it runs with AI disabled. Its manifest now records the real image size instead of a fixed 3200 × 2100.
+- The creation gallery is now a local replay of the showcase recipe, not the live OpenAI capture of November 13; the gallery pages say so and link that capture's report.
+- The capture found five interface problems, now fixed: a builder card's clamped third line showed through its bottom padding; Fit view put steps under the floating toolbar; the Live Monitor execution summary ran together as "Version 1maya-patelExit: completed"; the metrics map's start and Fit all put the first step under its buttons; the Test Inbox and Message Studio said "1 segments", and the inbox's To line ended in "·" without a preheader.
+- With the user's approval, the leftover archived journey "Engagement check (temporary)" was deleted from the Northstar demo, and its journey counters in `metric_totals` were lowered to match, so the overview counts one journey.
+- README: what the project does, an Under the hood table linking each piece of engineering to its docs and tests, a nine-step product tour, how execution behaves, install from scratch with troubleshooting, and the provider, telemetry, test and layout sections. Stale claims about November 13 runs and 3200 px captures were removed from the gallery pages and SHOWCASE.md.
+- The GitHub description and topics were updated to describe the project.
+
+Verified locally:
+
+- `node scripts/capture-product.mjs` and `node scripts/capture-creation.mjs` against the rebuilt stack; every picture was checked by eye.
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`.
+- `npx playwright test` against the rebuilt web: 104 passed.
+
 ## Empty message labels — 2026-11-16
 
 In the live check a birthday email ended with "Mağazaya dönmek için:" and "Hediye kodun:" and nothing after them: the brief gave no link or code, and the model rightly invented none, but left the labels.

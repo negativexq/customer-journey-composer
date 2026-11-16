@@ -8,7 +8,7 @@ const demo = await seedProductDemo();
 const directory = 'docs/images';
 await mkdir(directory, { recursive: true });
 const browser = await chromium.launch();
-const viewport = { width: 1600, height: 1050 };
+const viewport = { width: 1280, height: 800 };
 const page = await browser.newPage({
   baseURL: base,
   viewport,
@@ -44,6 +44,16 @@ async function open(path) {
   await page.goto(path);
   await page.locator('.app-shell').waitFor();
   await settle();
+}
+// Bring a section to the top of the window, so a shot shows it rather than the page header.
+async function reveal(locator) {
+  await locator.evaluate((el) => {
+    el.scrollIntoView({ block: 'start' });
+    // A little air above, without a sliver of the cards above it.
+    let box = el.parentElement;
+    while (box && box.scrollHeight <= box.clientHeight) box = box.parentElement;
+    (box || document.scrollingElement).scrollBy(0, -14);
+  });
 }
 async function shot(name) {
   await settle();
@@ -83,20 +93,26 @@ try {
   await open('/');
   await shot('overview');
   await open('/journeys');
-  await page.setViewportSize({ width: 1600, height: 760 });
+  await page.setViewportSize({ width: 1280, height: 560 });
   await shot('journeys');
   await page.setViewportSize(viewport);
   await open('/journeys/' + demo.journeyId);
-  await page.getByRole('button', { name: 'Fit view', exact: true }).click();
   await page.locator('.canvas .vue-flow__node[data-id="purchase_wait"]').click();
   await expect(page.getByRole('complementary', { name: 'Step settings' })).toBeVisible();
+  // Close enough to read: centre the selected step rather than fit all seven.
+  await page.getByLabel('More canvas actions').click();
   await page.getByRole('button', { name: 'Focus selected step', exact: true }).click();
+  // Pan left and down from an empty spot, clear of the mini map and the cut-off top card.
+  const pane = await page.locator('.canvas .vue-flow__pane').boundingBox();
+  await page.mouse.move(pane.x + 60, pane.y + 300);
+  await page.mouse.down();
+  await page.mouse.move(pane.x, pane.y + 360, { steps: 8 });
+  await page.mouse.up();
+  await page.mouse.move(5, 5);
   await shot('journey-builder');
   await open(`/journeys/${demo.journeyId}?tab=preview-test&view=test-lab`);
-  await page
-    .getByLabel('Saved scenario')
-    .and(page.locator('select'))
-    .selectOption({ label: 'Email and SMS · no purchase' });
+  await page.getByRole('combobox', { name: 'Saved scenario' }).click();
+  await page.getByRole('option', { name: 'Email and SMS · no purchase' }).click();
   await page.getByLabel('Use current draft for regression', { exact: false }).check();
   const creating = page.waitForResponse(
     (response) =>
@@ -110,13 +126,22 @@ try {
   await expect(page.getByTestId('test-result')).toHaveText('PASS');
   await shot('test-lab');
   await open('/test-inbox');
-  await page.getByLabel('Test run', { exact: true }).selectOption(inboxRunId);
+  // Runs are listed newest first, so the first match is the one just created.
+  void inboxRunId;
+  await page.getByRole('combobox', { name: 'Test run', exact: true }).click();
+  await page
+    .getByRole('option', { name: /Email and SMS · no purchase/ })
+    .first()
+    .click();
   await expect(page.locator('.inbox-row')).toHaveCount(2);
   await page.locator('.inbox-row').filter({ hasText: 'EMAIL' }).click();
   await expect(
     page.frameLocator('iframe[title="Test email preview"]').getByText(/Made for your everyday/),
   ).toBeVisible();
+  // Taller, so the email body shows under the message details.
+  await page.setViewportSize({ width: 1280, height: 1180 });
   await shot('test-inbox-email');
+  await page.setViewportSize(viewport);
   await page.locator('.inbox-row').filter({ hasText: 'SMS' }).click();
   await expect(page.locator('.sms-phone')).toContainText('COMEBACK10');
   await shot('test-inbox-sms');
@@ -129,11 +154,13 @@ try {
   await page.getByRole('combobox', { name: 'Step', exact: true }).click();
   await page.getByRole('option', { name: 'Your cart is waiting', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Step breakdown' })).toBeVisible();
+  await reveal(page.locator('.monitor-sections'));
   await shot('journey-observability/node-breakdown');
   await open(`/journeys/${demo.journeyId}?tab=live-monitor&execution=${demo.monitorExecutionId}`);
   await expect(page.getByRole('region', { name: 'Execution details' })).toContainText(
     demo.monitorCustomerId,
   );
+  await reveal(page.locator('.monitor-sections'));
   await shot('journey-observability/customer-path');
   await open(`/journeys/${demo.journeyId}?tab=analytics`);
   await expect(page.getByRole('heading', { name: 'Journey outcomes', exact: true })).toBeVisible();
@@ -143,7 +170,7 @@ try {
   await page.getByRole('option', { name: /Last 7 days/ }).click();
   await shot('analytics');
   await open(`/customers?customer=${demo.customerId}`);
-  await expect(page.getByLabel('Customer ID', { exact: true })).toHaveValue(demo.customerId);
+  await expect(page.getByRole('heading', { level: 2, name: 'Alex Morgan' })).toBeVisible();
   await shot('customers');
   await open(`/journeys/${demo.journeyId}`);
   await page.getByRole('button', { name: 'Publish', exact: true }).click();
@@ -155,7 +182,10 @@ try {
     .getByRole('dialog', { name: 'Review before publishing' })
     .getByRole('checkbox', { name: 'I reviewed this version', exact: false })
     .check();
+  // Tall enough for the whole review, so the dialog does not open scrolled.
+  await page.setViewportSize({ width: 1280, height: 1080 });
   await shot('publish-review');
+  await page.setViewportSize(viewport);
   const afterSummary = await (await page.request.get('/api/v1/overview')).json();
   manifest.live_entries_after = afterSummary.metrics.find(
     (m) => m.dimension === 'execution' && m.metric === 'entries',

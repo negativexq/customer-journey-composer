@@ -1,16 +1,18 @@
 # Journey creation gallery
 
-Refreshed November 13, 2026 from the running application at 1600 × 1050 CSS pixels,
-2× display scale (**3200 × 2100 PNGs**). Fictional isolated workspace.
-The displayed English brief and human-reviewed behavior contract were submitted
-to the application's real OpenAI provider (`gpt-6-luna`). The response passed
-validation after one automatic repair: **40.9 seconds, 11,320 tokens**.
+Refreshed November 16, 2026 from the running application at 1280 × 800 CSS pixels,
+2× display scale (**2560 × 1600 PNGs**). Fictional isolated workspace.
 
-The application renders the generated graph with normal layout, reference review
-and human approval. It stays Draft; no messages were dispatched or journey published.
-No screenshot text, metric or geometry was patched. This generated graph differs
-from the hand-authored operational demo, while using the same recovery brief.
-[Attempt history and capture caveats](../../reports/live-creation-capture-2026-11-13.md).
+These captures replay a recorded generation stream locally: the proposal is the
+human-authored showcase recipe ([scripts/showcase-recipe.mjs](../../../scripts/showcase-recipe.mjs)),
+so no provider is called and the pictures can be reproduced without a key. The
+application still runs its normal validation, review and human approval on it. It
+stays Draft; no messages were dispatched or journey published. No screenshot text,
+metric or geometry was patched.
+
+The earlier gallery of November 13 came from a real OpenAI `gpt-6-luna` generation
+of the same brief (40.9 seconds, 11,320 tokens, one automatic repair).
+[That capture's attempt history and caveats](../../reports/live-creation-capture-2026-11-13.md).
 
 ## Brief → generation → review → canvas
 

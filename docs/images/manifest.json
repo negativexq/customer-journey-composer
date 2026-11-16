@@ -1,6 +1,6 @@
 {
-  "captured_at": "2026-11-12T22:32:17.239Z",
-  "source_commit": "922d85022d05d2461d06ee7f7021d9ea83b34868",
+  "captured_at": "2026-11-16T16:50:52.848Z",
+  "source_commit": "79f0daba41d473a971031d58b5b7d72a00dcd2a8",
   "source_dirty": true,
   "synthetic_data": true,
   "workspace": "Northstar Commerce",
@@ -9,8 +9,8 @@
   "live_cadence": "5s reminder / 30s purchase window",
   "draft_cadence": "1h reminder / 24h purchase window",
   "viewport": {
-    "width": 1600,
-    "height": 1050
+    "width": 1280,
+    "height": 800
   },
   "device_scale_factor": 2,
   "live_showcase_provider": "mock_sms",
@@ -18,81 +18,81 @@
   "screenshots": [
     {
       "file": "docs/images/overview.png",
-      "width": 3200,
-      "height": 2100,
-      "bytes": 397499
+      "width": 2560,
+      "height": 1600,
+      "bytes": 308867
     },
     {
       "file": "docs/images/journeys.png",
-      "width": 3200,
-      "height": 1520,
-      "bytes": 225463
+      "width": 2560,
+      "height": 1120,
+      "bytes": 205597
     },
     {
       "file": "docs/images/journey-builder.png",
-      "width": 3200,
-      "height": 2100,
-      "bytes": 443353
+      "width": 2560,
+      "height": 1600,
+      "bytes": 353984
     },
     {
       "file": "docs/images/test-lab.png",
-      "width": 3200,
-      "height": 2100,
-      "bytes": 448505
+      "width": 2560,
+      "height": 1600,
+      "bytes": 355008
     },
     {
       "file": "docs/images/test-inbox-email.png",
-      "width": 3200,
-      "height": 2100,
-      "bytes": 376826
+      "width": 2560,
+      "height": 2360,
+      "bytes": 398574
     },
     {
       "file": "docs/images/test-inbox-sms.png",
-      "width": 3200,
-      "height": 2100,
-      "bytes": 412984
+      "width": 2560,
+      "height": 1600,
+      "bytes": 346590
     },
     {
       "file": "docs/images/live-monitor.png",
-      "width": 3200,
-      "height": 2100,
-      "bytes": 471799
+      "width": 2560,
+      "height": 1600,
+      "bytes": 336955
     },
     {
       "file": "docs/images/journey-observability/node-breakdown.png",
-      "width": 3200,
-      "height": 2100,
-      "bytes": 464669
+      "width": 2560,
+      "height": 1600,
+      "bytes": 314188
     },
     {
       "file": "docs/images/journey-observability/customer-path.png",
-      "width": 3200,
-      "height": 2100,
-      "bytes": 469088
+      "width": 2560,
+      "height": 1600,
+      "bytes": 417919
     },
     {
       "file": "docs/images/journey-observability/analytics.png",
-      "width": 3200,
-      "height": 2100,
-      "bytes": 347273
+      "width": 2560,
+      "height": 1600,
+      "bytes": 296773
     },
     {
       "file": "docs/images/analytics.png",
-      "width": 3200,
-      "height": 2100,
-      "bytes": 291721
+      "width": 2560,
+      "height": 1600,
+      "bytes": 251629
     },
     {
       "file": "docs/images/customers.png",
-      "width": 3200,
-      "height": 2100,
-      "bytes": 368635
+      "width": 2560,
+      "height": 1600,
+      "bytes": 388537
     },
     {
       "file": "docs/images/publish-review.png",
-      "width": 3200,
-      "height": 2100,
-      "bytes": 470254
+      "width": 2560,
+      "height": 2160,
+      "bytes": 388005
     }
   ],
   "live_entries_before": 14,
