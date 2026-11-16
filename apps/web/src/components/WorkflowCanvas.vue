@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import AppSelect from './ui/AppSelect.vue';
 import { computed, nextTick, onBeforeUnmount, provide, ref, watch } from 'vue';
 import {
   VueFlow,
@@ -25,16 +24,13 @@ import { stepCaptions } from '../lib/step-captions';
 import { plural } from '../lib/format';
 import InsertableEdge from './InsertableEdge.vue';
 import StepInspector from './StepInspector.vue';
+import InsertStepDialog from './InsertStepDialog.vue';
+import AddStepDialog from './AddStepDialog.vue';
+import StepLibrary from './StepLibrary.vue';
+import CanvasToolbar from './CanvasToolbar.vue';
 import AppIcon from './ui/AppIcon.vue';
 import ShortcutsDialog from './ui/ShortcutsDialog.vue';
-import {
-  branchLabel,
-  descriptions,
-  iconFor,
-  stepGroup,
-  type CanvasEdge,
-  type CanvasNode,
-} from '../lib/step-catalog';
+import { branchLabel, type CanvasEdge, type CanvasNode } from '../lib/step-catalog';
 import '@xyflow/vue/style.css';
 const props = defineProps<{
   modelValue: Workflow;
@@ -112,30 +108,22 @@ const sharedExits = computed(() => {
   );
 });
 
-const insertionDialog = ref<HTMLDialogElement>();
+const insertDialog = ref<InstanceType<typeof InsertStepDialog>>();
 const insertionEdge = ref('');
-const insertionPort = ref('');
-const insertKind = ref<Kind>('wait');
-const insertKinds = kinds.filter((kind) => kind !== 'event_trigger' && kind !== 'exit');
 function chooseEdge(id: string) {
   if (props.readonly) return;
   insertionEdge.value = id;
-  insertKind.value = 'wait';
-  insertionPort.value = ports(insertKind.value)[0]!;
-  insertionDialog.value?.showModal();
+  insertDialog.value?.open();
 }
-watch(insertKind, (kind) => {
-  insertionPort.value = ports(kind).length > 1 ? '' : ports(kind)[0]!;
-});
-function insertStep() {
+function insertStep(kind: Kind, port: string) {
   if (props.readonly) return;
   const edge = edges.value.find((candidate) => candidate.id === insertionEdge.value);
   const source = nodes.value.find((node) => node.id === edge?.source);
   const target = nodes.value.find((node) => node.id === edge?.target);
-  if (!edge || !source || !target || !ports(insertKind.value).includes(insertionPort.value)) return;
+  if (!edge || !source || !target) return;
   if (nodes.value.length >= 100 || edges.value.length >= 200) {
     configError.value = 'Workflow limit: 100 nodes and 200 connections';
-    insertionDialog.value?.close();
+    insertDialog.value?.close();
     return;
   }
   const id = crypto.randomUUID();
@@ -148,11 +136,7 @@ function insertStep() {
         x: (source.position.x + target.position.x) / 2,
         y: (source.position.y + target.position.y) / 2,
       },
-      data: {
-        kind: insertKind.value,
-        label: labels[insertKind.value],
-        config: defaults(insertKind.value),
-      },
+      data: { kind, label: labels[kind], config: defaults(kind) },
     },
   ];
   edges.value = edges.value.filter((candidate) => candidate.id !== edge.id);
@@ -163,31 +147,19 @@ function insertStep() {
       id: crypto.randomUUID(),
       source: id,
       target: target.id,
-      sourceHandle: insertionPort.value,
+      sourceHandle: port,
       targetHandle: 'in',
-      label: branchLabel(insertionPort.value),
+      label: branchLabel(port),
     },
   ];
   selectedID.value = id;
-  insertionDialog.value?.close();
+  insertDialog.value?.close();
 }
 const selectedID = ref('');
 // Steps are added from the canvas itself; the library opens on request.
 const libraryOpen = ref(false);
 const locked = ref(false);
-const moreMenu = ref<HTMLDetailsElement>();
 const zoomLevel = computed(() => Math.round(viewport.value.zoom * 100));
-// Close the menu when the pointer goes anywhere else.
-function closeMenuOutside(event: PointerEvent) {
-  if (moreMenu.value?.open && !moreMenu.value.contains(event.target as Node))
-    moreMenu.value.removeAttribute('open');
-}
-window.addEventListener('pointerdown', closeMenuOutside);
-onBeforeUnmount(() => window.removeEventListener('pointerdown', closeMenuOutside));
-function fromMenu(action: () => void) {
-  moreMenu.value?.removeAttribute('open');
-  action();
-}
 const neighbors = computed(() => {
   if (!selectedID.value) return undefined;
   const ids = new Set([selectedID.value]);
@@ -257,23 +229,6 @@ function startView() {
 
 const inspectorOpen = ref(true);
 
-const nodeSearch = ref('');
-const visibleKinds = computed(() =>
-  kinds.filter((k) => labels[k].toLowerCase().includes(nodeSearch.value.toLowerCase())),
-);
-const paletteGroups = computed(() =>
-  [
-    { label: 'Entry', kinds: ['event_trigger'] },
-    { label: 'Logic & timing', kinds: ['condition', 'switch', 'split', 'wait', 'wait_event'] },
-    { label: 'Messages', kinds: ['email', 'sms'] },
-    { label: 'Customer & outcomes', kinds: ['update_attribute', 'webhook', 'exit'] },
-  ]
-    .map((group) => ({
-      ...group,
-      kinds: group.kinds.filter((kind) => visibleKinds.value.includes(kind as Kind)) as Kind[],
-    }))
-    .filter((group) => group.kinds.length),
-);
 const selected = computed(() => nodes.value.find((n) => n.id === selectedID.value));
 const captions = computed(() => stepCaptions(document.value));
 // Outputs that lead nowhere yet; the card offers to continue from each.
@@ -288,9 +243,8 @@ const openPorts = computed(() => {
     ]),
   );
 });
-const addDialog = ref<HTMLDialogElement>();
+const addDialog = ref<InstanceType<typeof AddStepDialog>>();
 const addFrom = ref<{ node: string; port: string }>();
-const addKinds = kinds.filter((kind) => kind !== 'event_trigger');
 const addTitle = computed(() => {
   const source = nodes.value.find((node) => node.id === addFrom.value?.node);
   const branch = branchLabel(addFrom.value?.port || '');
@@ -299,7 +253,7 @@ const addTitle = computed(() => {
 function chooseNext(node: string, port: string) {
   if (props.readonly) return;
   addFrom.value = { node, port };
-  addDialog.value?.showModal();
+  addDialog.value?.open();
 }
 provide('canvas-add-step', props.readonly ? undefined : chooseNext);
 function addNext(kind: Kind) {
@@ -507,9 +461,6 @@ function drop(event: DragEvent) {
   const kind = event.dataTransfer?.getData('application/journey-node') as Kind;
   if (kinds.includes(kind)) add(kind, screenToFlowPosition({ x: event.clientX, y: event.clientY }));
 }
-function drag(event: DragEvent, kind: Kind) {
-  event.dataTransfer?.setData('application/journey-node', kind);
-}
 function chosenNodes() {
   const selected = nodes.value.filter((n) => n.selected);
   return selected.length ? selected : nodes.value.filter((n) => n.id === selectedID.value);
@@ -629,122 +580,11 @@ window.addEventListener('keydown', keyboard);
 onBeforeUnmount(() => window.removeEventListener('keydown', keyboard));
 </script>
 <template>
-  <dialog ref="insertionDialog" class="insert-step-dialog" aria-labelledby="insert-step-title">
-    <form @submit.prevent="insertStep">
-      <div class="surface-heading">
-        <h2 id="insert-step-title">Insert a step</h2>
-        <button
-          type="button"
-          class="icon-button"
-          aria-label="Close insertion"
-          @click="insertionDialog?.close()"
-        >
-          <AppIcon name="close" />
-        </button>
-      </div>
-      <p>
-        The original branch stays connected to the new step. Choose which output continues to the
-        existing next step.
-      </p>
-      <label
-        >Step type<AppSelect
-          v-model="insertKind"
-          :options="
-            insertKinds.map((kind) => ({
-              value: kind,
-              label: labels[kind],
-              description: descriptions[kind],
-              icon: iconFor[kind],
-              group: stepGroup[kind],
-            }))
-          "
-      /></label>
-      <label
-        >Continue through<AppSelect
-          v-model="insertionPort"
-          placeholder="Select an output"
-          :options="
-            ports(insertKind).map((port) => ({ value: port, label: branchLabel(port) || port }))
-          "
-      /></label>
-      <p v-if="ports(insertKind).length > 1" class="inline-alert">
-        Connect the other output before publishing. It is left open for your decision.
-      </p>
-      <div class="toolbar">
-        <button type="button" @click="insertionDialog?.close()">Cancel</button
-        ><button class="primary" :disabled="!insertionPort">Insert step</button>
-      </div>
-    </form>
-  </dialog>
-  <dialog ref="addDialog" class="add-step-dialog" aria-labelledby="add-step-title">
-    <div class="surface-heading">
-      <div>
-        <h2 id="add-step-title">Add a step</h2>
-        <p>{{ addTitle }}</p>
-      </div>
-      <button
-        type="button"
-        class="icon-button"
-        aria-label="Close step picker"
-        @click="addDialog?.close()"
-      >
-        <AppIcon name="close" />
-      </button>
-    </div>
-    <div class="add-step-options">
-      <button v-for="kind in addKinds" :key="kind" type="button" @click="addNext(kind)">
-        <span class="step-type-icon" :class="kind"
-          ><AppIcon :name="iconFor[kind]" :size="17"
-        /></span>
-        <span
-          ><strong>{{ labels[kind] }}</strong
-          ><small>{{ descriptions[kind] }}</small></span
-        >
-      </button>
-    </div>
-  </dialog>
+  <InsertStepDialog ref="insertDialog" @insert="insertStep" />
+  <AddStepDialog ref="addDialog" :title="addTitle" @choose="addNext" />
   <ShortcutsDialog v-model="shortcutsOpen" />
   <div class="builder-layout">
-    <aside v-show="libraryOpen" class="step-library" aria-label="Step library">
-      <div class="step-library-heading">
-        <h2>Elements</h2>
-        <span>{{ kinds.length }} types</span>
-      </div>
-      <label class="step-search"
-        ><AppIcon name="search" :size="14" /><input
-          v-model="nodeSearch"
-          aria-label="Search steps"
-          placeholder="Find a step..."
-      /></label>
-      <div class="node-library">
-        <section v-for="group in paletteGroups" :key="group.label" class="palette-group">
-          <h4>{{ group.label }}</h4>
-          <button
-            v-for="kind in group.kinds"
-            :key="kind"
-            :draggable="!readonly"
-            :disabled="readonly"
-            :aria-label="'+ ' + labels[kind]"
-            :class="'palette-' + kind"
-            :title="descriptions[kind]"
-            @dragstart="drag($event, kind)"
-            @click="add(kind)"
-          >
-            <span class="step-type-icon" :class="kind"
-              ><AppIcon :name="iconFor[kind]" :size="17" /></span
-            ><span
-              ><strong>{{ labels[kind] }}</strong
-              ><small>{{ descriptions[kind] }}</small></span
-            ><AppIcon name="plus" :size="13" />
-          </button>
-        </section>
-        <p v-if="!paletteGroups.length" class="muted">No matching steps.</p>
-      </div>
-      <div class="library-tip">
-        <AppIcon name="sparkles" :size="16" />
-        <p>Prefer to describe it?<br />Try the AI composer.</p>
-      </div>
-    </aside>
+    <StepLibrary v-show="libraryOpen" :readonly="readonly" @add="add" />
     <div
       ref="canvasElement"
       class="canvas"
@@ -817,130 +657,34 @@ onBeforeUnmount(() => window.removeEventListener('keydown', keyboard));
       <div class="canvas-chip">
         <AppIcon name="workflow" :size="15" /><strong>{{ plural(nodes.length, 'step') }}</strong>
       </div>
-      <div
-        class="canvas-bar"
-        :class="{ 'beside-ai': aiOpen }"
-        role="toolbar"
-        aria-label="Canvas controls"
-      >
-        <button
-          type="button"
-          class="bar-label"
-          aria-label="Toggle step library"
-          :aria-expanded="libraryOpen"
-          @click="libraryOpen = !libraryOpen"
-        >
-          <AppIcon name="templates" :size="16" /><span>Steps</span>
-        </button>
-        <button
-          v-if="!readonly"
-          type="button"
-          class="bar-label bar-ai"
-          aria-label="AI composer"
-          :aria-pressed="!!aiOpen"
-          @click="emit('ai')"
-        >
-          <AppIcon name="sparkles" :size="16" /><span>AI composer</span>
-        </button>
-        <i aria-hidden="true" />
-        <button
-          v-for="[title, icon, handler] in [
-            ['Undo', 'undo', undo],
-            ['Redo', 'redo', redo],
-          ] as const"
-          :key="title"
-          type="button"
-          :disabled="readonly"
-          :aria-label="title"
-          :title="title"
-          @click="handler"
-        >
-          <AppIcon :name="icon" :size="18" />
-        </button>
-        <i aria-hidden="true" />
-        <button
-          type="button"
-          class="bar-zoom"
-          aria-label="Zoom out"
-          title="Zoom out"
-          @click="zoomOut()"
-        >
-          <AppIcon name="minus" :size="18" /></button
-        ><span class="canvas-zoom-level bar-zoom" aria-label="Zoom level">{{ zoomLevel }}%</span
-        ><button
-          type="button"
-          class="bar-zoom"
-          aria-label="Zoom in"
-          title="Zoom in"
-          @click="zoomIn()"
-        >
-          <AppIcon name="plus" :size="18" /></button
-        ><button
-          type="button"
-          aria-label="Fit view"
-          title="Fit view"
-          @click="
-            fitView({ padding: { top: '56px', right: '40px', bottom: '104px', left: '40px' } })
-          "
-        >
-          <AppIcon name="maximize" :size="18" />
-        </button>
-        <i aria-hidden="true" />
-        <button
-          type="button"
-          aria-label="Toggle step settings"
-          title="Step settings"
-          :aria-expanded="!!selected && inspectorOpen && !hideInspector"
-          :disabled="!selected"
-          @click="inspectorOpen = !inspectorOpen"
-        >
-          <AppIcon name="settings" :size="18" />
-        </button>
-        <details ref="moreMenu" class="bar-more">
-          <summary aria-label="More canvas actions" title="More">
-            <AppIcon name="more" :size="18" />
-          </summary>
-          <div>
-            <label
-              v-if="sharedExits.size"
-              class="menu-check"
-              title="Shared exits appear as references. Select one to open the original step."
-              ><input v-model="shortExitLinks" type="checkbox" />Short exit links</label
-            >
-            <button type="button" :disabled="readonly" @click="fromMenu(layout)">
-              Auto layout
-            </button>
-            <button type="button" @click="fromMenu(startView)">Go to start</button>
-            <button
-              type="button"
-              :disabled="!selectedID"
-              @click="fromMenu(() => focusNode(selectedID))"
-            >
-              Focus selected step
-            </button>
-            <hr />
-            <button type="button" :disabled="readonly" @click="fromMenu(selectAll)">
-              Select all nodes
-            </button>
-            <button type="button" :disabled="readonly" @click="fromMenu(copy)">
-              Copy selection
-            </button>
-            <button type="button" :disabled="readonly" @click="fromMenu(paste)">
-              Paste selection
-            </button>
-            <button type="button" :disabled="readonly" @click="fromMenu(duplicate)">
-              Duplicate node
-            </button>
-            <hr />
-            <button v-if="!readonly" type="button" @click="fromMenu(() => (locked = !locked))">
-              {{ locked ? 'Unlock canvas' : 'Lock canvas' }}
-            </button>
-            <button type="button" @click="fromMenu(() => (shortcutsOpen = true))">
-              Keyboard shortcuts
-            </button>
-          </div>
-        </details>
-      </div>
+      <CanvasToolbar
+        v-model:short-exit-links="shortExitLinks"
+        :readonly="readonly"
+        :ai-open="aiOpen"
+        :library-open="libraryOpen"
+        :zoom-level="zoomLevel"
+        :has-selection="!!selected"
+        :inspector-shown="!!selected && inspectorOpen && !hideInspector"
+        :locked="locked"
+        :has-shared-exits="sharedExits.size > 0"
+        @toggle-library="libraryOpen = !libraryOpen"
+        @ai="emit('ai')"
+        @undo="undo"
+        @redo="redo"
+        @zoom-in="zoomIn()"
+        @zoom-out="zoomOut()"
+        @fit="fitView({ padding: { top: '56px', right: '40px', bottom: '104px', left: '40px' } })"
+        @toggle-inspector="inspectorOpen = !inspectorOpen"
+        @layout="layout"
+        @start="startView"
+        @focus-selected="focusNode(selectedID)"
+        @select-all="selectAll"
+        @copy="copy"
+        @paste="paste"
+        @duplicate="duplicate"
+        @toggle-lock="locked = !locked"
+        @shortcuts="shortcutsOpen = true"
+      />
     </div>
     <StepInspector
       v-if="selected && !hideInspector && inspectorOpen"
