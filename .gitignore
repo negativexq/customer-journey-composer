@@ -11,3 +11,9 @@ coverage/
 apps/api/bin/
 playwright-report/
 test-results/
+
+# Locally installed agent skills
+.agents/
+.claude/
+skills-lock.json
+.impeccable/

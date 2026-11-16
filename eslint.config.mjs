@@ -7,6 +7,9 @@ export default tseslint.config(
   {
     ignores: [
       '.tmp/**',
+      '.agents/**',
+      '.claude/**',
+      '.impeccable/**',
       '**/dist/**',
       '**/node_modules/**',
       'playwright-report/**',

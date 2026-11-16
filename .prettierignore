@@ -8,3 +8,7 @@ apps/api/go.mod
 .env*
 playwright-report
 test-results
+.agents
+.claude
+skills-lock.json
+.impeccable
