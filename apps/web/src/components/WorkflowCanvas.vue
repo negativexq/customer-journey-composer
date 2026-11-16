@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, provide, ref, watch } from 'vue';
+import { computed, nextTick, provide, ref, watch } from 'vue';
 import {
   VueFlow,
   setupVueFlow,
@@ -31,6 +31,9 @@ import CanvasToolbar from './CanvasToolbar.vue';
 import AppIcon from './ui/AppIcon.vue';
 import ShortcutsDialog from './ui/ShortcutsDialog.vue';
 import { branchLabel, type CanvasEdge, type CanvasNode } from '../lib/step-catalog';
+import { useUndoHistory } from '../composables/useUndoHistory';
+import { useCanvasClipboard } from '../composables/useCanvasClipboard';
+import { useCanvasShortcuts } from '../composables/useCanvasShortcuts';
 import '@xyflow/vue/style.css';
 const props = defineProps<{
   modelValue: Workflow;
@@ -122,7 +125,7 @@ function insertStep(kind: Kind, port: string) {
   const target = nodes.value.find((node) => node.id === edge?.target);
   if (!edge || !source || !target) return;
   if (nodes.value.length >= 100 || edges.value.length >= 200) {
-    configError.value = 'Workflow limit: 100 nodes and 200 connections';
+    overLimit();
     insertDialog.value?.close();
     return;
   }
@@ -262,7 +265,7 @@ function addNext(kind: Kind) {
   addDialog.value?.close();
   if (!from || !source || props.readonly) return;
   if (nodes.value.length >= 100 || edges.value.length >= 200) {
-    configError.value = 'Workflow limit: 100 nodes and 200 connections';
+    overLimit();
     return;
   }
   const outputs = ports(source.data.kind, source.data.config);
@@ -339,11 +342,8 @@ function removeBranch(index: number) {
 // The event a trigger listened for before it became an audience, kept while settings close.
 const lastEventName = ref('');
 watch(selectedID, () => (inspectorOpen.value = true));
-const history: string[] = [];
-const future: string[] = [];
-let restoring = false;
-let clipboard = '';
 const configError = ref('');
+const overLimit = () => (configError.value = 'Workflow limit: 100 nodes and 200 connections');
 const document = computed<Workflow>(() => ({
   ...props.modelValue,
   schema_version: 1,
@@ -361,21 +361,26 @@ const document = computed<Workflow>(() => ({
     port: e.sourceHandle || 'next',
   })),
 }));
-let previous = JSON.stringify(document.value);
-watch(
+const { undo, redo } = useUndoHistory(
   () => JSON.stringify(document.value),
-  (current) => {
-    if (restoring) {
-      previous = current;
-      return;
-    }
-    if (previous === current) return;
-    history.push(previous);
-    if (history.length > 60) history.shift();
-    future.length = 0;
-    previous = current;
-    emit('update:modelValue', JSON.parse(current));
+  (data) => {
+    const w: Workflow = JSON.parse(data);
+    nodes.value = w.nodes.map((n) => ({
+      id: n.id,
+      type: 'step',
+      position: n.position,
+      data: { kind: n.type, label: n.label, config: n.config },
+    }));
+    edges.value = w.edges.map((e) => ({
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      sourceHandle: e.port,
+      targetHandle: 'in',
+      label: branchLabel(e.port),
+    }));
   },
+  (data) => emit('update:modelValue', JSON.parse(data)),
 );
 watch(
   () => props.issues,
@@ -386,42 +391,6 @@ watch(
     }));
   },
 );
-async function restore(data: string) {
-  restoring = true;
-  const w: Workflow = JSON.parse(data);
-  nodes.value = w.nodes.map((n) => ({
-    id: n.id,
-    type: 'step',
-    position: n.position,
-    data: { kind: n.type, label: n.label, config: n.config },
-  }));
-  edges.value = w.edges.map((e) => ({
-    id: e.id,
-    source: e.source,
-    target: e.target,
-    sourceHandle: e.port,
-    targetHandle: 'in',
-    label: branchLabel(e.port),
-  }));
-  await nextTick();
-  restoring = false;
-  previous = data;
-  emit('update:modelValue', w);
-}
-function undo() {
-  const old = history.pop();
-  if (old) {
-    future.push(previous);
-    void restore(old);
-  }
-}
-function redo() {
-  const next = future.pop();
-  if (next) {
-    history.push(previous);
-    void restore(next);
-  }
-}
 function add(
   kind: Kind,
   position = {
@@ -470,48 +439,14 @@ function selectAll() {
   nodes.value = nodes.value.map((node) => ({ ...node, selected: true }));
   selectedID.value = nodes.value[0]?.id || '';
 }
-function copy() {
-  const chosen = chosenNodes();
-  const ids = new Set(chosen.map((n) => n.id));
-  clipboard = JSON.stringify({
-    nodes: chosen,
-    edges: edges.value.filter((e) => ids.has(e.source) && ids.has(e.target)),
-  });
-}
-function paste() {
-  if (!clipboard || props.readonly) return;
-  const copied = JSON.parse(clipboard) as { nodes: CanvasNode[]; edges: CanvasEdge[] };
-  if (
-    nodes.value.length + copied.nodes.length > 100 ||
-    edges.value.length + copied.edges.length > 200
-  ) {
-    configError.value = 'Workflow limit: 100 nodes and 200 connections';
-    return;
-  }
-  const ids = new Map<string, string>();
-  for (const n of copied.nodes) ids.set(n.id, crypto.randomUUID());
-  const added = copied.nodes.map((n) => ({
-    ...n,
-    id: ids.get(n.id)!,
-    position: { x: n.position.x + 40, y: n.position.y + 40 },
-    selected: true,
-  }));
-  nodes.value = [...nodes.value.map((n) => ({ ...n, selected: false })), ...added];
-  edges.value = [
-    ...edges.value,
-    ...copied.edges.map((e) => ({
-      ...e,
-      id: crypto.randomUUID(),
-      source: ids.get(e.source)!,
-      target: ids.get(e.target)!,
-    })),
-  ];
-  selectedID.value = added[0]?.id || '';
-}
-function duplicate() {
-  copy();
-  paste();
-}
+const { copy, paste, duplicate } = useCanvasClipboard({
+  nodes,
+  edges,
+  selectedID,
+  chosen: chosenNodes,
+  readonly: () => !!props.readonly,
+  overLimit,
+});
 function remove() {
   if (props.readonly) return;
   const ids = new Set(chosenNodes().map((n) => n.id));
@@ -538,46 +473,16 @@ function layout() {
   void nextTick(startView);
 }
 const shortcutsOpen = ref(false);
-function keyboard(event: KeyboardEvent) {
-  const target = event.target as HTMLElement;
-  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable) return;
-  if (
-    event.key === '?' &&
-    !event.metaKey &&
-    !event.ctrlKey &&
-    !window.document.querySelector('dialog[open]')
-  ) {
-    event.preventDefault();
-    shortcutsOpen.value = true;
-    return;
-  }
-  if (props.readonly) return;
-  if (event.metaKey || event.ctrlKey) {
-    if (event.key === 'a') {
-      event.preventDefault();
-      selectAll();
-    }
-    if (event.key === 'z') {
-      event.preventDefault();
-      if (event.shiftKey) redo();
-      else undo();
-    }
-    if (event.key === 'c') {
-      event.preventDefault();
-      copy();
-    }
-    if (event.key === 'v') {
-      event.preventDefault();
-      paste();
-    }
-    if (event.key === 'd') {
-      event.preventDefault();
-      duplicate();
-    }
-  }
-}
-window.addEventListener('keydown', keyboard);
-onBeforeUnmount(() => window.removeEventListener('keydown', keyboard));
+useCanvasShortcuts({
+  readonly: () => !!props.readonly,
+  help: () => (shortcutsOpen.value = true),
+  selectAll,
+  undo,
+  redo,
+  copy,
+  paste,
+  duplicate,
+});
 </script>
 <template>
   <InsertStepDialog ref="insertDialog" @insert="insertStep" />
