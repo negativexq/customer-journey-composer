@@ -290,6 +290,21 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Journey editor header — 2026-11-17
+
+The fourth group from the design review: the header showed Active, Editing draft and Latest published v1 side by side, gave six actions the same weight, and kept Publish as the primary button when publishing would change nothing.
+
+- The version line now reads "v1 live · 2 unpublished changes" or "v1 live · no unpublished changes". The count comes from the same draft-to-version comparison as the Versions tab, loaded when the editor opens and again half a second after a draft edit. Live Monitor and Analytics show only "v1 live".
+- Publish is the primary button only while the draft has unpublished changes or the journey has never been published. Otherwise it is a secondary button whose tooltip says publishing would not change behavior.
+- Save is a quiet button beside the save state. On a phone, Validate, Test, Pause and Resume show only their icons, with the label kept for assistive technology and as a tooltip, so the actions fit on one row. The header is 130 px tall at 390 px.
+- The reseeded Northstar journey shows "2 unpublished changes": its v1 uses the accelerated sandbox waits and the draft holds the real ones, which Versions already listed.
+
+Verified locally:
+
+- The versions e2e test now also checks the header line and Publish's emphasis with no changes and with one change.
+- The header captured at 1280 and 390 px on the Northstar journey.
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`, and the full `npx playwright test` (104 passed before the new assertions; the versions spec passes with them).
+
 ## Phone navigation — 2026-11-17
 
 The third group from the design review.

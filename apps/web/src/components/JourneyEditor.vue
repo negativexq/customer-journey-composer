@@ -304,6 +304,7 @@ async function confirmPublish() {
     // A new version exists now; the next comparison must load it.
     versions.value = [];
     draftDiff.value = undefined;
+    void refreshPending();
     notice.value = 'Journey published';
     toast('Journey published', { announce: false });
   } catch (cause) {
@@ -434,6 +435,44 @@ async function compareDraft() {
   const published = versionWorkflow(latest.version);
   if (published) draftDiff.value = compare(published, draft.value);
 }
+// Whether publishing now would change anything for new entries. It sets how
+// strongly Publish is shown; undefined until the comparison has loaded.
+const pendingChanges = computed(() =>
+  !publishedVersion.value ? true : draftDiff.value ? draftDiff.value.total > 0 : undefined,
+);
+const versionLine = computed(() => {
+  if (!publishedVersion.value) return 'Not published yet';
+  const live = `v${publishedVersion.value} live`;
+  if (['Live Monitor', 'Analytics'].includes(tab.value) || !draftDiff.value) return live;
+  return draftDiff.value.total
+    ? `${live} · ${plural(draftDiff.value.total, 'unpublished change')}`
+    : `${live} · no unpublished changes`;
+});
+async function refreshPending() {
+  if (!publishedVersion.value) return;
+  try {
+    if (!versions.value.length)
+      versions.value = await api<VersionRow[]>(`/journeys/${props.journey.id}/versions`);
+    const latest = versions.value[0];
+    if (!latest) return;
+    await loadVersion(latest.version);
+    const published = versionWorkflow(latest.version);
+    if (published) draftDiff.value = compare(published, draft.value);
+  } catch {
+    // The header then shows only the published version.
+  }
+}
+let pendingTimer: ReturnType<typeof setTimeout> | undefined;
+watch(
+  draft,
+  () => {
+    clearTimeout(pendingTimer);
+    pendingTimer = setTimeout(refreshPending, 500);
+  },
+  { deep: true },
+);
+onMounted(refreshPending);
+onBeforeUnmount(() => clearTimeout(pendingTimer));
 // Puts a published version back on the draft. Nothing customers see changes until it is published.
 const restoring = ref<VersionRow>();
 const restoreBusy = ref(false);
@@ -508,10 +547,8 @@ function back() {
               ? 'Viewing draft'
               : 'Editing draft'
         }}</strong
-        ><span class="version-context"
-          ><AppIcon name="history" :size="13" />{{
-            publishedVersion ? 'Latest published v' + publishedVersion : 'Not published yet'
-          }}</span
+        ><span class="version-context" :class="{ pending: pendingChanges && publishedVersion }"
+          ><AppIcon name="history" :size="13" />{{ versionLine }}</span
         ><span
           v-if="tab !== 'Builder' && description"
           class="journey-subtitle"
@@ -527,32 +564,44 @@ function back() {
         }}</span
       >
       <div class="heading-actions">
-        <button :disabled="busy || readonly || journey.status === 'Archived'" @click="save">
+        <button
+          class="quiet"
+          :disabled="busy || readonly || journey.status === 'Archived'"
+          @click="save"
+        >
           Save</button
-        ><button :disabled="busy" @click="validate">
-          <AppIcon name="shield" :size="15" />Validate</button
+        ><button :disabled="busy" title="Validate" @click="validate">
+          <AppIcon name="shield" :size="15" /><span class="action-label">Validate</span></button
         ><button
+          title="Test"
           @click="
             tab = 'Preview & Test';
             previewTab = 'Test Lab';
             testNodeID = '';
           "
         >
-          <AppIcon name="flask" :size="15" />Test</button
+          <AppIcon name="flask" :size="15" /><span class="action-label">Test</span></button
         ><button
           v-if="admin && ['Active', 'Sunset'].includes(journey.status)"
           :disabled="busy"
+          title="Pause"
           @click="lifecycle('pause')"
         >
-          <AppIcon name="pause" :size="15" />Pause</button
+          <AppIcon name="pause" :size="15" /><span class="action-label">Pause</span></button
         ><button
           v-if="admin && journey.status === 'Paused'"
           :disabled="busy"
+          title="Resume"
           @click="lifecycle('resume')"
         >
-          <AppIcon name="play" :size="15" />Resume</button
+          <AppIcon name="play" :size="15" /><span class="action-label">Resume</span></button
         ><button
-          class="primary"
+          :class="{ primary: pendingChanges !== false }"
+          :title="
+            pendingChanges === false
+              ? 'The draft matches the published version; publishing would not change behavior'
+              : undefined
+          "
           :disabled="busy || readonly || !admin || journey.status === 'Archived'"
           @click="publish"
         >

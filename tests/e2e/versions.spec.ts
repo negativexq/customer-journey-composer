@@ -88,6 +88,10 @@ test('versions explain unpublished and published changes in product language', a
   ).toBeVisible();
   const draftChanges = page.getByTestId('draft-changes');
   await expect(draftChanges).toContainText('Draft matches v1');
+  // The header says the same, and Publish steps back when it would change nothing.
+  const publishButton = page.getByRole('button', { name: 'Publish', exact: true });
+  await expect(page.locator('.version-context')).toHaveText('v1 live · no unpublished changes');
+  await expect(publishButton).not.toHaveClass(/primary/);
 
   const versionOne = page.getByRole('button', { name: /Version 1/ });
   await expect(versionOne).toContainText('Receiving new entries');
@@ -102,6 +106,8 @@ test('versions explain unpublished and published changes in product language', a
   await saveDraft(spec(120));
   await page.reload();
   await expect(draftChanges).toContainText('Draft has 1 unpublished change since v1');
+  await expect(page.locator('.version-context')).toHaveText('v1 live · 1 unpublished change');
+  await expect(publishButton).toHaveClass(/primary/);
   await expect(draftChanges).toContainText('Wait 3 seconds → Wait 2 minutes');
 
   await publish();
