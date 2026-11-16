@@ -375,7 +375,11 @@ onErrorCaptured((cause) => {
           @click="navigate(item.name)"
         >
           <AppIcon :name="item.icon" :size="16" />{{ item.name }}</button
-        ><button v-if="identity.role === 'Admin'" @click="navigate('Settings')">
+        ><button
+          v-if="identity.role === 'Admin'"
+          :class="{ selected: page === 'Settings' }"
+          @click="navigate('Settings')"
+        >
           <AppIcon name="settings" />Settings</button
         ><button @click="logout">Sign out</button>
       </nav>

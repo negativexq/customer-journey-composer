@@ -1002,7 +1002,7 @@ function setAttribute(value: string) {
   <div class="builder-layout">
     <aside v-show="libraryOpen" class="step-library" aria-label="Step library">
       <div class="step-library-heading">
-        <h3>Elements</h3>
+        <h2>Elements</h2>
         <span>{{ kinds.length }} types</span>
       </div>
       <label class="step-search"
@@ -1242,7 +1242,7 @@ function setAttribute(value: string) {
         /></span>
         <div>
           <span class="inspector-eyebrow">STEP SETTINGS</span>
-          <h3>{{ labels[selected.data.kind] }}</h3>
+          <h2>{{ labels[selected.data.kind] }}</h2>
         </div>
         <button class="icon-button" aria-label="Close step settings" @click="selectedID = ''">
           <AppIcon name="close" :size="17" />

@@ -301,9 +301,22 @@ onMounted(() => void refresh());
   font-size: 12px;
   font-weight: 600;
 }
-.settings-list select {
-  width: auto;
-  min-width: 110px;
+.settings-list :deep(.app-select-trigger) {
+  flex: none;
+  width: 150px;
+}
+/* On a phone the role picker moves under the name, so the name keeps the full row. */
+@media (max-width: 560px) {
+  .settings-list li {
+    flex-wrap: wrap;
+  }
+  .settings-list li > div {
+    flex-basis: calc(100% - 44px);
+  }
+  .settings-list :deep(.app-select-trigger) {
+    width: calc(100% - 44px);
+    margin-left: 44px;
+  }
 }
 .audit-list {
   list-style: none;

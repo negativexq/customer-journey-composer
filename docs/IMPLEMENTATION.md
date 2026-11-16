@@ -290,6 +290,22 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Mobile and accessibility fixes — 2026-11-17
+
+The first group from the full design review (ui-ux-pro-max and impeccable), in the order the user approved.
+
+- The mobile navigation's selected item used `--violet-69-text` on the soft accent, about 2.5:1. It now uses `--accent-text-strong` at weight 600. The Settings item shows as selected on Settings.
+- Phone touch targets are 44 px: the navigation items and the top bar's search, theme and notification buttons.
+- Settings > Team on a phone put one letter per line next to a fixed role picker. The role picker now moves under the name below 560 px. A rule for a native `select` that the custom picker had replaced was removed.
+- Overview at 320 px: the channel cards use as many columns as fit, and the journey status filters and section headings wrap.
+- The journey list scrolled sideways on phones. The screen-reader-only "Actions" header was positioned against the page rather than the table's scroll box, so the table's scroll box is now positioned.
+- Builder: the step library and step settings headings are h2 after the journey's h1, not h3. Connection port labels are 11 px in the muted text color instead of 10 px gray. "Explore journeys" uses the text color.
+
+Verified locally:
+
+- A Playwright audit with the demo account at 320 and 390 px over Overview, Settings > Team, Journeys, Test Lab, Analytics and Customers: no page scrolls sideways and no top bar or navigation control is under 44 px. Settings > Team at 320 px checked by eye.
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`, and the full `npx playwright test` (104 passed).
+
 ## Designed email bodies — 2026-11-16
 
 The user found the Northstar cart email plain: every line was bare text. The renderer sanitized email HTML with bluemonday's UGC policy, which removes every `style` attribute, so no template could carry a design.

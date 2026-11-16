@@ -131,12 +131,12 @@ const path = computed(() =>
 }
 .connection-port-label {
   position: absolute;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.4;
-  padding: 2px 5px;
+  padding: 2px 6px;
   border-radius: 4px;
   background: var(--surface);
-  color: var(--gray-52);
+  color: var(--muted);
   pointer-events: none;
 }
 .connection-port-label.muted {
