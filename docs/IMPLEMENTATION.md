@@ -290,6 +290,18 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Phone navigation — 2026-11-17
+
+The third group from the design review.
+
+- The phone navigation is one scrolling row of ten items, with nothing to show that more items exist. It now fades on the side that has more items, scrolls the current page to the middle when the page changes, and marks it with `aria-current="page"`, Settings included.
+- The review asked for the workspace switcher on phones. The sidebar's workspace box only shows the one workspace a user belongs to, and the chevron beside it opened nothing. The chevron is removed rather than copied to the phone layout.
+
+Verified locally:
+
+- A Playwright check at 390 px on Overview, Test Inbox and Settings > Team: the current item is in view with `aria-current`, and the fade classes follow the scroll position.
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`, and the full `npx playwright test` (104 passed).
+
 ## Canvas overlap fixes — 2026-11-17
 
 The second group from the design review.

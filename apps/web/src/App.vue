@@ -79,6 +79,33 @@ const navGroups = computed(() => [
     ],
   },
 ]);
+// The phone navigation is one scrolling row: a fade marks the side with more
+// items, and the current page is scrolled into view.
+const mobileNav = ref<HTMLElement>();
+const navMore = ref({ before: false, after: false });
+function measureNav() {
+  const nav = mobileNav.value;
+  if (!nav) return;
+  navMore.value = {
+    before: nav.scrollLeft > 4,
+    after: nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 4,
+  };
+}
+watch([page, mobileNav], async () => {
+  await nextTick();
+  const nav = mobileNav.value;
+  const current = nav?.querySelector<HTMLElement>('.selected');
+  if (nav && current)
+    nav.scrollTo({ left: current.offsetLeft - (nav.clientWidth - current.offsetWidth) / 2 });
+  measureNav();
+});
+const navObserver =
+  typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(() => measureNav());
+watch(mobileNav, (element, old) => {
+  if (old) navObserver?.unobserve(old);
+  if (element) navObserver?.observe(element);
+});
+onBeforeUnmount(() => navObserver?.disconnect());
 // Show the shortcut the current platform actually uses; both are accepted by the handler.
 const shortcutLabel = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘ K' : 'Ctrl K';
 const searchDialog = ref<HTMLDialogElement>();
@@ -290,7 +317,6 @@ onErrorCaptured((cause) => {
           <strong>{{ identity.workspace }}</strong
           ><small>Workspace</small>
         </div>
-        <AppIcon name="down" :size="14" />
       </div>
       <nav class="sidebar-nav">
         <section v-for="group in navGroups" :key="group.label" class="nav-group">
@@ -367,17 +393,25 @@ onErrorCaptured((cause) => {
           /><span class="role-chip">{{ identity.role }}</span>
         </div>
       </header>
-      <nav class="mobile-nav" aria-label="Mobile navigation">
+      <nav
+        ref="mobileNav"
+        class="mobile-nav"
+        :class="{ 'more-before': navMore.before, 'more-after': navMore.after }"
+        aria-label="Mobile navigation"
+        @scroll.passive="measureNav"
+      >
         <button
           v-for="item in navGroups.flatMap((g) => g.items)"
           :key="item.name"
           :class="{ selected: page === item.name }"
+          :aria-current="page === item.name ? 'page' : undefined"
           @click="navigate(item.name)"
         >
           <AppIcon :name="item.icon" :size="16" />{{ item.name }}</button
         ><button
           v-if="identity.role === 'Admin'"
           :class="{ selected: page === 'Settings' }"
+          :aria-current="page === 'Settings' ? 'page' : undefined"
           @click="navigate('Settings')"
         >
           <AppIcon name="settings" />Settings</button

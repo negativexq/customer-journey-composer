@@ -179,9 +179,6 @@ button svg {
   font-weight: 600;
   border-radius: 6px;
 }
-.workspace > svg {
-  color: var(--muted);
-}
 .sidebar-nav {
   flex: 1;
   overflow-y: auto;
@@ -2690,6 +2687,21 @@ pre {
   }
   main {
     padding: 22px 17px 0;
+  }
+  .mobile-nav.more-after {
+    mask-image: linear-gradient(to right, black calc(100% - 48px), transparent);
+  }
+  .mobile-nav.more-before {
+    mask-image: linear-gradient(to left, black calc(100% - 48px), transparent);
+  }
+  .mobile-nav.more-before.more-after {
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 48px,
+      black calc(100% - 48px),
+      transparent
+    );
   }
   .mobile-nav {
     display: flex;
