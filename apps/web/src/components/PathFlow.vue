@@ -1,296 +1,345 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import EmptyState from './ui/EmptyState.vue';
-import { metric, type Insights } from '../lib/insights';
-import { pathFlow, type FlowLink, type FlowNode } from '../lib/path-flow';
-import { plural } from '../lib/format';
+import { api } from '../lib/api';
+import { errorMessage, formatDateTime, plural } from '../lib/format';
+import { metric, reasonLabel, type Insights } from '../lib/insights';
+import { pathRows, type PathRow } from '../lib/path-flow';
 import type { Workflow } from '../lib/workflow';
-import { portLabel } from '../lib/workflow-presentation';
 
-// Where customers actually went: a bar per step and a band per connection, both sized by
-// customers. One hue carries magnitude; the step table below holds the same numbers as text.
-const props = defineProps<{ workflow: Workflow; insights: Insights }>();
-const emit = defineEmits<{ branch: [{ node: string; port: string }]; step: [string] }>();
-const frame = ref<HTMLDivElement>();
-const available = ref(960);
-const height = 220;
-const barWidth = 10;
-let observer: ResizeObserver | undefined;
-onMounted(() => {
-  if (!frame.value) return;
-  observer = new ResizeObserver(([entry]) => (available.value = entry!.contentRect.width));
-  observer.observe(frame.value);
-});
-onBeforeUnmount(() => observer?.disconnect());
+// Where customers went, read top to bottom like the journey. Each row opens the customers
+// behind its count right under it, so nothing on the page jumps.
+const props = defineProps<{
+  workflow: Workflow;
+  insights: Insights;
+  journeyId: string;
+  // Version and period of the counts, as executions query parameters.
+  scope: string;
+}>();
+const emit = defineEmits<{ open: [string] }>();
 
-const columns = computed(
-  () =>
-    pathFlow(props.workflow, counts.value, { width: 1000 }).nodes.reduce(
-      (max, node) => Math.max(max, node.column),
-      0,
-    ) + 1,
+const data = computed(() =>
+  pathRows(props.workflow, {
+    reached: (id) => metric(props.insights, 'node', 'entered', id),
+    taken: (id, port) => metric(props.insights, 'edge', 'traversed', id + ':' + port),
+    waiting: (id) => metric(props.insights, 'node_current', 'WAITING', id),
+  }),
 );
-const counts = computed(() => ({
-  reached: (id: string) => metric(props.insights, 'node', 'entered', id),
-  taken: (id: string, port: string) => metric(props.insights, 'edge', 'traversed', id + ':' + port),
-}));
-// Every column needs room for its label; a wide journey scrolls sideways instead of squeezing.
-const width = computed(() => Math.max(available.value, columns.value * 150));
-const labelRoom = 150;
-const flow = computed(() =>
-  pathFlow(props.workflow, counts.value, { width: width.value - labelRoom, height, barWidth }),
-);
-const names = computed(() => new Map(props.workflow.nodes.map((node) => [node.id, node.label])));
-const branching = (id: string) =>
-  props.workflow.edges.filter((edge) => edge.source === id).length > 1;
-const percent = (share: number) => Math.round(share * 100) + '%';
-const linkText = (link: FlowLink) =>
-  `${names.value.get(link.source)} → ${names.value.get(link.target)}${
-    branching(link.source) ? ' · ' + portLabel(link.port) : ''
-  }: ${plural(link.value, 'customer')} (${percent(link.share)} of the step)`;
-const nodeText = (node: FlowNode) =>
-  `${node.label}: ${plural(node.value, 'customer')} (${percent(flow.value.total ? node.value / flow.value.total : 0)} of entries)`;
+const rows = computed(() => data.value.rows);
+const summary = computed(() => data.value.summary);
+const share = (value: number) =>
+  summary.value.entered ? Math.round((value / summary.value.entered) * 100) : 0;
+const labelOf = (id: string) => props.workflow.nodes.find((node) => node.id === id)?.label || id;
+const rowName = (row: PathRow) =>
+  `${row.kind === 'branch' ? labelOf(row.node) + ' → ' : ''}${row.label}${
+    row.kind === 'left' || row.kind === 'waiting' ? ' at ' + labelOf(row.node) : ''
+  }: ${plural(row.value, 'customer')}, ${share(row.value)}% of entries`;
 
-// Customers who reached a step but took none of its connections ended there: the run exited,
-// reached the goal or is still waiting. Exit steps end every run, so they are not marked.
-const leftHere = computed(() =>
-  flow.value.nodes
-    .filter((node) => node.type !== 'exit')
-    .map((node) => ({
-      node,
-      left:
-        node.value -
-        flow.value.links
-          .filter((link) => link.source === node.id)
-          .reduce((sum, link) => sum + link.value, 0),
-    }))
-    .filter((entry) => entry.left > 0),
-);
-// A band leaving a branching step is named after its branch, in the middle of the band where
-// it bends, clear of the step labels at either end.
-const branchLabels = computed(() =>
-  flow.value.links
-    .filter((link) => branching(link.source))
-    .map((link) => {
-      // The path is "M x0,top C bend,top bend,bottom x1,bottom L x1,bottom+thickness ...".
-      const [, top, bend, , , , , bottom, , end] = (link.path.match(/-?[\d.]+/g) || []).map(Number);
-      const thickness = (end ?? 0) - (bottom ?? 0);
-      return {
-        id: link.id,
-        x: bend ?? 0,
-        y: ((top ?? 0) + (bottom ?? 0)) / 2 + thickness / 2 + 4,
-        text: `${portLabel(link.port)} · ${link.value}`,
-      };
-    }),
-);
-const hovered = ref('');
-const tip = ref<{ text: string; x: number; y: number }>();
-function show(event: MouseEvent, key: string, text: string) {
-  const box = frame.value!.getBoundingClientRect();
-  hovered.value = key;
-  tip.value = {
-    text,
-    x: event.clientX - box.left + frame.value!.scrollLeft,
-    y: event.clientY - box.top,
-  };
+type Run = {
+  id: string;
+  customer_id: string;
+  state: string;
+  current_node_id: string;
+  started_at: string;
+  exit_reason?: string;
+};
+const PAGE = 6;
+const open = ref('');
+const runs = ref<Run[]>([]);
+const shown = ref(PAGE);
+const loading = ref(false);
+const failure = ref('');
+let request = 0;
+
+async function toggle(row: PathRow) {
+  if (open.value === row.key) {
+    open.value = '';
+    return;
+  }
+  open.value = row.key;
+  runs.value = [];
+  shown.value = PAGE;
+  failure.value = '';
+  if (!row.value) return;
+  const params = new URLSearchParams(props.scope);
+  params.set('limit', '100');
+  params.set('node_id', row.node);
+  if (row.kind === 'branch') params.set('port', row.port);
+  if (row.kind === 'waiting') {
+    params.set('current', 'true');
+    params.set('state', 'WAITING');
+  }
+  const mine = ++request;
+  loading.value = true;
+  try {
+    let result = await api<Run[]>(`/journeys/${props.journeyId}/executions?${params}`);
+    // Customers who stopped here are the ones whose run ended on this step.
+    if (row.kind === 'left')
+      result = result.filter((run) => run.current_node_id === row.node && run.state !== 'WAITING');
+    if (mine === request) runs.value = result;
+  } catch (cause) {
+    if (mine === request) failure.value = errorMessage(cause);
+  } finally {
+    if (mine === request) loading.value = false;
+  }
 }
-function hide() {
-  hovered.value = '';
-  tip.value = undefined;
-}
+// New counts close an open list, so it never shows customers from another period.
+watch(
+  () => props.scope,
+  () => (open.value = ''),
+);
+const outcome = (run: Run) =>
+  run.exit_reason
+    ? reasonLabel(run.exit_reason)
+    : run.state === 'WAITING'
+      ? 'Waiting at ' + labelOf(run.current_node_id)
+      : run.state.charAt(0) + run.state.slice(1).toLowerCase();
 </script>
 <template>
   <section class="surface path-flow" aria-label="Customer paths">
     <div class="surface-heading">
       <div>
         <h3>Customer paths</h3>
-        <p>
-          Each bar is a step, as tall as the customers who reached it. Bands show where they went
-          next. Select a bar or a band to list those customers.
+        <p v-if="summary.entered">
+          {{ plural(summary.entered, 'customer') }} entered · {{ summary.finished }} finished the
+          journey<template v-if="summary.biggestLoss">
+            · most left at <strong>{{ summary.biggestLoss.label }}</strong> ({{
+              summary.biggestLoss.value
+            }})</template
+          >. Select a row to see its customers.
         </p>
       </div>
     </div>
-    <EmptyState v-if="!flow.nodes.length" icon="branch" title="No paths to draw yet" compact>
+    <EmptyState v-if="!summary.entered" icon="branch" title="No paths to draw yet" compact>
       Paths appear once customers enter this version in the selected period.
     </EmptyState>
-    <div v-else ref="frame" class="path-flow-frame" @mouseleave="hide">
-      <svg
-        :width="width"
-        :height="height + 44"
-        :viewBox="`0 -14 ${width} ${height + 44}`"
-        role="group"
-        aria-label="Flow of customers between steps"
+    <ol v-else class="path-rows">
+      <li
+        v-for="row in rows"
+        :key="row.key"
+        :class="[
+          'path-row',
+          row.kind,
+          { top: row.depth === 0, empty: !row.value, open: open === row.key },
+        ]"
+        :style="{ '--depth': row.depth }"
       >
-        <path
-          v-for="link in flow.links"
-          :key="link.id"
-          class="flow-band"
-          :class="{ active: hovered === 'l' + link.id, dim: hovered && hovered !== 'l' + link.id }"
-          :d="link.path"
-          role="button"
-          tabindex="0"
-          :aria-label="'Show customers. ' + linkText(link)"
-          @mousemove="show($event, 'l' + link.id, linkText(link))"
-          @focus="hovered = 'l' + link.id"
-          @blur="hide"
-          @click="emit('branch', { node: link.source, port: link.port })"
-          @keydown.enter.prevent="emit('branch', { node: link.source, port: link.port })"
-        />
-        <g
-          v-for="node in flow.nodes"
-          :key="node.id"
-          class="flow-step"
-          role="button"
-          tabindex="0"
-          :aria-label="'Show customers. ' + nodeText(node)"
-          @mousemove="show($event, 'n' + node.id, nodeText(node))"
-          @focus="hovered = 'n' + node.id"
-          @blur="hide"
-          @click="emit('step', node.id)"
-          @keydown.enter.prevent="emit('step', node.id)"
+        <button
+          type="button"
+          class="path-row-button"
+          :aria-expanded="open === row.key"
+          :aria-label="rowName(row)"
+          @click="toggle(row)"
         >
-          <!-- A wider transparent target than the 10px bar. -->
-          <rect
-            class="flow-hit"
-            :x="node.x - 6"
-            :y="node.y - 4"
-            :width="barWidth + 12"
-            :height="node.height + 8"
-          />
-          <rect
-            class="flow-bar"
-            :x="node.x"
-            :y="node.y"
-            :width="barWidth"
-            :height="node.height"
-            rx="3"
-          />
-          <text :x="node.x + barWidth + 8" :y="node.y + 11" class="flow-label">
-            {{ node.label }}
-          </text>
-          <text :x="node.x + barWidth + 8" :y="node.y + 26" class="flow-value">
-            {{ node.value }} · {{ percent(flow.total ? node.value / flow.total : 0) }}
-          </text>
-        </g>
-        <text
-          v-for="label in branchLabels"
-          :key="'b' + label.id"
-          :x="label.x"
-          :y="label.y"
-          class="flow-branch"
-          aria-hidden="true"
-        >
-          {{ label.text }}
-        </text>
-        <text
-          v-for="entry in leftHere"
-          :key="'x' + entry.node.id"
-          :x="entry.node.x"
-          :y="entry.node.y + entry.node.height + 16"
-          class="flow-left"
-        >
-          {{ entry.left }} left the journey here
-        </text>
-      </svg>
-      <p
-        v-if="tip"
-        class="flow-tip"
-        role="status"
-        :style="{ left: tip.x + 'px', top: tip.y + 'px' }"
-      >
-        {{ tip.text }}
-      </p>
-    </div>
+          <span class="path-label"
+            ><span v-if="row.kind === 'joins'" class="path-hint">Continues at </span
+            >{{ row.label }}</span
+          >
+          <span class="path-count">{{ row.value }}</span>
+          <span class="path-bar" aria-hidden="true"
+            ><span :style="{ width: share(row.value) + '%' }"
+          /></span>
+          <span class="path-share">{{ share(row.value) }}%</span>
+        </button>
+        <div v-if="open === row.key" class="path-people">
+          <p v-if="!row.value" class="path-note">Nobody took this path in the selected period.</p>
+          <p v-else-if="loading" class="path-note" role="status">Loading customers…</p>
+          <p v-else-if="failure" class="path-note error-message">{{ failure }}</p>
+          <p v-else-if="!runs.length" class="path-note">
+            These customers are outside the latest 100 runs.
+          </p>
+          <template v-else>
+            <button
+              v-for="run in runs.slice(0, shown)"
+              :key="run.id"
+              type="button"
+              class="path-person"
+              @click="emit('open', run.id)"
+            >
+              <strong>{{ run.customer_id }}</strong
+              ><span>{{ outcome(run) }}</span
+              ><time>{{ formatDateTime(run.started_at) }}</time>
+            </button>
+            <button
+              v-if="runs.length > shown"
+              type="button"
+              class="path-more"
+              @click="shown += PAGE"
+            >
+              Show {{ Math.min(PAGE, runs.length - shown) }} more · {{ shown }} of
+              {{ runs.length }}
+            </button>
+          </template>
+        </div>
+      </li>
+    </ol>
   </section>
 </template>
 <style scoped>
 .path-flow {
   margin: 16px 0;
 }
-.path-flow-frame {
-  position: relative;
-  padding: 8px 18px 14px;
-  overflow-x: auto;
-}
-svg {
-  display: block;
-}
-.flow-band {
-  fill: var(--accent);
-  fill-opacity: 0.2;
-  cursor: pointer;
-  transition: fill-opacity 0.14s ease-out;
-}
-.flow-band.active,
-.flow-band:focus-visible {
-  fill-opacity: 0.5;
-}
-.flow-band.dim {
-  fill-opacity: 0.1;
-}
-.flow-step {
-  cursor: pointer;
-}
-.flow-hit {
-  fill: transparent;
-}
-.flow-bar {
-  fill: var(--accent);
-}
-.flow-band:focus-visible,
-.flow-step:focus-visible {
-  outline: 2px solid var(--accent-text);
-  outline-offset: 2px;
-}
-.flow-label,
-.flow-value,
-.flow-branch {
-  paint-order: stroke;
-  stroke: var(--surface);
-  stroke-width: 4px;
-  stroke-linejoin: round;
-}
-.flow-branch {
-  text-anchor: middle;
-  fill: var(--accent-text-strong);
-  font-size: 11px;
+.surface-heading strong {
+  color: var(--text);
   font-weight: 600;
-  pointer-events: none;
 }
-.flow-left {
-  fill: var(--muted);
-  font-size: 11px;
+.path-rows {
+  margin: 0;
+  padding: 0 0 12px;
+  list-style: none;
+}
+.path-row {
+  --indent: calc(var(--depth) * 22px);
+}
+.path-row.top + .path-row.top,
+.path-row:not(.top) + .path-row.top {
+  border-top: 1px solid var(--border);
+}
+.path-row-button {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) 44px minmax(80px, 1fr) 44px;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.path-row-button:hover,
+.path-row.open .path-row-button {
+  background: var(--violet-97);
+}
+.path-row-button:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: -2px;
+}
+.path-label {
+  padding-left: var(--indent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.path-row.step .path-label {
+  font-weight: 500;
+}
+.path-row.branch .path-label {
+  color: var(--accent-text-strong);
+  font-weight: 600;
+}
+.path-row.branch .path-label::before {
+  content: '↳ ';
+}
+.path-row.left .path-label,
+.path-row.waiting .path-label,
+.path-hint {
+  color: var(--muted);
   font-style: italic;
 }
-.flow-label {
-  fill: var(--text);
-  font-size: 12px;
-  font-weight: 600;
-}
-.flow-value {
-  fill: var(--muted);
-  font-size: 12px;
+.path-count,
+.path-share {
   font-variant-numeric: tabular-nums;
+  text-align: right;
 }
-.flow-tip {
-  position: absolute;
-  z-index: 3;
-  max-width: 280px;
-  margin: 0;
-  padding: 6px 9px;
-  transform: translate(12px, 12px);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
+.path-share {
+  color: var(--muted);
   font-size: 12px;
-  line-height: 1.4;
-  box-shadow: 0 8px 24px #17213b24;
-  pointer-events: none;
 }
-@media (prefers-reduced-motion: reduce) {
-  .flow-band {
-    transition: none;
+.path-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--gray-96);
+}
+.path-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
+}
+.path-row.branch .path-bar > span {
+  background: var(--violet-72);
+}
+.path-row.left .path-bar > span {
+  background: var(--red-70);
+}
+.path-row.waiting .path-bar > span {
+  background: var(--amber-74);
+}
+.path-row.empty .path-label,
+.path-row.empty .path-count {
+  color: var(--muted);
+}
+.path-people {
+  display: grid;
+  gap: 2px;
+  margin: 2px 22px 10px calc(40px + var(--indent));
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.path-note {
+  margin: 4px 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.path-person {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 40px;
+  margin: 0;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.path-person:hover {
+  background: var(--violet-97);
+}
+.path-person span,
+.path-person time {
+  color: var(--muted);
+  font-size: 12px;
+}
+.path-more {
+  justify-self: start;
+  margin: 4px 0 0;
+  font-size: 12px;
+}
+@media (max-width: 760px) {
+  .path-row {
+    --indent: calc(var(--depth) * 12px);
+  }
+  .path-row-button {
+    grid-template-columns: minmax(0, 1fr) 36px 40px;
+    padding: 0 14px;
+  }
+  .path-bar {
+    display: none;
+  }
+  .path-people {
+    margin: 2px 14px 10px calc(14px + var(--indent));
+  }
+  .path-person {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .path-person time {
+    display: none;
   }
 }
 </style>

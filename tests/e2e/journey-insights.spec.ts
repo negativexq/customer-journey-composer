@@ -253,7 +253,12 @@ test('journey breakdowns preserve version, reveal blocked recipients and paginat
   await expect(
     page.getByRole('combobox', { name: 'Published version', exact: true }),
   ).toContainText('Version 1');
-  const channel = page.getByRole('table').last().locator('tbody tr').filter({ hasText: 'SMS' });
+  const channel = page
+    .locator('section')
+    .filter({ has: page.getByRole('heading', { name: 'Channel performance', exact: true }) })
+    .getByRole('table')
+    .locator('tbody tr')
+    .filter({ hasText: 'SMS' });
   await channel.getByRole('button', { name: '27', exact: true }).last().click();
   const messagePanel = page.getByRole('region', { name: 'Message breakdown' });
   await expect(messagePanel.getByRole('button', { name: /v1_\d+/ })).toHaveCount(25);

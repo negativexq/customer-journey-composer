@@ -279,7 +279,16 @@ function clearSelection() {
   delivery.value = undefined;
   emit('selection', {});
 }
+// On analytics a step count only filters the executions list; the step drawer opens when the
+// step itself is chosen on the map, so it never covers the list it filters.
+const stepDetails = ref(false);
+const detailsOpen = computed(
+  () =>
+    !!(selected.value || tracking.value || showMessages.value) ||
+    (!!selectedNode.value && (props.mode !== 'analytics' || stepDetails.value)),
+);
 function selectNode(id: string) {
+  stepDetails.value = true;
   if (sectioned.value && section.value === 'messages') section.value = 'map';
   showMessages.value = false;
   overdueFilter.value = false;
@@ -349,6 +358,7 @@ function branchPeople(port: string) {
 }
 // From an experiment result to the people on one variant of that split.
 function variantPeople(node: string, port: string) {
+  stepDetails.value = false;
   showMessages.value = false;
   selectedNode.value = node;
   branchPeople(port);
@@ -356,6 +366,7 @@ function variantPeople(node: string, port: string) {
 // From a step count to the people behind it: everyone who reached the step, or
 // only those waiting there now.
 function stepPeople(id: string, waiting = false) {
+  stepDetails.value = false;
   showMessages.value = false;
   overdueFilter.value = false;
   clearSelection();
@@ -655,7 +666,20 @@ watch(
   () => [props.initialExecutionId, props.initialDeliveryId],
   () => void restoreSelection(),
 );
+// On the analytics page details open as a drawer over the page; Escape closes it.
+function closeDetails(event: KeyboardEvent) {
+  if (event.key !== 'Escape' || props.mode !== 'analytics' || inactive) return;
+  // A dialog over the drawer (the activity inspector) takes Escape first.
+  if (event.defaultPrevented || document.querySelector('dialog[open]')) return;
+  if (selected.value || tracking.value) clearSelection();
+  else if (selectedNode.value || showMessages.value) {
+    selectedNode.value = '';
+    showMessages.value = false;
+    void refresh(true);
+  }
+}
 onMounted(async () => {
+  document.addEventListener('keydown', closeDetails);
   await refresh();
   if (props.initialExecutionId) await restoreSelection();
 });
@@ -669,6 +693,7 @@ onDeactivated(() => {
   clearTimeout(timer);
 });
 onBeforeUnmount(() => {
+  document.removeEventListener('keydown', closeDetails);
   disposed = true;
   clearTimeout(timer);
 });
@@ -843,7 +868,7 @@ onBeforeUnmount(() => {
       <div
         class="observe-layout"
         :class="{
-          'has-details': selectedNode || selected || showMessages,
+          'has-details': detailsOpen,
           'messages-only': sectioned && section === 'messages',
           'people-only': sectioned && section === 'people',
         }"
@@ -858,467 +883,478 @@ onBeforeUnmount(() => {
             :execution="selected"
             @select="selectNode"
           />
-          <section v-if="shows('people')" ref="people" class="surface observe-people">
-            <div class="surface-heading">
-              <div>
-                <h3>Executions{{ selectedStep ? ' · ' + selectedStep.label : '' }}</h3>
-                <p>
-                  {{ breakdown.length ? breakdown.join(' · ') + ' · ' : '' }}Published v{{
-                    version
-                  }}
-                  · {{ days ? 'selected entry period' : 'all entries' }}
-                </p>
+          <!-- On the analytics page the list sits at the bottom, under the numbers it explains. -->
+          <Teleport defer to="#analytics-executions" :disabled="mode !== 'analytics'">
+            <section v-if="shows('people')" ref="people" class="surface observe-people">
+              <div class="surface-heading">
+                <div>
+                  <h3>Executions{{ selectedStep ? ' · ' + selectedStep.label : '' }}</h3>
+                  <p>
+                    {{ breakdown.length ? breakdown.join(' · ') + ' · ' : '' }}Published v{{
+                      version
+                    }}
+                    · {{ days ? 'selected entry period' : 'all entries' }}
+                  </p>
+                </div>
+                <button v-if="breakdown.length" @click="browse()">Clear breakdown</button>
               </div>
-              <button v-if="breakdown.length" @click="browse()">Clear breakdown</button>
-            </div>
-            <div class="observe-record-filters">
-              <label
-                >Track customer ID<input
-                  v-model="customer"
-                  placeholder="Find an enrolled customer…"
-                  @keyup.enter="refresh(true)" /></label
-              ><button @click="refresh(true)">Track customer</button
-              ><ScopeSelect
-                v-model="filter"
-                label="Execution state"
-                :options="[
-                  { value: 'all', label: 'All states' },
-                  { value: 'active', label: 'In progress' },
-                  ...['RUNNING', 'WAITING', 'COMPLETED', 'EXITED', 'FAILED', 'CANCELLED'].map(
-                    (s) => ({ value: s, label: s.replaceAll('_', ' ') }),
-                  ),
-                ]"
-                @update:model-value="
-                  filter = $event === 'all' ? '' : $event;
-                  refresh(true);
-                "
-              />
-            </div>
-            <p v-if="expanded" class="table-caption">
-              Browsing earlier entries. Refresh monitor to return to the latest.
-            </p>
-            <div class="observe-record-list">
-              <p v-if="!executions.length" class="empty-inline">
-                No matching executions in this scope.
+              <div class="observe-record-filters">
+                <label
+                  >Track customer ID<input
+                    v-model="customer"
+                    placeholder="Find an enrolled customer…"
+                    @keyup.enter="refresh(true)" /></label
+                ><button @click="refresh(true)">Track customer</button
+                ><ScopeSelect
+                  v-model="filter"
+                  label="Execution state"
+                  :options="[
+                    { value: 'all', label: 'All states' },
+                    { value: 'active', label: 'In progress' },
+                    ...['RUNNING', 'WAITING', 'COMPLETED', 'EXITED', 'FAILED', 'CANCELLED'].map(
+                      (s) => ({ value: s, label: s.replaceAll('_', ' ') }),
+                    ),
+                  ]"
+                  @update:model-value="
+                    filter = $event === 'all' ? '' : $event;
+                    refresh(true);
+                  "
+                />
+              </div>
+              <p v-if="expanded" class="table-caption">
+                Browsing earlier entries. Refresh monitor to return to the latest.
               </p>
-              <button
-                v-for="e in executions"
-                :key="e.id"
-                class="list-row"
-                :class="{ selected: selected?.id === e.id }"
-                @click="track(e.id)"
-              >
-                <span
-                  >{{ e.customer_id }} · {{ e.state
-                  }}<small
-                    >{{ stepLabel(e.current_node_id)
-                    }}{{ e.exit_reason ? ' · ' + reasonLabel(e.exit_reason) : '' }}</small
-                  ></span
-                ><time>{{ time(e.started_at) }}</time>
+              <div class="observe-record-list">
+                <p v-if="!executions.length" class="empty-inline">
+                  No matching executions in this scope.
+                </p>
+                <button
+                  v-for="e in executions"
+                  :key="e.id"
+                  class="list-row"
+                  :class="{ selected: selected?.id === e.id }"
+                  @click="track(e.id)"
+                >
+                  <span
+                    >{{ e.customer_id }} · {{ e.state
+                    }}<small
+                      >{{ stepLabel(e.current_node_id)
+                      }}{{ e.exit_reason ? ' · ' + reasonLabel(e.exit_reason) : '' }}</small
+                    ></span
+                  ><time>{{ time(e.started_at) }}</time>
+                </button>
+              </div>
+              <button v-if="hasMore" :disabled="paging" class="load-more" @click="loadMore">
+                {{ paging ? 'Loading…' : 'Load more executions' }}
               </button>
-            </div>
-            <button v-if="hasMore" :disabled="paging" class="load-more" @click="loadMore">
-              {{ paging ? 'Loading…' : 'Load more executions' }}
-            </button>
-          </section>
+            </section>
+          </Teleport>
         </div>
-        <aside
-          v-if="selectedNode || selected || tracking || showMessages"
-          class="observe-details"
-          aria-label="Journey breakdown"
-        >
-          <SkeletonBlock v-if="tracking" label="Loading execution…" variant="text" :rows="4" />
-          <section v-if="selected" class="execution-inspector" aria-label="Execution details">
-            <div class="surface-heading">
-              <h3>Customer journey</h3>
-              <button aria-label="Close customer journey" @click="clearSelection">Close</button>
-            </div>
-            <div class="toolbar">
-              <button @click="emit('inspect', { kind: 'execution', id: selected.id })">
-                Open activity inspector</button
-              ><button
-                v-if="selected.entry_event_id"
-                @click="emit('inspect', { kind: 'event', id: selected.entry_event_id })"
+        <Teleport to="body" :disabled="mode !== 'analytics'">
+          <aside
+            v-if="detailsOpen"
+            class="observe-details"
+            :class="{ drawer: mode === 'analytics' }"
+            aria-label="Journey breakdown"
+          >
+            <SkeletonBlock v-if="tracking" label="Loading execution…" variant="text" :rows="4" />
+            <section v-if="selected" class="execution-inspector" aria-label="Execution details">
+              <div class="surface-heading">
+                <h3>Customer journey</h3>
+                <button aria-label="Close customer journey" @click="clearSelection">Close</button>
+              </div>
+              <div class="toolbar">
+                <button @click="emit('inspect', { kind: 'execution', id: selected.id })">
+                  Open activity inspector</button
+                ><button
+                  v-if="selected.entry_event_id"
+                  @click="emit('inspect', { kind: 'event', id: selected.entry_event_id })"
+                >
+                  View entry event
+                </button>
+              </div>
+              <button
+                v-if="!readonly && ['RUNNING', 'WAITING'].includes(selected.state)"
+                @click="control('cancel')"
               >
-                View entry event
+                Cancel execution</button
+              ><button v-if="admin && selected.state === 'FAILED'" @click="control('retry')">
+                Recover failed job
               </button>
-            </div>
-            <button
-              v-if="!readonly && ['RUNNING', 'WAITING'].includes(selected.state)"
-              @click="control('cancel')"
-            >
-              Cancel execution</button
-            ><button v-if="admin && selected.state === 'FAILED'" @click="control('retry')">
-              Recover failed job
-            </button>
-            <div class="execution-overview">
-              <StatusBadge :status="selected.state" /><span>Version {{ version }}</span
-              ><span>{{ selected.customer_id }}</span
-              ><span v-if="selected.exit_reason"
-                >Exit: {{ selected.exit_reason.replaceAll('_', ' ') }}</span
-              >
-            </div>
-            <dl class="execution-facts">
-              <div>
-                <dt>Entered</dt>
-                <dd>{{ time(selected.started_at) }}</dd>
+              <div class="execution-overview">
+                <StatusBadge :status="selected.state" /><span>Version {{ version }}</span
+                ><span>{{ selected.customer_id }}</span
+                ><span v-if="selected.exit_reason"
+                  >Exit: {{ selected.exit_reason.replaceAll('_', ' ') }}</span
+                >
               </div>
-              <div>
-                <dt>Current step</dt>
-                <dd>{{ stepLabel(selected.current_node_id) }}</dd>
-              </div>
-              <div>
-                <dt>Execution / correlation ID</dt>
-                <dd>{{ selected.id }}</dd>
-              </div>
-            </dl>
-            <h4>Transitions &amp; conditions</h4>
-            <div class="execution-timeline">
-              <div
-                v-for="step in selected.steps"
-                :key="step.node_id"
-                class="timeline-step"
-                :class="step.state.toLowerCase()"
-              >
-                <span class="timeline-node"
-                  ><AppIcon
-                    :name="
-                      step.state === 'WAITING'
-                        ? 'clock'
-                        : step.state === 'FAILED'
-                          ? 'close'
-                          : 'check'
-                    "
-                    :size="15"
-                /></span>
-                <div class="timeline-step-content">
-                  <div>
-                    <strong>{{ stepLabel(step.node_id) }}</strong
-                    ><StatusBadge :status="step.state" />
+              <dl class="execution-facts">
+                <div>
+                  <dt>Entered</dt>
+                  <dd>{{ time(selected.started_at) }}</dd>
+                </div>
+                <div>
+                  <dt>Current step</dt>
+                  <dd>{{ stepLabel(selected.current_node_id) }}</dd>
+                </div>
+                <div>
+                  <dt>Execution / correlation ID</dt>
+                  <dd>{{ selected.id }}</dd>
+                </div>
+              </dl>
+              <h4>Transitions &amp; conditions</h4>
+              <div class="execution-timeline">
+                <div
+                  v-for="step in selected.steps"
+                  :key="step.node_id"
+                  class="timeline-step"
+                  :class="step.state.toLowerCase()"
+                >
+                  <span class="timeline-node"
+                    ><AppIcon
+                      :name="
+                        step.state === 'WAITING'
+                          ? 'clock'
+                          : step.state === 'FAILED'
+                            ? 'close'
+                            : 'check'
+                      "
+                      :size="15"
+                  /></span>
+                  <div class="timeline-step-content">
+                    <div>
+                      <strong>{{ stepLabel(step.node_id) }}</strong
+                      ><StatusBadge :status="step.state" />
+                    </div>
+                    <p>{{ decisionText(step.output) }}</p>
+                    <time
+                      >{{ time(step.started_at)
+                      }}<span v-if="step.completed_at">
+                        · finished {{ time(step.completed_at) }}</span
+                      ></time
+                    >
                   </div>
-                  <p>{{ decisionText(step.output) }}</p>
-                  <time
-                    >{{ time(step.started_at)
-                    }}<span v-if="step.completed_at">
-                      · finished {{ time(step.completed_at) }}</span
-                    ></time
-                  >
                 </div>
               </div>
-            </div>
-            <h4>Wait deadlines &amp; scheduled jobs</h4>
-            <p
-              v-if="
-                !selected.waiters.some((w) => w.state === 'WAITING') &&
-                !selected.jobs.some((j) => ['SCHEDULED', 'CLAIMED'].includes(j.state))
-              "
-              class="muted"
-            >
-              No pending waits or scheduled work.
-            </p>
-            <div
-              v-for="waiter in selected.waiters.filter((w) => w.state === 'WAITING')"
-              :key="waiter.node_id"
-              class="execution-wait"
-            >
-              <AppIcon name="events" :size="17" />
-              <div>
-                <strong>Waiting for {{ waiter.event_name }}</strong>
-                <p>{{ stepLabel(waiter.node_id) }} · until {{ time(waiter.deadline) }}</p>
-              </div>
-            </div>
-            <div
-              v-for="job in selected.jobs.filter((j) => ['SCHEDULED', 'CLAIMED'].includes(j.state))"
-              :key="job.id"
-              class="execution-wait"
-            >
-              <AppIcon name="clock" :size="17" />
-              <div>
-                <strong>{{ stepLabel(job.node_id) }}</strong>
-                <p>{{ job.kind }} · due {{ time(job.due_at) }} · {{ job.attempts }} attempts</p>
-              </div>
-              <StatusBadge :status="job.state" />
-            </div>
-            <h4>Messages &amp; decisions</h4>
-            <p v-if="!selected.deliveries.length" class="muted">
-              No messages created for this execution.
-            </p>
-            <button
-              v-for="d in selected.deliveries"
-              :key="d.id"
-              class="list-row"
-              @click="inspect(d.id)"
-            >
-              <span
-                >{{ stepLabel(d.node_id) }} · {{ d.channel.toUpperCase() }} · {{ d.status }} ·
-                {{ d.attempts }} attempts</span
-              ><AppIcon name="arrow" :size="15" />
-            </button>
-            <section v-if="delivery" class="delivery-inspector">
-              <div class="surface-heading">
-                <h4>Delivery decision &amp; attempts</h4>
-                <button @click="inspect(delivery.id)">Refresh delivery</button>
-              </div>
-              <DecisionSummary :decision="delivery.decision" /><AttemptHistory
-                :attempts="delivery.attempt_history"
-                :provider="delivery.provider"
-                :response="delivery.last_error"
-                :engagement="delivery.engagement"
-              />
-            </section>
-            <details class="execution-raw">
-              <summary>Advanced execution payload</summary>
-              <pre>{{ JSON.stringify(selected, null, 2) }}</pre>
-            </details>
-          </section>
-          <section
-            v-if="(selectedStep || showMessages) && !selected"
-            :aria-label="selectedStep ? 'Step breakdown' : 'Message breakdown'"
-          >
-            <div class="surface-heading">
-              <div>
-                <small>{{ selectedStep ? 'STEP DETAILS' : 'MESSAGE DETAILS' }}</small>
-                <h3>{{ selectedStep?.label || 'Journey messages' }}</h3>
-              </div>
-              <button
-                v-if="!sectioned || section !== 'messages'"
-                aria-label="Close step breakdown"
-                @click="
-                  selectedNode = '';
-                  showMessages = false;
-                  if (sectioned && section === 'messages') section = 'map';
-                  refresh(true);
+              <h4>Wait deadlines &amp; scheduled jobs</h4>
+              <p
+                v-if="
+                  !selected.waiters.some((w) => w.state === 'WAITING') &&
+                  !selected.jobs.some((j) => ['SCHEDULED', 'CLAIMED'].includes(j.state))
                 "
+                class="muted"
               >
-                Close
+                No pending waits or scheduled work.
+              </p>
+              <div
+                v-for="waiter in selected.waiters.filter((w) => w.state === 'WAITING')"
+                :key="waiter.node_id"
+                class="execution-wait"
+              >
+                <AppIcon name="events" :size="17" />
+                <div>
+                  <strong>Waiting for {{ waiter.event_name }}</strong>
+                  <p>{{ stepLabel(waiter.node_id) }} · until {{ time(waiter.deadline) }}</p>
+                </div>
+              </div>
+              <div
+                v-for="job in selected.jobs.filter((j) =>
+                  ['SCHEDULED', 'CLAIMED'].includes(j.state),
+                )"
+                :key="job.id"
+                class="execution-wait"
+              >
+                <AppIcon name="clock" :size="17" />
+                <div>
+                  <strong>{{ stepLabel(job.node_id) }}</strong>
+                  <p>{{ job.kind }} · due {{ time(job.due_at) }} · {{ job.attempts }} attempts</p>
+                </div>
+                <StatusBadge :status="job.state" />
+              </div>
+              <h4>Messages &amp; decisions</h4>
+              <p v-if="!selected.deliveries.length" class="muted">
+                No messages created for this execution.
+              </p>
+              <button
+                v-for="d in selected.deliveries"
+                :key="d.id"
+                class="list-row"
+                @click="inspect(d.id)"
+              >
+                <span
+                  >{{ stepLabel(d.node_id) }} · {{ d.channel.toUpperCase() }} · {{ d.status }} ·
+                  {{ d.attempts }} attempts</span
+                ><AppIcon name="arrow" :size="15" />
               </button>
-            </div>
-            <TabsRoot v-model="nodeTab"
-              ><TabsList class="observe-tabs" aria-label="Step detail tabs"
-                ><TabsTrigger v-if="selectedStep" value="summary">Summary</TabsTrigger
-                ><TabsTrigger v-if="selectedStep" value="people">People</TabsTrigger
-                ><TabsTrigger
-                  v-if="
-                    showMessages || selectedStep?.type === 'email' || selectedStep?.type === 'sms'
-                  "
-                  value="messages"
-                  >Messages</TabsTrigger
-                ></TabsList
-              ><TabsContent value="summary"
-                ><dl class="node-detail-stats">
-                  <div>
-                    <dt>Reached step</dt>
-                    <dd>{{ nodeValue('entered') }}</dd>
-                  </div>
-                  <div>
-                    <dt>Waiting now</dt>
-                    <dd>{{ nodeValue('WAITING', 'node_current') }}</dd>
-                  </div>
-                  <div>
-                    <dt>Step completed</dt>
-                    <dd>{{ nodeValue('SUCCEEDED') }}</dd>
-                  </div>
-                  <div>
-                    <dt>
-                      {{
-                        selectedStep?.type === 'email' || selectedStep?.type === 'sms'
-                          ? 'Provider accepted'
-                          : 'Processing now'
-                      }}
-                    </dt>
-                    <dd>
-                      {{
-                        selectedStep?.type === 'email' || selectedStep?.type === 'sms'
-                          ? nodeValue('ACCEPTED', 'node_delivery')
-                          : nodeValue('RUNNING', 'node_current')
-                      }}
-                    </dd>
-                  </div>
-                </dl>
-                <dl
-                  v-if="selectedStep?.type === 'email' || selectedStep?.type === 'sms'"
-                  class="node-detail-stats"
-                  aria-label="Engagement"
-                >
-                  <div v-if="selectedStep?.type === 'email'">
-                    <dt>Opened</dt>
-                    <dd>{{ nodeValue('opened', 'node_delivery') }}</dd>
-                  </div>
-                  <div>
-                    <dt>Clicked a link</dt>
-                    <dd>{{ nodeValue('clicked', 'node_delivery') }}</dd>
-                  </div>
-                  <div>
-                    <dt>Bounced</dt>
-                    <dd>{{ nodeValue('bounced', 'node_delivery') }}</dd>
-                  </div>
-                  <div v-if="selectedStep?.type === 'email'">
-                    <dt>Unsubscribed</dt>
-                    <dd>{{ nodeValue('unsubscribed', 'node_delivery') }}</dd>
-                  </div>
-                </dl>
-                <p
-                  v-if="selectedStep?.type === 'email' || selectedStep?.type === 'sms'"
-                  class="help-text"
-                >
-                  Completing a message step schedules the message; provider acceptance is a separate
-                  result. Each person counts once however often they open or click. Opens count when
-                  the mail client loads images, which some clients do on their own.
-                </p>
-                <h4>Paths taken</h4>
+              <section v-if="delivery" class="delivery-inspector">
+                <div class="surface-heading">
+                  <h4>Delivery decision &amp; attempts</h4>
+                  <button @click="inspect(delivery.id)">Refresh delivery</button>
+                </div>
+                <DecisionSummary :decision="delivery.decision" /><AttemptHistory
+                  :attempts="delivery.attempt_history"
+                  :provider="delivery.provider"
+                  :response="delivery.last_error"
+                  :engagement="delivery.engagement"
+                />
+              </section>
+              <details class="execution-raw">
+                <summary>Advanced execution payload</summary>
+                <pre>{{ JSON.stringify(selected, null, 2) }}</pre>
+              </details>
+            </section>
+            <section
+              v-if="(selectedStep || showMessages) && !selected && detailsOpen"
+              :aria-label="selectedStep ? 'Step breakdown' : 'Message breakdown'"
+            >
+              <div class="surface-heading">
+                <div>
+                  <small>{{ selectedStep ? 'STEP DETAILS' : 'MESSAGE DETAILS' }}</small>
+                  <h3>{{ selectedStep?.label || 'Journey messages' }}</h3>
+                </div>
                 <button
-                  v-for="edge in workflow.edges.filter((e) => e.source === selectedNode)"
-                  :key="edge.id"
-                  class="list-row"
-                  @click="branchPeople(edge.port)"
-                >
-                  <span>{{ portLabel(edge.port) }} → {{ stepLabel(edge.target) }}</span
-                  ><strong>{{ value('edge', 'traversed', selectedNode + ':' + edge.port) }}</strong>
-                </button>
-                <h4>Message decisions</h4>
-                <p v-if="!nodeReasons.length" class="help-text">
-                  No blocked or failed decisions in this scope.
-                </p>
-                <button
-                  v-for="r in nodeReasons"
-                  :key="r.metric"
-                  class="list-row"
-                  @click="reasonMessages(r.metric)"
-                >
-                  <span>{{ reasonLabel(r.metric) }}</span
-                  ><strong>{{ r.value }}</strong>
-                </button>
-                <div
-                  v-if="
-                    insights.metrics.some(
-                      (m) => m.dimension === 'node_exit' && m.key === selectedNode && m.value > 0,
-                    )
+                  v-if="!sectioned || section !== 'messages'"
+                  aria-label="Close step breakdown"
+                  @click="
+                    selectedNode = '';
+                    showMessages = false;
+                    if (sectioned && section === 'messages') section = 'map';
+                    refresh(true);
                   "
                 >
-                  <h4>Global exits from this step</h4>
+                  Close
+                </button>
+              </div>
+              <TabsRoot v-model="nodeTab"
+                ><TabsList class="observe-tabs" aria-label="Step detail tabs"
+                  ><TabsTrigger v-if="selectedStep" value="summary">Summary</TabsTrigger
+                  ><TabsTrigger v-if="selectedStep" value="people">People</TabsTrigger
+                  ><TabsTrigger
+                    v-if="
+                      showMessages || selectedStep?.type === 'email' || selectedStep?.type === 'sms'
+                    "
+                    value="messages"
+                    >Messages</TabsTrigger
+                  ></TabsList
+                ><TabsContent value="summary"
+                  ><dl class="node-detail-stats">
+                    <div>
+                      <dt>Reached step</dt>
+                      <dd>{{ nodeValue('entered') }}</dd>
+                    </div>
+                    <div>
+                      <dt>Waiting now</dt>
+                      <dd>{{ nodeValue('WAITING', 'node_current') }}</dd>
+                    </div>
+                    <div>
+                      <dt>Step completed</dt>
+                      <dd>{{ nodeValue('SUCCEEDED') }}</dd>
+                    </div>
+                    <div>
+                      <dt>
+                        {{
+                          selectedStep?.type === 'email' || selectedStep?.type === 'sms'
+                            ? 'Provider accepted'
+                            : 'Processing now'
+                        }}
+                      </dt>
+                      <dd>
+                        {{
+                          selectedStep?.type === 'email' || selectedStep?.type === 'sms'
+                            ? nodeValue('ACCEPTED', 'node_delivery')
+                            : nodeValue('RUNNING', 'node_current')
+                        }}
+                      </dd>
+                    </div>
+                  </dl>
+                  <dl
+                    v-if="selectedStep?.type === 'email' || selectedStep?.type === 'sms'"
+                    class="node-detail-stats"
+                    aria-label="Engagement"
+                  >
+                    <div v-if="selectedStep?.type === 'email'">
+                      <dt>Opened</dt>
+                      <dd>{{ nodeValue('opened', 'node_delivery') }}</dd>
+                    </div>
+                    <div>
+                      <dt>Clicked a link</dt>
+                      <dd>{{ nodeValue('clicked', 'node_delivery') }}</dd>
+                    </div>
+                    <div>
+                      <dt>Bounced</dt>
+                      <dd>{{ nodeValue('bounced', 'node_delivery') }}</dd>
+                    </div>
+                    <div v-if="selectedStep?.type === 'email'">
+                      <dt>Unsubscribed</dt>
+                      <dd>{{ nodeValue('unsubscribed', 'node_delivery') }}</dd>
+                    </div>
+                  </dl>
+                  <p
+                    v-if="selectedStep?.type === 'email' || selectedStep?.type === 'sms'"
+                    class="help-text"
+                  >
+                    Completing a message step schedules the message; provider acceptance is a
+                    separate result. Each person counts once however often they open or click. Opens
+                    count when the mail client loads images, which some clients do on their own.
+                  </p>
+                  <h4>Paths taken</h4>
                   <button
-                    v-for="r in insights.metrics.filter(
-                      (m) => m.dimension === 'node_exit' && m.key === selectedNode && m.value > 0,
-                    )"
+                    v-for="edge in workflow.edges.filter((e) => e.source === selectedNode)"
+                    :key="edge.id"
+                    class="list-row"
+                    @click="branchPeople(edge.port)"
+                  >
+                    <span>{{ portLabel(edge.port) }} → {{ stepLabel(edge.target) }}</span
+                    ><strong>{{
+                      value('edge', 'traversed', selectedNode + ':' + edge.port)
+                    }}</strong>
+                  </button>
+                  <h4>Message decisions</h4>
+                  <p v-if="!nodeReasons.length" class="help-text">
+                    No blocked or failed decisions in this scope.
+                  </p>
+                  <button
+                    v-for="r in nodeReasons"
                     :key="r.metric"
                     class="list-row"
-                    @click="
-                      exitFilter = r.metric;
-                      nodeCurrent = true;
-                      branch = '';
-                      filter = 'EXITED';
-                      nodeTab = 'people';
-                      refresh(true);
-                    "
+                    @click="reasonMessages(r.metric)"
                   >
                     <span>{{ reasonLabel(r.metric) }}</span
                     ><strong>{{ r.value }}</strong>
                   </button>
-                  <p class="help-text">
-                    These customers left directly from this step, without visiting an Exit node.
-                  </p>
-                </div></TabsContent
-              >
-              <TabsContent value="people"
-                ><p>
-                  The execution list shows the people behind this step{{
-                    branch ? ' and selected branch' : ''
-                  }}. Select a person to inspect their path and timeline.
-                </p>
-                <button
-                  @click="
-                    branch = '';
-                    filter = 'WAITING';
-                    nodeCurrent = true;
-                    refresh(true);
-                  "
-                >
-                  Show people waiting here
-                </button></TabsContent
-              >
-              <TabsContent value="messages"
-                ><div class="observe-record-filters">
-                  <ScopeSelect
-                    v-model="messageChannel"
-                    label="Channel"
-                    :options="[
-                      { value: 'all', label: 'All channels' },
-                      { value: 'email', label: 'Email' },
-                      { value: 'sms', label: 'SMS' },
-                    ]"
-                    @update:model-value="
-                      messageChannel = $event === 'all' ? '' : $event;
-                      loadMessages();
-                    "
-                  /><ScopeSelect
-                    v-model="messageStatus"
-                    label="Message status"
-                    :options="[
-                      { value: 'all', label: 'All outcomes' },
-                      ...[
-                        'ACCEPTED',
-                        'BLOCKED',
-                        'FAILED',
-                        'UNKNOWN',
-                        'SKIPPED',
-                        'CANCELLED',
-                        'SCHEDULED',
-                        'CLAIMED',
-                        'DISPATCHING',
-                      ].map((s) => ({ value: s, label: s })),
-                    ]"
-                    @update:model-value="
-                      messageStatus = $event === 'all' ? '' : $event;
-                      loadMessages();
-                    "
-                  />
-                </div>
-                <p v-if="messageReason" class="help-text">
-                  Reason: {{ reasonLabel(messageReason) }}
-                  <button
-                    @click="
-                      messageReason = '';
-                      loadMessages();
+                  <div
+                    v-if="
+                      insights.metrics.some(
+                        (m) => m.dimension === 'node_exit' && m.key === selectedNode && m.value > 0,
+                      )
                     "
                   >
-                    Clear reason
-                  </button>
-                </p>
-                <SkeletonBlock v-if="messageBusy" label="Loading messages…" variant="text" />
-                <p v-if="!messages.length && !messageBusy" class="empty-inline">
-                  No matching messages.
-                </p>
-                <button
-                  v-for="m in messages"
-                  :key="m.id"
-                  class="list-row"
-                  @click="
-                    track(m.execution_id).then(() => {
-                      if (selected?.id === m.execution_id) return inspect(m.id);
-                    })
-                  "
+                    <h4>Global exits from this step</h4>
+                    <button
+                      v-for="r in insights.metrics.filter(
+                        (m) => m.dimension === 'node_exit' && m.key === selectedNode && m.value > 0,
+                      )"
+                      :key="r.metric"
+                      class="list-row"
+                      @click="
+                        exitFilter = r.metric;
+                        nodeCurrent = true;
+                        branch = '';
+                        filter = 'EXITED';
+                        nodeTab = 'people';
+                        refresh(true);
+                      "
+                    >
+                      <span>{{ reasonLabel(r.metric) }}</span
+                      ><strong>{{ r.value }}</strong>
+                    </button>
+                    <p class="help-text">
+                      These customers left directly from this step, without visiting an Exit node.
+                    </p>
+                  </div></TabsContent
                 >
-                  <span
-                    >{{ m.customer_id
-                    }}<small
-                      >{{ m.channel.toUpperCase() }} · {{ m.status }} ·
-                      {{ m.attempts }} attempts</small
-                    ></span
-                  ></button
-                ><button v-if="messageMore" :disabled="messageBusy" @click="loadMessages(true)">
-                  Load more messages
-                </button></TabsContent
-              ></TabsRoot
-            >
-          </section>
-        </aside>
+                <TabsContent value="people"
+                  ><p>
+                    The execution list shows the people behind this step{{
+                      branch ? ' and selected branch' : ''
+                    }}. Select a person to inspect their path and timeline.
+                  </p>
+                  <button
+                    @click="
+                      branch = '';
+                      filter = 'WAITING';
+                      nodeCurrent = true;
+                      refresh(true);
+                    "
+                  >
+                    Show people waiting here
+                  </button></TabsContent
+                >
+                <TabsContent value="messages"
+                  ><div class="observe-record-filters">
+                    <ScopeSelect
+                      v-model="messageChannel"
+                      label="Channel"
+                      :options="[
+                        { value: 'all', label: 'All channels' },
+                        { value: 'email', label: 'Email' },
+                        { value: 'sms', label: 'SMS' },
+                      ]"
+                      @update:model-value="
+                        messageChannel = $event === 'all' ? '' : $event;
+                        loadMessages();
+                      "
+                    /><ScopeSelect
+                      v-model="messageStatus"
+                      label="Message status"
+                      :options="[
+                        { value: 'all', label: 'All outcomes' },
+                        ...[
+                          'ACCEPTED',
+                          'BLOCKED',
+                          'FAILED',
+                          'UNKNOWN',
+                          'SKIPPED',
+                          'CANCELLED',
+                          'SCHEDULED',
+                          'CLAIMED',
+                          'DISPATCHING',
+                        ].map((s) => ({ value: s, label: s })),
+                      ]"
+                      @update:model-value="
+                        messageStatus = $event === 'all' ? '' : $event;
+                        loadMessages();
+                      "
+                    />
+                  </div>
+                  <p v-if="messageReason" class="help-text">
+                    Reason: {{ reasonLabel(messageReason) }}
+                    <button
+                      @click="
+                        messageReason = '';
+                        loadMessages();
+                      "
+                    >
+                      Clear reason
+                    </button>
+                  </p>
+                  <SkeletonBlock v-if="messageBusy" label="Loading messages…" variant="text" />
+                  <p v-if="!messages.length && !messageBusy" class="empty-inline">
+                    No matching messages.
+                  </p>
+                  <button
+                    v-for="m in messages"
+                    :key="m.id"
+                    class="list-row"
+                    @click="
+                      track(m.execution_id).then(() => {
+                        if (selected?.id === m.execution_id) return inspect(m.id);
+                      })
+                    "
+                  >
+                    <span
+                      >{{ m.customer_id
+                      }}<small
+                        >{{ m.channel.toUpperCase() }} · {{ m.status }} ·
+                        {{ m.attempts }} attempts</small
+                      ></span
+                    ></button
+                  ><button v-if="messageMore" :disabled="messageBusy" @click="loadMessages(true)">
+                    Load more messages
+                  </button></TabsContent
+                ></TabsRoot
+              >
+            </section>
+          </aside>
+        </Teleport>
       </div>
       <PathFlow
         v-if="mode === 'analytics' && workflow && insights && version"
         :workflow="workflow"
         :insights="insights"
-        @branch="variantPeople($event.node, $event.port)"
-        @step="stepPeople($event)"
+        :journey-id="journeyId"
+        :scope="scopedParams().toString()"
+        @open="track($event)"
       />
       <ExperimentResults
         v-if="mode === 'analytics' && workflow"
@@ -1459,6 +1495,7 @@ onBeforeUnmount(() => {
           tracking are not available.
         </p>
       </section>
+      <div v-if="mode === 'analytics'" id="analytics-executions" />
     </template>
   </section>
 </template>

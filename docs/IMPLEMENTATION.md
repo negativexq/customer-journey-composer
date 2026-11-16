@@ -290,6 +290,21 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Customer paths as a step list, executions drawer — 2026-11-17
+
+- Customer paths is a step list instead of the Sankey chart. Each step is one row in workflow order, with its count and share of entries. A split lists its branches under the step. Customers who stopped show as "Left the journey here", and customers still waiting show as "Waiting here now". A step reached by two paths is listed once; the second path says "Continues at …". The heading sums it up: entries, finished, and where most customers left. `lib/path-flow.ts` builds the rows, and `scripts/path-flow.test.mjs` covers order, branches, waiting vs. left, merges and an empty journey.
+- Selecting a row lists its customers right under it (6 at a time) from the executions API, and the page does not scroll. Selecting a customer opens that run.
+- On journey analytics, Executions moved to the bottom of the page (`Teleport defer`). Run and step details open as a drawer fixed to the right, teleported to `body` because an ancestor's transform broke `position: fixed`. Before, they opened as a new 380px column that shrank the map and every table, so the page reflowed on each selection. Escape closes the drawer, unless the activity inspector is open over it.
+- A step count on the analytics page only filters Executions. The step drawer opens when the step is chosen on the map, so it no longer covers the list it filters.
+- Fixed: "Open activity inspector" and "View entry event" did nothing on journey analytics, because that view did not forward `inspect`. Both open their panels now.
+- `experiments.spec.ts` and `journey-insights.spec.ts` follow the new list and locate the channel table by its heading.
+
+Verified locally:
+
+- At 1280×800: the Timeout row listed 6 of 9 customers with no scroll change; selecting a customer opened a drawer at 0–800px; the path list kept its width; Escape closed the drawer. Both inspector buttons opened Execution details and Event details.
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`, and the full `npx playwright test` (104 passed).
+- A first run failed `builder.spec.ts` (mobile) and `journey-insights.spec.ts`. Passing the selected execution into analytics reopened the drawer on tab switch and covered the tabs, so analytics now forwards only `inspect`.
+
 ## Customer paths and section heading spacing — 2026-11-17
 
 - Customer paths was hard to read. Where customers stop at a step without continuing, the chart now says "N left the journey here" under the bar. Before, 12 → 9 at "Wait for purchase" showed nothing for the 3. Bands leaving a branching step carry their branch name and count in the middle of the band ("Timeout · 9"). Labels have a background halo so they read over bands, the chart is 220px tall instead of 300, and the caption is plainer.

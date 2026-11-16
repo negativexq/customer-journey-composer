@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { pathFlow } from '../apps/web/src/lib/path-flow.ts';
+import { pathRows } from '../apps/web/src/lib/path-flow.ts';
 
 const node = (id, type = 'email') => ({
   id,
@@ -26,42 +26,91 @@ const workflow = {
     edge('sms', 'done', 'next'),
   ],
 };
-const reached = { start: 100, wait: 100, bought: 30, sms: 70, done: 70, unused: 0 };
-const taken = { 'start:started': 100, 'wait:matched': 30, 'wait:timeout': 70, 'sms:next': 70 };
-const counts = {
+const counts = (reached, taken, waiting = {}) => ({
   reached: (id) => reached[id] || 0,
   taken: (id, port) => taken[`${id}:${port}`] || 0,
-};
+  waiting: (id) => waiting[id] || 0,
+});
 
-test('steps are sized by customers and laid out left to right', () => {
-  const flow = pathFlow(workflow, counts, { width: 900, height: 300, barWidth: 10, gap: 20 });
-  const at = Object.fromEntries(flow.nodes.map((item) => [item.id, item]));
-  assert.equal(flow.total, 100);
-  assert.deepEqual(Object.keys(at).sort(), ['bought', 'done', 'sms', 'start', 'wait']);
-  assert.deepEqual(
-    ['start', 'wait', 'bought', 'sms', 'done'].map((id) => at[id].column),
-    [0, 1, 2, 2, 3],
+test('steps read in workflow order and a split lists its branches under the step', () => {
+  const { rows, summary } = pathRows(
+    workflow,
+    counts(
+      { start: 12, wait: 12, sms: 9, done: 9 },
+      { 'start:started': 12, 'wait:timeout': 9, 'sms:next': 9 },
+    ),
   );
-  assert.ok(at.start.x < at.wait.x && at.wait.x < at.sms.x && at.sms.x < at.done.x);
-  // Heights keep the proportion of customers.
-  assert.ok(Math.abs(at.bought.height / at.sms.height - 30 / 70) < 0.01);
-  assert.equal(at.start.height, at.wait.height);
-  // Matched leaves above Timeout, so its target sits above too.
-  assert.ok(at.bought.y < at.sms.y);
-  assert.ok(flow.nodes.every((item) => item.y >= 0 && item.y + item.height <= 300.001));
+  assert.deepEqual(
+    rows.map((row) => [row.kind, row.depth, row.label, row.value]),
+    [
+      ['step', 0, 'start', 12],
+      ['step', 0, 'wait', 12],
+      ['branch', 1, 'Matched', 0],
+      ['step', 2, 'bought', 0],
+      ['branch', 1, 'Timeout', 9],
+      ['step', 2, 'sms', 9],
+      ['step', 2, 'done', 9],
+      ['left', 1, 'Left the journey here', 3],
+    ],
+  );
+  assert.deepEqual(summary, {
+    entered: 12,
+    finished: 9,
+    biggestLoss: { node: 'wait', label: 'wait', value: 3 },
+  });
 });
 
-test('bands carry the share of the step they leave', () => {
-  const flow = pathFlow(workflow, counts);
-  const link = Object.fromEntries(flow.links.map((item) => [`${item.source}:${item.port}`, item]));
-  assert.equal(flow.links.length, 4);
-  assert.equal(link['wait:matched'].value, 30);
-  assert.equal(link['wait:matched'].share, 0.3);
-  assert.equal(link['wait:timeout'].share, 0.7);
-  assert.ok(flow.links.every((item) => /^M[\d.,-]+ C/.test(item.path) && item.path.endsWith('Z')));
+test('customers still waiting at a step are not counted as lost', () => {
+  const { rows, summary } = pathRows(
+    workflow,
+    counts(
+      { start: 10, wait: 10, sms: 6, done: 6 },
+      { 'start:started': 10, 'wait:timeout': 6, 'sms:next': 6 },
+      { wait: 4 },
+    ),
+  );
+  assert.deepEqual(
+    rows
+      .filter((row) => row.kind === 'waiting' || row.kind === 'left')
+      .map((row) => [row.kind, row.value]),
+    [['waiting', 4]],
+  );
+  assert.equal(summary.biggestLoss, undefined);
 });
 
-test('a journey nobody entered has nothing to draw', () => {
-  const flow = pathFlow(workflow, { reached: () => 0, taken: () => 0 });
-  assert.deepEqual([flow.nodes, flow.links, flow.total], [[], [], 0]);
+test('a step reached by two paths is listed once and the second path points to it', () => {
+  const merge = {
+    nodes: [
+      node('start', 'event_trigger'),
+      node('check', 'condition'),
+      node('a'),
+      node('b'),
+      node('end', 'exit'),
+    ],
+    edges: [
+      edge('start', 'check', 'next'),
+      edge('check', 'a', 'true'),
+      edge('check', 'b', 'false'),
+      edge('a', 'end', 'next'),
+      edge('b', 'end', 'next'),
+    ],
+  };
+  const { rows } = pathRows(
+    merge,
+    counts(
+      { start: 4, check: 4, a: 3, b: 1, end: 4 },
+      { 'start:next': 4, 'check:true': 3, 'check:false': 1, 'a:next': 3, 'b:next': 1 },
+    ),
+  );
+  assert.deepEqual(
+    rows.filter((row) => row.node === 'end').map((row) => row.kind),
+    ['step', 'joins'],
+  );
+});
+
+test('a journey nobody entered still lists its steps with zero', () => {
+  const { rows, summary } = pathRows(workflow, counts({}, {}));
+  assert.ok(rows.every((row) => row.value === 0));
+  assert.deepEqual(summary, { entered: 0, finished: 0 });
+  assert.ok(!rows.some((row) => row.node === 'unused'));
 });

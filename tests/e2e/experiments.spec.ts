@@ -167,16 +167,16 @@ test('an A/B split assigns customers to variants and compares them in analytics'
     )
     .toBe(total);
   await page.goto(`/journeys/${journey.id}?tab=analytics`);
-  // The path diagram draws the same traffic: four steps reached, three connections taken.
+  // The path list shows the same traffic: the split step, one row per variant, and the
+  // customers on a variant open under its row.
   const paths = page.getByRole('region', { name: 'Customer paths' });
-  await expect(paths.locator('.flow-bar')).toHaveCount(4);
-  await expect(paths.locator('.flow-band')).toHaveCount(3);
-  await expect(paths).toContainText(`${total} · 100%`);
-  await expect(
-    paths.getByRole('button', {
-      name: new RegExp(`Offer test → No offer · Variant B: ${b.entered} customers?`),
-    }),
-  ).toHaveCount(1);
+  await expect(paths).toContainText(`${total} customers entered`);
+  const variantB = paths.getByRole('button', {
+    name: new RegExp(`^Offer test → Variant B: ${b.entered} customers?,`),
+  });
+  await expect(variantB).toHaveCount(1);
+  await variantB.click();
+  await expect(paths.locator('.path-person')).toHaveCount(Math.min(6, b.entered));
   const experiments = page.getByRole('region', { name: 'Experiment results' });
   await expect(experiments).toContainText('Offer test');
   await expect(experiments).toContainText('Fewer than 30 customers on a variant');

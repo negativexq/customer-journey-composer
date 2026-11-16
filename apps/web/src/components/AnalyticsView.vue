@@ -127,7 +127,13 @@ onMounted(() => {
 });
 </script>
 <template>
-  <LiveMonitor v-if="journeyId" :journey-id="journeyId" mode="analytics" :readonly="true" />
+  <LiveMonitor
+    v-if="journeyId"
+    :journey-id="journeyId"
+    mode="analytics"
+    :readonly="true"
+    @inspect="emit('inspect', $event)"
+  />
   <section v-else class="analytics-page" :aria-busy="busy">
     <div class="page-heading">
       <div>
