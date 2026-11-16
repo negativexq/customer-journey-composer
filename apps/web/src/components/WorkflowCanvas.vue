@@ -266,10 +266,20 @@ const groupTitle: Record<string, string> = {
 // Keyboard focus on a step outside the visible canvas pans the view to it. The flow box
 // clips its overflow, so the browser cannot scroll it out of line with the viewport.
 function revealFocusedNode(event: FocusEvent) {
-  const target = event.target as HTMLElement | null;
+  // A step's own buttons, like its "Add a step" button, bring the whole step into view.
+  const focused = event.target as HTMLElement | null;
+  const target = focused?.closest<HTMLElement>('.vue-flow__node');
   const pane = canvasElement.value?.querySelector('.vue-flow');
-  if (!target?.classList.contains('vue-flow__node') || !pane) return;
-  const box = target.getBoundingClientRect();
+  if (!focused || !target || !pane) return;
+  // The add button hangs below its card, so the step and the focused control are kept in view.
+  const card = target.getBoundingClientRect();
+  const own = focused.getBoundingClientRect();
+  const box = {
+    left: Math.min(card.left, own.left),
+    right: Math.max(card.right, own.right),
+    top: Math.min(card.top, own.top),
+    bottom: Math.max(card.bottom, own.bottom),
+  };
   const view = pane.getBoundingClientRect();
   const margin = 24;
   let dx = 0;

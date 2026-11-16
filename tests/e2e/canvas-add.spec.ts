@@ -25,6 +25,12 @@ test('a journey is built from the canvas and reads as a sentence', async ({ page
     picker.getByRole('button', { name: new RegExp('^' + kind) }).click();
   // Adding selects the new step, which dims the rest; clicking empty canvas clears the selection.
   const clear = () => page.locator('.canvas .vue-flow__pane').click({ position: { x: 6, y: 150 } });
+  // Focus pans a step out from under the canvas toolbar before its add button is clicked.
+  const addAfter = async (name: string) => {
+    const button = page.getByRole('button', { name: 'Add a step after ' + name, exact: true });
+    await button.focus();
+    await button.click();
+  };
 
   // The step library stays closed; the empty canvas offers the first step itself.
   await expect(page.getByRole('complementary', { name: 'Step library' })).toBeHidden();
@@ -36,7 +42,7 @@ test('a journey is built from the canvas and reads as a sentence', async ({ page
     await expect(settings).toContainText('A customer enters the journey each time this event');
   await clear();
 
-  await page.getByRole('button', { name: 'Add a step after Event Trigger', exact: true }).click();
+  await addAfter('Event Trigger');
   await expect(picker).toContainText('After Event Trigger');
   // A journey has one entry, so the picker does not offer another trigger.
   await expect(picker.getByRole('button', { name: /^Event Trigger/ })).toHaveCount(0);
@@ -45,15 +51,11 @@ test('a journey is built from the canvas and reads as a sentence', async ({ page
   await expect(page.locator('.canvas .vue-flow__edge')).toHaveCount(1);
   await clear();
 
-  await page
-    .getByRole('button', { name: 'Add a step after Wait for Event · Timeout', exact: true })
-    .click();
+  await addAfter('Wait for Event · Timeout');
   await expect(picker).toContainText('After Wait for Event · Timeout');
   await choose('Send SMS');
   await clear();
-  await page
-    .getByRole('button', { name: 'Add a step after Wait for Event · Matched', exact: true })
-    .click();
+  await addAfter('Wait for Event · Matched');
   await choose('Exit');
   await clear();
   await expect(nodes).toHaveCount(4);
