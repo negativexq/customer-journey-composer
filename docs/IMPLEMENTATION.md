@@ -1378,3 +1378,46 @@ index predicate) chose the frequency index in isolated experiments but not relia
 under load (the last still used the workspace index in 346 of 365 slow fences), so
 none was kept. Single local runs; all kept 10,000 logical sends with no duplicates
 or failures.
+
+### Throughput ceiling and where the work goes — 2026-11-18
+
+Ingestion sweep at commit `d47c09a` (10,000 customers, provider limit 1,000 calls/s,
+PostgreSQL 17 limited to 2 CPUs and 2 GiB, one local run per rate, host load
+average 3–6):
+
+| Offered events/s | Accepted events/s | HTTP 429 retries | p99 event→execution | All waiting | Burst completed | All accepted |
+| ---------------- | ----------------- | ---------------- | ------------------- | ----------- | --------------- | ------------ |
+| 600              | 430               | 0                | 93 ms               | 31 s        | 58 s            | 75 s         |
+| 800              | 547               | 256              | 93 ms               | 30 s        | 59 s            | 76 s         |
+| 1,200            | 547               | 47               | 91 ms               | 26 s        | 59 s            | 76 s         |
+| unpaced          | 545               | 1,473            | 163 ms              | 31 s        | 59 s            | 75 s         |
+
+Admission saturates near 545 events/s and pushes the rest back with 429s. 10,000
+executions reach their wait in 26–31 s whatever the offered rate (about 350
+executions/s), the timer burst completes about 170 executions/s, and messages are
+accepted at about 133/s. The database uses 1.7–1.9 of its 2 CPUs in every run, so
+it is the limit. All runs kept 10,000 logical sends with no duplicates or failures.
+
+Cold statistics cost reads, not throughput. With `autovacuum_naptime=5s` (a
+measurement setting, not product configuration) the plans are made with
+statistics early in the burst: at 1,000 calls/s the fence fell from 1.69 ms and
+1,668 blocks to 0.13 ms and 37 blocks, rows read by sequential scans of
+`delivery_jobs` from 8.8 million to 0.2 million, and stage B blocks per 1,000
+executions by 62%, but stage B database CPU per 1,000 executions only from 14.02 s
+to 13.47 s and the burst took as long. At 50 calls/s sequential scans of
+`delivery_jobs` stayed at 21 million rows with statistics present; their source is
+not yet found.
+
+What remains is work per execution: in stage B about 57 SQL calls (including
+transaction control) and about 11 transactions. Merging the delivery claim with
+the first dispatch transaction would save about 3 calls per message, but it moves
+the eligibility decision to the claim, so a consent revocation or global exit
+after the claim no longer stops the send
+(`TestConsentRevocationAndGlobalExitBeforeDispatch`); it was reverted. Metric
+capture was measured on the real schema in an isolated database: the trigger adds
+about 46 µs to a step insert (71.6 µs against 25.4 µs) and 29 µs to an execution
+update (77.6 µs against 48.9 µs), about 0.5 ms per execution or 3% of SQL time. The
+projector's statements are about 15% of SQL time in both stages, and each queue
+row carries about 1 KB (deltas and a full snapshot), about a fifth of WAL. An
+earlier estimate that metrics took a third of database time was wrong. The
+benchmark report can now record function time when the server tracks functions.
