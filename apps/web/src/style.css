@@ -430,6 +430,8 @@ h3 {
 .metric-card {
   display: flex;
   flex-direction: column;
+  /* Top-aligned, so labels and values line up across cards whose captions wrap differently. */
+  justify-content: flex-start;
   align-items: stretch;
   text-align: left;
   border: 1px solid var(--border);
