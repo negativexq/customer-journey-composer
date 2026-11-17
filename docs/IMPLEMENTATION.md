@@ -1325,3 +1325,18 @@ CPU-seconds, about 21,900 statements and 18 MiB WAL per 1,000 executions at an
 average of 1.93 of 2 cores; stage B used 15–17 CPU-seconds, 57,600–63,400
 statements and 52 MiB WAL. Every run kept 10,000 logical sends, zero duplicate
 actions and zero failed executions. These are single local runs, not remote CI.
+
+### Outbox discovery by page — 2026-11-17
+
+The benchmark now records per-table scan counters. In a 1,000 calls/s run at
+`c3a7700`, `action_outbox` had 3,139 sequential scans reading 30.3 million rows
+and index scans fetching 19.0 million: each scheduled action walked or sorted the
+pending queue from its head. Discovering a page of 32 actions and locking each
+by key cut the scheduling query from 2.36 ms to 0.10 ms per action (22.9 s to
+1.0 s in stage B), sequential rows read to 0.57 million and index fetches to
+53,000. Every message was accepted in 77.8 s, against 87.6–90.7 s in two runs
+of the previous commit. Database CPU per 1,000 executions fell only from
+15.1–16.1 to 14.5 s: the faster scheduler moved time into the delivery claim
+(7.0 to 14.9 s) and the lifecycle fence that share-locks the journey row (8.0 to
+15.2 s). At 50 calls/s nothing changed, as the rate sets the pace. All runs kept
+10,000 logical sends with no duplicates or failures; these are single local runs.
