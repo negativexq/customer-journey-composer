@@ -132,9 +132,10 @@ const initial = computed(() => app.value[0].toUpperCase());
   overflow: hidden;
 }
 .push-status {
-  display: flex;
+  /* Three columns keep the island centred whether or not the clock shows. */
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   min-height: 28px;
   padding: 2px 14px 8px;
   font-size: 13px;
@@ -148,6 +149,7 @@ const initial = computed(() => app.value[0].toUpperCase());
   background: var(--gray-25);
 }
 .push-signal {
+  justify-self: end;
   display: flex;
   align-items: flex-end;
   gap: 2px;
