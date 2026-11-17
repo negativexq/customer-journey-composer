@@ -492,6 +492,9 @@ func run(customers int, out string, rate, delayMS, delayEvery, spreadSeconds int
 	if err != nil {
 		return err
 	}
+	if err = explain("loaded_delivery_head_claim", delivery.ClaimLiveHead, time.Now().UTC()); err != nil {
+		return err
+	}
 	if err = explain("loaded_delivery_claim", delivery.ClaimLive, time.Now().UTC(), held); err != nil {
 		return err
 	}
@@ -499,6 +502,9 @@ func run(customers int, out string, rate, delayMS, delayEvery, spreadSeconds int
 		return err
 	}
 	deliveryDone := time.Now()
+	if err = explainFence(ctx, apiPool, workspace, plans); err != nil {
+		return err
+	}
 	probe.phase.Store("projection_catchup")
 	if err = waitFor(ctx, "Metric queue drain", 0, apiPool, `SELECT (SELECT count(*) FROM metric_queue)+(SELECT count(*) FROM metric_snapshot_backfill WHERE NOT complete)`); err != nil {
 		return err
@@ -681,4 +687,33 @@ func (p costPoint) since(start costPoint, executions int) map[string]any {
 		out["db_cpu_cores_average"] = cpu / seconds
 	}
 	return out
+}
+
+// explainFence plans the scheduling fence, custom and generic, against one of
+// this run's actions put back to pending inside a transaction that is rolled
+// back, so the frequency reservation count runs as it did under load.
+func explainFence(ctx context.Context, pool *pgxpool.Pool, workspace string, plans map[string]json.RawMessage) error {
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(context.Background()) }()
+	var outbox, execution, customer string
+	if err = tx.QueryRow(ctx, `SELECT o.id::text,o.execution_id::text,e.customer_id FROM action_outbox o JOIN journey_executions e ON e.id=o.execution_id WHERE o.workspace_id=$1 ORDER BY o.created_at DESC LIMIT 1`, workspace).Scan(&outbox, &execution, &customer); err != nil {
+		return fmt.Errorf("fence sample: %w", err)
+	}
+	if _, err = tx.Exec(ctx, `UPDATE action_outbox SET state='PENDING' WHERE id=$1`, outbox); err != nil {
+		return err
+	}
+	for _, mode := range []string{"force_custom_plan", "force_generic_plan"} {
+		if _, err = tx.Exec(ctx, `SET LOCAL plan_cache_mode=`+mode); err != nil {
+			return err
+		}
+		var raw []byte
+		if err = tx.QueryRow(ctx, "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) "+delivery.ScheduleFenceQuery, execution, outbox, workspace, customer, time.Now().UTC().Add(-24*time.Hour), true, 3).Scan(&raw); err != nil {
+			return fmt.Errorf("plan fence: %w", err)
+		}
+		plans["loaded_schedule_fence_"+mode] = raw
+	}
+	return nil
 }

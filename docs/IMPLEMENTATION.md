@@ -1340,3 +1340,17 @@ of the previous commit. Database CPU per 1,000 executions fell only from
 (7.0 to 14.9 s) and the lifecycle fence that share-locks the journey row (8.0 to
 15.2 s). At 50 calls/s nothing changed, as the rate sets the pace. All runs kept
 10,000 logical sends with no duplicates or failures; these are single local runs.
+
+### Statistics-independent delivery claim — 2026-11-17
+
+Table counters showed the live delivery claim scanning and sorting the due queue:
+its plan, cached while the queue looked empty, read 981 blocks per claim at 1,000
+calls/s (18.8 s in stage B). Planning the claim on every call fixed that rate but
+made 50 calls/s worse (2.49 ms per claim, 33 million rows scanned) and did not
+change the scheduling fence, so it was reverted. The claim now first takes the 32
+earliest due messages using only the due index's own conditions. Claims fell to
+0.44 ms and 142 blocks at 1,000 calls/s (5.0 s) and from 35.4 s to 10.0 s at 50
+calls/s; every message was accepted in 75.6 s and 250.4 s. The scheduling fence
+still reads about 1,300 blocks per call under load and only about 20 at rest; its
+cause is not yet measured. Single local runs; all kept 10,000 logical sends with
+no duplicates or failures.
