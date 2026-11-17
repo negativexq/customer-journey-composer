@@ -88,88 +88,118 @@ func validRecipient(channel, to string) bool {
 
 // Each action commits before another customer is locked. A bounded drain keeps
 // the public scheduler work budget without holding an entire batch of customers.
-const scheduleBatchSize = 1
 const scheduleDrainBudget = 32
 
-// ScheduleQuery keeps the ordered pending index outside the customer lock.
-// The lateral LockRows boundary prevents a bulk join/sort of the pending queue.
-// Exported inside the internal package for exact-query benchmark EXPLAIN probes.
-const scheduleColumns = `SELECT o.id::text,o.workspace_id::text,o.execution_id::text,o.node_id,o.channel,o.payload,p.customer_id,p.state,p.email,p.phone,p.push_token,p.consents,p.frequency_limit,p.frequency_window_seconds,o.created_at`
-const scheduleJoins = ` JOIN LATERAL (
+// schedulePage is how many pending actions one discovery query returns.
+const schedulePage = 32
+
+// PendingPageQuery finds the next pending actions in order. Discovery reads only
+// the ordered partial index, once per page: finding each action again from the
+// head of the queue repeated the walk for every action and, with statistics
+// taken while the queue was empty, made the planner scan and sort the whole
+// outbox table each time.
+const PendingPageQuery = `SELECT o.id::text,o.created_at FROM action_outbox o WHERE o.state='PENDING' ORDER BY o.created_at,o.id LIMIT $1`
+
+// PendingAfterQuery continues a drain after the last action of the previous
+// page. Order by the table's columns: the bare id would name the text output
+// column and sort outside the index. The cursor is local to one drain, so locked/skipped or newly backdated
+// actions are reconsidered from the beginning on the next drain.
+const PendingAfterQuery = `SELECT o.id::text,o.created_at FROM action_outbox o WHERE o.state='PENDING' AND (o.created_at,o.id)>($2,$3::uuid) ORDER BY o.created_at,o.id LIMIT $1`
+
+// ScheduleItemQuery locks one discovered action's customer by primary key. A
+// customer another transaction holds is skipped, not waited for.
+const ScheduleItemQuery = `SELECT o.id::text,o.workspace_id::text,o.execution_id::text,o.node_id,o.channel,o.payload,p.customer_id,p.state,p.email,p.phone,p.push_token,p.consents,p.frequency_limit,p.frequency_window_seconds FROM action_outbox o JOIN LATERAL (
    SELECT e.customer_id,e.state,c.email,c.phone,c.push_token,c.consents,COALESCE(s.frequency_limit,3) AS frequency_limit,COALESCE(s.frequency_window_seconds,86400) AS frequency_window_seconds
    FROM journey_executions e JOIN customers c ON c.workspace_id=e.workspace_id AND c.customer_id=e.customer_id
    LEFT JOIN workspace_settings s ON s.workspace_id=o.workspace_id
    WHERE e.id=o.execution_id AND (SELECT j.status IN ('Active','Sunset') FROM journeys j WHERE j.id=e.journey_id)
    FOR UPDATE OF c SKIP LOCKED
  ) p ON true
- ORDER BY o.created_at,o.id LIMIT $1`
-
-const ScheduleQuery = scheduleColumns + ` FROM (SELECT * FROM action_outbox WHERE state='PENDING' ORDER BY created_at,id OFFSET 0) o` + scheduleJoins
-
-// ScheduleAfterQuery seeks on the existing ordered partial index. The cursor is
-// local to one bounded drain, so locked/skipped or newly backdated rows are
-// reconsidered from the beginning on the next drain.
-const ScheduleAfterQuery = scheduleColumns + ` FROM (SELECT * FROM action_outbox WHERE state='PENDING' AND (created_at,id)>($2,$3::uuid) ORDER BY created_at,id OFFSET 0) o` + scheduleJoins
+ WHERE o.id=$1 AND o.state='PENDING'`
 
 type scheduleCursor struct {
 	createdAt time.Time
 	id        string
 }
 
+// pendingPage lists up to limit pending actions, after the cursor when given.
+func (s *Service) pendingPage(ctx context.Context, after *scheduleCursor, limit int) ([]scheduleCursor, error) {
+	query, args := PendingPageQuery, []any{limit}
+	if after != nil {
+		query, args = PendingAfterQuery, []any{limit, after.createdAt, after.id}
+	}
+	rows, err := s.Pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (scheduleCursor, error) {
+		var c scheduleCursor
+		err := row.Scan(&c.id, &c.createdAt)
+		return c, err
+	})
+}
+
 func (s *Service) Schedule(ctx context.Context) (int, error) {
 	total := 0
-	cursor := &scheduleCursor{}
+	var after *scheduleCursor
 	for total < scheduleDrainBudget {
-		n, err := s.scheduleAfter(ctx, cursor)
-		total += n
-		if err != nil || n == 0 {
+		page, err := s.pendingPage(ctx, after, schedulePage)
+		if err != nil {
 			return total, err
 		}
+		for _, item := range page {
+			n, err := s.scheduleItem(ctx, item.id)
+			total += n
+			if err != nil {
+				return total, err
+			}
+		}
+		if len(page) < schedulePage {
+			return total, nil
+		}
+		after = &page[len(page)-1]
 	}
 	return total, nil
 }
+
+// scheduleOne schedules the first pending action whose customer is free.
 func (s *Service) scheduleOne(ctx context.Context) (int, error) {
-	return s.scheduleAfter(ctx, &scheduleCursor{})
+	page, err := s.pendingPage(ctx, nil, schedulePage)
+	if err != nil {
+		return 0, err
+	}
+	for _, item := range page {
+		if n, err := s.scheduleItem(ctx, item.id); n > 0 || err != nil {
+			return n, err
+		}
+	}
+	return 0, nil
 }
-func (s *Service) scheduleAfter(ctx context.Context, cursor *scheduleCursor) (int, error) {
+
+// scheduleItem turns one pending action into a delivery decision in its own
+// transaction. It returns 0 when the action is gone or its customer is busy.
+func (s *Service) scheduleItem(ctx context.Context, id string) (int, error) {
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return 0, err
 	}
 	defer func() { _ = tx.Rollback(context.Background()) }()
 	now := s.Clock.Now()
-	// Drive from outbox_pending; joining Active journeys first made even an
-	// empty queue repeatedly probe completed execution/outbox history. Customer
-	// locks and the per-item lifecycle/pending rechecks remain unchanged.
-	query, args := ScheduleQuery, []any{scheduleBatchSize}
-	if cursor.id != "" {
-		query, args = ScheduleAfterQuery, []any{scheduleBatchSize, cursor.createdAt, cursor.id}
-	}
-	rows, err := tx.Query(ctx, query, args...)
-	if err != nil {
-		return 0, err
-	}
 	type pending struct {
 		id, workspace, execution, node, channel, customer, state string
 		raw, consents                                            []byte
 		email, phone, pushToken                                  *string
 		limit, window                                            int
-		createdAt                                                time.Time
 	}
-	items := []pending{}
-	for rows.Next() {
-		var p pending
-		if err := rows.Scan(&p.id, &p.workspace, &p.execution, &p.node, &p.channel, &p.raw, &p.customer, &p.state, &p.email, &p.phone, &p.pushToken, &p.consents, &p.limit, &p.window, &p.createdAt); err != nil {
-			rows.Close()
-			return 0, err
-		}
-		items = append(items, p)
+	var p pending
+	err = tx.QueryRow(ctx, ScheduleItemQuery, id).Scan(&p.id, &p.workspace, &p.execution, &p.node, &p.channel, &p.raw, &p.customer, &p.state, &p.email, &p.phone, &p.pushToken, &p.consents, &p.limit, &p.window)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, nil
 	}
-	err = rows.Err()
-	rows.Close()
 	if err != nil {
 		return 0, err
 	}
+	items := []pending{p}
 	for _, p := range items {
 		var message messaging.Message
 		renderError := ""
@@ -268,10 +298,6 @@ func (s *Service) scheduleAfter(ctx context.Context, cursor *scheduleCursor) (in
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return 0, err
-	}
-	if len(items) > 0 {
-		last := items[len(items)-1]
-		cursor.createdAt, cursor.id = last.createdAt, last.id
 	}
 	return len(items), nil
 }

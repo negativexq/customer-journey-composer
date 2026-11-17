@@ -15,7 +15,7 @@ import (
 func TestSchedulingDoesNotLockCustomersBeyondItsTransactionBudget(t *testing.T) {
 	ctx, pool, now, first, _ := seeded(t, true)
 	workspaces := []string{first}
-	for range max(1, scheduleBatchSize/2) {
+	for range 1 {
 		_, _, _, workspace, _ := seeded(t, true)
 		workspaces = append(workspaces, workspace)
 	}
@@ -67,7 +67,7 @@ func TestSchedulingDoesNotLockCustomersBeyondItsTransactionBudget(t *testing.T) 
 		t.Fatal(err)
 	}
 	<-done
-	if scheduleErr != nil || count != scheduleBatchSize {
+	if scheduleErr != nil || count != 1 {
 		t.Fatalf("scheduled %d: %v", count, scheduleErr)
 	}
 	for {
@@ -90,11 +90,57 @@ func TestSchedulingDoesNotLockCustomersBeyondItsTransactionBudget(t *testing.T) 
 
 func TestSchedulerPlanBoundsPendingQueueWork(t *testing.T) {
 	ctx, pool, _, workspace, execution := seeded(t, true)
+	// Statistics taken while the queue was empty, as before a burst of actions,
+	// must not turn discovery into a scan and sort of the whole outbox.
+	if _, err := pool.Exec(ctx, `ANALYZE action_outbox`); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := pool.Exec(ctx, `INSERT INTO action_outbox(workspace_id,execution_id,node_id,channel,payload,created_at) SELECT $1,$2,'plan_'||n,'sms','{}',now() FROM generate_series(1,10000) n`, workspace, execution); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `ANALYZE action_outbox; ANALYZE customers; ANALYZE journey_executions`); err != nil {
+	explain := func(query string, args ...any) (visits float64, scans, conditions string) {
+		t.Helper()
+		var raw []byte
+		if err := pool.QueryRow(ctx, "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) "+query, args...).Scan(&raw); err != nil {
+			t.Fatal(err)
+		}
+		var plan []struct{ Plan map[string]any }
+		if err := json.Unmarshal(raw, &plan); err != nil {
+			t.Fatal(err)
+		}
+		var walk func(map[string]any)
+		walk = func(node map[string]any) {
+			if node["Relation Name"] == "action_outbox" {
+				rows, _ := node["Actual Rows"].(float64)
+				loops, _ := node["Actual Loops"].(float64)
+				visits += rows * loops
+				scans += node["Node Type"].(string) + " "
+				if condition, ok := node["Index Cond"].(string); ok {
+					conditions += condition
+				}
+			}
+			if children, ok := node["Plans"].([]any); ok {
+				for _, child := range children {
+					if child, ok := child.(map[string]any); ok {
+						walk(child)
+					}
+				}
+			}
+		}
+		walk(plan[0].Plan)
+		return
+	}
+	visits, scans, _ := explain(PendingPageQuery, schedulePage)
+	if visits == 0 || visits > schedulePage || strings.Contains(scans, "Seq Scan") {
+		t.Fatalf("discovery read %v outbox rows by %s for a page of %d", visits, scans, schedulePage)
+	}
+	var position scheduleCursor
+	if err := pool.QueryRow(ctx, `SELECT created_at,id::text FROM action_outbox WHERE state='PENDING' ORDER BY created_at,id OFFSET 5000 LIMIT 1`).Scan(&position.createdAt, &position.id); err != nil {
 		t.Fatal(err)
+	}
+	visits, _, conditions := explain(PendingAfterQuery, schedulePage, position.createdAt, position.id)
+	if visits != schedulePage || !strings.Contains(conditions, "created_at") || !strings.Contains(conditions, "id") {
+		t.Fatalf("continuation did not seek the pending index: visits %v, condition %s", visits, conditions)
 	}
 	tx, err := pool.Begin(ctx)
 	if err != nil {
@@ -102,52 +148,11 @@ func TestSchedulerPlanBoundsPendingQueueWork(t *testing.T) {
 	}
 	defer func() { _ = tx.Rollback(context.Background()) }()
 	var raw []byte
-	if err = tx.QueryRow(ctx, "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) "+ScheduleQuery, scheduleBatchSize).Scan(&raw); err != nil {
+	if err = tx.QueryRow(ctx, "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) "+ScheduleItemQuery, position.id).Scan(&raw); err != nil {
 		t.Fatal(err)
 	}
-	var plan []struct{ Plan map[string]any }
-	if err = json.Unmarshal(raw, &plan); err != nil {
-		t.Fatal(err)
-	}
-	queueWork := float64(0)
-	indexCondition := ""
-	var walk func(map[string]any)
-	walk = func(node map[string]any) {
-		if node["Relation Name"] == "action_outbox" {
-			rows, _ := node["Actual Rows"].(float64)
-			loops, _ := node["Actual Loops"].(float64)
-			queueWork += rows * loops
-			if condition, ok := node["Index Cond"].(string); ok {
-				indexCondition += condition
-			}
-		}
-		if children, ok := node["Plans"].([]any); ok {
-			for _, child := range children {
-				if child, ok := child.(map[string]any); ok {
-					walk(child)
-				}
-			}
-		}
-	}
-	walk(plan[0].Plan)
-	if queueWork == 0 || queueWork > scheduleBatchSize {
-		t.Fatalf("pending queue visits exceed the transaction budget: %v", queueWork)
-	}
-	t.Logf("10,002 pending rows: outbox row visits %.0f for budget %d", queueWork, scheduleBatchSize)
-	var position scheduleCursor
-	if err = pool.QueryRow(ctx, `SELECT created_at,id::text FROM action_outbox WHERE state='PENDING' ORDER BY created_at,id OFFSET 5000 LIMIT 1`).Scan(&position.createdAt, &position.id); err != nil {
-		t.Fatal(err)
-	}
-	if err = tx.QueryRow(ctx, "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) "+ScheduleAfterQuery, scheduleBatchSize, position.createdAt, position.id).Scan(&raw); err != nil {
-		t.Fatal(err)
-	}
-	if err = json.Unmarshal(raw, &plan); err != nil {
-		t.Fatal(err)
-	}
-	queueWork = 0
-	walk(plan[0].Plan)
-	if queueWork != scheduleBatchSize || !strings.Contains(indexCondition, "created_at") || !strings.Contains(indexCondition, "id") {
-		t.Fatalf("continuation did not seek the pending index: visits %v, condition %s", queueWork, indexCondition)
+	if !strings.Contains(string(raw), `"Index Name": "action_outbox_pkey"`) {
+		t.Fatalf("an action is not locked by its key: %s", raw)
 	}
 }
 
@@ -277,18 +282,22 @@ func TestSchedulerCursorUsesTupleOrderAndResetsForBackdatedActions(t *testing.T)
 		t.Fatal(err)
 	}
 	sender := New(pool, now)
-	cursor := &scheduleCursor{}
+	var after *scheduleCursor
 	for range 2 {
-		n, err := sender.scheduleAfter(ctx, cursor)
-		if err != nil || n != 1 {
+		page, err := sender.pendingPage(ctx, after, 1)
+		if err != nil || len(page) != 1 {
+			t.Fatalf("tuple continuation: %v, %v", page, err)
+		}
+		if n, err := sender.scheduleItem(ctx, page[0].id); err != nil || n != 1 {
 			t.Fatalf("tuple continuation: %d, %v", n, err)
 		}
+		after = &page[0]
 	}
 	if _, err := pool.Exec(ctx, `INSERT INTO action_outbox(workspace_id,execution_id,node_id,channel,payload,created_at) VALUES($1,$2,'late_backdated','sms','{}',$3)`, workspace, execution, now.Now().Add(-time.Hour)); err != nil {
 		t.Fatal(err)
 	}
-	if n, err := sender.scheduleAfter(ctx, cursor); err != nil || n != 0 {
-		t.Fatalf("cursor unexpectedly restarted: %d, %v", n, err)
+	if page, err := sender.pendingPage(ctx, after, 1); err != nil || len(page) != 0 {
+		t.Fatalf("cursor unexpectedly restarted: %v, %v", page, err)
 	}
 	if n, err := sender.Schedule(ctx); err != nil || n != 1 {
 		t.Fatalf("next drain lost backdated action: %d, %v", n, err)
