@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import AppSelect from './ui/AppSelect.vue';
 import SegmentedControl from './ui/SegmentedControl.vue';
-import { runContext, runTitle, type TestRunSummary } from '../lib/test-runs';
+import type { TestRunSummary } from '../lib/test-runs';
 import SkeletonBlock from './ui/SkeletonBlock.vue';
-import { errorMessage, formatDateTime } from '../lib/format';
+import { errorMessage } from '../lib/format';
 import { computed, onActivated, onMounted, ref, watch } from 'vue';
 import { api, type Journey } from '../lib/api';
 import AppIcon from './ui/AppIcon.vue';
-import StatusBadge from './ui/StatusBadge.vue';
 import CustomerProfileFields from './ui/CustomerProfileFields.vue';
 import TestInbox from './TestInbox.vue';
+import VirtualClock from './VirtualClock.vue';
+import SandboxResult from './SandboxResult.vue';
+import RecentTestRuns from './RecentTestRuns.vue';
+import type { RunState, SandboxRun } from '../lib/test-lab';
 import ScenarioFields from './ui/ScenarioFields.vue';
 import { testContext, type TestContext, type ScenarioDraft } from '../lib/test-context';
 import type { Workflow } from '../lib/workflow';
@@ -21,34 +24,6 @@ const props = defineProps<{
   readonly?: boolean;
   nodeId?: string;
 }>();
-type Trace = { at: string; kind: string; node_id?: string; message: string };
-type State = {
-  now: string;
-  status: string;
-  result: string;
-  paused: boolean;
-  finalized: boolean;
-  current_node_id?: string;
-  exit_reason?: string;
-  trace: Trace[];
-  steps: {
-    node_id: string;
-    label: string;
-    state: string;
-    started_at: string;
-    deadline?: string;
-    output: unknown;
-  }[];
-  messages: {
-    id: string;
-    channel: string;
-    status: string;
-    scheduled_at: string;
-    decision: unknown;
-  }[];
-  assertions: { description: string; pass: boolean; actual: unknown }[];
-};
-type Run = { id: string; revision: number; workflow_hash: string; state: State };
 type Example = {
   name: string;
   start_time: string;
@@ -304,11 +279,8 @@ watch(formSignature, () => {
 });
 const currentDraft = ref(false);
 const runs = ref<TestRunSummary[]>([]);
-// The newest runs first; older ones open on request so the column stays short.
-const RUN_PAGE = 8;
-const runLimit = ref(RUN_PAGE);
-const run = ref<Run>();
-const path = ref<State>();
+const run = ref<SandboxRun>();
+const path = ref<RunState>();
 const error = ref('');
 const notice = ref('');
 const busy = ref(false);
@@ -405,22 +377,6 @@ watch(version, () => void loadExamples(false));
 onActivated(() => {
   if (context.value) void loadExamples(false);
 });
-const time = (at: string) =>
-  new Date(at).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'UTC',
-  }) + ' UTC';
-function decision(output: unknown) {
-  const o = output as Record<string, unknown>;
-  if (o.condition !== undefined)
-    return o.condition ? 'Condition matched' : 'Condition did not match';
-  if (o.exit_reason) return 'Exit: ' + String(o.exit_reason).replaceAll('_', ' ');
-  if (o.wait_until) return 'Waiting until ' + time(String(o.wait_until));
-  return o.port ? 'Continued via ' + String(o.port) : 'Step recorded';
-}
 function preset() {
   const data = JSON.parse(customer.value);
   data.attributes.total_orders = profile.value === 'Returning Customer' ? 3 : 0;
@@ -489,7 +445,7 @@ async function prepare() {
 async function create() {
   await perform(async () => {
     await prepare();
-    run.value = await api<Run>('/test-runs', 'POST', input());
+    run.value = await api<SandboxRun>('/test-runs', 'POST', input());
     path.value = undefined;
     await refresh();
   });
@@ -509,14 +465,14 @@ async function saveScenario() {
 async function preview() {
   await perform(async () => {
     await prepare();
-    path.value = await api<State>('/preview/journey', 'POST', input());
+    path.value = await api<RunState>('/preview/journey', 'POST', input());
   });
 }
 async function advance(operation: string, seconds = 0) {
   await perform(async () => {
     if (!run.value) return;
     path.value = undefined;
-    run.value = await api<Run>(`/test-runs/${run.value.id}/advance`, 'POST', {
+    run.value = await api<SandboxRun>(`/test-runs/${run.value.id}/advance`, 'POST', {
       operation,
       seconds,
       revision: run.value.revision,
@@ -527,14 +483,14 @@ async function advance(operation: string, seconds = 0) {
 async function replay() {
   await perform(async () => {
     if (!run.value) return;
-    run.value = await api<Run>(`/test-runs/${run.value.id}/replay`, 'POST');
+    run.value = await api<SandboxRun>(`/test-runs/${run.value.id}/replay`, 'POST');
     path.value = undefined;
     await refresh();
   });
 }
 async function open(id: string) {
   await perform(async () => {
-    run.value = await api<Run>('/test-runs/' + id);
+    run.value = await api<SandboxRun>('/test-runs/' + id);
     path.value = undefined;
   });
 }
@@ -888,134 +844,14 @@ onMounted(
         </fieldset>
       </aside>
       <div class="test-results-column">
-        <section v-if="run" class="surface virtual-clock">
-          <div>
-            <span class="clock-icon"><AppIcon name="clock" :size="20" /></span>
-            <div>
-              <small>Virtual clock</small><strong>{{ time(run.state.now) }}</strong>
-            </div>
-            <StatusBadge :status="run.state.paused ? 'PAUSED' : run.state.status" />
-          </div>
-          <div class="clock-controls">
-            <button class="primary" :disabled="busy || readonly" @click="advance('run')">
-              <AppIcon name="play" :size="14" />Run</button
-            ><button :disabled="busy || readonly" @click="advance('step')">Step</button
-            ><button :disabled="busy || readonly" @click="advance('advance', 3600)">
-              Advance 1h</button
-            ><button :disabled="busy || readonly" @click="advance('advance', 86400)">
-              Advance 1d</button
-            ><button :disabled="busy || readonly" @click="advance('until_next')">
-              Run until next event</button
-            ><button :disabled="busy || readonly" @click="advance('complete')">
-              Run to completion</button
-            ><button
-              v-if="!run.state.paused"
-              :disabled="busy || readonly"
-              @click="advance('pause')"
-            >
-              <AppIcon name="pause" :size="14" />Pause</button
-            ><button v-else :disabled="busy || readonly" @click="advance('resume')">Resume</button
-            ><button class="text-button" :disabled="busy || readonly" @click="replay">
-              <AppIcon name="refresh" :size="13" />Reset / Replay
-            </button>
-          </div>
-        </section>
-        <section class="surface execution-preview">
-          <div class="surface-heading">
-            <div>
-              <h2>{{ path ? 'Journey path preview' : 'Execution timeline' }}</h2>
-              <p>
-                {{
-                  state
-                    ? 'Follow each decision at its simulated time.'
-                    : 'Your test results will appear here.'
-                }}
-              </p>
-            </div>
-            <StatusBadge v-if="state" :status="state.result" />
-          </div>
-          <div v-if="!state" class="test-start-empty">
-            <span class="empty-icon"><AppIcon name="flask" :size="32" /></span>
-            <h3>Ready for a test drive?</h3>
-            <p>
-              Choose a scenario, create a test run, then use the virtual clock to explore its path.
-            </p>
-            <div>
-              <span><AppIcon name="shield" :size="13" />No live profile changes</span
-              ><span><AppIcon name="email" :size="13" />No provider calls</span>
-            </div>
-          </div>
-          <template v-else
-            ><div class="run-result-heading">
-              <span
-                >Result <strong data-testid="test-result">{{ state.result }}</strong></span
-              ><span>{{ state.status }} {{ state.paused ? '· paused' : '' }}</span
-              ><span v-if="state.exit_reason">{{ state.exit_reason.replaceAll('_', ' ') }}</span>
-            </div>
-            <div class="assertion-list">
-              <span v-for="(a, i) in state.assertions" :key="i" :class="{ passed: a.pass }"
-                ><AppIcon :name="a.pass ? 'check' : 'close'" :size="13" />{{
-                  a.description.replaceAll('_', ' ')
-                }}
-                <small>{{ a.actual }}</small></span
-              >
-            </div>
-            <div class="execution-timeline">
-              <div
-                v-for="(s, i) in state.steps"
-                :key="i"
-                class="timeline-step"
-                :class="s.state.toLowerCase()"
-              >
-                <span class="timeline-node"
-                  ><AppIcon
-                    :name="
-                      s.state === 'WAITING' ? 'clock' : s.state === 'FAILED' ? 'close' : 'check'
-                    "
-                    :size="15"
-                /></span>
-                <div class="timeline-step-content">
-                  <div>
-                    <strong>{{ s.label }}</strong
-                    ><StatusBadge :status="s.state" />
-                  </div>
-                  <p>{{ decision(s.output) }}</p>
-                  <time
-                    >{{ time(s.started_at)
-                    }}<span v-if="s.deadline"> · deadline {{ time(s.deadline) }}</span></time
-                  >
-                </div>
-              </div>
-            </div>
-            <div class="sandbox-output">
-              <h3>
-                Sandbox messages <span class="count-label">{{ state.messages.length }}</span>
-              </h3>
-              <p v-if="!state.messages.length" class="muted">No messages produced.</p>
-              <div v-for="m in state.messages" :key="m.id" class="sandbox-message-row">
-                <span class="channel-icon" :class="m.channel"
-                  ><AppIcon :name="m.channel === 'email' ? 'email' : 'message'" :size="16"
-                /></span>
-                <div>
-                  <strong>{{ m.channel === 'email' ? 'Email' : 'SMS' }} message</strong
-                  ><small>{{ time(m.scheduled_at) }}</small>
-                </div>
-                <StatusBadge :status="m.status" />
-              </div>
-              <p class="card-footnote">
-                Open Test Inbox to inspect rendered content and delivery decisions.
-              </p>
-            </div>
-            <details class="trace-details">
-              <summary>
-                <AppIcon name="file" :size="14" />Execution trace ({{ state.trace.length }})
-              </summary>
-              <p v-for="(t, i) in state.trace" :key="i">
-                {{ time(t.at) }} · {{ t.kind }} · {{ t.message }}
-              </p>
-            </details></template
-          >
-        </section>
+        <VirtualClock
+          v-if="run"
+          :state="run.state"
+          :disabled="busy || readonly"
+          @advance="advance"
+          @replay="replay"
+        />
+        <SandboxResult :state="state" :preview="!!path" />
         <section
           v-if="run && state?.messages.length"
           class="surface run-inbox"
@@ -1029,36 +865,7 @@ onMounted(
             :readonly="readonly"
           />
         </section>
-        <section class="surface recent-test-runs">
-          <div class="surface-heading">
-            <h2>Recent test runs</h2>
-            <span class="count-label">{{ runs.length }}</span>
-          </div>
-          <div v-if="!runs.length" class="small-empty">
-            Saved runs and their results will appear here.
-          </div>
-          <button
-            v-for="r in runs.slice(0, runLimit)"
-            :key="r.id"
-            class="test-run-row"
-            @click="open(r.id)"
-          >
-            <span class="test-run-symbol"><AppIcon name="flask" :size="15" /></span
-            ><span
-              ><strong>{{ runTitle(r) }}</strong
-              ><small>{{ runContext(r) }} · {{ formatDateTime(r.created_at || '') }}</small></span
-            ><StatusBadge :status="r.result" /><AppIcon name="arrow" :size="14" />
-          </button>
-          <button
-            v-if="runs.length > runLimit"
-            type="button"
-            class="show-more-runs"
-            @click="runLimit += RUN_PAGE"
-          >
-            Show {{ Math.min(RUN_PAGE, runs.length - runLimit) }} more
-            <span>{{ runLimit }} of {{ runs.length }}</span>
-          </button>
-        </section>
+        <RecentTestRuns :runs="runs" @open="open" />
       </div>
     </div>
   </section>
