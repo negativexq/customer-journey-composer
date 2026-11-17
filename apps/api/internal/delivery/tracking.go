@@ -110,6 +110,12 @@ func Track(m *messaging.Message, base string) []TrackingCode {
 	case "sms":
 		m.Text = text(m.Text)
 		m.Encoding, m.Units, m.Segments = messaging.Segments(m.Text)
+	case "push":
+		// A tap opens the step's link; that tap is the push's click.
+		if m.URL != "" && len(m.URL) <= 2000 {
+			m.URL = link(m.URL)
+			m.Links = []string{m.URL}
+		}
 	}
 	return codes
 }

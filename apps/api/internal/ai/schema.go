@@ -7,7 +7,7 @@ import (
 	"slices"
 )
 
-const SchemaVersion = "composer.v6"
+const SchemaVersion = "composer.v7"
 
 type schema = map[string]any
 
@@ -59,11 +59,12 @@ func Schema(kind string) schema {
 		"condition":        object(schema{"rule": reference("Rule2")}),
 		"email":            object(schema{"subject": text(), "preheader": text(), "html": text(), "text": text(), "fallbacks": fallbacks(), "discount_code": text()}),
 		"sms":              object(schema{"text": text(), "fallbacks": fallbacks(), "discount_code": text()}),
+		"push":             object(schema{"subject": text(), "text": text(), "url": text(), "fallbacks": fallbacks(), "discount_code": text()}),
 		"update_attribute": object(schema{"attribute": text(), "operation": enumeration("set", "increment", "unset"), "value": reference("Scalar")}),
 		"exit":             object(schema{"reason": enumeration("completed", "converted", "condition_not_met", "manually_cancelled")}),
 	}
 	variants := []any{}
-	for _, kind := range []string{"event_trigger", "wait", "wait_event", "condition", "email", "sms", "update_attribute", "exit"} {
+	for _, kind := range []string{"event_trigger", "wait", "wait_event", "condition", "email", "sms", "push", "update_attribute", "exit"} {
 		variants = append(variants, object(schema{"id": text(), "type": enumeration(kind), "label": text(), "position": object(schema{"x": schema{"type": "number"}, "y": schema{"type": "number"}}), "config": configs[kind]}))
 	}
 	flow := object(schema{"schema_version": schema{"type": "integer", "enum": []int{1}}, "nodes": array(schema{"anyOf": variants}), "edges": array(object(schema{"id": text(), "source": text(), "target": text(), "port": enumeration("started", "completed", "matched", "timeout", "true", "false", "next")})), "global_exit": nullable(object(schema{"correlation": nullable(object(schema{"entry_path": text(), "event_path": text()})), "event_name": text(), "reason": enumeration("converted", "completed", "condition_not_met", "manually_cancelled"), "filters": reference("MaybeRule")})), "reentry": nullable(object(schema{"mode": enumeration("once", "after_completion", "cooldown"), "cooldown_seconds": schema{"type": "integer"}}))})

@@ -76,7 +76,7 @@ func Decide(node workflow.Node, data map[string]any, now time.Time, resumePort s
 		id, _ := customer["customer_id"].(string)
 		d.Port = workflow.SplitPort(c.Percent, id+":"+node.ID)
 		d.Variant = strings.ToUpper(d.Port)
-	case "email", "sms":
+	case "email", "sms", "push":
 		d.Port = "next"
 		rendered, err := messaging.Render(node.Type, c, data)
 		if err != nil {

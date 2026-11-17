@@ -258,7 +258,7 @@ func next(spec workflow.Workflow, scenario Scenario, s *State) error {
 			s.Customer["consents"] = consents
 		}
 		for key, value := range task.Change.Contact {
-			if key == "email" || key == "phone" {
+			if key == "email" || key == "phone" || key == "push_token" {
 				s.Customer[key] = value
 			}
 		}

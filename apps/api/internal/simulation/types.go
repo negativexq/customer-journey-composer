@@ -34,7 +34,7 @@ type SandboxChange struct {
 }
 type SandboxAssertion struct {
 	Type     string `json:"type" enum:"state,message_sent,no_message,message_count,condition,no_duplicate_delivery,exit_reason,enrollment_count"`
-	Channel  string `json:"channel,omitempty" enum:"email,sms"`
+	Channel  string `json:"channel,omitempty" enum:"email,sms,push"`
 	NodeID   string `json:"node_id,omitempty"`
 	Expected any    `json:"expected,omitempty"`
 }
@@ -48,7 +48,7 @@ type SandboxScenario struct {
 	Entry                  Event          `json:"entry_event"`
 	Events                 []TimedEvent   `json:"events,omitempty" maxItems:"100"`
 	Changes                []Change       `json:"attribute_changes,omitempty" maxItems:"100"`
-	FaultChannel           string         `json:"fault_channel,omitempty" enum:"email,sms"`
+	FaultChannel           string         `json:"fault_channel,omitempty" enum:"email,sms,push"`
 	Faults                 []int          `json:"provider_faults,omitempty" maxItems:"20"`
 	PriorMessages          int            `json:"prior_messages,omitempty" minimum:"0" maximum:"1000"`
 	FrequencyLimit         int            `json:"frequency_limit,omitempty" minimum:"1" maximum:"1000"`

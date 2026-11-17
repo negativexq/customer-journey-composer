@@ -76,7 +76,7 @@ func (e *Entry) Validate() error {
 }
 func Builtins() []Entry {
 	result := []Entry{}
-	for _, p := range []string{"email", "phone", "locale", "timezone", "external_id", "customer_id", "consents.email", "consents.sms"} {
+	for _, p := range []string{"email", "phone", "locale", "timezone", "external_id", "customer_id", "push_token", "consents.email", "consents.sms", "consents.push"} {
 		typ := "string"
 		if strings.HasPrefix(p, "consents.") {
 			typ = "boolean"
@@ -92,10 +92,10 @@ func Builtins() []Entry {
 func EngagementEntries() []Entry {
 	result := []Entry{}
 	for _, e := range []struct{ name, label, description string }{
-		{"message_delivered", "Message delivered", "The provider reported that a journey message reached the inbox or phone."},
+		{"message_delivered", "Message delivered", "The provider reported that a journey message reached the inbox, phone or device."},
 		{"message_bounced", "Message bounced", "The provider reported that a journey message could not be delivered."},
 		{"message_opened", "Email opened", "The customer's mail client loaded the email's images. Some clients load them without the person reading."},
-		{"message_clicked", "Message link clicked", "The customer opened a tracked link in an email or SMS."},
+		{"message_clicked", "Message link clicked", "The customer opened a tracked link in an email or SMS, or tapped a push notification."},
 		{"message_unsubscribed", "Unsubscribed from email", "The customer used the email's unsubscribe link. Email consent is withdrawn."},
 	} {
 		result = append(result, Entry{Key: Key("event", e.name, ""), Kind: "event", EventName: e.name, Label: e.label, Description: e.description, DataType: "event", Enabled: true, Source: "system", Aliases: []string{}})

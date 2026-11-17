@@ -244,13 +244,13 @@ func validateBehaviorCase(c *BehaviorChecks, clause BehaviorCase) error {
 		}
 	}
 	for p := range clause.Consents {
-		if p != "email" && p != "sms" {
+		if !IsMessage(p) {
 			return fmt.Errorf("Unsupported channel consent")
 		}
 	}
 	data := BehaviorCaseData(c, clause)
 	for _, r := range clause.Conditions {
-		if len(r.Rules) > 0 || r.Logic != "" || (!BehaviorInputPath(r.Path) && r.Path != "customer.consents.email" && r.Path != "customer.consents.sms") || !validBehaviorScalar(r.Value) {
+		if len(r.Rules) > 0 || r.Logic != "" || (!BehaviorInputPath(r.Path) && r.Path != "customer.consents.email" && r.Path != "customer.consents.sms" && r.Path != "customer.consents.push") || !validBehaviorScalar(r.Value) {
 			return fmt.Errorf("Scope conditions must be bounded scalar predicates")
 		}
 		if err := validateRule(r, 0); err != nil {

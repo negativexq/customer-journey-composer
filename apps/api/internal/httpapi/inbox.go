@@ -13,7 +13,7 @@ func registerInbox(api huma.API, pool *pgxpool.Pool) {
 		RunID      string    `query:"test_run_id" format:"uuid"`
 		CustomerID string    `query:"customer_id" maxLength:"128"`
 		JourneyID  string    `query:"journey_id" format:"uuid"`
-		Channel    string    `query:"channel" enum:"email,sms"`
+		Channel    string    `query:"channel" enum:"email,sms,push"`
 		Status     string    `query:"status" enum:"SIMULATED,BLOCKED,SKIPPED,FAILED,TEST_ACCEPTED,TEST_PENDING"`
 		Before     time.Time `query:"before"`
 		BeforeID   string    `query:"before_id" format:"uuid"`

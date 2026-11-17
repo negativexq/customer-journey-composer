@@ -39,6 +39,8 @@ type Message struct {
 	// Unsubscribe is the one-click address of a sent email, set only when the
 	// message is tracked for a delivery; previews never carry one.
 	Unsubscribe string `json:"unsubscribe_url,omitempty"`
+	// URL is the link a push notification opens when the customer taps it.
+	URL string `json:"url,omitempty"`
 	// LongestCase is an SMS preview's length as sent to the customer with the
 	// longest values in the workspace, its links at their tracked length.
 	LongestCase *LengthCheck `json:"longest_case,omitempty"`
@@ -172,8 +174,13 @@ func Render(channel string, c workflow.Config, data map[string]any) (Message, er
 			return text
 		})
 	}
-	if channel != "email" && channel != "sms" {
+	if !workflow.IsMessage(channel) {
 		return m, fmt.Errorf("unsupported channel")
+	}
+	link := ""
+	if channel == "push" {
+		// A webhook's URL is never rendered; a push step's link is.
+		link = c.URL
 	}
 	if c.DiscountCode != "" {
 		// The step's code joins the data without changing the caller's map.
@@ -184,7 +191,7 @@ func Render(channel string, c workflow.Config, data map[string]any) (Message, er
 		withOffer["offer"] = map[string]any{"code": c.DiscountCode}
 		data = withOffer
 	}
-	for _, content := range []string{c.Subject, c.Preheader, c.HTML, c.Text} {
+	for _, content := range []string{c.Subject, c.Preheader, c.HTML, c.Text, link} {
 		if len(variables.FindAllStringIndex(content, 501)) > 500 {
 			return m, fmt.Errorf("template exceeds 500 variable references")
 		}
@@ -196,6 +203,7 @@ func Render(channel string, c workflow.Config, data map[string]any) (Message, er
 	m.Subject = render(c.Subject, false)
 	m.Preheader = render(c.Preheader, false)
 	m.Text = render(c.Text, false)
+	m.URL = strings.TrimSpace(render(link, false))
 	rawHTML := render(c.HTML, true)
 	// An email with a code always shows it in a box of its own, so the code
 	// reaches the reader even when the body never writes it. A body that
@@ -218,14 +226,29 @@ func Render(channel string, c workflow.Config, data map[string]any) (Message, er
 	if strings.ContainsAny(m.Subject+m.Preheader, "\r\n") {
 		return m, fmt.Errorf("email header must not contain line breaks")
 	}
-	if channel == "email" {
+	switch channel {
+	case "email":
 		if v, ok := workflow.Lookup(data, "customer.email"); ok {
 			m.To, _ = v.(string)
 		}
 		if m.Text == "" {
 			m.Text = html.UnescapeString(bluemonday.StrictPolicy().Sanitize(m.HTML))
 		}
-	} else {
+	case "push":
+		if v, ok := workflow.Lookup(data, "customer.push_token"); ok {
+			m.To, _ = v.(string)
+		}
+		// A push notification is plain text; only its tap link is a link.
+		m.HTML = ""
+		if m.URL != "" {
+			if u, err := url.Parse(m.URL); err != nil || u.Scheme != "https" && u.Scheme != "http" || u.Host == "" {
+				m.Warnings = append(m.Warnings, "An unsupported link was removed")
+				m.URL = ""
+			} else {
+				m.Links = append(m.Links, m.URL)
+			}
+		}
+	default:
 		if v, ok := workflow.Lookup(data, "customer.phone"); ok {
 			m.To, _ = v.(string)
 		}
@@ -263,6 +286,9 @@ func Render(channel string, c workflow.Config, data map[string]any) (Message, er
 		}
 		if channel == "sms" && strings.TrimSpace(m.Text) == "" {
 			return m, fmt.Errorf("SMS content is required")
+		}
+		if channel == "push" && (strings.TrimSpace(m.Subject) == "" || strings.TrimSpace(m.Text) == "") {
+			return m, fmt.Errorf("push title and message are required")
 		}
 	}
 	slices.Sort(m.Missing)

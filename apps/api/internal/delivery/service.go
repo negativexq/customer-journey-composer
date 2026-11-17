@@ -56,18 +56,31 @@ func New(pool *pgxpool.Pool, clock engine.Clock) *Service {
 	if clock == nil {
 		clock = engine.RealClock{}
 	}
-	return &Service{Pool: pool, Clock: clock, Providers: map[string]Provider{"smtp": SMTPFromEnv(), "mock_sms": &Mock{}, "mock_email": &Mock{}}, Log: slog.Default()}
+	return &Service{Pool: pool, Clock: clock, Providers: map[string]Provider{"smtp": SMTPFromEnv(), "mock_sms": &Mock{}, "mock_email": &Mock{}, "mock_push": &Mock{}}, Log: slog.Default()}
 }
 func (s *Service) provider(channel string) (string, Provider) {
-	name := "smtp"
-	if channel == "sms" {
-		name = "mock_sms"
-	}
+	name := ProviderFor(channel)
 	return name, s.Providers[name]
 }
+
+// ProviderFor is the provider each channel sends through. SMS and push are
+// simulated: nothing reaches a real phone or device.
+func ProviderFor(channel string) string {
+	switch channel {
+	case "sms":
+		return "mock_sms"
+	case "push":
+		return "mock_push"
+	}
+	return "smtp"
+}
+
 func validRecipient(channel, to string) bool {
-	if channel == "sms" {
+	switch channel {
+	case "sms":
 		return e164.MatchString(to)
+	case "push":
+		return len(to) >= 8 && len(to) <= 512 && !strings.ContainsAny(to, " \t\r\n")
 	}
 	a, err := mail.ParseAddress(to)
 	return err == nil && a.Address == to
@@ -81,9 +94,9 @@ const scheduleDrainBudget = 32
 // ScheduleQuery keeps the ordered pending index outside the customer lock.
 // The lateral LockRows boundary prevents a bulk join/sort of the pending queue.
 // Exported inside the internal package for exact-query benchmark EXPLAIN probes.
-const scheduleColumns = `SELECT o.id::text,o.workspace_id::text,o.execution_id::text,o.node_id,o.channel,o.payload,p.customer_id,p.state,p.email,p.phone,p.consents,p.frequency_limit,p.frequency_window_seconds,o.created_at`
+const scheduleColumns = `SELECT o.id::text,o.workspace_id::text,o.execution_id::text,o.node_id,o.channel,o.payload,p.customer_id,p.state,p.email,p.phone,p.push_token,p.consents,p.frequency_limit,p.frequency_window_seconds,o.created_at`
 const scheduleJoins = ` JOIN LATERAL (
-   SELECT e.customer_id,e.state,c.email,c.phone,c.consents,COALESCE(s.frequency_limit,3) AS frequency_limit,COALESCE(s.frequency_window_seconds,86400) AS frequency_window_seconds
+   SELECT e.customer_id,e.state,c.email,c.phone,c.push_token,c.consents,COALESCE(s.frequency_limit,3) AS frequency_limit,COALESCE(s.frequency_window_seconds,86400) AS frequency_window_seconds
    FROM journey_executions e JOIN customers c ON c.workspace_id=e.workspace_id AND c.customer_id=e.customer_id
    LEFT JOIN workspace_settings s ON s.workspace_id=o.workspace_id
    WHERE e.id=o.execution_id AND (SELECT j.status IN ('Active','Sunset') FROM journeys j WHERE j.id=e.journey_id)
@@ -139,14 +152,14 @@ func (s *Service) scheduleAfter(ctx context.Context, cursor *scheduleCursor) (in
 	type pending struct {
 		id, workspace, execution, node, channel, customer, state string
 		raw, consents                                            []byte
-		email, phone                                             *string
+		email, phone, pushToken                                  *string
 		limit, window                                            int
 		createdAt                                                time.Time
 	}
 	items := []pending{}
 	for rows.Next() {
 		var p pending
-		if err := rows.Scan(&p.id, &p.workspace, &p.execution, &p.node, &p.channel, &p.raw, &p.customer, &p.state, &p.email, &p.phone, &p.consents, &p.limit, &p.window, &p.createdAt); err != nil {
+		if err := rows.Scan(&p.id, &p.workspace, &p.execution, &p.node, &p.channel, &p.raw, &p.customer, &p.state, &p.email, &p.phone, &p.pushToken, &p.consents, &p.limit, &p.window, &p.createdAt); err != nil {
 			rows.Close()
 			return 0, err
 		}
@@ -186,6 +199,9 @@ func (s *Service) scheduleAfter(ctx context.Context, cursor *scheduleCursor) (in
 		}
 		if p.channel == "sms" && p.phone != nil {
 			message.To = *p.phone
+		}
+		if p.channel == "push" && p.pushToken != nil {
+			message.To = *p.pushToken
 		}
 		// This is a new READ COMMITTED statement after acquiring the customer.
 		// Keep the journey -> outbox lock order and re-read execution state here;
@@ -379,8 +395,8 @@ func (s *Service) Dispatch(ctx context.Context, job Job) (err error) {
 	blocked := ""
 	if job.Mode == "LIVE" {
 		var consents []byte
-		var email, phone *string
-		if err := tx.QueryRow(ctx, `SELECT consents,email,phone FROM customers WHERE workspace_id=$1 AND customer_id=$2 FOR UPDATE`, job.WorkspaceID, job.CustomerID).Scan(&consents, &email, &phone); err != nil {
+		var email, phone, pushToken *string
+		if err := tx.QueryRow(ctx, `SELECT consents,email,phone,push_token FROM customers WHERE workspace_id=$1 AND customer_id=$2 FOR UPDATE`, job.WorkspaceID, job.CustomerID).Scan(&consents, &email, &phone, &pushToken); err != nil {
 			return err
 		}
 		var state, status string
@@ -393,7 +409,7 @@ func (s *Service) Dispatch(ctx context.Context, job Job) (err error) {
 			blocked = "execution_terminated"
 		} else if !consent[job.Message.Channel] {
 			blocked = "consent_revoked"
-		} else if job.Message.Channel == "email" && (email == nil || *email != job.Message.To) || job.Message.Channel == "sms" && (phone == nil || *phone != job.Message.To) {
+		} else if job.Message.Channel == "email" && (email == nil || *email != job.Message.To) || job.Message.Channel == "sms" && (phone == nil || *phone != job.Message.To) || job.Message.Channel == "push" && (pushToken == nil || *pushToken != job.Message.To) {
 			blocked = "recipient_changed"
 		} else if status != "Active" && status != "Sunset" {
 			if _, err := tx.Exec(ctx, `UPDATE delivery_jobs SET status='SCHEDULED',claim_token=NULL,lease_until=NULL,attempts=attempts-1 WHERE id=$1 AND claim_token=$2 AND status='CLAIMED'`, job.ID, job.Token); err != nil {

@@ -8,7 +8,7 @@ import "github.com/negativexq/customer-journey-composer/apps/api/internal/workfl
 func ValidateWorkflow(w workflow.Workflow) []workflow.Issue {
 	issues := workflow.Validate(w)
 	for _, node := range w.Nodes {
-		if node.Type != "email" && node.Type != "sms" {
+		if !workflow.IsMessage(node.Type) {
 			continue
 		}
 		_, err := Render(node.Type, node.Config, map[string]any{"customer": map[string]any{}, "event": map[string]any{}, "context": map[string]any{}})
@@ -22,8 +22,8 @@ func ValidateWorkflow(w workflow.Workflow) []workflow.Issue {
 		switch code := node.Config.DiscountCode; {
 		case code != "" && !ValidDiscountCode(code):
 			issues = append(issues, workflow.Issue{NodeID: node.ID, Field: "discount_code", Message: "A discount code is 3 to 30 capital letters, digits and hyphens"})
-		case code != "" && !uses && node.Type == "sms":
-			// An email shows the code in its own box; an SMS has only its text.
+		case code != "" && !uses && node.Type != "email":
+			// An email shows the code in its own box; an SMS or push has only its text.
 			issues = append(issues, workflow.Issue{NodeID: node.ID, Field: "discount_code", Message: "Show the discount code in the message with {{ offer.code }}"})
 		case code == "" && uses:
 			issues = append(issues, workflow.Issue{NodeID: node.ID, Field: "discount_code", Message: "Set the discount code this message shows"})

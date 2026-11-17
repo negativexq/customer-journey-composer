@@ -30,7 +30,7 @@ func onNode(spec workflow.Workflow, scenario Scenario, s *State, task Task) erro
 		s.Steps[index].Error = err.Error()
 		at := s.Now
 		s.Steps[index].CompletedAt = &at
-		if node.Type == "email" || node.Type == "sms" {
+		if workflow.IsMessage(node.Type) {
 			rendered, _ := messaging.Render(node.Type, node.Config, data)
 			m := Message{Dirty: true, ID: fmt.Sprintf("execution-%d/%s", s.Execution, node.ID), Execution: s.Execution, CustomerID: customerID(s.Customer), NodeID: node.ID, NodeLabel: node.Label, Channel: node.Type, Status: "FAILED", At: s.Now, Rendered: rendered, Decision: delivery.Eligibility{Eligible: false, Reason: "render_failed"}, Attempts: []Attempt{}, ProviderResponse: err.Error()}
 			s.Messages = append(s.Messages, m)
@@ -134,12 +134,7 @@ func onDelivery(scenario Scenario, s *State, id string) error {
 	m.Dirty = true
 	state := s.Outcomes[strconv.Itoa(m.Execution)]
 	currentConsent := consent(s.Customer)
-	to := ""
-	if m.Channel == "email" {
-		to, _ = s.Customer["email"].(string)
-	} else {
-		to, _ = s.Customer["phone"].(string)
-	}
+	to, _ := s.Customer[workflow.ContactField(m.Channel)].(string)
 	if state == "EXITED" || state == "FAILED" || state == "CANCELLED" || !currentConsent[m.Channel] || to != m.Rendered.To {
 		m.Pending = false
 		m.Status = "BLOCKED"

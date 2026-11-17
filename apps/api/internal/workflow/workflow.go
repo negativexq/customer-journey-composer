@@ -77,7 +77,7 @@ type Position struct {
 }
 type Node struct {
 	ID       string   `json:"id" minLength:"1" maxLength:"80"`
-	Type     string   `json:"type" enum:"event_trigger,wait,wait_event,condition,switch,split,email,sms,webhook,update_attribute,exit"`
+	Type     string   `json:"type" enum:"event_trigger,wait,wait_event,condition,switch,split,email,sms,push,webhook,update_attribute,exit"`
 	Label    string   `json:"label" minLength:"1" maxLength:"160"`
 	Position Position `json:"position"`
 	Config   Config   `json:"config"`
@@ -136,7 +136,7 @@ func Ports(kind string) []string {
 	case "switch":
 		// The arms depend on the step; see NodePorts.
 		return []string{"else"}
-	case "email", "sms", "webhook", "update_attribute":
+	case "email", "sms", "push", "webhook", "update_attribute":
 		return []string{"next"}
 	case "exit":
 		return []string{}
@@ -250,6 +250,19 @@ func Validate(w Workflow) []Issue {
 		case "sms":
 			if strings.TrimSpace(c.Text) == "" || len(c.Text) > 10000 {
 				add(n.ID, "text", "SMS body required (maximum 10000 bytes)")
+			}
+		case "push":
+			if strings.TrimSpace(c.Subject) == "" || len(c.Subject) > PushTitleLimit || strings.ContainsAny(c.Subject, "\r\n") {
+				add(n.ID, "subject", fmt.Sprintf("Push title required (one line, maximum %d bytes)", PushTitleLimit))
+			}
+			if strings.TrimSpace(c.Text) == "" || len(c.Text) > PushBodyLimit {
+				add(n.ID, "text", fmt.Sprintf("Push message required (maximum %d bytes)", PushBodyLimit))
+			}
+			if c.URL != "" {
+				target, err := url.Parse(c.URL)
+				if err != nil || len(c.URL) > 2000 || (target.Scheme != "http" && target.Scheme != "https") || target.Host == "" || target.User != nil {
+					add(n.ID, "url", "Enter an http or https link without credentials")
+				}
 			}
 		case "webhook":
 			target, err := url.Parse(c.URL)
@@ -576,13 +589,36 @@ func (e *ExitCriteria) ExitOutcome() string {
 	return e.Reason
 }
 
+// MessageChannels are the step types that send a message to the customer.
+var MessageChannels = []string{"email", "sms", "push"}
+
+// IsMessage says whether a step type sends a message to the customer.
+func IsMessage(kind string) bool { return slices.Contains(MessageChannels, kind) }
+
+// ContactField is the customer profile field a channel's messages go to.
+func ContactField(channel string) string {
+	switch channel {
+	case "sms":
+		return "phone"
+	case "push":
+		return "push_token"
+	}
+	return "email"
+}
+
+// A push notification is short: providers cut a longer title or body.
+const (
+	PushTitleLimit = 120
+	PushBodyLimit  = 1000
+)
+
 // EngagementEvents are the customer events the delivery service sends for a
 // message after it was accepted, with the channels each can come from.
 var EngagementEvents = map[string][]string{
-	"message_delivered":    {"email", "sms"},
-	"message_bounced":      {"email", "sms"},
+	"message_delivered":    {"email", "sms", "push"},
+	"message_bounced":      {"email", "sms", "push"},
 	"message_opened":       {"email"},
-	"message_clicked":      {"email", "sms"},
+	"message_clicked":      {"email", "sms", "push"},
 	"message_unsubscribed": {"email"},
 }
 
@@ -593,15 +629,19 @@ func validateMessageScope(n Node, nodes map[string]Node, edges []Edge) string {
 		return "Only a wait-for-event step can follow a message"
 	}
 	target, ok := nodes[n.Config.MessageNode]
-	if !ok || target.Type != "email" && target.Type != "sms" {
-		return "Choose an email or SMS step"
+	if !ok || !IsMessage(target.Type) {
+		return "Choose an email, SMS or push step"
 	}
 	channels, engagement := EngagementEvents[n.Config.EventName]
 	if !engagement {
 		return "Wait for a message event (delivered, bounced, opened, clicked or unsubscribed)"
 	}
 	if !slices.Contains(channels, target.Type) {
-		return "An SMS has no " + strings.TrimPrefix(n.Config.EventName, "message_") + " event"
+		article := "An SMS"
+		if target.Type == "push" {
+			article = "A push notification"
+		}
+		return article + " has no " + strings.TrimPrefix(n.Config.EventName, "message_") + " event"
 	}
 	incoming := map[string][]string{}
 	for _, e := range edges {

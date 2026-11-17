@@ -48,7 +48,7 @@ type notificationList struct {
 }
 
 // The providers a workspace sends through, in the order they are shown.
-const channelHealthQuery = `WITH providers(provider,channel,position) AS (VALUES ('smtp','email',1),('mock_sms','sms',2))
+const channelHealthQuery = `WITH providers(provider,channel,position) AS (VALUES ('smtp','email',1),('mock_sms','sms',2),('mock_push','push',3))
 SELECT COALESCE(jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
   'provider',p.provider,'channel',p.channel,
   'state',CASE WHEN c.credentials_refused_at IS NOT NULL THEN 'credentials_refused'
@@ -81,7 +81,7 @@ func registerChannels(api huma.API, pool *pgxpool.Pool) {
 		return jsonRow[[]channelHealth](pool.QueryRow(ctx, channelHealthQuery, who(ctx).WorkspaceID))
 	})
 	huma.Put(api, "/api/v1/delivery/channels/{provider}", func(ctx context.Context, in *struct {
-		Provider string `path:"provider" enum:"smtp,mock_sms"`
+		Provider string `path:"provider" enum:"smtp,mock_sms,mock_push"`
 		Body     channelSettings
 	}) (*Result[[]channelHealth], error) {
 		if who(ctx).Role != "Admin" {

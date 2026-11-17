@@ -19,6 +19,7 @@ type Customer struct {
 	ExternalID *string         `json:"external_id,omitempty"`
 	Email      *string         `json:"email,omitempty"`
 	Phone      *string         `json:"phone,omitempty"`
+	PushToken  *string         `json:"push_token,omitempty"`
 	Locale     string          `json:"locale"`
 	Timezone   string          `json:"timezone"`
 	Attributes map[string]any  `json:"attributes"`
@@ -27,10 +28,12 @@ type Customer struct {
 	UpdatedAt  time.Time       `json:"updated_at"`
 }
 type customerBody struct {
-	CustomerID string          `json:"customer_id,omitempty" maxLength:"128"`
-	ExternalID *string         `json:"external_id,omitempty" maxLength:"128"`
-	Email      *string         `json:"email,omitempty" maxLength:"254"`
-	Phone      *string         `json:"phone,omitempty" maxLength:"32"`
+	CustomerID string  `json:"customer_id,omitempty" maxLength:"128"`
+	ExternalID *string `json:"external_id,omitempty" maxLength:"128"`
+	Email      *string `json:"email,omitempty" maxLength:"254"`
+	Phone      *string `json:"phone,omitempty" maxLength:"32"`
+	// PushToken is the device token a push provider addresses this customer by.
+	PushToken  *string         `json:"push_token,omitempty" minLength:"8" maxLength:"512"`
 	Locale     string          `json:"locale,omitempty" default:"en" maxLength:"20"`
 	Timezone   string          `json:"timezone,omitempty" default:"UTC"`
 	Attributes map[string]any  `json:"attributes,omitempty"`
@@ -78,16 +81,16 @@ func registerCustomers(api huma.API, pool *pgxpool.Pool) {
 			body.Attributes = map[string]any{}
 		}
 		if body.Consents == nil {
-			body.Consents = map[string]bool{"email": false, "sms": false}
+			body.Consents = map[string]bool{"email": false, "sms": false, "push": false}
 		}
 		raw, _ := json.Marshal(body.Attributes)
 		if len(raw) > 65536 {
 			return nil, huma.Error422UnprocessableEntity("Attributes exceed 64 KiB")
 		}
 		if update {
-			return jsonRow[Customer](pool.QueryRow(ctx, `UPDATE customers SET external_id=$3,email=$4,phone=$5,locale=$6,timezone=$7,attributes=$8,consents=$9,updated_at=now() WHERE workspace_id=$1 AND customer_id=$2 RETURNING to_jsonb(customers)-'workspace_id'`, who(ctx).WorkspaceID, body.CustomerID, body.ExternalID, body.Email, body.Phone, body.Locale, body.Timezone, body.Attributes, body.Consents))
+			return jsonRow[Customer](pool.QueryRow(ctx, `UPDATE customers SET external_id=$3,email=$4,phone=$5,locale=$6,timezone=$7,attributes=$8,consents=$9,push_token=$10,updated_at=now() WHERE workspace_id=$1 AND customer_id=$2 RETURNING to_jsonb(customers)-'workspace_id'`, who(ctx).WorkspaceID, body.CustomerID, body.ExternalID, body.Email, body.Phone, body.Locale, body.Timezone, body.Attributes, body.Consents, body.PushToken))
 		}
-		return jsonRow[Customer](pool.QueryRow(ctx, `INSERT INTO customers(workspace_id,customer_id,external_id,email,phone,locale,timezone,attributes,consents) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING to_jsonb(customers)-'workspace_id'`, who(ctx).WorkspaceID, body.CustomerID, body.ExternalID, body.Email, body.Phone, body.Locale, body.Timezone, body.Attributes, body.Consents))
+		return jsonRow[Customer](pool.QueryRow(ctx, `INSERT INTO customers(workspace_id,customer_id,external_id,email,phone,locale,timezone,attributes,consents,push_token) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING to_jsonb(customers)-'workspace_id'`, who(ctx).WorkspaceID, body.CustomerID, body.ExternalID, body.Email, body.Phone, body.Locale, body.Timezone, body.Attributes, body.Consents, body.PushToken))
 	}
 	huma.Post(api, "/api/v1/customers", func(ctx context.Context, in *struct{ Body customerBody }) (*Result[Customer], error) {
 		return save(ctx, in.Body, false)
@@ -107,7 +110,7 @@ func registerCustomers(api huma.API, pool *pgxpool.Pool) {
 		BeforeID string    `query:"before_id" maxLength:"128"`
 	}) (*Result[[]Customer], error) {
 		args := []any{who(ctx).WorkspaceID}
-		query := `SELECT customer_id,external_id,email,phone,locale,timezone,created_at,updated_at FROM customers WHERE workspace_id=$1`
+		query := `SELECT customer_id,external_id,email,phone,push_token,locale,timezone,created_at,updated_at FROM customers WHERE workspace_id=$1`
 		if search := strings.TrimSpace(in.Search); search != "" {
 			prefix := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(search))
 			args = append(args, search, prefix)

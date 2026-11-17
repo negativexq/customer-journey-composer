@@ -55,8 +55,8 @@ func TestChannelHealthSimulationNotificationsAndLongestSMS(t *testing.T) {
 
 	var channels []channelHealth
 	json.Unmarshal(call("GET", "/delivery/channels", nil, 200), &channels)
-	if len(channels) != 2 || channels[0].Channel != "email" || channels[1].State != "healthy" || channels[1].RatePerSecond != 50 {
-		t.Fatalf("both channels start healthy: %+v", channels)
+	if len(channels) != 3 || channels[0].Channel != "email" || channels[1].State != "healthy" || channels[1].RatePerSecond != 50 || channels[2].Provider != "mock_push" || channels[2].State != "healthy" {
+		t.Fatalf("every channel starts healthy: %+v", channels)
 	}
 	call("PUT", "/delivery/channels/mock_sms", map[string]any{"rate_per_second": 20, "simulate": "outage"}, 422)
 	json.Unmarshal(call("PUT", "/delivery/channels/mock_sms", map[string]any{"rate_per_second": 20, "simulate": "outage", "simulate_minutes": 5}, 200), &channels)

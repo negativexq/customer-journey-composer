@@ -75,6 +75,10 @@ func simulatedReport(channel, to string) string {
 	if channel == "sms" && strings.HasSuffix(to, "0000") {
 		return "bounced"
 	}
+	// A device token the demo marks as expired is refused like a bounce.
+	if channel == "push" && strings.HasPrefix(to, "expired-") {
+		return "bounced"
+	}
 	if channel == "email" && (strings.HasPrefix(to, "bounce@") || strings.Contains(to, "+bounce@")) {
 		return "bounced"
 	}

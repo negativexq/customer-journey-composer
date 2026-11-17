@@ -51,7 +51,7 @@ func labelIssue(line string) string {
 
 // LabelIssues reports a message line that announces a value it never shows.
 func LabelIssues(node workflow.Node) []workflow.Issue {
-	if node.Type != "email" && node.Type != "sms" {
+	if !workflow.IsMessage(node.Type) {
 		return nil
 	}
 	// The email's code box comes after its text and HTML.

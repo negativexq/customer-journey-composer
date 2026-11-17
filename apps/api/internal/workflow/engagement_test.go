@@ -42,8 +42,8 @@ func TestAStepCanWaitForEngagementWithAnEarlierMessage(t *testing.T) {
 		{"message_opened", "sms", "An SMS has no opened event"},
 		{"message_unsubscribed", "sms", "An SMS has no unsubscribed event"},
 		{"purchase_completed", "email", "Wait for a message event"},
-		{"message_clicked", "start", "Choose an email or SMS step"},
-		{"message_clicked", "missing", "Choose an email or SMS step"},
+		{"message_clicked", "start", "Choose an email, SMS or push step"},
+		{"message_clicked", "missing", "Choose an email, SMS or push step"},
 	} {
 		got := messageIssue(engagementFlow(c.event, c.message, true))
 		if c.want == "" && got != "" || c.want != "" && !strings.HasPrefix(got, c.want) {

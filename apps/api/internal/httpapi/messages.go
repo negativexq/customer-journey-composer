@@ -17,7 +17,7 @@ import (
 )
 
 type previewInput struct {
-	Channel    string          `json:"channel" enum:"email,sms"`
+	Channel    string          `json:"channel" enum:"email,sms,push"`
 	Config     workflow.Config `json:"config"`
 	CustomerID string          `json:"customer_id,omitempty" maxLength:"128"`
 	Customer   map[string]any  `json:"customer,omitempty"`
@@ -30,7 +30,7 @@ type messagePolicy struct {
 }
 
 func previewMessage(ctx context.Context, pool *pgxpool.Pool, input previewInput) (messaging.Message, error) {
-	customer := map[string]any{"locale": "en", "timezone": "UTC", "attributes": map[string]any{}, "consents": map[string]any{"email": false, "sms": false}}
+	customer := map[string]any{"locale": "en", "timezone": "UTC", "attributes": map[string]any{}, "consents": map[string]any{"email": false, "sms": false, "push": false}}
 	if input.CustomerID != "" {
 		var raw []byte
 		if err := pool.QueryRow(ctx, `SELECT to_jsonb(c)-'workspace_id' FROM customers c WHERE workspace_id=$1 AND customer_id=$2`, who(ctx).WorkspaceID, input.CustomerID).Scan(&raw); err != nil {
@@ -208,6 +208,10 @@ func registerMessages(api huma.API, pool *pgxpool.Pool) {
 		if err := canEdit(ctx); err != nil {
 			return nil, err
 		}
+		if in.Body.Preview.Channel == "push" {
+			// The allowlist holds addresses and numbers; no test device is registered.
+			return nil, huma.Error422UnprocessableEntity("Push notifications are tested in the Test Lab")
+		}
 		message, err := previewMessage(ctx, pool, in.Body.Preview)
 		if err != nil {
 			return nil, err
@@ -280,14 +284,14 @@ func registerMessages(api huma.API, pool *pgxpool.Pool) {
 	huma.Post(api, "/api/v1/message-templates", func(ctx context.Context, in *struct {
 		Body struct {
 			Name    string          `json:"name" minLength:"1" maxLength:"160"`
-			Channel string          `json:"channel" enum:"email,sms"`
+			Channel string          `json:"channel" enum:"email,sms,push"`
 			Config  workflow.Config `json:"config"`
 		}
 	}) (*Result[map[string]any], error) {
 		if err := canEdit(ctx); err != nil {
 			return nil, err
 		}
-		if in.Body.Channel == "email" && (strings.TrimSpace(in.Body.Config.Subject) == "" || in.Body.Config.HTML == "" && in.Body.Config.Text == "") || in.Body.Channel == "sms" && in.Body.Config.Text == "" {
+		if in.Body.Channel == "email" && (strings.TrimSpace(in.Body.Config.Subject) == "" || in.Body.Config.HTML == "" && in.Body.Config.Text == "") || in.Body.Channel == "sms" && in.Body.Config.Text == "" || in.Body.Channel == "push" && (strings.TrimSpace(in.Body.Config.Subject) == "" || in.Body.Config.Text == "") {
 			return nil, huma.Error422UnprocessableEntity("Message content required")
 		}
 		return jsonRow[map[string]any](pool.QueryRow(ctx, `INSERT INTO message_templates(workspace_id,name,channel,config) VALUES($1,$2,$3,$4) RETURNING to_jsonb(message_templates)-'workspace_id'`, who(ctx).WorkspaceID, in.Body.Name, in.Body.Channel, in.Body.Config))

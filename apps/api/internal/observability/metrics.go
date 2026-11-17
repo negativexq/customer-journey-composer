@@ -77,11 +77,11 @@ func ObserveJobLag(kind string, d time.Duration) {
 }
 func ObserveProvider(provider, channel, result string, d time.Duration) {
 	switch provider {
-	case "smtp", "mock_sms", "mock_email":
+	case "smtp", "mock_sms", "mock_email", "mock_push":
 	default:
 		provider = "other"
 	}
-	if channel != "email" && channel != "sms" {
+	if channel != "email" && channel != "sms" && channel != "push" {
 		channel = "other"
 	}
 	switch result {

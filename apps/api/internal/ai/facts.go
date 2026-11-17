@@ -7,7 +7,7 @@ import (
 	"github.com/negativexq/customer-journey-composer/apps/api/internal/workflow"
 )
 
-// generatedMessages are the email and SMS steps the model wrote or rewrote in
+// generatedMessages are the message steps the model wrote or rewrote in
 // this answer. A step a person already had, unchanged, is theirs and is not
 // checked.
 func generatedMessages(before, after workflow.Workflow, only string) map[string]bool {
@@ -17,7 +17,7 @@ func generatedMessages(before, after workflow.Workflow, only string) map[string]
 	}
 	steps := map[string]bool{}
 	for _, n := range after.Nodes {
-		if n.Type != "email" && n.Type != "sms" || only != "" && n.ID != only {
+		if !workflow.IsMessage(n.Type) || only != "" && n.ID != only {
 			continue
 		}
 		previous, existed := old[n.ID]
@@ -28,8 +28,8 @@ func generatedMessages(before, after workflow.Workflow, only string) map[string]
 	return steps
 }
 
-func messageFields(c workflow.Config) [5]string {
-	return [5]string{c.Subject, c.Preheader, c.HTML, c.Text, c.DiscountCode}
+func messageFields(c workflow.Config) [6]string {
+	return [6]string{c.Subject, c.Preheader, c.HTML, c.Text, c.DiscountCode, c.URL}
 }
 
 // givenFacts are what generated text may state: the request, the journey's
@@ -37,9 +37,12 @@ func messageFields(c workflow.Config) [5]string {
 func givenFacts(in Input) factcheck.Facts {
 	texts := []string{in.Prompt, in.Name, in.Description}
 	for _, n := range in.Workflow.Nodes {
-		if n.Type == "email" || n.Type == "sms" {
+		if workflow.IsMessage(n.Type) {
 			c := n.Config
 			texts = append(texts, c.Subject, c.Preheader, c.HTML, c.Text, c.DiscountCode)
+			if n.Type == "push" {
+				texts = append(texts, c.URL)
+			}
 		}
 	}
 	return factcheck.Given(texts...)

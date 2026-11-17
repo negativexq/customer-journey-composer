@@ -168,7 +168,12 @@ func Given(texts ...string) Facts {
 
 func messageText(n workflow.Node) string {
 	c := n.Config
-	return strings.Join([]string{c.Subject, c.Preheader, c.HTML, c.Text}, "\n")
+	parts := []string{c.Subject, c.Preheader, c.HTML, c.Text}
+	if n.Type == "push" {
+		// A push step's tap link is message content; a webhook's URL is not.
+		parts = append(parts, c.URL)
+	}
+	return strings.Join(parts, "\n")
 }
 
 func sorted(m map[string]bool) []string {
@@ -188,7 +193,7 @@ func sorted(m map[string]bool) []string {
 func Check(given Facts, w workflow.Workflow, steps map[string]bool) []workflow.Issue {
 	issues := []workflow.Issue{}
 	for _, n := range w.Nodes {
-		if (n.Type != "email" && n.Type != "sms") || (steps != nil && !steps[n.ID]) {
+		if !workflow.IsMessage(n.Type) || (steps != nil && !steps[n.ID]) {
 			continue
 		}
 		issue := func(message string) {
@@ -237,7 +242,7 @@ func NotDone(brief string, w workflow.Workflow) []string {
 	asked := Read(brief)
 	carried := newFacts()
 	for _, n := range w.Nodes {
-		if n.Type != "email" && n.Type != "sms" {
+		if !workflow.IsMessage(n.Type) {
 			continue
 		}
 		carried.add(Read(messageText(n)))

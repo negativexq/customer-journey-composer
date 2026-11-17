@@ -67,7 +67,7 @@ func registerInsights(api huma.API, pool *pgxpool.Pool) {
 		ID       string    `path:"id" format:"uuid"`
 		Version  int       `query:"version" minimum:"0"`
 		Node     string    `query:"node_id" maxLength:"80"`
-		Channel  string    `query:"channel" enum:"email,sms"`
+		Channel  string    `query:"channel" enum:"email,sms,push"`
 		Status   string    `query:"status" enum:"SCHEDULED,CLAIMED,DISPATCHING,ACCEPTED,BLOCKED,SKIPPED,FAILED,CANCELLED,UNKNOWN"`
 		Reason   string    `query:"reason" maxLength:"160"`
 		From     time.Time `query:"from"`

@@ -302,8 +302,11 @@ func recentCalls(ctx context.Context, tx pgx.Tx, job Job, since time.Time) (call
 }
 
 func channelLabel(channel string) string {
-	if channel == "sms" {
+	switch channel {
+	case "sms":
 		return "SMS"
+	case "push":
+		return "Push"
 	}
 	return "Email"
 }
