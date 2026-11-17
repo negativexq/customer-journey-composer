@@ -39,16 +39,32 @@ test('analytics filters support search, keyboard selection and real period reque
   await expect(
     page.getByRole('button', { name: 'Journey: Cart recovery', exact: true }),
   ).toBeEnabled();
-  const period = page.getByRole('button', { name: 'Trend period: Last 30 days', exact: true });
-  await period.click();
-  await expect(page.getByRole('option', { name: /Last 7 days/ })).toBeVisible();
+  const period = page.getByRole('radiogroup', { name: 'Trend period', exact: true });
+  await expect(period.getByRole('radio', { name: '30 days', exact: true })).toBeChecked();
   const response = page.waitForResponse((r) => r.url().includes('/analytics?days=7') && r.ok());
-  await page.getByRole('listbox', { name: 'Trend period', exact: true }).press('Home');
-  await page.getByRole('listbox', { name: 'Trend period', exact: true }).press('Enter');
+  await period.getByRole('radio', { name: '7 days', exact: true }).click();
   await response;
-  await expect(
-    page.getByRole('button', { name: 'Trend period: Last 7 days', exact: true }),
-  ).toBeEnabled();
+  await expect(period.getByRole('radio', { name: '7 days', exact: true })).toBeChecked();
+  // A custom range is picked on a calendar and applied as one request.
+  await period.getByRole('radio', { name: 'Custom', exact: true }).click();
+  const custom = page.getByRole('dialog', { name: 'Custom range', exact: true });
+  await expect(custom.getByRole('button', { name: 'Apply', exact: true })).toBeEnabled();
+  await custom.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(custom).toHaveCount(0);
+  await expect(period.getByRole('radio', { name: '7 days', exact: true })).toBeChecked();
+  await period.getByRole('radio', { name: 'Custom', exact: true }).click();
+  await custom.getByRole('button', { name: 'Last 14 days', exact: true }).click();
+  await expect(custom).toContainText('14 days');
+  const today = new Date().toISOString().slice(0, 10);
+  const start = new Date(Date.now() - 13 * 86400000).toISOString().slice(0, 10);
+  const ranged = page.waitForResponse(
+    (r) => r.url().includes(`/analytics?from=${start}&to=${today}`) && r.ok(),
+  );
+  await custom.getByRole('button', { name: 'Apply', exact: true }).click();
+  await ranged;
+  await expect(custom).toHaveCount(0);
+  await expect(period.getByRole('radio', { checked: true })).toContainText('–');
+  await expect(page.locator('.analytics-trend .chart-timezone')).toContainText('UTC');
   await page.getByRole('button', { name: 'Journey: Cart recovery', exact: true }).click();
   await page.getByRole('combobox', { name: 'Find a journey…' }).press('Escape');
   await expect(page.getByRole('dialog', { name: 'Journey', exact: true })).toHaveCount(0);

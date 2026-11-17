@@ -10,6 +10,7 @@ import MetricCard from './ui/MetricCard.vue';
 import TrendChart from './ui/TrendChart.vue';
 import FilterSelect from './ui/FilterSelect.vue';
 import PeriodSelect from './ui/PeriodSelect.vue';
+import { type Period, periodDays, periodLabel, periodQuery } from '../lib/period';
 const props = defineProps<{
   journeyId?: string;
   overview?: boolean;
@@ -30,7 +31,7 @@ const funnelVersion = ref(0);
 const daily = ref<{ daily: Daily[]; semantics: string; updated_at?: string }>();
 const journeys = ref<Journey[]>([]);
 const selected = ref(props.journeyId || '');
-const days = ref(30);
+const period = ref<Period>({ days: 30 });
 const error = ref('');
 const busy = ref(false);
 const emit = defineEmits<{
@@ -66,14 +67,13 @@ const funnelEntries = computed(
     nodeMetrics.value.find((m) => m.dimension === 'execution' && m.metric === 'entries')?.value ||
     0,
 );
-const chartData = computed(() => {
-  const end = new Date();
-  const midnight = Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate());
-  return Array.from({ length: days.value }, (_, i) => {
-    const day = new Date(midnight - (days.value - 1 - i) * 86400000).toISOString().slice(0, 10);
-    return { day, entries: at(day, 'entries'), converted: at(day, 'converted') };
-  });
-});
+const chartData = computed(() =>
+  periodDays(period.value).map((day) => ({
+    day,
+    entries: at(day, 'entries'),
+    converted: at(day, 'converted'),
+  })),
+);
 const nodeLabels = ref<Record<string, string>>({});
 const labelCache = new Map<string, Record<string, string>>();
 async function load() {
@@ -83,9 +83,7 @@ async function load() {
     const base = selected.value ? `/journeys/${selected.value}` : '';
     [summary.value, daily.value] = await Promise.all([
       api<Summary>(base ? base + '/stats' : '/overview'),
-      api<typeof daily.value>(
-        base ? base + `/analytics?days=${days.value}` : `/analytics?days=${days.value}`,
-      ),
+      api<typeof daily.value>(`${base}/analytics?${periodQuery(period.value)}`),
     ]);
     if (selected.value) {
       const versions = await api<{ version: number }[]>(
@@ -209,12 +207,12 @@ onMounted(() => {
           <h2>Entry &amp; conversion trend</h2>
           <p>Outcomes are attributed to the day customers entered the journey.</p>
         </div>
-        <PeriodSelect v-model="days" :disabled="busy" @update:model-value="load" />
+        <PeriodSelect v-model="period" :disabled="busy" @update:model-value="load" />
       </div>
       <div class="chart-legend">
         <span><i class="legend-dot violet" />Journey entries</span
         ><span><i class="legend-dot green" />Conversions</span
-        ><span class="chart-timezone">UTC</span>
+        ><span class="chart-timezone">{{ periodLabel(period) }} · UTC</span>
       </div>
       <TrendChart :data="chartData" />
     </section>
