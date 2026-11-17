@@ -45,7 +45,15 @@ const (
 	// Calls that cost no attempt are bounded, so a channel stuck on 429 or 401
 	// eventually fails its messages instead of holding them forever.
 	maxFreeAttempts = 50
+	// A claim admitted without the channel lock is not yet visible to other
+	// claims until it commits. Below the rate by this many calls, that cannot
+	// overrun the window; closer to the rate, claims take the lock and count
+	// exactly. It covers the dispatchers of several workers at once.
+	rateHeadroom = 16
 )
+
+// ClaimGate is the claim's channel filter, for diagnostics that explain the claim.
+const ClaimGate = gatedChannel
 
 // gatedChannel excludes messages whose channel is held. It reads $1 as now.
 const gatedChannel = `NOT EXISTS (SELECT 1 FROM provider_channels g WHERE g.workspace_id=d.workspace_id AND g.provider=d.provider AND (g.paused_until>$1 OR (g.credentials_refused_at IS NOT NULL AND g.next_probe_at>$1) OR (g.breaker='open' AND g.breaker_until>$1) OR (g.breaker='probing' AND g.probes_left=0 AND g.updated_at>$1::timestamptz-interval '1 minute')))`
@@ -66,15 +74,39 @@ func FaultOutcome(fault string) (Outcome, bool) {
 // admit decides under the channel's row lock whether this call may go out, and
 // whether it is one of the breaker's probes or the credential probe.
 func admit(ctx context.Context, tx pgx.Tx, workspace, provider string, now time.Time) (breakerProbe bool, testedLock *time.Time, fault string, err error) {
-	if _, err = tx.Exec(ctx, `INSERT INTO provider_channels(workspace_id,provider) VALUES($1,$2) ON CONFLICT DO NOTHING`, workspace, provider); err != nil {
-		return
-	}
 	var rate, probesLeft int
 	var paused, refused, nextProbe, breakerUntil, simulateUntil *time.Time
 	var state string
 	var simulate *string
 	var updated time.Time
-	if err = tx.QueryRow(ctx, `SELECT rate_per_second,paused_until,credentials_refused_at,next_probe_at,breaker,breaker_until,probes_left,simulate,simulate_until,updated_at FROM provider_channels WHERE workspace_id=$1 AND provider=$2 FOR UPDATE`, workspace, provider).Scan(&rate, &paused, &refused, &nextProbe, &state, &breakerUntil, &probesLeft, &simulate, &simulateUntil, &updated); err != nil {
+	const channel = `SELECT rate_per_second,paused_until,credentials_refused_at,next_probe_at,breaker,breaker_until,probes_left,simulate,simulate_until,updated_at FROM provider_channels WHERE workspace_id=$1 AND provider=$2`
+	scan := func(row pgx.Row) error {
+		return row.Scan(&rate, &paused, &refused, &nextProbe, &state, &breakerUntil, &probesLeft, &simulate, &simulateUntil, &updated)
+	}
+	// Most claims find a healthy channel well under its rate. They read it
+	// without the lock and write nothing, so dispatchers do not queue on one
+	// row and the row does not pile up versions that every claim must step
+	// over. Anything that could change the channel takes the locked path.
+	err = scan(tx.QueryRow(ctx, channel, workspace, provider))
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		if _, err = tx.Exec(ctx, `INSERT INTO provider_channels(workspace_id,provider) VALUES($1,$2) ON CONFLICT DO NOTHING`, workspace, provider); err != nil {
+			return
+		}
+	case err != nil:
+		return
+	case paused != nil && paused.After(now):
+		return false, nil, "", ErrGated
+	case state == "closed" && refused == nil && simulate == nil:
+		var inFlight int
+		if inFlight, err = callsInFlight(ctx, tx, workspace, provider, now); err != nil {
+			return
+		}
+		if inFlight+rateHeadroom < rate {
+			return false, nil, "", nil
+		}
+	}
+	if err = scan(tx.QueryRow(ctx, channel+` FOR UPDATE`, workspace, provider)); err != nil {
 		return
 	}
 	if simulate != nil && simulateUntil != nil && simulateUntil.After(now) {
@@ -101,7 +133,7 @@ func admit(ctx context.Context, tx pgx.Tx, workspace, provider string, now time.
 		}
 	}
 	var inFlight int
-	if err = tx.QueryRow(ctx, `SELECT count(*) FROM delivery_attempts WHERE workspace_id=$1 AND provider=$2 AND started_at>$3::timestamptz-interval '30 seconds' AND status<>'CANCELLED' AND (completed_at IS NULL OR completed_at>$4 OR ((status='UNKNOWN' OR provider_code=408) AND started_at>$5))`, workspace, provider, now, now.Add(-rateHold), now.Add(-unansweredHold)).Scan(&inFlight); err != nil {
+	if inFlight, err = callsInFlight(ctx, tx, workspace, provider, now); err != nil {
 		return
 	}
 	if inFlight >= rate {
@@ -123,6 +155,12 @@ func admit(ctx context.Context, tx pgx.Tx, workspace, provider string, now time.
 		next = &at
 	}
 	_, err = tx.Exec(ctx, `UPDATE provider_channels SET breaker=$3,probes_left=$4,next_probe_at=COALESCE($5,next_probe_at),simulate=CASE WHEN simulate_until<=$6 THEN NULL ELSE simulate END,simulate_until=CASE WHEN simulate_until<=$6 THEN NULL ELSE simulate_until END,updated_at=$6 WHERE workspace_id=$1 AND provider=$2`, workspace, provider, state, probesLeft, next, now)
+	return
+}
+
+// callsInFlight counts the calls that hold a place in the channel's rate window.
+func callsInFlight(ctx context.Context, tx pgx.Tx, workspace, provider string, now time.Time) (n int, err error) {
+	err = tx.QueryRow(ctx, `SELECT count(*) FROM delivery_attempts WHERE workspace_id=$1 AND provider=$2 AND started_at>$3::timestamptz-interval '30 seconds' AND status<>'CANCELLED' AND (completed_at IS NULL OR completed_at>$4 OR ((status='UNKNOWN' OR provider_code=408) AND started_at>$5))`, workspace, provider, now, now.Add(-rateHold), now.Add(-unansweredHold)).Scan(&n)
 	return
 }
 
@@ -194,7 +232,35 @@ func observe(ctx context.Context, tx pgx.Tx, job Job, channel string, a answer, 
 	var refused, failing *time.Time
 	var state string
 	var wait, passed int
-	if err := tx.QueryRow(ctx, `SELECT credentials_refused_at,breaker,breaker_wait_seconds,probes_passed,failing_since FROM provider_channels WHERE workspace_id=$1 AND provider=$2 FOR UPDATE`, job.WorkspaceID, job.Provider).Scan(&refused, &state, &wait, &passed, &failing); err != nil {
+	const channelRow = `SELECT credentials_refused_at,breaker,breaker_wait_seconds,probes_passed,failing_since FROM provider_channels WHERE workspace_id=$1 AND provider=$2`
+	read := func(lock string) error {
+		return tx.QueryRow(ctx, channelRow+lock, job.WorkspaceID, job.Provider).Scan(&refused, &state, &wait, &passed, &failing)
+	}
+	if err := read(""); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		return err
+	}
+	// Most answers leave a healthy channel as it is: read it without the lock,
+	// and lock only when this answer may change it. A failure on a closed
+	// breaker counts recent calls first; only enough failures to open it need
+	// the lock, and a concurrent failure that is not yet committed can open it
+	// at most one call later.
+	if !job.BreakerProbe && job.TestedLock == nil && refused == nil && state == "closed" {
+		switch a {
+		case answerAccepted, answerRejected:
+			if failing == nil {
+				return nil
+			}
+		case answerFailed:
+			calls, failed, err := recentCalls(ctx, tx, job, at.Add(-breakerWindow))
+			if err != nil || calls < breakerMinCalls || failed*2 < calls {
+				return err
+			}
+		}
+	}
+	if err := read(" FOR UPDATE"); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
 		}

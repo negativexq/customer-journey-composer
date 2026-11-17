@@ -305,3 +305,73 @@ func TestASimulatedOutageNeverCallsTheProvider(t *testing.T) {
 		t.Fatal("the simulation ends on time", status)
 	}
 }
+
+func TestAHealthyChannelIsAdmittedWithoutWritingIt(t *testing.T) {
+	c := channelSetup(t)
+	if _, err := c.pool.Exec(c.ctx, `INSERT INTO provider_channels(workspace_id,provider) VALUES($1,'mock_sms')`, c.workspace); err != nil {
+		t.Fatal(err)
+	}
+	version := func() string {
+		var xmin string
+		if err := c.pool.QueryRow(c.ctx, `SELECT xmin::text FROM provider_channels WHERE workspace_id=$1 AND provider='mock_sms'`, c.workspace).Scan(&xmin); err != nil {
+			t.Fatal(err)
+		}
+		return xmin
+	}
+	before := version()
+	c.queue(5)
+	for range 5 {
+		c.send()
+	}
+	// Every claim and every accepted answer left the row as it was, so claims
+	// do not queue on its lock and its old versions do not pile up.
+	if after := version(); after != before {
+		t.Fatalf("channel row rewritten: %s -> %s", before, after)
+	}
+}
+
+func TestConcurrentClaimsStayWithinTheRate(t *testing.T) {
+	c := channelSetup(t)
+	const rate = 20
+	if _, err := c.pool.Exec(c.ctx, `INSERT INTO provider_channels(workspace_id,provider,rate_per_second) VALUES($1,'mock_sms',$2)`, c.workspace, rate); err != nil {
+		t.Fatal(err)
+	}
+	c.queue(40)
+	// Eight claimers race; nothing is answered, so every claim stays in flight.
+	claimed := make(chan string, 64)
+	errs := make(chan error, 8)
+	for range 8 {
+		go func() {
+			for range 40 {
+				job, err := c.sender.Claim(c.ctx)
+				if errors.Is(err, ErrGated) {
+					continue
+				}
+				if err != nil {
+					errs <- err
+					return
+				}
+				if job == nil {
+					break
+				}
+				if job.WorkspaceID == c.workspace {
+					claimed <- job.ID
+				}
+			}
+			errs <- nil
+		}()
+	}
+	for range 8 {
+		if err := <-errs; err != nil {
+			t.Fatal(err)
+		}
+	}
+	close(claimed)
+	n := 0
+	for range claimed {
+		n++
+	}
+	if n == 0 || n > rate {
+		t.Fatalf("%d calls in flight for a rate of %d", n, rate)
+	}
+}
