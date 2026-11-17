@@ -81,6 +81,8 @@ export type BehaviorChecks = {
   inputs: Record<string, string | number | boolean | null>;
   email_count?: number;
   sms_count?: number;
+  // Checked only when set; checks written before push existed leave it out.
+  push_count?: number;
   outcome: 'completed' | 'converted' | 'condition_not_met' | 'manually_cancelled';
   duration_seconds?: number;
   thresholds: { path: string; operator: string; value: number }[];
@@ -107,6 +109,7 @@ export type BehaviorCase = Pick<
   | 'expected_attributes'
   | 'email_count'
   | 'sms_count'
+  | 'push_count'
   | 'outcome'
   | 'duration_seconds'
 > & { name: string };

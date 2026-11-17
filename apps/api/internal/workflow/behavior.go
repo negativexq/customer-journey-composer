@@ -11,12 +11,14 @@ import (
 // Human-supplied synthetic expectations are metadata, never runtime instructions.
 // Providers cannot return or overwrite this field in the structured-output schema.
 type BehaviorChecks struct {
-	Version            int                 `json:"version" minimum:"1" maximum:"2"`
-	Confirmed          bool                `json:"confirmed"`
-	EntryEvent         string              `json:"entry_event"`
-	Inputs             map[string]any      `json:"inputs,omitempty"`
-	EmailCount         *int                `json:"email_count,omitempty" minimum:"0" maximum:"100"`
-	SMSCount           *int                `json:"sms_count,omitempty" minimum:"0" maximum:"100"`
+	Version    int            `json:"version" minimum:"1" maximum:"2"`
+	Confirmed  bool           `json:"confirmed"`
+	EntryEvent string         `json:"entry_event"`
+	Inputs     map[string]any `json:"inputs,omitempty"`
+	EmailCount *int           `json:"email_count,omitempty" minimum:"0" maximum:"100"`
+	SMSCount   *int           `json:"sms_count,omitempty" minimum:"0" maximum:"100"`
+	// PushCount is checked only when set, so checks written before push existed keep passing.
+	PushCount          *int                `json:"push_count,omitempty" minimum:"0" maximum:"100"`
 	Outcome            string              `json:"outcome" enum:"completed,converted,condition_not_met,manually_cancelled"`
 	DurationSeconds    *int64              `json:"duration_seconds,omitempty" minimum:"0" maximum:"31536000"`
 	Thresholds         []BehaviorThreshold `json:"thresholds,omitempty" maxItems:"4"`
@@ -50,7 +52,7 @@ func ValidateBehaviorChecks(c *BehaviorChecks) error {
 	if !eventName.MatchString(c.EntryEvent) {
 		return fmt.Errorf("Choose the expected entry event")
 	}
-	if c.EmailCount == nil || c.SMSCount == nil || *c.EmailCount < 0 || *c.SMSCount < 0 || *c.EmailCount > 100 || *c.SMSCount > 100 {
+	if c.EmailCount == nil || c.SMSCount == nil || *c.EmailCount < 0 || *c.SMSCount < 0 || *c.EmailCount > 100 || *c.SMSCount > 100 || !optionalCount(c.PushCount) {
 		return fmt.Errorf("Expected channel counts must be between 0 and 100")
 	}
 	switch c.Outcome {
@@ -148,6 +150,7 @@ type BehaviorCase struct {
 	Events             []BehaviorEvent `json:"events,omitempty" maxItems:"8"`
 	EmailCount         *int            `json:"email_count,omitempty" minimum:"0" maximum:"100"`
 	SMSCount           *int            `json:"sms_count,omitempty" minimum:"0" maximum:"100"`
+	PushCount          *int            `json:"push_count,omitempty" minimum:"0" maximum:"100"`
 	Outcome            string          `json:"outcome" enum:"completed,converted,condition_not_met,manually_cancelled"`
 	DurationSeconds    *int64          `json:"duration_seconds,omitempty" minimum:"0" maximum:"31536000"`
 	ExpectedAttributes map[string]any  `json:"expected_attributes,omitempty"`
@@ -165,10 +168,10 @@ type BehaviorEvent struct {
 }
 
 func (c *BehaviorChecks) Cases() []BehaviorCase {
-	return append([]BehaviorCase{{Name: c.CaseName, Conditions: c.Conditions, Inputs: c.Inputs, Consents: c.Consents, Events: c.Events, EmailCount: c.EmailCount, SMSCount: c.SMSCount, Outcome: c.Outcome, DurationSeconds: c.DurationSeconds, ExpectedAttributes: c.ExpectedAttributes}}, c.Alternatives...)
+	return append([]BehaviorCase{{Name: c.CaseName, Conditions: c.Conditions, Inputs: c.Inputs, Consents: c.Consents, Events: c.Events, EmailCount: c.EmailCount, SMSCount: c.SMSCount, PushCount: c.PushCount, Outcome: c.Outcome, DurationSeconds: c.DurationSeconds, ExpectedAttributes: c.ExpectedAttributes}}, c.Alternatives...)
 }
 func BehaviorCaseData(c *BehaviorChecks, clause BehaviorCase) map[string]any {
-	data := map[string]any{"customer": map[string]any{"customer_id": "behavior_check", "email": "preview@example.invalid", "phone": "+15005550006", "attributes": map[string]any{"first_name": "Sample"}, "consents": map[string]any{"email": true, "sms": true}}, "event": map[string]any{"properties": map[string]any{}}}
+	data := map[string]any{"customer": map[string]any{"customer_id": "behavior_check", "email": "preview@example.invalid", "phone": "+15005550006", "push_token": "behavior-check-device", "attributes": map[string]any{"first_name": "Sample"}, "consents": map[string]any{"email": true, "sms": true, "push": true}}, "event": map[string]any{"properties": map[string]any{}}}
 	set := func(path string, v any) {
 		parts := strings.Split(path, ".")
 		m := data
@@ -216,7 +219,7 @@ func validateBehaviorCase(c *BehaviorChecks, clause BehaviorCase) error {
 	if strings.TrimSpace(clause.Name) == "" || len(clause.Name) > 160 {
 		return fmt.Errorf("Name the situation this clause describes")
 	}
-	if clause.EmailCount == nil || clause.SMSCount == nil || *clause.EmailCount < 0 || *clause.EmailCount > 100 || *clause.SMSCount < 0 || *clause.SMSCount > 100 {
+	if clause.EmailCount == nil || clause.SMSCount == nil || *clause.EmailCount < 0 || *clause.EmailCount > 100 || *clause.SMSCount < 0 || *clause.SMSCount > 100 || !optionalCount(clause.PushCount) {
 		return fmt.Errorf("Specify channel counts for this clause")
 	}
 	switch clause.Outcome {
@@ -299,6 +302,9 @@ func behaviorExpectationsConflict(a, b BehaviorCase) bool {
 	if *a.EmailCount != *b.EmailCount || *a.SMSCount != *b.SMSCount || a.Outcome != b.Outcome {
 		return true
 	}
+	if a.PushCount != nil && b.PushCount != nil && *a.PushCount != *b.PushCount {
+		return true
+	}
 	if a.DurationSeconds != nil && b.DurationSeconds != nil && *a.DurationSeconds != *b.DurationSeconds {
 		return true
 	}
@@ -313,6 +319,9 @@ func behaviorExpectationsConflict(a, b BehaviorCase) bool {
 	}
 	return false
 }
+
+// optionalCount accepts a missing count or one between 0 and 100.
+func optionalCount(n *int) bool { return n == nil || (*n >= 0 && *n <= 100) }
 
 func (e BehaviorEvent) Payload() map[string]any {
 	data := map[string]any{}

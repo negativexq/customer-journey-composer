@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { api } from '../lib/api';
 import type { DataEntry } from '../lib/data-catalog';
 import type { BehaviorChecks, BehaviorCase, BehaviorEvent, Rule } from '../lib/workflow';
+import { channelIcons, channelNames, messageKinds } from '../lib/workflow';
 import { blankBehaviorChecks } from '../lib/behavior-checks';
 import ScopeSelect from './ui/ScopeSelect.vue';
 import AppIcon from './ui/AppIcon.vue';
@@ -24,7 +25,7 @@ const c = computed(() => ({
     props.modelValue?.case_name || (props.modelValue?.version === 1 ? '' : 'Default situation'),
   consents:
     props.modelValue?.consents ||
-    (props.modelValue?.version === 1 ? {} : { email: true, sms: true }),
+    (props.modelValue?.version === 1 ? {} : { email: true, sms: true, push: true }),
   ineligible_outcome:
     props.modelValue?.version === 1
       ? props.modelValue?.ineligible_outcome
@@ -111,7 +112,7 @@ function entry(value: string) {
 function numericValue(value: string) {
   return value.trim() === '' ? undefined : Number(value);
 }
-function count(key: 'email_count' | 'sms_count', event: Event) {
+function count(key: 'email_count' | 'sms_count' | 'push_count', event: Event) {
   patch({ [key]: numericValue((event.target as HTMLInputElement).value) });
 }
 function threshold(index: number, key: 'path' | 'operator' | 'value', value: string) {
@@ -163,6 +164,7 @@ function updateClause(index: number, next: BehaviorChecks) {
     events: next.events,
     email_count: next.email_count,
     sms_count: next.sms_count,
+    push_count: next.push_count,
     outcome: next.outcome,
     duration_seconds: next.duration_seconds,
     expected_attributes: next.expected_attributes,
@@ -293,14 +295,14 @@ onMounted(async () => {
           /></label>
           <div class="consent-toggles" role="group" aria-label="Channel consent">
             <label
-              v-for="channel in ['email', 'sms']"
+              v-for="channel in messageKinds"
               :key="channel"
               class="consent-toggle"
               :class="{ on: c.consents?.[channel] ?? true }"
               ><input
                 type="checkbox"
                 role="switch"
-                :aria-label="(channel === 'email' ? 'Email' : 'SMS') + ' consent in this situation'"
+                :aria-label="channelNames[channel] + ' consent in this situation'"
                 :checked="c.consents?.[channel] ?? true"
                 @change="
                   patch({
@@ -310,9 +312,9 @@ onMounted(async () => {
                     },
                   })
                 " /><span class="consent-toggle-icon" aria-hidden="true"
-                ><AppIcon :name="channel === 'email' ? 'email' : 'message'" :size="16" /></span
+                ><AppIcon :name="channelIcons[channel]" :size="16" /></span
               ><span class="consent-toggle-text"
-                ><strong>{{ channel === 'email' ? 'Email' : 'SMS' }} consent</strong
+                ><strong>{{ channelNames[channel] }} consent</strong
                 ><small>{{
                   (c.consents?.[channel] ?? true)
                     ? 'Customer has opted in'
@@ -602,6 +604,16 @@ onMounted(async () => {
               required
               @input="count('sms_count', $event)"
           /></label>
+          <label class="field-box"
+            ><small>Expected push</small
+            ><input
+              type="number"
+              min="0"
+              max="100"
+              :value="c.push_count"
+              placeholder="Not checked"
+              @input="count('push_count', $event)"
+          /></label>
           <ScopeSelect
             :model-value="c.outcome"
             label="Expected outcome"
@@ -778,6 +790,7 @@ onMounted(async () => {
                   consents: { ...c.consents },
                   email_count: undefined,
                   sms_count: undefined,
+                  push_count: 0,
                   outcome: 'completed',
                 },
               ],

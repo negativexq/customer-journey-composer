@@ -18,14 +18,14 @@ func behaviorContractSummary(c *workflow.BehaviorChecks) string {
 			for _, e := range clause.Events {
 				events = append(events, map[string]any{"event_name": e.EventName, "after_seconds": e.AfterSeconds, "entry_binding": e.EntryBinding})
 			}
-			consents := map[string]bool{"email": true, "sms": true}
+			consents := map[string]bool{"email": true, "sms": true, "push": true}
 			for k, v := range c.Consents {
 				consents[k] = v
 			}
 			for k, v := range clause.Consents {
 				consents[k] = v
 			}
-			clauses = append(clauses, map[string]any{"name": clause.Name, "initial_conditions": clause.Conditions, "channel_consents": consents, "subsequent_events": events, "email_count": clause.EmailCount, "sms_count": clause.SMSCount, "outcome": clause.Outcome, "duration_seconds": clause.DurationSeconds})
+			clauses = append(clauses, map[string]any{"name": clause.Name, "initial_conditions": clause.Conditions, "channel_consents": consents, "subsequent_events": events, "email_count": clause.EmailCount, "sms_count": clause.SMSCount, "push_count": clause.PushCount, "outcome": clause.Outcome, "duration_seconds": clause.DurationSeconds})
 		}
 		public["clauses"] = clauses
 		public["ineligible_outcome"] = c.IneligibleOutcome

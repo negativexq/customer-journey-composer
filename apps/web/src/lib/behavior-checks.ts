@@ -3,7 +3,7 @@ export const blankBehaviorChecks = (): BehaviorChecks => ({
   version: 2,
   case_name: 'Default situation',
   conditions: [],
-  consents: { email: true, sms: true },
+  consents: { email: true, sms: true, push: true },
   events: [],
   alternatives: [],
   ineligible_outcome: 'condition_not_met',
@@ -14,12 +14,17 @@ export const blankBehaviorChecks = (): BehaviorChecks => ({
   thresholds: [],
 });
 function clauseReady(
-  c: Pick<BehaviorCase, 'email_count' | 'sms_count' | 'duration_seconds' | 'events' | 'conditions'>,
+  c: Pick<
+    BehaviorCase,
+    'email_count' | 'sms_count' | 'push_count' | 'duration_seconds' | 'events' | 'conditions'
+  >,
 ): boolean {
   return (
     [c.email_count, c.sms_count].every(
       (n) => Number.isInteger(n) && Number(n) >= 0 && Number(n) <= 100,
     ) &&
+    (c.push_count === undefined ||
+      (Number.isInteger(c.push_count) && c.push_count >= 0 && c.push_count <= 100)) &&
     (c.duration_seconds === undefined ||
       (Number.isInteger(c.duration_seconds) &&
         c.duration_seconds >= 0 &&

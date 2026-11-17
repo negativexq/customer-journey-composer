@@ -79,19 +79,21 @@ func ValidateBehavior(w workflow.Workflow) []workflow.Issue {
 			add("scenario", "simulation did not complete safely")
 			return
 		}
-		email, sms := 0, 0
+		email, sms, push := 0, 0, 0
 		for _, m := range state.Messages {
 			if m.AcceptedAt != nil {
-				if m.Channel == "email" {
+				switch m.Channel {
+				case "email":
 					email++
-				}
-				if m.Channel == "sms" {
+				case "sms":
 					sms++
+				case "push":
+					push++
 				}
 			}
 		}
 		if !eligible {
-			if email+sms > 0 || state.ExitReason == "converted" {
+			if email+sms+push > 0 || state.ExitReason == "converted" {
 				add("threshold", "ineligible input produced a message or conversion")
 			}
 			if c.Version == 2 {
@@ -111,6 +113,9 @@ func ValidateBehavior(w workflow.Workflow) []workflow.Issue {
 		}
 		if sms != *expected.SMSCount {
 			add("sms_count", fmt.Sprintf("expected %d accepted SMS messages, got %d", *expected.SMSCount, sms))
+		}
+		if expected.PushCount != nil && push != *expected.PushCount {
+			add("push_count", fmt.Sprintf("expected %d accepted push notifications, got %d", *expected.PushCount, push))
 		}
 		if state.ExitReason != expected.Outcome {
 			add("outcome", fmt.Sprintf("expected %s, got %s", expected.Outcome, state.ExitReason))
