@@ -26,6 +26,8 @@ import { channelNames, isMessage, labels, type Workflow, type Issue } from '../l
 import { stepSummary } from '../lib/workflow-presentation';
 import { diffWorkflows, type WorkflowDiff } from '../lib/version-diff';
 import ConfirmDialog from './ui/ConfirmDialog.vue';
+import OverflowMenu from './ui/OverflowMenu.vue';
+import { DropdownMenuItem } from 'reka-ui';
 import JourneyDiagram from './JourneyDiagram.vue';
 import WorkflowChanges from './WorkflowChanges.vue';
 import type { InspectionKind } from '../lib/navigation';
@@ -335,18 +337,6 @@ async function saveTemplate() {
     error.value = errorMessage(cause);
   }
 }
-// The overflow menu is a native <details>; close it like a menu on outside press or Escape.
-const actionMenu = ref<HTMLDetailsElement>();
-function closeActionMenu(restoreFocus = false) {
-  if (!actionMenu.value?.open) return;
-  actionMenu.value.open = false;
-  if (restoreFocus) actionMenu.value.querySelector('summary')?.focus();
-}
-function outsideActionMenu(event: PointerEvent) {
-  if (actionMenu.value?.open && !actionMenu.value.contains(event.target as Node)) closeActionMenu();
-}
-onMounted(() => document.addEventListener('pointerdown', outsideActionMenu));
-onBeforeUnmount(() => document.removeEventListener('pointerdown', outsideActionMenu));
 type GuardedAction = 'sunset' | 'complete' | 'archive';
 const pendingAction = ref<GuardedAction>();
 const lifecycleBusy = ref(false);
@@ -650,34 +640,42 @@ function back() {
         >
           <AppIcon name="upload" :size="15" />Publish
         </button>
-        <details ref="actionMenu" class="action-menu" @keydown.esc="closeActionMenu(true)">
-          <summary aria-label="More journey actions"><AppIcon name="more" :size="19" /></summary>
-          <div @click="($event.currentTarget as HTMLElement).closest('details')!.open = false">
-            <button @click="metadata!.open = !metadata!.open">
-              <AppIcon name="settings" />Journey settings</button
-            ><button :disabled="readonly || busy" @click="saveTemplate">
-              <AppIcon name="templates" />Save as template</button
-            ><button
-              v-if="admin && ['Active', 'Paused'].includes(journey.status)"
-              :disabled="busy"
-              @click="pendingAction = 'sunset'"
-            >
-              <AppIcon name="exit" />Sunset</button
-            ><button
-              v-if="admin && ['Sunset', 'Paused'].includes(journey.status)"
-              :disabled="busy"
-              @click="pendingAction = 'complete'"
-            >
-              <AppIcon name="check" />Complete after draining</button
-            ><button
-              v-if="admin && ['Draft', 'Completed'].includes(journey.status)"
-              :disabled="busy"
-              @click="pendingAction = 'archive'"
-            >
-              <AppIcon name="folder" />Archive
-            </button>
-          </div>
-        </details>
+        <OverflowMenu label="More journey actions" trigger-class="action-menu-trigger">
+          <DropdownMenuItem class="overflow-item" @select="metadata!.open = !metadata!.open">
+            <AppIcon name="settings" />Journey settings
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            class="overflow-item"
+            :disabled="readonly || busy"
+            @select="saveTemplate"
+          >
+            <AppIcon name="templates" />Save as template
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            v-if="admin && ['Active', 'Paused'].includes(journey.status)"
+            class="overflow-item"
+            :disabled="busy"
+            @select="pendingAction = 'sunset'"
+          >
+            <AppIcon name="exit" />Sunset
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            v-if="admin && ['Sunset', 'Paused'].includes(journey.status)"
+            class="overflow-item"
+            :disabled="busy"
+            @select="pendingAction = 'complete'"
+          >
+            <AppIcon name="check" />Complete after draining
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            v-if="admin && ['Draft', 'Completed'].includes(journey.status)"
+            class="overflow-item"
+            :disabled="busy"
+            @select="pendingAction = 'archive'"
+          >
+            <AppIcon name="folder" />Archive
+          </DropdownMenuItem>
+        </OverflowMenu>
       </div>
     </div>
   </div>

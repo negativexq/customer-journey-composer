@@ -155,7 +155,7 @@ test('AI cannot apply a stale proposal over a newer draft edit', async ({ page }
   await expect(page.getByRole('heading', { name: 'Review proposal' })).toBeVisible();
   await page.getByLabel('I reviewed the warnings and assumptions').check();
   await page.getByLabel('More journey actions').click();
-  await page.getByRole('button', { name: 'Journey settings', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Journey settings', exact: true }).click();
   await page.getByLabel('Name', { exact: true }).fill('A newer human edit');
   await expect(page.getByRole('button', { name: 'Apply proposal', exact: true })).toBeDisabled();
   await expect(

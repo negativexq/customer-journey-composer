@@ -32,11 +32,11 @@ test('template creates an editable draft and isolated inbox before human publish
   // Clipboard actions live behind the canvas bar's More menu; shortcuts still work.
   const more = page.getByLabel('More canvas actions', { exact: true });
   await more.click();
-  await page.getByRole('button', { name: 'Select all nodes', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Select all nodes', exact: true }).click();
   await more.click();
-  await page.getByRole('button', { name: 'Copy selection', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Copy selection', exact: true }).click();
   await more.click();
-  await page.getByRole('button', { name: 'Paste selection', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Paste selection', exact: true }).click();
   await expect(page.locator('.vue-flow__node')).toHaveCount(16);
   await expect(page.locator('.vue-flow__edge')).toHaveCount(16);
   await page.getByRole('button', { name: 'Undo', exact: true }).click();

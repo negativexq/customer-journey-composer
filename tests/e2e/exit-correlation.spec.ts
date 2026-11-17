@@ -51,7 +51,7 @@ test('entry identity matching persists and scopes the purchase waiter', async ({
   ).toBeTruthy();
   await page.goto('/journeys/' + j.id);
   await page.getByLabel('More journey actions', { exact: true }).click();
-  await page.getByRole('button', { name: 'Journey settings', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Journey settings', exact: true }).click();
   await page.getByRole('combobox', { name: 'Exit matching', exact: true }).click();
   await page
     .getByRole('option', { name: 'Only the object that started this journey', exact: true })
@@ -73,7 +73,7 @@ test('entry identity matching persists and scopes the purchase waiter', async ({
     .toEqual(correlation);
   await page.reload();
   await page.getByLabel('More journey actions', { exact: true }).click();
-  await page.getByRole('button', { name: 'Journey settings', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Journey settings', exact: true }).click();
   await expect(page.getByRole('combobox', { name: 'Exit matching', exact: true })).toContainText(
     'Only the object',
   );

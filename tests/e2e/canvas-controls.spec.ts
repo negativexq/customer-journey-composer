@@ -89,7 +89,7 @@ test('canvas follows the theme with readable zoom controls and a wide Elements p
 
   const shortcuts = page.getByRole('dialog', { name: 'Keyboard shortcuts', exact: true });
   await page.getByLabel('More canvas actions', { exact: true }).click();
-  await page.getByRole('button', { name: 'Keyboard shortcuts', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Keyboard shortcuts', exact: true }).click();
   await expect(shortcuts).toContainText('Duplicate selected steps');
   await page.keyboard.press('Escape');
   await expect(shortcuts).toBeHidden();

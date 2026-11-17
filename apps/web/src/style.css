@@ -1366,47 +1366,78 @@ tbody tr:hover {
 .save-feedback svg {
   color: var(--green-54-text);
 }
-.action-menu {
-  position: relative;
-}
-.action-menu summary {
-  display: grid;
-  place-items: center;
-  list-style: none;
-  cursor: pointer;
+/* The journey header's "more actions" trigger; its menu is .overflow-menu. */
+.action-menu-trigger {
   width: 31px;
   height: 32px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  min-height: 32px;
+  padding: 0;
   color: var(--muted);
 }
-.action-menu summary::-webkit-details-marker {
-  display: none;
+.action-menu-trigger[aria-expanded='true'] {
+  background: var(--gray-96);
+  color: var(--text);
 }
-.action-menu > div {
-  position: absolute;
-  right: 0;
-  top: 39px;
-  z-index: 25;
-  width: 215px;
-  padding: 5px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  box-shadow: 0 8px 30px #26334816;
+/* Menus from OverflowMenu (reka DropdownMenu), portalled to <body>. */
+.overflow-menu {
+  z-index: 90;
   display: grid;
   gap: 2px;
+  min-width: 215px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  box-shadow:
+    0 1px 2px #1823470a,
+    0 12px 32px #17213b24;
+  animation: menu-in var(--motion-fast) var(--ease-out) both;
+  transform-origin: var(--reka-dropdown-menu-content-transform-origin);
 }
-.action-menu > div button {
-  justify-content: flex-start;
-  border: 0;
-  padding: 9px 10px;
-  font-size: 12px;
-  background: none;
+.overflow-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 34px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+.overflow-item svg {
+  flex: none;
   color: var(--muted);
 }
-.action-menu > div button:hover {
+.overflow-item[data-highlighted] {
   background: var(--gray-96);
+}
+.overflow-item[data-disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.overflow-box {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--gray-85);
+  border-radius: 4px;
+}
+.overflow-check[data-state='checked'] .overflow-box {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.overflow-check[data-state='checked'] .overflow-box svg {
+  color: var(--on-solid);
+}
+.overflow-separator {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--border);
 }
 .journey-settings {
   margin-bottom: 15px;
@@ -6641,15 +6672,6 @@ fieldset.scenario-form {
   font-weight: 500;
   color: var(--text);
 }
-.bar-more .menu-check {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 34px;
-  padding: 6px 10px;
-  font-size: 13px;
-  cursor: pointer;
-}
 .canvas-bar {
   position: absolute;
   left: 50%;
@@ -6668,8 +6690,7 @@ fieldset.scenario-form {
     0 8px 24px #17213b1f,
     0 1px 3px #17213b14;
 }
-.canvas-bar > button,
-.bar-more > summary {
+.canvas-bar > button {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
@@ -6682,14 +6703,9 @@ fieldset.scenario-form {
   background: var(--surface);
   color: var(--gray-38-text);
   cursor: pointer;
-  list-style: none;
-}
-.bar-more > summary::-webkit-details-marker {
-  display: none;
 }
 .canvas-bar > button:hover:not(:disabled),
-.bar-more > summary:hover,
-.bar-more[open] > summary {
+.canvas-bar > .bar-more[aria-expanded='true'] {
   background: var(--gray-96);
   color: var(--gray-28-text);
 }
@@ -6728,45 +6744,6 @@ fieldset.scenario-form {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   text-align: center;
-}
-.bar-more {
-  position: relative;
-}
-.bar-more > div {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 8px);
-  display: grid;
-  gap: 2px;
-  min-width: 200px;
-  padding: 6px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  box-shadow: 0 12px 32px #17213b24;
-}
-.bar-more[open] > div {
-  animation: menu-in var(--motion-fast) var(--ease-out) both;
-  transform-origin: bottom right;
-}
-.bar-more > div button {
-  justify-content: flex-start;
-  min-height: 34px;
-  padding: 6px 10px;
-  border: 0;
-  background: none;
-  color: var(--text);
-  font-size: 13px;
-  text-align: left;
-}
-.bar-more > div button:hover:not(:disabled) {
-  background: var(--page);
-}
-.bar-more hr {
-  width: 100%;
-  margin: 4px 0;
-  border: 0;
-  border-top: 1px solid var(--border);
 }
 .canvas-empty {
   inset: 34% 5% auto;
@@ -6953,8 +6930,7 @@ fieldset.scenario-form {
   .canvas-bar .bar-zoom {
     display: none;
   }
-  .canvas-bar > button,
-  .bar-more > summary {
+  .canvas-bar > button {
     width: 44px;
     height: 44px;
     min-height: 44px;

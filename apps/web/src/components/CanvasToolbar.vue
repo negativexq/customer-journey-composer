@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from 'vue';
+import { DropdownMenuCheckboxItem, DropdownMenuItem, DropdownMenuSeparator } from 'reka-ui';
 import AppIcon from './ui/AppIcon.vue';
+import OverflowMenu from './ui/OverflowMenu.vue';
 
 // The floating bar under the canvas: panels, history, zoom and a menu of less used actions.
 defineProps<{
@@ -34,18 +35,6 @@ const emit = defineEmits<{
   'toggle-lock': [];
   shortcuts: [];
 }>();
-const menu = ref<HTMLDetailsElement>();
-// Close the menu when the pointer goes anywhere else.
-function closeOutside(event: PointerEvent) {
-  if (menu.value?.open && !menu.value.contains(event.target as Node))
-    menu.value.removeAttribute('open');
-}
-window.addEventListener('pointerdown', closeOutside);
-onBeforeUnmount(() => window.removeEventListener('pointerdown', closeOutside));
-function fromMenu(action: () => void) {
-  menu.value?.removeAttribute('open');
-  action();
-}
 </script>
 <template>
   <div
@@ -120,47 +109,47 @@ function fromMenu(action: () => void) {
     >
       <AppIcon name="settings" :size="18" />
     </button>
-    <details ref="menu" class="bar-more">
-      <summary aria-label="More canvas actions" title="More">
-        <AppIcon name="more" :size="18" />
-      </summary>
-      <div>
-        <label
-          v-if="hasSharedExits"
-          class="menu-check"
-          title="Shared exits appear as references. Select one to open the original step."
-          ><input v-model="shortExitLinks" type="checkbox" />Short exit links</label
-        >
-        <button type="button" :disabled="readonly" @click="fromMenu(() => emit('layout'))">
-          Auto layout
-        </button>
-        <button type="button" @click="fromMenu(() => emit('start'))">Go to start</button>
-        <button
-          type="button"
-          :disabled="!hasSelection"
-          @click="fromMenu(() => emit('focus-selected'))"
-        >
-          Focus selected step
-        </button>
-        <hr />
-        <button type="button" :disabled="readonly" @click="fromMenu(() => emit('select-all'))">
-          Select all nodes
-        </button>
-        <button type="button" :disabled="readonly" @click="fromMenu(() => emit('copy'))">
-          Copy selection
-        </button>
-        <button type="button" :disabled="readonly" @click="fromMenu(() => emit('paste'))">
-          Paste selection
-        </button>
-        <button type="button" :disabled="readonly" @click="fromMenu(() => emit('duplicate'))">
-          Duplicate node
-        </button>
-        <hr />
-        <button v-if="!readonly" type="button" @click="fromMenu(() => emit('toggle-lock'))">
-          {{ locked ? 'Unlock canvas' : 'Lock canvas' }}
-        </button>
-        <button type="button" @click="fromMenu(() => emit('shortcuts'))">Keyboard shortcuts</button>
-      </div>
-    </details>
+    <OverflowMenu label="More canvas actions" side="top" :icon-size="18" trigger-class="bar-more">
+      <DropdownMenuCheckboxItem
+        v-if="hasSharedExits"
+        v-model="shortExitLinks"
+        class="overflow-item overflow-check"
+        title="Shared exits appear as references. Select one to open the original step."
+        @select.prevent
+        ><span class="overflow-box" aria-hidden="true"
+          ><AppIcon v-if="shortExitLinks" name="check" :size="12" /></span
+        >Short exit links</DropdownMenuCheckboxItem
+      >
+      <DropdownMenuItem class="overflow-item" :disabled="readonly" @select="emit('layout')"
+        >Auto layout</DropdownMenuItem
+      >
+      <DropdownMenuItem class="overflow-item" @select="emit('start')">Go to start</DropdownMenuItem>
+      <DropdownMenuItem
+        class="overflow-item"
+        :disabled="!hasSelection"
+        @select="emit('focus-selected')"
+        >Focus selected step</DropdownMenuItem
+      >
+      <DropdownMenuSeparator class="overflow-separator" />
+      <DropdownMenuItem class="overflow-item" :disabled="readonly" @select="emit('select-all')"
+        >Select all nodes</DropdownMenuItem
+      >
+      <DropdownMenuItem class="overflow-item" :disabled="readonly" @select="emit('copy')"
+        >Copy selection</DropdownMenuItem
+      >
+      <DropdownMenuItem class="overflow-item" :disabled="readonly" @select="emit('paste')"
+        >Paste selection</DropdownMenuItem
+      >
+      <DropdownMenuItem class="overflow-item" :disabled="readonly" @select="emit('duplicate')"
+        >Duplicate node</DropdownMenuItem
+      >
+      <DropdownMenuSeparator class="overflow-separator" />
+      <DropdownMenuItem v-if="!readonly" class="overflow-item" @select="emit('toggle-lock')">{{
+        locked ? 'Unlock canvas' : 'Lock canvas'
+      }}</DropdownMenuItem>
+      <DropdownMenuItem class="overflow-item" @select="emit('shortcuts')"
+        >Keyboard shortcuts</DropdownMenuItem
+      >
+    </OverflowMenu>
   </div>
 </template>

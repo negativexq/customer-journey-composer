@@ -92,7 +92,7 @@ test('readable node summaries and connection focus preserve graph semantics and 
   const inspector = page.getByLabel('Step settings', { exact: true });
   const more = page.getByLabel('More canvas actions', { exact: true });
   await more.click();
-  await page.getByLabel('Short exit links', { exact: true }).check();
+  await page.getByRole('menuitemcheckbox', { name: 'Short exit links', exact: true }).click();
   await more.click();
   // On a phone the settings panel opens over the canvas; hide it to reach the canvas again.
   if (test.info().project.name === 'mobile')
@@ -107,12 +107,12 @@ test('readable node summaries and connection focus preserve graph semantics and 
   await expect(inspector.getByLabel('Step name', { exact: true })).toHaveValue('No action');
   await expect(page.locator('.canvas .workflow-node.is-muted')).not.toHaveCount(0);
   await more.click();
-  await page.getByRole('button', { name: 'Go to start', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Go to start', exact: true }).click();
   await expect(page.locator('.canvas .workflow-node.is-muted')).toHaveCount(0);
   const before = await (await page.request.get(`/api/v1/journeys/${journey.id}`)).json();
   expect(before.draft).toEqual(workflow);
   await more.click();
-  await page.getByRole('button', { name: 'Auto layout', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Auto layout', exact: true }).click();
   await expect(page.locator('.canvas-zoom-level')).toContainText('90%');
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
   await page.getByRole('button', { name: 'Save', exact: true }).click();
