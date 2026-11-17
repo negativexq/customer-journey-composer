@@ -467,3 +467,41 @@ func TestAHeldChannelLetsAnotherChannelsLaterMessageGoFirst(t *testing.T) {
 		t.Fatal("the held SMS messages keep waiting")
 	}
 }
+
+func TestTheHeadClaimWalksTheDueIndexWhateverTheStatistics(t *testing.T) {
+	c := channelSetup(t)
+	// Statistics taken while the queue was nearly empty, as before a burst.
+	if _, err := c.pool.Exec(c.ctx, `ANALYZE delivery_jobs`); err != nil {
+		t.Fatal(err)
+	}
+	c.queue(3000)
+	var raw []byte
+	if err := c.pool.QueryRow(c.ctx, "EXPLAIN (ANALYZE, FORMAT JSON) "+ClaimLiveHead, c.now.Now().Add(time.Second)).Scan(&raw); err != nil {
+		t.Fatal(err)
+	}
+	var plan []struct{ Plan map[string]any }
+	if err := json.Unmarshal(raw, &plan); err != nil {
+		t.Fatal(err)
+	}
+	visits, seq := 0.0, false
+	var walk func(map[string]any)
+	walk = func(node map[string]any) {
+		if node["Relation Name"] == "delivery_jobs" {
+			rows, _ := node["Actual Rows"].(float64)
+			loops, _ := node["Actual Loops"].(float64)
+			visits += rows * loops
+			seq = seq || node["Node Type"] == "Seq Scan"
+		}
+		if children, ok := node["Plans"].([]any); ok {
+			for _, child := range children {
+				if child, ok := child.(map[string]any); ok {
+					walk(child)
+				}
+			}
+		}
+	}
+	walk(plan[0].Plan)
+	if seq || visits > 32 {
+		t.Fatalf("head claim read %v queued messages (sequential scan %v)", visits, seq)
+	}
+}

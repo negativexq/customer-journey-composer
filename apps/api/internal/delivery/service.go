@@ -106,6 +106,23 @@ const PendingPageQuery = `SELECT o.id::text,o.created_at FROM action_outbox o WH
 // actions are reconsidered from the beginning on the next drain.
 const PendingAfterQuery = `SELECT o.id::text,o.created_at FROM action_outbox o WHERE o.state='PENDING' AND (o.created_at,o.id)>($2,$3::uuid) ORDER BY o.created_at,o.id LIMIT $1`
 
+// ScheduleFenceQuery rechecks, under the journey's share lock, that the action
+// is still pending on an Active or Sunset journey, and counts the customer's
+// frequency reservations when the message needs them. Exported for benchmark
+// EXPLAIN probes.
+const ScheduleFenceQuery = `WITH lifecycle AS MATERIALIZED (
+          SELECT e.state,j.status FROM journeys j JOIN journey_executions e ON e.journey_id=j.id WHERE e.id=$1 FOR SHARE OF j
+        ), pending AS MATERIALIZED (
+          SELECT a.id FROM action_outbox a CROSS JOIN lifecycle l WHERE a.id=$2 AND a.state='PENDING' AND l.status IN ('Active','Sunset') FOR UPDATE OF a
+        ) SELECT l.state,l.status,EXISTS(SELECT 1 FROM pending),
+          CASE WHEN $6::boolean AND EXISTS(SELECT 1 FROM pending) THEN (
+            SELECT count(*) FROM (SELECT 1 FROM (
+              (SELECT 1 FROM delivery_jobs WHERE workspace_id=$3 AND customer_id=$4 AND mode='LIVE' AND status IN ('SCHEDULED','CLAIMED','DISPATCHING','UNKNOWN') LIMIT $7)
+              UNION ALL
+              (SELECT 1 FROM delivery_jobs WHERE workspace_id=$3 AND customer_id=$4 AND mode='LIVE' AND status='ACCEPTED' AND accepted_at>=$5 LIMIT $7)
+            ) slots LIMIT $7) reservations
+          ) ELSE 0 END FROM lifecycle l`
+
 // ScheduleItemQuery locks one discovered action's customer by primary key. A
 // customer another transaction holds is skipped, not waited for.
 const ScheduleItemQuery = `SELECT o.id::text,o.workspace_id::text,o.execution_id::text,o.node_id,o.channel,o.payload,p.customer_id,p.state,p.email,p.phone,p.push_token,p.consents,p.frequency_limit,p.frequency_window_seconds FROM action_outbox o JOIN LATERAL (
@@ -240,18 +257,7 @@ func (s *Service) scheduleItem(ctx context.Context, id string) (int, error) {
 		var stillPending bool
 		var reservations int
 		countReservations := renderError == "" && EvaluateEligibility(message, consent, 0, p.limit, "RUNNING").Eligible
-		err = tx.QueryRow(ctx, `WITH lifecycle AS MATERIALIZED (
-          SELECT e.state,j.status FROM journeys j JOIN journey_executions e ON e.journey_id=j.id WHERE e.id=$1 FOR SHARE OF j
-        ), pending AS MATERIALIZED (
-          SELECT a.id FROM action_outbox a CROSS JOIN lifecycle l WHERE a.id=$2 AND a.state='PENDING' AND l.status IN ('Active','Sunset') FOR UPDATE OF a
-        ) SELECT l.state,l.status,EXISTS(SELECT 1 FROM pending),
-          CASE WHEN $6::boolean AND EXISTS(SELECT 1 FROM pending) THEN (
-            SELECT count(*) FROM (SELECT 1 FROM (
-              (SELECT 1 FROM delivery_jobs WHERE workspace_id=$3 AND customer_id=$4 AND mode='LIVE' AND status IN ('SCHEDULED','CLAIMED','DISPATCHING','UNKNOWN') LIMIT $7)
-              UNION ALL
-              (SELECT 1 FROM delivery_jobs WHERE workspace_id=$3 AND customer_id=$4 AND mode='LIVE' AND status='ACCEPTED' AND accepted_at>=$5 LIMIT $7)
-            ) slots LIMIT $7) reservations
-          ) ELSE 0 END FROM lifecycle l`, p.execution, p.id, p.workspace, p.customer, now.Add(-time.Duration(p.window)*time.Second), countReservations, p.limit).Scan(&p.state, &lifecycle, &stillPending, &reservations)
+		err = tx.QueryRow(ctx, ScheduleFenceQuery, p.execution, p.id, p.workspace, p.customer, now.Add(-time.Duration(p.window)*time.Second), countReservations, p.limit).Scan(&p.state, &lifecycle, &stillPending, &reservations)
 		if err != nil {
 			return 0, err
 		}
@@ -361,7 +367,13 @@ func (s *Service) Claim(ctx context.Context) (*Job, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = tx.QueryRow(ctx, ClaimLive, now, held).Scan(&id)
+	err = pgx.ErrNoRows
+	if len(held) == 0 {
+		err = tx.QueryRow(ctx, ClaimLiveHead, now).Scan(&id)
+	}
+	if errors.Is(err, pgx.ErrNoRows) {
+		err = tx.QueryRow(ctx, ClaimLive, now, held).Scan(&id)
+	}
 	if errors.Is(err, pgx.ErrNoRows) {
 		err = tx.QueryRow(ctx, claimTest, now, held).Scan(&id)
 	}

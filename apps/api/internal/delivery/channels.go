@@ -64,6 +64,18 @@ const openChannel = `NOT (d.workspace_id::text||'/'||d.provider = ANY($2::text[]
 // explain it. It reads $1 as now and $2 as HeldChannels.
 const ClaimLive = `SELECT d.id::text FROM delivery_jobs d JOIN customers c ON c.workspace_id=d.workspace_id AND c.customer_id=d.customer_id WHERE d.status='SCHEDULED' AND d.mode='LIVE' AND d.due_at<=$1 AND (SELECT j.status IN ('Active','Sunset') FROM journey_executions e JOIN journeys j ON j.id=e.journey_id WHERE e.id=d.execution_id) AND ` + openChannel + ` ORDER BY d.due_at,d.id LIMIT 1 FOR UPDATE OF c SKIP LOCKED`
 
+// claimHeadSQL is how many of the earliest due messages ClaimLiveHead considers.
+const claimHeadSQL = "32"
+
+// ClaimLiveHead claims among the earliest due messages when no channel is held.
+// The inner query has only the due index's own conditions and a small LIMIT, so
+// the plan walks that index in order whatever the statistics say; filters that
+// the planner cannot estimate run on those few rows. A cached plan of ClaimLive,
+// made while the queue looked empty, sorted every due message on each claim.
+// When the head yields nothing (busy customers, test messages), ClaimLive looks
+// further. It reads $1 as now.
+const ClaimLiveHead = `SELECT d.id::text FROM (SELECT id,workspace_id,customer_id,execution_id,mode,due_at FROM delivery_jobs WHERE status='SCHEDULED' AND due_at<=$1 ORDER BY due_at,id LIMIT ` + claimHeadSQL + `) d JOIN customers c ON c.workspace_id=d.workspace_id AND c.customer_id=d.customer_id WHERE d.mode='LIVE' AND (SELECT j.status IN ('Active','Sunset') FROM journey_executions e JOIN journeys j ON j.id=e.journey_id WHERE e.id=d.execution_id) ORDER BY d.due_at,d.id LIMIT 1 FOR UPDATE OF c SKIP LOCKED`
+
 const claimTest = `SELECT d.id::text FROM delivery_jobs d WHERE d.status='SCHEDULED' AND d.mode='TEST' AND d.due_at<=$1 AND ` + openChannel + ` ORDER BY d.due_at,d.id LIMIT 1 FOR UPDATE SKIP LOCKED`
 
 type querier interface {
