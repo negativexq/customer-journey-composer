@@ -1,6 +1,6 @@
 # Journey creation gallery
 
-Refreshed November 16, 2026 from the running application at 1280 × 800 CSS pixels,
+Refreshed November 17, 2026 from the running application at 1280 × 800 CSS pixels,
 2× display scale (**2560 × 1600 PNGs**). Fictional isolated workspace.
 
 These captures replay a recorded generation stream locally: the proposal is the

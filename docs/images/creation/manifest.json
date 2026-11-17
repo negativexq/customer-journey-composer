@@ -1,6 +1,6 @@
 {
-  "captured_at": "2026-11-16T17:08:13.957Z",
-  "source_commit": "72be5f07b8fb179edb30ca6bf71d18d7893eadc9",
+  "captured_at": "2026-11-17T14:27:02.100Z",
+  "source_commit": "cf5f1a343668ff24f2b943ba042b3971244a5961",
   "source_dirty": true,
   "viewport": {
     "width": 1280,
@@ -17,50 +17,50 @@
       "file": "docs/images/creation/method.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 203746
+      "bytes": 204607
     },
     {
       "file": "docs/images/creation/brief.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 296892
+      "bytes": 278698
     },
     {
       "file": "docs/images/creation/contract.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 259130
+      "bytes": 263422
     },
     {
       "file": "docs/images/creation/generating.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 254287
+      "bytes": 258558
     },
     {
       "file": "docs/images/creation/review.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 355182
+      "bytes": 357546
     },
     {
       "file": "docs/images/creation/review-diagram.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 266448
+      "bytes": 270177
     },
     {
       "file": "docs/images/creation/canvas-start.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 221041
+      "bytes": 221909
     },
     {
       "file": "docs/images/creation/canvas-focus.png",
       "width": 2560,
       "height": 1600,
-      "bytes": 319872
+      "bytes": 318572
     }
   ],
-  "journey_id": "1b3fc475-becc-426e-965c-54a9efe04501"
+  "journey_id": "7dae843c-d1b4-42f9-80bb-80c33d44359b"
 }

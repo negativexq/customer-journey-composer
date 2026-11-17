@@ -166,6 +166,7 @@ export function showcaseRecipe({ accelerated = false } = {}) {
     consents: { email: true, sms: true, push: true },
     email_count: 1,
     sms_count: 1,
+    push_count: 1,
     outcome: 'completed',
     duration_seconds: firstWait + purchaseWait,
     alternatives: [
@@ -173,6 +174,7 @@ export function showcaseRecipe({ accelerated = false } = {}) {
         name: 'Purchase before the first reminder',
         email_count: 0,
         sms_count: 0,
+        push_count: 0,
         outcome: 'converted',
         duration_seconds: accelerated ? 2 : 1800,
         events: [

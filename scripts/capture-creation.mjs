@@ -34,15 +34,15 @@ const manifest = {
   screenshots: [],
 };
 const proposal = {
-  schema_version: 'composer.v5',
+  schema_version: 'composer.v7',
   action: 'generate',
   name: showcaseName,
   description: showcaseDescription,
   workflow: recipe.workflow,
   explanation:
-    'Wait one hour, send a personal email, then wait up to 24 hours for the same cart to be purchased. If no purchase arrives, offer 10% off by SMS. Channel permissions are enforced at delivery. A matching purchase ends the journey immediately.',
+    'Wait one hour, send a personal email, then wait up to 24 hours for the same cart to be purchased. If no purchase arrives, send a push reminder, then offer 10% off by SMS. Channel permissions are enforced at delivery. A matching purchase ends the journey immediately.',
   warnings: [
-    'The storefront URL is fictional. Live gallery activity uses local Mailpit and mock SMS.',
+    'The storefront URL is fictional. Live gallery activity uses local Mailpit, mock push and mock SMS.',
   ],
   diff: {
     metadata_changed: true,
@@ -57,7 +57,7 @@ const proposal = {
   },
 };
 const brief =
-  'Recover abandoned EUR carts worth at least €50. After one hour, send a personal email. Wait up to 24 hours for the shopper to purchase the same cart. If they do, stop immediately as converted. Otherwise offer 10% off by SMS and complete. Respect channel consent and prevent re-entry for seven days.';
+  'Recover abandoned EUR carts worth at least €50. After one hour, send a personal email. Wait up to 24 hours for the shopper to purchase the same cart. If they do, stop immediately as converted. Otherwise send a push reminder, then offer 10% off by SMS and complete. Respect channel consent and prevent re-entry for seven days.';
 
 let finish;
 const replay = createServer((request, response) => {
@@ -126,7 +126,7 @@ try {
         json: {
           enabled: true,
           default_provider: 'openai',
-          schema_version: 'composer.v6',
+          schema_version: 'composer.v7',
           providers: {
             claude: { configured: false, model: '' },
             openai: { configured: true, model: 'gpt-6-luna' },
@@ -232,7 +232,7 @@ try {
   await waitStep.focus();
   await waitStep.click();
   await page.getByLabel('More canvas actions').click();
-  await page.getByRole('button', { name: 'Focus selected step', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Focus selected step', exact: true }).click();
   await expect(page.getByRole('complementary', { name: 'Step settings' })).toBeVisible();
   await shot('canvas-focus');
   expect(await (await page.request.get(`/api/v1/journeys/${id}/versions`)).json()).toHaveLength(0);

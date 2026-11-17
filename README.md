@@ -4,7 +4,7 @@
 
 Turns a plain-language brief into a customer journey on a visual canvas: an entry event, waits, conditions, branches, email, SMS and push steps, and a goal that ends the journey. Claude or OpenAI proposes the journey, a person reviews and applies it, and a Go runtime on PostgreSQL executes the published version step by step for each customer. A Test Lab runs days of a journey in seconds on a virtual clock, and the live monitor follows every customer through it.
 
-The AI only proposes. It cannot save, publish or send anything: a person applies its draft, a person publishes it, and the runtime then runs that fixed version without a model. Email goes to a local Mailpit inbox and SMS to a mock provider, so nothing leaves your machine.
+The AI only proposes. It cannot save, publish or send anything: a person applies its draft, a person publishes it, and the runtime then runs that fixed version without a model. Email goes to a local Mailpit inbox, and push and SMS to mock providers, so nothing leaves your machine.
 
 To run it yourself, follow [Install from scratch](#install-from-scratch). It needs Docker and Node.js, and no API key.
 
@@ -36,9 +36,9 @@ Choose **New journey → Create with AI** and write what should happen in everyd
 
 ![Brief page: the abandoned-cart brief, the workspace events and fields it can use, and example journeys](docs/images/creation/brief.png)
 
-Before the model is called, you confirm what the journey must do in each situation: how many emails and SMS, and how it ends. These expectations are checked against every proposal.
+Before the model is called, you confirm what the journey must do in each situation: how many emails, SMS and push notifications, and how it ends. These expectations are checked against every proposal.
 
-![Behavior contract: the situation No purchase during recovery, for EUR carts of at least 50 with email and SMS consent](docs/images/creation/contract.png)
+![Behavior contract: the situation No purchase during recovery, for EUR carts of at least 50 with email, SMS and push consent](docs/images/creation/contract.png)
 
 ### 2. Review the proposal
 
@@ -50,7 +50,7 @@ The proposal is drawn as a diagram, with each alternative path. Request a change
 
 ### 3. Edit it on the canvas
 
-Every step is editable: triggers, waits for a time or an event, conditions, multi-way branches, A/B splits, email, SMS, webhooks, profile updates and exits. Changes save automatically and can be undone.
+Every step is editable: triggers, waits for a time or an event, conditions, multi-way branches, A/B splits, email, SMS, push, webhooks, profile updates and exits. Changes save automatically and can be undone.
 
 ![Builder: the journey on the canvas with the purchase wait selected, its push follow-up on the timeout path, and the wait's event, timeout and connections in the side panel](docs/images/journey-builder.png)
 

@@ -1294,3 +1294,13 @@ segmented trend period control, expects three Test Inbox messages and adds
 `test-inbox-push.png`. The customer profile now shows a push consent chip next to
 email and SMS. Live entries stayed the same before and after capture. The creation
 gallery was not recaptured.
+
+### Creation screenshots with push — 2026-11-17
+
+`npm run screenshots:creation` recaptured the eight creation views with local SSE
+replay (no provider call, no publication, a fresh isolated account). The showcase
+contract now expects one push notification on the no-purchase path and none when
+the purchase comes first, so the contract editor shows push consent and the review
+lists push counts. The brief and replayed explanation mention the push reminder,
+and the replay uses `composer.v7`. Recapturing exposed a missing space before the
+push count in the behavior summary ("SMS ·1 push"); it is fixed.
