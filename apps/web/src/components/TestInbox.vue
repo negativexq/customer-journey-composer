@@ -660,17 +660,12 @@ onMounted(
   gap: 5px;
 }
 @media (min-width: 701px) {
-  /* The list scrolls on its own and the preview stays in view, so the page does not grow
-     with every message. */
+  /* The list scrolls on its own, so the page does not grow with every message. The three
+     columns share one top edge whichever detail tab is open. */
   .inbox-list {
     max-height: calc(100vh - 220px);
     min-height: 560px;
     overflow: auto;
-  }
-  .inbox-detail {
-    position: sticky;
-    top: 16px;
-    align-self: start;
   }
 }
 .inbox-row {
