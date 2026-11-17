@@ -20,7 +20,8 @@ onMounted(sync);
     @close="emit('close')"
   >
     <header>
-      <div>
+      <div class="detail-drawer-heading">
+        <slot name="back" />
         <h2 id="detail-drawer-title">{{ title }}</h2>
       </div>
       <button class="icon-button" aria-label="Close activity inspector" @click="emit('close')">
@@ -31,6 +32,11 @@ onMounted(sync);
   </dialog>
 </template>
 <style scoped>
+.detail-drawer-heading {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
 .detail-drawer {
   position: fixed;
   inset: 0 0 0 auto;

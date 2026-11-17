@@ -176,9 +176,13 @@ test('customer, event, execution and message inspections survive reload and brow
   await drawer.getByRole('button', { name: 'View entry event', exact: true }).click();
   const eventDrawer = page.getByRole('dialog', { name: 'Event details', exact: true });
   await expect(eventDrawer).toContainText('linked_cart');
-  await page.goBack();
+  // The drawer leads back to where the person came from.
+  await eventDrawer.getByRole('button', { name: 'Execution details', exact: true }).click();
   await expect(drawer).toBeVisible();
-  await drawer.getByRole('button').filter({ hasText: 'sms · SMS' }).click();
+  await expect(drawer.getByRole('button', { name: 'Execution details', exact: true })).toHaveCount(
+    0,
+  );
+  await drawer.locator('.activity-message').filter({ hasText: 'SMS' }).click();
   const messageDrawer = page.getByRole('dialog', { name: 'Message details', exact: true });
   await expect(messageDrawer).toContainText('Your cart is waiting.');
   await expect(messageDrawer).toContainText('Eligible to send');

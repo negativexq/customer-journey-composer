@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import SkeletonBlock from './ui/SkeletonBlock.vue';
-import { errorMessage } from '../lib/format';
+import { errorMessage, formatDateTime } from '../lib/format';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { api } from '../lib/api';
 import type { InspectionKind } from '../lib/navigation';
@@ -13,6 +13,8 @@ import JourneyRoute from './JourneyRoute.vue';
 import { journeyPath, type ExecutionDetail } from '../lib/customer-journey';
 import { loadDefinition, type Definition } from '../lib/journey-definition';
 import { stepSummary } from '../lib/workflow-presentation';
+import AppIcon from './ui/AppIcon.vue';
+import { channelIcons, channelNames, type Channel } from '../lib/workflow';
 type ExecutionLink = { id: string; journey_id: string; state: string; started_at: string };
 type Detail = {
   engagement?: DeliveryEngagement[];
@@ -45,7 +47,14 @@ type Detail = {
     started_at: string;
     output?: { condition?: boolean; port?: string; exit_reason?: string; error?: string };
   }[];
-  deliveries?: { id: string; node_id: string; channel: string; status: string }[];
+  deliveries?: {
+    id: string;
+    node_id: string;
+    channel: string;
+    status: string;
+    accepted_at?: string | null;
+    decision?: { reason?: string } | null;
+  }[];
 };
 const props = defineProps<{ kind?: InspectionKind; recordId?: string }>();
 const emit = defineEmits<{
@@ -59,6 +68,27 @@ const executions = ref<ExecutionLink[]>([]);
 // What an execution needs to read as a route: the published definition and the journey's name.
 const definition = ref<Definition>();
 const journeyName = ref('');
+// A message row reads as the step that sent it, not its internal ID.
+function stepLabel(nodeID: string) {
+  return definition.value?.workflow.nodes.find((n) => n.id === nodeID)?.label || nodeID;
+}
+const blockReasons: Record<string, string> = {
+  consent_denied: 'no channel permission',
+  consent_revoked: 'permission withdrawn',
+  frequency_cap: 'sending limit reached',
+  execution_terminated: 'journey ended first',
+  missing_personalization: 'personalization missing',
+  invalid_recipient: 'no valid recipient',
+  recipient_changed: 'recipient changed',
+};
+function messageNote(message: NonNullable<Detail['deliveries']>[number]) {
+  const channel = channelNames[message.channel as Channel] || message.channel;
+  const reason = message.decision?.reason;
+  if (message.status === 'BLOCKED' && reason)
+    return `${channel} · ${blockReasons[reason] || reason.replaceAll('_', ' ')}`;
+  if (message.accepted_at) return `${channel} · ${formatDateTime(message.accepted_at)}`;
+  return channel;
+}
 const path = computed(() =>
   props.kind === 'execution' && detail.value?.steps
     ? journeyPath(
@@ -78,6 +108,31 @@ const title = computed(
       props.kind || 'event'
     ],
 );
+// Opening a linked record from inside the drawer leaves a trail, so the person can step
+// back to where they came from. Each step is also a browser history entry, so the back
+// button here and the browser's back button take the same step.
+type Stop = { kind: InspectionKind; id: string; title: string };
+const trail = ref<Stop[]>([]);
+let forward = false;
+function go(next: { kind: InspectionKind; id: string }) {
+  if (props.kind && props.recordId)
+    trail.value.push({ kind: props.kind, id: props.recordId, title: title.value });
+  forward = true;
+  emit('inspect', next);
+}
+function back() {
+  if (trail.value.length) window.history.back();
+}
+watch(
+  () => [props.kind, props.recordId] as const,
+  ([kind, id]) => {
+    const last = trail.value.at(-1);
+    if (forward) forward = false;
+    else if (last && last.kind === kind && last.id === id) trail.value.pop();
+    else trail.value = [];
+  },
+);
+const previous = computed(() => trail.value.at(-1));
 const time = (value?: string) =>
   value ? new Date(value).toLocaleString('en-US', { timeZone: 'UTC' }) + ' UTC' : 'Not recorded';
 async function load() {
@@ -146,6 +201,11 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <DetailDrawer :model-value="!!kind && !!recordId" :title="title" @close="emit('close')">
+    <template v-if="previous" #back
+      ><button type="button" class="activity-back" @click="back">
+        <AppIcon name="back" :size="14" />{{ previous.title }}
+      </button></template
+    >
     <SkeletonBlock v-if="busy" label="Loading activity…" variant="text" :rows="6" />
     <div v-if="error" class="inline-alert error-alert" role="alert">
       <p>{{ error }}</p>
@@ -200,12 +260,12 @@ onBeforeUnmount(() => {
       <div class="toolbar">
         <button
           v-if="detail.entry_event_id"
-          @click="emit('inspect', { kind: 'event', id: detail.entry_event_id })"
+          @click="go({ kind: 'event', id: detail.entry_event_id })"
         >
           View entry event</button
         ><button
           v-if="detail.execution_id"
-          @click="emit('inspect', { kind: 'execution', id: detail.execution_id })"
+          @click="go({ kind: 'execution', id: detail.execution_id })"
         >
           View execution</button
         ><button
@@ -225,7 +285,7 @@ onBeforeUnmount(() => {
           v-for="execution in executions"
           :key="execution.id"
           class="list-row"
-          @click="emit('inspect', { kind: 'execution', id: execution.id })"
+          @click="go({ kind: 'execution', id: execution.id })"
         >
           <span>{{ execution.id.slice(0, 8) }} · {{ time(execution.started_at) }}</span
           ><StatusBadge :status="execution.state" /></button
@@ -240,18 +300,29 @@ onBeforeUnmount(() => {
           v-if="path"
           class="activity-route"
           :path="path"
-          @message="emit('inspect', { kind: 'message', id: $event })" />
+          @message="go({ kind: 'message', id: $event })"
+        />
         <h3>Messages</h3>
         <p v-if="!detail.deliveries?.length" class="muted">No messages created.</p>
-        <button
-          v-for="message in detail.deliveries"
-          :key="message.id"
-          class="list-row"
-          @click="emit('inspect', { kind: 'message', id: message.id })"
-        >
-          <span>{{ message.node_id }} · {{ message.channel.toUpperCase() }}</span
-          ><StatusBadge :status="message.status" /></button
-      ></template>
+        <div v-else class="activity-messages">
+          <button
+            v-for="message in detail.deliveries"
+            :key="message.id"
+            class="activity-message"
+            @click="go({ kind: 'message', id: message.id })"
+          >
+            <span class="channel-icon" :class="message.channel" aria-hidden="true"
+              ><AppIcon :name="channelIcons[message.channel as Channel] || 'message'" :size="15"
+            /></span>
+            <span class="activity-message-copy"
+              ><strong>{{ stepLabel(message.node_id) }}</strong
+              ><small>{{ messageNote(message) }}</small></span
+            >
+            <StatusBadge :status="message.status" />
+            <AppIcon name="arrow" :size="14" class="activity-message-go" />
+          </button>
+        </div>
+      </template>
       <template v-if="kind === 'message'"
         ><h3>Rendered message</h3>
         <p v-if="detail.message?.to">To: {{ detail.message.to }}</p>
@@ -275,6 +346,80 @@ onBeforeUnmount(() => {
   </DetailDrawer>
 </template>
 <style scoped>
+.activity-back {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 8px 0 4px;
+  margin-left: -4px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.activity-back:hover {
+  background: var(--accent-soft);
+}
+.activity-messages {
+  display: grid;
+  gap: 8px;
+}
+.activity-message {
+  display: grid;
+  grid-template-columns: 31px minmax(0, 1fr) auto 14px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+}
+.activity-message:hover {
+  border-color: var(--violet-87);
+  background: var(--gray-99);
+}
+.activity-message:hover .activity-message-go {
+  color: var(--accent-text);
+  transform: translateX(2px);
+}
+.activity-message-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.activity-message-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+.activity-message-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--muted);
+}
+.activity-message-go {
+  color: var(--muted);
+  transition:
+    transform 140ms ease-out,
+    color 140ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .activity-message-go {
+    transition: none;
+  }
+}
 .activity-summary {
   display: flex;
   align-items: center;
