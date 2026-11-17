@@ -230,7 +230,7 @@ func validateBehaviorCase(c *BehaviorChecks, clause BehaviorCase) error {
 	if conflictingBehaviorPaths(clause.Inputs) || conflictingBehaviorPaths(clause.ExpectedAttributes) {
 		return fmt.Errorf("Private example paths conflict")
 	}
-	if len(clause.Conditions) > 8 || len(clause.Events) > 8 || len(clause.Inputs) > 50 || len(clause.ExpectedAttributes) > 50 || len(clause.Consents) > 2 {
+	if len(clause.Conditions) > 8 || len(clause.Events) > 8 || len(clause.Inputs) > 50 || len(clause.ExpectedAttributes) > 50 || len(clause.Consents) > len(MessageChannels) {
 		return fmt.Errorf("Clause exceeds bounded limits")
 	}
 	for p, v := range clause.Inputs {

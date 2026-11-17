@@ -43,6 +43,12 @@ func TestScopedContractRejectsContradictoryAndUnboundedClauses(t *testing.T) {
 	if err := ValidateBehaviorChecks(fresh()); err != nil {
 		t.Fatal(err)
 	}
+	// A clause may state consent for every message channel, push included.
+	all := fresh()
+	all.Consents = map[string]bool{"email": true, "sms": true, "push": true}
+	if err := ValidateBehaviorChecks(all); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // A bound event whose example lacks the entry's identifier is refused with the
