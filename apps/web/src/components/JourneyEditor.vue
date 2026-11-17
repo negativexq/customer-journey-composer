@@ -42,6 +42,7 @@ const emit = defineEmits<{
   back: [];
   settings: [];
   saved: [Journey];
+  deleted: [string];
   navigate: [{ tab: string; preview: string; executionID?: string; deliveryID?: string }];
   inspect: [{ kind: InspectionKind; id: string }];
 }>();
@@ -354,6 +355,49 @@ const confirmCopy: Record<GuardedAction, { title: string; label: string; danger?
   complete: { title: 'Mark this journey completed?', label: 'Complete journey' },
   archive: { title: 'Archive this journey?', label: 'Archive journey', danger: true },
 };
+// Deleting is two steps: the button asks the server what would be lost, and the
+// dialog lists it and waits for an explicit acknowledgement.
+type DeletionImpact = {
+  name: string;
+  deletable: boolean;
+  test_scenarios: number;
+  test_runs: number;
+  test_messages: number;
+};
+const deletion = ref<DeletionImpact>();
+const deleteAcknowledged = ref(false);
+const deleteBusy = ref(false);
+async function askDelete() {
+  error.value = '';
+  try {
+    deleteAcknowledged.value = false;
+    deletion.value = await api<DeletionImpact>(`/journeys/${props.journey.id}/deletion`);
+  } catch (cause) {
+    error.value = errorMessage(cause);
+  }
+}
+async function confirmDelete() {
+  const impact = deletion.value;
+  if (!impact || deleteBusy.value) return;
+  if (!impact.deletable) {
+    // A published journey keeps its history; archiving is the way to retire it.
+    deletion.value = undefined;
+    pendingAction.value = 'archive';
+    return;
+  }
+  deleteBusy.value = true;
+  try {
+    await api(`/journeys/${props.journey.id}`, 'DELETE');
+    deletion.value = undefined;
+    toast(`Deleted ${impact.name}`);
+    emit('deleted', props.journey.id);
+  } catch (cause) {
+    error.value = errorMessage(cause);
+    deletion.value = undefined;
+  } finally {
+    deleteBusy.value = false;
+  }
+}
 async function confirmLifecycle() {
   const action = pendingAction.value;
   if (!action || lifecycleBusy.value) return;
@@ -753,6 +797,21 @@ function back() {
     >
       Add independent behavior checks
     </button>
+    <section v-if="!readonly" class="journey-danger" aria-labelledby="journey-danger-title">
+      <div>
+        <h3 id="journey-danger-title">Delete journey</h3>
+        <p>
+          {{
+            publishedVersion
+              ? 'Published journeys keep their history for customers already reached, so they are archived rather than deleted.'
+              : 'Removes this draft and its sandbox tests for good. You will see exactly what goes before anything is deleted.'
+          }}
+        </p>
+      </div>
+      <button type="button" class="danger-button" @click="askDelete">
+        <AppIcon name="close" :size="15" />Delete journey…
+      </button>
+    </section>
   </details>
   <nav class="detail-tabs journey-tabs">
     <button
@@ -1000,6 +1059,56 @@ function back() {
         published.
       </p>
       <p>Its history is kept. There is no restore action.</p>
+    </template>
+  </ConfirmDialog>
+  <ConfirmDialog
+    :model-value="!!deletion"
+    :title="
+      deletion?.deletable ? 'Delete this journey permanently?' : 'This journey can\'t be deleted'
+    "
+    :confirm-label="deletion?.deletable ? 'Delete permanently' : 'Archive instead'"
+    :danger="true"
+    :busy="deleteBusy"
+    :confirm-disabled="!!deletion?.deletable && !deleteAcknowledged"
+    @update:model-value="deletion = undefined"
+    @confirm="confirmDelete"
+  >
+    <template v-if="deletion?.deletable">
+      <p>These are removed and cannot be recovered:</p>
+      <ul class="delete-impact">
+        <li>
+          <AppIcon name="workflow" :size="15" /><span
+            >The journey <strong>{{ deletion.name }}</strong> and its unpublished draft</span
+          >
+        </li>
+        <li>
+          <AppIcon name="flask" :size="15" /><span>{{
+            plural(deletion.test_scenarios, 'saved test scenario')
+          }}</span>
+        </li>
+        <li>
+          <AppIcon name="history" :size="15" /><span>{{
+            plural(deletion.test_runs, 'Test Lab run')
+          }}</span>
+        </li>
+        <li>
+          <AppIcon name="inbox" :size="15" /><span>{{
+            plural(deletion.test_messages, 'Test Inbox message')
+          }}</span>
+        </li>
+      </ul>
+      <p>Customers, events and other journeys are not affected.</p>
+      <label class="delete-acknowledge"
+        ><input v-model="deleteAcknowledged" type="checkbox" />I understand this cannot be
+        undone</label
+      >
+    </template>
+    <template v-else-if="deletion">
+      <p>
+        <strong>{{ deletion.name }}</strong> has a published version. Its executions, messages and
+        analytics stay as a record of what customers experienced, so it cannot be deleted.
+      </p>
+      <p>Archive it to close it to new entries and editing.</p>
     </template>
   </ConfirmDialog>
   <ConfirmDialog

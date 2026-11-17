@@ -8,6 +8,8 @@ const props = defineProps<{
   confirmLabel: string;
   danger?: boolean;
   busy?: boolean;
+  /** Holds the confirm button until the person has acknowledged something in the body. */
+  confirmDisabled?: boolean;
 }>();
 const emit = defineEmits<{ 'update:modelValue': [boolean]; confirm: [] }>();
 // Several confirmations can live on one page; each needs its own label ids.
@@ -46,7 +48,7 @@ function backdrop(event: MouseEvent) {
         type="button"
         class="primary"
         :class="{ 'confirm-danger': danger }"
-        :disabled="busy"
+        :disabled="busy || confirmDisabled"
         @click="emit('confirm')"
       >
         {{ busy ? 'Working…' : confirmLabel }}

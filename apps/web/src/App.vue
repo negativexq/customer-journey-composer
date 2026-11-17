@@ -471,6 +471,10 @@ onErrorCaptured((cause) => {
           @inspect="inspectActivity"
           @navigate="editorNavigation"
           @back="navigate('Journeys')"
+          @deleted="
+            navigate('Journeys');
+            refresh();
+          "
           @settings="navigate('Settings')"
           @saved="
             if (route.journeyID === $event.id) selected = $event;

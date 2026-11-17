@@ -330,11 +330,49 @@ func registerDomain(api huma.API, pool *pgxpool.Pool) {
 		}
 		return jsonRow[Journey](pool.QueryRow(ctx, `INSERT INTO journeys(workspace_id,name,description,tags,draft) SELECT workspace_id,left(name,150)||' (copy)',description,tags,draft FROM journeys WHERE workspace_id=$1 AND id=$2 RETURNING to_jsonb(journeys)-'workspace_id'`, who(ctx).WorkspaceID, in.ID))
 	})
-	huma.Delete(api, "/api/v1/journeys/{id}", func(ctx context.Context, in *journeyID) (*Result[Journey], error) {
+	// What deleting a journey would remove, so the confirmation can say it plainly.
+	huma.Get(api, "/api/v1/journeys/{id}/deletion", func(ctx context.Context, in *journeyID) (*Result[map[string]any], error) {
+		return jsonRow[map[string]any](pool.QueryRow(ctx, `SELECT jsonb_build_object('name',j.name,'deletable',NOT EXISTS(SELECT 1 FROM journey_versions v WHERE v.workspace_id=j.workspace_id AND v.journey_id=j.id),'test_scenarios',(SELECT count(*) FROM test_scenarios s WHERE s.workspace_id=j.workspace_id AND s.journey_id=j.id),'test_runs',(SELECT count(*) FROM test_runs r WHERE r.workspace_id=j.workspace_id AND r.journey_id=j.id),'test_messages',(SELECT count(*) FROM test_messages m WHERE m.workspace_id=j.workspace_id AND m.journey_id=j.id)) FROM journeys j WHERE j.workspace_id=$1 AND j.id=$2`, who(ctx).WorkspaceID, in.ID))
+	})
+	// Only a journey that was never published can be deleted. A published version
+	// is immutable history behind live executions and messages, so those journeys
+	// are archived instead. Sandbox data of the deleted draft goes with it.
+	huma.Delete(api, "/api/v1/journeys/{id}", func(ctx context.Context, in *journeyID) (*Result[map[string]string], error) {
 		if err := canEdit(ctx); err != nil {
 			return nil, err
 		}
-		return jsonRow[Journey](pool.QueryRow(ctx, `UPDATE journeys SET status='Archived',revision=revision+1,updated_at=now() WHERE workspace_id=$1 AND id=$2 AND status='Draft' RETURNING to_jsonb(journeys)-'workspace_id'`, who(ctx).WorkspaceID, in.ID))
+		tx, err := pool.Begin(ctx)
+		if err != nil {
+			return nil, dbError(err)
+		}
+		defer func() { _ = tx.Rollback(context.Background()) }()
+		workspace := who(ctx).WorkspaceID
+		var name string
+		var published bool
+		if err = tx.QueryRow(ctx, `SELECT name,EXISTS(SELECT 1 FROM journey_versions v WHERE v.workspace_id=j.workspace_id AND v.journey_id=j.id) FROM journeys j WHERE workspace_id=$1 AND id=$2 FOR UPDATE`, workspace, in.ID).Scan(&name, &published); err != nil {
+			return nil, dbError(err)
+		}
+		if published {
+			return nil, huma.Error409Conflict("A published journey keeps its history; archive it instead")
+		}
+		for _, query := range []string{
+			`DELETE FROM test_messages WHERE workspace_id=$1 AND journey_id=$2`,
+			`DELETE FROM test_runs WHERE workspace_id=$1 AND journey_id=$2`,
+			`DELETE FROM test_scenarios WHERE workspace_id=$1 AND journey_id=$2`,
+			`DELETE FROM notifications WHERE workspace_id=$1 AND journey_id=$2`,
+			`DELETE FROM journeys WHERE workspace_id=$1 AND id=$2`,
+		} {
+			if _, err = tx.Exec(ctx, query, workspace, in.ID); err != nil {
+				return nil, dbError(err)
+			}
+		}
+		if err = audit(ctx, tx, "journey.delete", &in.ID, map[string]any{"name": name}); err != nil {
+			return nil, dbError(err)
+		}
+		if err = tx.Commit(ctx); err != nil {
+			return nil, dbError(err)
+		}
+		return &Result[map[string]string]{Body: map[string]string{"id": in.ID, "status": "deleted"}}, nil
 	})
 	registerWorkflows(api, pool)
 	registerCustomers(api, pool)

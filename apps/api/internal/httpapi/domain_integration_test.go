@@ -248,6 +248,29 @@ func TestWorkflowValidationAndImmutablePublishing(t *testing.T) {
 	if current.Status != "Archived" {
 		t.Fatal(current.Status)
 	}
+	// Published history is kept: such a journey is archived, never deleted.
+	call("DELETE", "/journeys/"+j.ID, nil, 409)
+	var draft Journey
+	json.Unmarshal(call("POST", "/journeys", map[string]any{"name": "Throwaway draft"}, 200), &draft)
+	if _, err := pool.Exec(context.Background(), `WITH w AS (INSERT INTO sandbox_workflows(workspace_id,workflow_hash,workflow) SELECT workspace_id,'delete-fixture','{}' FROM journeys WHERE id=$1 RETURNING workspace_id,workflow_hash) INSERT INTO test_scenarios(workspace_id,journey_id,workflow_hash,name,scenario,created_by) SELECT w.workspace_id,$1,w.workflow_hash,'Goes with the draft','{}',$2 FROM w`, draft.ID, user.ID); err != nil {
+		t.Fatal(err)
+	}
+	var impact map[string]any
+	json.Unmarshal(call("GET", "/journeys/"+draft.ID+"/deletion", nil, 200), &impact)
+	if impact["deletable"] != true || impact["test_scenarios"] != float64(1) {
+		t.Fatalf("deletion impact: %v", impact)
+	}
+	json.Unmarshal(call("GET", "/journeys/"+j.ID+"/deletion", nil, 200), &impact)
+	if impact["deletable"] != false {
+		t.Fatalf("a published journey reported as deletable: %v", impact)
+	}
+	call("DELETE", "/journeys/"+draft.ID, nil, 200)
+	var left int
+	if err := pool.QueryRow(context.Background(), `SELECT count(*) FROM test_scenarios WHERE journey_id=$1`, draft.ID).Scan(&left); err != nil || left != 0 {
+		t.Fatalf("sandbox data outlived its journey: %d %v", left, err)
+	}
+	call("GET", "/journeys/"+draft.ID, nil, 404)
+	call("DELETE", "/journeys/"+draft.ID, nil, 404)
 	var audits []map[string]any
 	json.Unmarshal(call("GET", "/audit-logs", nil, 200), &audits)
 	if len(audits) < 9 {

@@ -39,4 +39,16 @@ test('creates a workspace and persists a journey across login sessions', async (
   await expect(page.getByLabel('Description', { exact: true })).toHaveValue(
     'Saved across sessions',
   );
+  // A never-published journey can be deleted, but only after reviewing what goes with it.
+  await page.getByRole('button', { name: 'Delete journey…', exact: true }).click();
+  const confirm = page.getByRole('dialog', { name: 'Delete this journey permanently?' });
+  await expect(confirm).toContainText('Customers, events and other journeys are not affected.');
+  const remove = confirm.getByRole('button', { name: 'Delete permanently', exact: true });
+  await expect(remove).toBeDisabled();
+  await confirm.getByLabel('I understand this cannot be undone').check();
+  await remove.click();
+  await expect(page.getByRole('heading', { name: 'Journeys', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Customer onboarding', exact: false })).toHaveCount(
+    0,
+  );
 });
