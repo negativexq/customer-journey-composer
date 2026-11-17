@@ -1,10 +1,11 @@
+import type { Channel } from './workflow.ts';
 // What a customer can do with a sent message. The delivery service turns each report into a
 // customer event of this name, so a "Wait for event" step can wait for one message's engagement.
 export type EngagementEvent = {
   value: string;
   label: string;
   description: string;
-  channels: ('email' | 'sms')[];
+  channels: Channel[];
   // Completes "If …" with the message step's name.
   phrase: (message: string) => string;
 };
@@ -13,8 +14,8 @@ export const engagementEvents: EngagementEvent[] = [
   {
     value: 'message_clicked',
     label: 'Clicks a link',
-    description: 'Any tracked link in the message',
-    channels: ['email', 'sms'],
+    description: 'Any tracked link in the message, or a tap on a push',
+    channels: ['email', 'sms', 'push'],
     phrase: (m) => `they click a link in ${m}`,
   },
   {
@@ -27,15 +28,15 @@ export const engagementEvents: EngagementEvent[] = [
   {
     value: 'message_delivered',
     label: 'Is delivered',
-    description: 'The provider reports it reached the inbox or phone',
-    channels: ['email', 'sms'],
+    description: 'The provider reports it reached the inbox, phone or device',
+    channels: ['email', 'sms', 'push'],
     phrase: (m) => `${m} is delivered`,
   },
   {
     value: 'message_bounced',
     label: 'Bounces',
     description: 'The provider could not deliver it',
-    channels: ['email', 'sms'],
+    channels: ['email', 'sms', 'push'],
     phrase: (m) => `${m} bounces`,
   },
   {

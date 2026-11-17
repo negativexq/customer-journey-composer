@@ -7,11 +7,22 @@ export const kinds = [
   'split',
   'email',
   'sms',
+  'push',
   'webhook',
   'update_attribute',
   'exit',
 ] as const;
 export type Kind = (typeof kinds)[number];
+// The step types that send the customer a message, and the channel each is.
+export const messageKinds = ['email', 'sms', 'push'] as const;
+export type Channel = (typeof messageKinds)[number];
+export const isMessage = (kind?: string): kind is Channel => messageKinds.includes(kind as Channel);
+export const channelNames: Record<Channel, string> = { email: 'Email', sms: 'SMS', push: 'Push' };
+export const channelIcons: Record<Channel, string> = {
+  email: 'email',
+  sms: 'message',
+  push: 'push',
+};
 export type Rule = {
   logic?: 'and' | 'or';
   rules?: Rule[];
@@ -50,10 +61,10 @@ export type Config = {
   branches?: { label: string; rule?: Rule }[];
   // Share of customers a split sends to variant A.
   percent?: number;
-  // A webhook posts these fields (name -> data path) to url.
+  // A webhook posts these fields (name -> data path) to url; a push opens url when tapped.
   url?: string;
   fields?: Record<string, string>;
-  // A wait_event step that waits for engagement with this earlier email or SMS step only.
+  // A wait_event step that waits for engagement with this earlier message step only.
   message_node?: string;
 };
 export type Step = {
@@ -133,6 +144,7 @@ export function ports(kind: Kind, config?: Config): string[] {
     split: ['a', 'b'],
     email: ['next'],
     sms: ['next'],
+    push: ['next'],
     webhook: ['next'],
     update_attribute: ['next'],
     exit: [],
@@ -164,6 +176,11 @@ export function defaults(kind: Kind): Config {
       fallbacks: { 'customer.attributes.first_name': 'there' },
     },
     sms: { text: 'Your cart is waiting.' },
+    push: {
+      subject: 'Your cart is waiting',
+      text: 'Hello {{ customer.attributes.first_name }}, pick up where you left off.',
+      fallbacks: { 'customer.attributes.first_name': 'there' },
+    },
     webhook: {
       url: 'https://hooks.example.com/journey',
       fields: { email: 'customer.email', plan: 'customer.attributes.plan' },
@@ -181,6 +198,7 @@ export const labels: Record<Kind, string> = {
   split: 'A/B Split',
   email: 'Send Email',
   sms: 'Send SMS',
+  push: 'Send Push',
   webhook: 'Webhook',
   update_attribute: 'Update Attribute',
   exit: 'Exit',

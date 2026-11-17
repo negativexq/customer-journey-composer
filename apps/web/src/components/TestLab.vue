@@ -85,6 +85,7 @@ const customerFields = computed(() =>
         'customer.attributes.first_name',
         'customer.consents.email',
         'customer.consents.sms',
+        'customer.consents.push',
       ].includes(field.path),
   ),
 );
@@ -241,10 +242,11 @@ const customer = ref(
     {
       email: 'sandbox@example.invalid',
       phone: '+905551234567',
+      push_token: 'sandbox-device-token',
       locale: 'en',
       timezone: 'Europe/Istanbul',
       attributes: { first_name: 'Ada', purchased: false, total_orders: 0, cart_amount: 2450 },
-      consents: { email: true, sms: true },
+      consents: { email: true, sms: true, push: true },
     },
     null,
     2,
@@ -350,6 +352,7 @@ watch(
       checks.push({ type: 'message_sent', channel: 'email' });
     if (['sms', 'both'].includes(expectedMessages.value))
       checks.push({ type: 'message_sent', channel: 'sms' });
+    if (expectedMessages.value === 'push') checks.push({ type: 'message_sent', channel: 'push' });
     assertions.value = JSON.stringify(checks, null, 2);
   },
   { flush: 'sync' },
@@ -742,6 +745,7 @@ onMounted(
                     { value: 'both', label: 'Email and SMS' },
                     { value: 'email', label: 'Email only', icon: 'email' },
                     { value: 'sms', label: 'SMS only', icon: 'message' },
+                    { value: 'push', label: 'Push sent', icon: 'push' },
                     { value: 'none', label: 'Nothing sent' },
                   ]"
               /></label>
@@ -771,6 +775,7 @@ onMounted(
                   :options="[
                     { value: 'email', label: 'Email', icon: 'email' },
                     { value: 'sms', label: 'SMS', icon: 'message' },
+                    { value: 'push', label: 'Push', icon: 'push' },
                   ]"
                 /><label
                   >Provider faults<AppSelect

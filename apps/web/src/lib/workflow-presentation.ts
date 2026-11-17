@@ -105,6 +105,8 @@ export function stepSummary(step: Pick<Step, 'type' | 'config'>): string {
       return c.subject ? templateSummary(c.subject) : 'Add email content';
     case 'sms':
       return c.text ? templateSummary(c.text) : 'Add message content';
+    case 'push':
+      return c.subject ? templateSummary(c.subject) : 'Add notification content';
     case 'exit':
       return c.reason === 'converted' ? 'Conversion goal reached' : c.reason || 'Journey complete';
     case 'webhook': {

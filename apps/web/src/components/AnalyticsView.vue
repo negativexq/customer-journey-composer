@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import EmptyState from './ui/EmptyState.vue';
+import { channelIcons, channelNames, messageKinds } from '../lib/workflow';
 import { errorMessage } from '../lib/format';
 import LiveMonitor from './LiveMonitor.vue';
 import { computed, onMounted, ref } from 'vue';
@@ -239,12 +240,12 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="c in ['email', 'sms']" :key="c">
+            <tr v-for="c in messageKinds" :key="c">
               <td>
                 <span class="channel-cell"
                   ><span class="channel-icon" :class="c"
-                    ><AppIcon :name="c === 'email' ? 'email' : 'message'" :size="16" /></span
-                  >{{ c === 'email' ? 'Email' : 'SMS' }}</span
+                    ><AppIcon :name="channelIcons[c]" :size="16" /></span
+                  >{{ channelNames[c] }}</span
                 >
               </td>
               <td>{{ value('channel', 'scheduled', c) }}</td>

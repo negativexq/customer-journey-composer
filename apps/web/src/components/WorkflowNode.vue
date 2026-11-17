@@ -42,6 +42,7 @@ const icons: Record<string, string> = {
   split: 'split',
   email: 'email',
   sms: 'message',
+  push: 'push',
   webhook: 'webhook',
   update_attribute: 'user',
   exit: 'exit',

@@ -64,6 +64,12 @@ function set(key: string, value: unknown, group?: string) {
           :checked="consents.sms"
           @change="set('sms', ($event.target as HTMLInputElement).checked, 'consents')"
         />SMS consent</label
+      ><label
+        ><input
+          type="checkbox"
+          :checked="consents.push"
+          @change="set('push', ($event.target as HTMLInputElement).checked, 'consents')"
+        />Push consent</label
       >
     </div>
     <p v-if="error" class="error-message">{{ error }}</p>

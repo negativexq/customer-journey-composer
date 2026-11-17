@@ -35,6 +35,12 @@
   --phone-screen: light-dark(#ffffff, #0f1115);
   --phone-bubble: light-dark(#e9e9eb, #26272b);
   --phone-link: light-dark(#0a66d8, #5aa9ff);
+  /* Push previews: a quiet wallpaper and the frosted card a phone draws a notification on. */
+  --phone-wallpaper-top: light-dark(#c9d4ec, #1d2a4a);
+  --phone-wallpaper-bottom: light-dark(#ecd9e6, #3a2340);
+  --phone-notification: light-dark(#ffffffeb, #2a2c33f0);
+  --phone-notification-text: light-dark(#111318, #f2f3f6);
+  --phone-clock: light-dark(#ffffff, #f2f3f6);
 
   /* gray */
   --gray-99: light-dark(#fafbfe, #1d1e25);

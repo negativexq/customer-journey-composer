@@ -28,6 +28,7 @@ const paths: Record<string, string> = {
   split: 'M12 3v6M12 9 6 15v6M12 9l6 6v6M3 21h6M15 21h6',
   branch: 'M6 3v12a4 4 0 0 0 4 4h8M6 8h8a4 4 0 0 0 4-4V3M16 17l2 2-2 2M4 5l2-2 2 2',
   email: 'M3 5h18v14H3V5Zm0 1 9 7 9-7',
+  push: 'M7 2h10a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1ZM11 18h2M9 6h6M9 9h4',
   message: 'M21 15a3 3 0 0 1-3 3H8l-5 4V5a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v10ZM7 7h10M7 12h7',
   webhook: 'M9 15a4 4 0 1 1-1-6.9M12 7l3 6M15 13a4 4 0 1 1 1.5 5.4M15 17H9a4 4 0 1 1-2.5-7',
   zap: 'm13 2-9 12h7l-1 8 10-12h-8l1-8Z',

@@ -4,10 +4,11 @@ import { api } from '../lib/api';
 import { errorMessage, formatDateTime } from '../lib/format';
 import { toast } from '../lib/toast';
 import AppSelect from './ui/AppSelect.vue';
+import { channelNames } from '../lib/workflow';
 
 type Channel = {
-  provider: 'smtp' | 'mock_sms';
-  channel: 'email' | 'sms';
+  provider: 'smtp' | 'mock_sms' | 'mock_push';
+  channel: 'email' | 'sms' | 'push';
   state:
     'healthy' | 'throttled' | 'rate_limited' | 'credentials_refused' | 'circuit_open' | 'probing';
   until?: string;
@@ -63,7 +64,7 @@ const faults = [
 // The provider's answer usually names its code already.
 const problemText = (p: NonNullable<Channel['last_problem']>) =>
   p.code && !p.response.includes(String(p.code)) ? `${p.response} (${p.code})` : p.response;
-const label = (c: Channel) => (c.channel === 'email' ? 'Email' : 'SMS');
+const label = (c: Channel) => channelNames[c.channel];
 const anyTrouble = computed(() => channels.value.some((c) => states[c.state].tone !== 'good'));
 
 async function load() {
@@ -113,10 +114,10 @@ onBeforeUnmount(() => clearInterval(timer));
   <section class="settings-card channel-health" aria-labelledby="channel-health-title">
     <h3 id="channel-health-title">Channels</h3>
     <p class="settings-help">
-      Email goes through the SMTP server configured on your server; SMS uses the built-in mock
-      provider, so no real text is sent. A 429 or a refused key holds the channel for every worker
-      and costs messages none of their five attempts. A failing provider is held until test calls go
-      through.
+      Email goes through the SMTP server configured on your server; SMS and push use built-in mock
+      providers, so no real text or notification is sent. A 429 or a refused key holds the channel
+      for every worker and costs messages none of their five attempts. A failing provider is held
+      until test calls go through.
     </p>
     <p v-if="error" role="alert" class="error-message">{{ error }}</p>
     <p v-if="anyTrouble" class="channel-trouble" role="status">

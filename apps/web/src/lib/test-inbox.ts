@@ -29,6 +29,8 @@ export type TestMessage = TestInboxRow & {
     template_id?: string;
     encoding?: string;
     segments?: number;
+    // The link a push notification opens when tapped.
+    url?: string;
   };
   decision: unknown;
   attempt_history: unknown[];

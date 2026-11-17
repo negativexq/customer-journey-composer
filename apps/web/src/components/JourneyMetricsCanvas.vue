@@ -13,7 +13,7 @@ import { layoutFlow } from '../lib/flow-layout';
 import { stepCaptions } from '../lib/step-captions';
 import WorkflowNode from './WorkflowNode.vue';
 import CanvasControls from './CanvasControls.vue';
-import type { Workflow } from '../lib/workflow';
+import { isMessage, type Workflow } from '../lib/workflow';
 import { metric, type Insights } from '../lib/insights';
 import { portLabel } from '../lib/workflow-presentation';
 const props = defineProps<{
@@ -43,30 +43,29 @@ const positions = computed(() =>
 );
 const value = (node: string, name: string, dim = 'node') => metric(props.insights, dim, name, node);
 function observations(n: Workflow['nodes'][number]) {
-  const items =
-    n.type === 'email' || n.type === 'sms'
+  const items = isMessage(n.type)
+    ? [
+        { label: 'Accepted', value: value(n.id, 'ACCEPTED', 'node_delivery') },
+        ...(n.type === 'email'
+          ? [{ label: 'Opened', value: value(n.id, 'opened', 'node_delivery') }]
+          : []),
+        { label: 'Clicked', value: value(n.id, 'clicked', 'node_delivery') },
+        // Problems show only when there are some, so engagement fits on the card.
+        ...[
+          { label: 'Blocked', value: value(n.id, 'BLOCKED', 'node_delivery') },
+          { label: 'Failed', value: value(n.id, 'FAILED', 'node_delivery') },
+          { label: 'Bounced', value: value(n.id, 'bounced', 'node_delivery') },
+        ].filter((item) => item.value > 0),
+      ]
+    : n.type === 'wait' || n.type === 'wait_event'
       ? [
-          { label: 'Accepted', value: value(n.id, 'ACCEPTED', 'node_delivery') },
-          ...(n.type === 'email'
-            ? [{ label: 'Opened', value: value(n.id, 'opened', 'node_delivery') }]
-            : []),
-          { label: 'Clicked', value: value(n.id, 'clicked', 'node_delivery') },
-          // Problems show only when there are some, so engagement fits on the card.
-          ...[
-            { label: 'Blocked', value: value(n.id, 'BLOCKED', 'node_delivery') },
-            { label: 'Failed', value: value(n.id, 'FAILED', 'node_delivery') },
-            { label: 'Bounced', value: value(n.id, 'bounced', 'node_delivery') },
-          ].filter((item) => item.value > 0),
+          { label: 'Waiting now', value: value(n.id, 'WAITING', 'node_current') },
+          { label: 'Reached', value: value(n.id, 'entered') },
         ]
-      : n.type === 'wait' || n.type === 'wait_event'
-        ? [
-            { label: 'Waiting now', value: value(n.id, 'WAITING', 'node_current') },
-            { label: 'Reached', value: value(n.id, 'entered') },
-          ]
-        : [
-            { label: 'Reached', value: value(n.id, 'entered') },
-            { label: 'Completed step', value: value(n.id, 'SUCCEEDED') },
-          ];
+      : [
+          { label: 'Reached', value: value(n.id, 'entered') },
+          { label: 'Completed step', value: value(n.id, 'SUCCEEDED') },
+        ];
   const exits =
     props.insights?.metrics
       .filter((m) => m.dimension === 'node_exit' && m.key === n.id)

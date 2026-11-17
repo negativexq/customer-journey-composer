@@ -16,6 +16,7 @@ type Customer = {
   external_id?: string;
   email?: string;
   phone?: string;
+  push_token?: string;
   locale: string;
   timezone: string;
   // The list endpoint omits attributes and consents; the profile endpoint returns them.
@@ -64,10 +65,12 @@ const form = ref({
   external_id: '',
   email: '',
   phone: '',
+  push_token: '',
   locale: 'en',
   timezone: 'UTC',
   emailConsent: false,
   smsConsent: false,
+  pushConsent: false,
 });
 async function load() {
   const current = ++listRequest;
@@ -103,10 +106,12 @@ async function open(customer: Pick<Customer, 'customer_id'>) {
       external_id: c.external_id || '',
       email: c.email || '',
       phone: c.phone || '',
+      push_token: c.push_token || '',
       locale: c.locale,
       timezone: c.timezone,
       emailConsent: !!c.consents?.email,
       smsConsent: !!c.consents?.sms,
+      pushConsent: !!c.consents?.push,
     };
     attributes.value = JSON.stringify(c.attributes || {}, null, 2);
     const [timeline, history, runs] = await Promise.all([
@@ -141,10 +146,12 @@ function reset(fromRoute = false) {
     external_id: '',
     email: '',
     phone: '',
+    push_token: '',
     locale: 'en',
     timezone: 'UTC',
     emailConsent: false,
     smsConsent: false,
+    pushConsent: false,
   };
   attributes.value = '{}';
   events.value = [];
@@ -164,10 +171,15 @@ async function save() {
         external_id: form.value.external_id || undefined,
         email: form.value.email || undefined,
         phone: form.value.phone || undefined,
+        push_token: form.value.push_token.trim() || undefined,
         locale: form.value.locale,
         timezone: form.value.timezone,
         attributes: JSON.parse(attributes.value),
-        consents: { email: form.value.emailConsent, sms: form.value.smsConsent },
+        consents: {
+          email: form.value.emailConsent,
+          sms: form.value.smsConsent,
+          push: form.value.pushConsent,
+        },
       },
     );
     toast(existing ? 'Profile saved' : 'Customer created');
@@ -471,6 +483,10 @@ onMounted(() => {
               <dd>{{ selected.phone || '—' }}</dd>
             </div>
             <div>
+              <dt>Push device</dt>
+              <dd>{{ selected.push_token ? 'Registered' : '—' }}</dd>
+            </div>
+            <div>
               <dt>Locale</dt>
               <dd>{{ selected.locale }}</dd>
             </div>
@@ -516,6 +532,15 @@ onMounted(() => {
             ><label
               >Phone<input v-model="form.phone" :disabled="readonly" placeholder="+905551234567"
             /></label>
+            <label class="wide"
+              >Push device token<input
+                v-model="form.push_token"
+                :disabled="readonly"
+                minlength="8"
+                maxlength="512"
+                spellcheck="false"
+                placeholder="Set by your app when the customer allows notifications"
+            /></label>
             <label
               >Locale<input
                 v-model="form.locale"
@@ -529,6 +554,9 @@ onMounted(() => {
                 consent</label
               ><label
                 ><input v-model="form.smsConsent" type="checkbox" :disabled="readonly" /> SMS
+                consent</label
+              ><label
+                ><input v-model="form.pushConsent" type="checkbox" :disabled="readonly" /> Push
                 consent</label
               >
             </div>

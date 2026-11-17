@@ -4,7 +4,15 @@ import AppSelect from './ui/AppSelect.vue';
 import SegmentedControl from './ui/SegmentedControl.vue';
 import AppIcon from './ui/AppIcon.vue';
 import RuleEditor from './RuleEditor.vue';
-import { audienceEvent, labels, ports, type Config, type Issue } from '../lib/workflow';
+import {
+  audienceEvent,
+  isMessage,
+  labels,
+  ports,
+  type Channel,
+  type Config,
+  type Issue,
+} from '../lib/workflow';
 import { portLabel } from '../lib/workflow-presentation';
 import { engagementEvent, engagementEvents } from '../lib/engagement';
 import {
@@ -100,9 +108,7 @@ const earlierMessages = computed(() => {
         queue.push(edge.source);
       }
   }
-  return props.nodes.filter(
-    (n) => seen.has(n.id) && (n.data.kind === 'email' || n.data.kind === 'sms'),
-  );
+  return props.nodes.filter((n) => seen.has(n.id) && isMessage(n.data.kind as string));
 });
 const listenFor = computed({
   get: () => (config.value.message_node ? 'message' : 'event'),
@@ -120,9 +126,9 @@ const listenFor = computed({
 const messageNode = computed({
   get: () => config.value.message_node,
   set: (id: unknown) => {
-    const kind = props.nodes.find((n) => n.id === id)?.data.kind as 'email' | 'sms' | undefined;
+    const kind = props.nodes.find((n) => n.id === id)?.data.kind as Channel | undefined;
     const current = engagementEvent(eventName.value);
-    // An SMS has no open or unsubscribe report, so those fall back to a click.
+    // An SMS or push has no open or unsubscribe report, so those fall back to a click.
     patchConfig({
       message_node: id as string,
       event_name:
@@ -131,8 +137,7 @@ const messageNode = computed({
   },
 });
 const messageKind = computed(
-  () =>
-    props.nodes.find((n) => n.id === messageNode.value)?.data.kind as 'email' | 'sms' | undefined,
+  () => props.nodes.find((n) => n.id === messageNode.value)?.data.kind as Channel | undefined,
 );
 const timezone = configField('timezone');
 const nodeRule = configField('rule');
@@ -141,6 +146,7 @@ const subject = configField('subject');
 const preheader = configField('preheader');
 const html = configField('html');
 const text = configField('text');
+const pushLink = configField('url');
 const attribute = configField('attribute');
 const operation = configField('operation');
 const reason = configField('reason');
@@ -638,8 +644,20 @@ function setAttribute(value: string) {
             class="code-input"
             :disabled="readonly"
           /></label></template
-      ><label v-if="['email', 'sms'].includes(step.data.kind)"
-        >Message text<textarea v-model="text" :disabled="readonly" rows="5" /></label
+      ><label v-if="step.data.kind === 'push'"
+        >Title<input v-model="subject" :disabled="readonly" maxlength="120" /></label
+      ><label v-if="isMessage(step.data.kind)"
+        >Message text<textarea
+          v-model="text"
+          :disabled="readonly"
+          :rows="step.data.kind === 'push' ? 3 : 5"
+        /></label
+      ><label v-if="step.data.kind === 'push'"
+        >Link when tapped<input
+          v-model="pushLink"
+          :disabled="readonly"
+          type="url"
+          placeholder="https://example.com/cart" /></label
       ><template v-if="step.data.kind === 'update_attribute'"
         ><label>Attribute<input v-model="attribute" :disabled="readonly" /></label
         ><SegmentedControl
@@ -686,11 +704,7 @@ function setAttribute(value: string) {
             },
           ]"
       /></label>
-      <button
-        v-if="['email', 'sms'].includes(step.data.kind)"
-        type="button"
-        @click="emit('preview', step.id)"
-      >
+      <button v-if="isMessage(step.data.kind)" type="button" @click="emit('preview', step.id)">
         <AppIcon name="play" :size="14" />Preview and test this message
       </button>
     </section>

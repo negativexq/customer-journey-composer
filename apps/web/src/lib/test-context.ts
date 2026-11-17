@@ -1,4 +1,4 @@
-import type { Rule, Workflow } from './workflow';
+import { isMessage, type Rule, type Workflow } from './workflow.ts';
 
 export type InputField = { path: string; type: 'string' | 'number' | 'boolean'; source: string };
 export type ScenarioDraft = {
@@ -45,10 +45,11 @@ export function testContext(workflow: Workflow, now = new Date().toISOString()):
   const profile: Record<string, unknown> = {
     email: 'sandbox@example.invalid',
     phone: '+15005550006',
+    push_token: 'sandbox-device-token',
     locale: 'en',
     timezone: 'UTC',
     attributes: { first_name: 'Ada' },
-    consents: { email: true, sms: true },
+    consents: { email: true, sms: true, push: true },
   };
   const properties: Record<string, unknown> = {};
   function field(path: string, value: unknown, source: string) {
@@ -191,10 +192,10 @@ export function testContext(workflow: Workflow, now = new Date().toISOString()):
       scenario: scene,
     });
   }
-  if (workflow.nodes.some((n) => n.type === 'email' || n.type === 'sms')) {
+  if (workflow.nodes.some((n) => isMessage(n.type))) {
     const scene = structuredClone(sample);
     scene.name = 'No channel consent';
-    scene.customer.consents = { email: false, sms: false };
+    scene.customer.consents = { email: false, sms: false, push: false };
     scene.assertions = [{ type: 'no_message' }, { type: 'no_duplicate_delivery', expected: true }];
     suggestions.push({
       label: scene.name,

@@ -11,6 +11,7 @@ import DecisionSummary from './ui/DecisionSummary.vue';
 import AttemptHistory from './ui/AttemptHistory.vue';
 import type { TestInboxRow, TestMessage } from '../lib/test-inbox';
 import MessagePreview from './MessagePreview.vue';
+import { channelIcons, channelNames, type Channel } from '../lib/workflow';
 import PayloadSummary from './PayloadSummary.vue';
 import { api, type Journey } from '../lib/api';
 const props = defineProps<{
@@ -98,6 +99,9 @@ async function load(more = false) {
       const row = rows.value.find((row) => row.id === selected.value?.id) || rows.value[0];
       if (row) await open(row);
       else selected.value = undefined;
+    } else if (!more && selected.value && !rows.value.some((r) => r.id === selected.value?.id)) {
+      // A filter that hides the open message closes it, so the detail never shows a hidden row.
+      selected.value = undefined;
     }
   });
 }
@@ -258,22 +262,6 @@ onMounted(
               Filter
             </button>
           </div>
-          <div v-if="customers.length" class="inbox-recipients">
-            <span class="field-label">Recipients in these messages</span>
-            <div class="recipient-chips">
-              <button
-                v-for="c in customers"
-                :key="c"
-                type="button"
-                class="recipient-chip"
-                :aria-pressed="customer === c"
-                @click="filterCustomer(customer === c ? '' : c)"
-              >
-                <span class="recipient-avatar" aria-hidden="true">{{ initials(c) }}</span
-                >{{ c }}
-              </button>
-            </div>
-          </div>
         </div>
         <AppSelect
           v-model="journey"
@@ -287,10 +275,12 @@ onMounted(
         /><SegmentedControl
           v-model="channel"
           label="Channel"
+          compact
           :options="[
-            { value: '', label: 'All' },
+            { value: '', label: 'All', icon: 'inbox' },
             { value: 'email', label: 'Email', icon: 'email' },
             { value: 'sms', label: 'SMS', icon: 'message' },
+            { value: 'push', label: 'Push', icon: 'push' },
           ]"
           @change="load()"
         /><AppSelect
@@ -313,6 +303,23 @@ onMounted(
           ]"
           @change="load()"
         />
+        <div class="inbox-recipients">
+          <span class="field-label">Recipients in these messages</span>
+          <div v-if="customers.length" class="recipient-chips">
+            <button
+              v-for="c in customers"
+              :key="c"
+              type="button"
+              class="recipient-chip"
+              :aria-pressed="customer === c"
+              @click="filterCustomer(customer === c ? '' : c)"
+            >
+              <span class="recipient-avatar" aria-hidden="true">{{ initials(c) }}</span
+              >{{ c }}
+            </button>
+          </div>
+          <p v-else class="recipients-empty">No recipients match these filters.</p>
+        </div>
       </aside>
       <section class="panel inbox-list" :aria-busy="busy">
         <div class="inbox-list-heading">
@@ -330,12 +337,12 @@ onMounted(
           @click="open(r)"
         >
           <span class="inbox-channel" aria-hidden="true"
-            ><AppIcon :name="r.channel === 'sms' ? 'message' : 'email'" :size="15" /></span
+            ><AppIcon :name="channelIcons[r.channel as Channel] || 'email'" :size="15" /></span
           ><span class="inbox-row-body"
             ><strong>{{ r.node_label }}</strong
             ><span
-              ><b class="inbox-row-channel" :class="r.channel === 'sms' ? 'sms' : 'email'">{{
-                r.channel === 'sms' ? 'SMS' : 'Email'
+              ><b class="inbox-row-channel" :class="r.channel">{{
+                channelNames[r.channel as Channel] || 'Email'
               }}</b>
               · {{ r.journey_name || 'Explicit test'
               }}{{ r.version ? ' · v' + r.version : '' }}</span
@@ -451,6 +458,9 @@ onMounted(
 }
 .inbox-row-channel.sms {
   color: var(--blue-50-text);
+}
+.inbox-row-channel.push {
+  color: var(--green-43-text);
 }
 .inbox-row-body small {
   font-size: 12px;
@@ -591,6 +601,11 @@ onMounted(
 .search-submit:hover {
   border-color: var(--accent);
   background: var(--violet-93);
+}
+.recipients-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
 }
 .inbox-recipients {
   display: grid;

@@ -1,8 +1,8 @@
 import { diffWorkflows, type StepChange } from './version-diff.ts';
 import { stepSummary } from './workflow-presentation.ts';
-import { labels, type Workflow } from './workflow.ts';
+import { labels, messageKinds, type Workflow } from './workflow.ts';
 
-const messages = new Set(['email', 'sms']);
+const messages = new Set<string>(messageKinds);
 
 /**
  * What an AI proposal changes in steps that already exist, as "before → after"

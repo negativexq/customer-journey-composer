@@ -16,7 +16,7 @@ const groups = computed(() =>
   [
     { label: 'Entry', kinds: ['event_trigger'] },
     { label: 'Logic & timing', kinds: ['condition', 'switch', 'split', 'wait', 'wait_event'] },
-    { label: 'Messages', kinds: ['email', 'sms'] },
+    { label: 'Messages', kinds: ['email', 'sms', 'push'] },
     { label: 'Customer & outcomes', kinds: ['update_attribute', 'webhook', 'exit'] },
   ]
     .map((group) => ({

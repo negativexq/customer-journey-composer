@@ -18,7 +18,7 @@ import SkeletonBlock from './ui/SkeletonBlock.vue';
 import ScopeSelect from './ui/ScopeSelect.vue';
 import { portLabel } from '../lib/workflow-presentation';
 import { metric, reasonLabel, type Insights } from '../lib/insights';
-import type { Workflow } from '../lib/workflow';
+import { isMessage, type Workflow } from '../lib/workflow';
 
 // The counts, paths and messages of one step, or the journey's messages when no step is
 // chosen. Every list it opens is loaded by the monitor, which owns the filters.
@@ -73,9 +73,7 @@ const stepLabel = (id: string) => props.workflow.nodes.find((node) => node.id ==
       ><TabsList class="observe-tabs" aria-label="Step detail tabs"
         ><TabsTrigger v-if="step" value="summary">Summary</TabsTrigger
         ><TabsTrigger v-if="step" value="people">People</TabsTrigger
-        ><TabsTrigger
-          v-if="showMessages || step?.type === 'email' || step?.type === 'sms'"
-          value="messages"
+        ><TabsTrigger v-if="showMessages || isMessage(step?.type)" value="messages"
           >Messages</TabsTrigger
         ></TabsList
       ><TabsContent value="summary"
@@ -94,36 +92,28 @@ const stepLabel = (id: string) => props.workflow.nodes.find((node) => node.id ==
           </div>
           <div>
             <dt>
-              {{
-                step?.type === 'email' || step?.type === 'sms'
-                  ? 'Provider accepted'
-                  : 'Processing now'
-              }}
+              {{ isMessage(step?.type) ? 'Provider accepted' : 'Processing now' }}
             </dt>
             <dd>
               {{
-                step?.type === 'email' || step?.type === 'sms'
+                isMessage(step?.type)
                   ? nodeValue('ACCEPTED', 'node_delivery')
                   : nodeValue('RUNNING', 'node_current')
               }}
             </dd>
           </div>
         </dl>
-        <dl
-          v-if="step?.type === 'email' || step?.type === 'sms'"
-          class="node-detail-stats"
-          aria-label="Engagement"
-        >
+        <dl v-if="isMessage(step?.type)" class="node-detail-stats" aria-label="Engagement">
           <div v-if="step?.type === 'email'">
             <dt>Opened</dt>
             <dd>{{ nodeValue('opened', 'node_delivery') }}</dd>
           </div>
           <div>
-            <dt>Clicked a link</dt>
+            <dt>{{ step?.type === 'push' ? 'Tapped' : 'Clicked a link' }}</dt>
             <dd>{{ nodeValue('clicked', 'node_delivery') }}</dd>
           </div>
           <div>
-            <dt>Bounced</dt>
+            <dt>{{ step?.type === 'push' ? 'Device token expired' : 'Bounced' }}</dt>
             <dd>{{ nodeValue('bounced', 'node_delivery') }}</dd>
           </div>
           <div v-if="step?.type === 'email'">
@@ -131,7 +121,7 @@ const stepLabel = (id: string) => props.workflow.nodes.find((node) => node.id ==
             <dd>{{ nodeValue('unsubscribed', 'node_delivery') }}</dd>
           </div>
         </dl>
-        <p v-if="step?.type === 'email' || step?.type === 'sms'" class="help-text">
+        <p v-if="isMessage(step?.type)" class="help-text">
           Completing a message step schedules the message; provider acceptance is a separate result.
           Each person counts once however often they open or click. Opens count when the mail client
           loads images, which some clients do on their own.
@@ -200,6 +190,7 @@ const stepLabel = (id: string) => props.workflow.nodes.find((node) => node.id ==
               { value: 'all', label: 'All channels' },
               { value: 'email', label: 'Email' },
               { value: 'sms', label: 'SMS' },
+              { value: 'push', label: 'Push' },
             ]"
             @update:model-value="
               channel = $event === 'all' ? '' : $event;

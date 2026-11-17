@@ -12,7 +12,7 @@ import BehaviorChecksSummary from './BehaviorChecksSummary.vue';
 import { behaviorChecksReady } from '../lib/behavior-checks';
 import { layoutGeneratedWorkflow } from '../lib/generated-layout';
 import { proposalChanges } from '../lib/proposal-review';
-import type { Workflow, BehaviorChecks } from '../lib/workflow';
+import { isMessage, type Workflow, type BehaviorChecks } from '../lib/workflow';
 const props = defineProps<{
   workflow: Workflow;
   name: string;
@@ -129,12 +129,10 @@ const configured = computed(
 const needsNode = computed(() =>
   ['explain_node', 'improve_message', 'generate_message'].includes(action.value),
 );
-// Message actions work on an email or SMS step only; explaining works on any.
+// Message actions work on a message step only; explaining works on any.
 const stepOptions = computed(() =>
   props.workflow.nodes
-    .filter(
-      (node) => action.value === 'explain_node' || node.type === 'email' || node.type === 'sms',
-    )
+    .filter((node) => action.value === 'explain_node' || isMessage(node.type))
     .map((node) => ({ value: node.id, label: node.label })),
 );
 watch(stepOptions, (options) => {

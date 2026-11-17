@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import SegmentedControl from './ui/SegmentedControl.vue';
+import { channelIcons, channelNames, messageKinds } from '../lib/workflow';
 import EmptyState from './ui/EmptyState.vue';
 import { errorMessage, plural } from '../lib/format';
 import { reasonLabel } from '../lib/insights';
@@ -137,8 +138,8 @@ onMounted(() => void load());
         @select="emit('browse', '')"
       /><MetricCard
         label="Messages accepted"
-        :value="value('channel', 'ACCEPTED', 'email') + value('channel', 'ACCEPTED', 'sms')"
-        caption="Email and SMS · provider acceptance"
+        :value="messageKinds.reduce((sum, c) => sum + value('channel', 'ACCEPTED', c), 0)"
+        caption="Email, SMS and push · provider acceptance"
         icon="email"
         tone="green"
         @select="emit('analytics')"
@@ -189,13 +190,11 @@ onMounted(() => void load());
             <AppIcon name="arrow" />
           </button>
         </div>
-        <div v-for="c in ['email', 'sms']" :key="c" class="channel-summary">
+        <div v-for="c in messageKinds" :key="c" class="channel-summary">
           <div class="channel-summary-title">
-            <span class="channel-icon" :class="c"
-              ><AppIcon :name="c === 'email' ? 'email' : 'message'"
-            /></span>
+            <span class="channel-icon" :class="c"><AppIcon :name="channelIcons[c]" /></span>
             <div>
-              <strong>{{ c === 'email' ? 'Email' : 'SMS' }}</strong
+              <strong>{{ channelNames[c] }}</strong
               ><small>{{ plural(value('channel', 'scheduled', c), 'planned message') }}</small>
             </div>
             <b

@@ -2,14 +2,17 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import AppIcon from './ui/AppIcon.vue';
 import SegmentedControl from './ui/SegmentedControl.vue';
+import PushPreview from './PushPreview.vue';
 import { formatDateTime, plural } from '../lib/format';
 import type { TestMessage } from '../lib/test-inbox';
 
-// A test message as the customer would see it: an email in a mail window or on a phone, or a
-// text message in a phone thread.
+// A test message as the customer would see it: an email in a mail window or on a phone, a
+// text message in a phone thread, or a push notification on the phone's screen.
 const props = defineProps<{ detail: TestMessage }>();
 // Desktop or phone view of an email; the inbox keeps the choice from message to message.
 const device = defineModel<string>('device', { required: true });
+// Banner or lock screen view of a push notification.
+const pushView = ref<'banner' | 'lock'>('banner');
 // Desktop email renders at a typical client width and is scaled down to fit the column.
 const MAIL_WIDTH = 640;
 const MAIL_HEIGHT = 760;
@@ -127,6 +130,14 @@ const smsParts = computed(() =>
       <iframe v-if="mailOpen" title="Test email preview, full size" sandbox="" :srcdoc="document" />
     </dialog>
   </div>
+  <PushPreview
+    v-else-if="detail.channel === 'push'"
+    v-model:view="pushView"
+    :title="detail.message.subject"
+    :body="detail.message.text"
+    :url="detail.message.url"
+    :at="detail.simulated_at"
+  />
   <!-- The preview shows what the customer sees; technical details are under Payload. -->
   <div v-else class="inbox-phone-preview">
     <div class="phone" :class="detail.channel === 'email' ? 'phone-email' : 'phone-sms'">

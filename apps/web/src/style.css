@@ -633,6 +633,10 @@ h3 {
   background: var(--gray-96b);
   color: var(--blue-70-text);
 }
+.channel-icon.push {
+  background: var(--green-94);
+  color: var(--green-43-text);
+}
 .channel-summary-title > div {
   flex: 1;
 }
@@ -1765,6 +1769,10 @@ tbody tr:hover {
 .step-type-icon.sms {
   background: var(--blue-96);
   color: var(--blue-56-text);
+}
+.step-type-icon.push {
+  background: var(--green-94);
+  color: var(--green-43-text);
 }
 .step-type-icon.update_attribute {
   background: var(--pink-96);
@@ -5139,6 +5147,9 @@ td {
 }
 .diagram-node.sms {
   border-left: 3px solid var(--teal-68b);
+}
+.diagram-node.push {
+  border-left: 3px solid var(--green-61);
 }
 .diagram-node.event_trigger {
   border-left: 3px solid var(--green-67);

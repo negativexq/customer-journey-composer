@@ -125,5 +125,5 @@ test('the reviewed contract example fills the sample', () => {
   const context = testContext(cart, '2026-11-16T10:00:00Z');
   assert.equal(context.sample.entry_event.properties.amount, 80);
   assert.equal(context.sample.customer.attributes.first_name, 'Deniz');
-  assert.deepEqual(context.sample.customer.consents, { email: true, sms: false });
+  assert.deepEqual(context.sample.customer.consents, { email: true, sms: false, push: true });
 });

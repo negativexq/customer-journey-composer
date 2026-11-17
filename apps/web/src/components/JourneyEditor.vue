@@ -22,7 +22,7 @@ import FilterSelect from './ui/FilterSelect.vue';
 import BehaviorChecksEditor from './BehaviorChecksEditor.vue';
 import { blankBehaviorChecks } from '../lib/behavior-checks';
 import type { DataEntry } from '../lib/data-catalog';
-import { labels, type Workflow, type Issue } from '../lib/workflow';
+import { channelNames, isMessage, labels, type Workflow, type Issue } from '../lib/workflow';
 import { stepSummary } from '../lib/workflow-presentation';
 import { diffWorkflows, type WorkflowDiff } from '../lib/version-diff';
 import ConfirmDialog from './ui/ConfirmDialog.vue';
@@ -146,15 +146,15 @@ const testNodeID = ref('');
 const messageStep = computed(
   () =>
     draft.value.nodes.find((n) => n.id === messageNodeID.value) ||
-    draft.value.nodes.find((n) => n.type === 'email' || n.type === 'sms'),
+    draft.value.nodes.find((n) => isMessage(n.type)),
 );
 const messageOptions = computed(() =>
   draft.value.nodes
-    .filter((n) => n.type === 'email' || n.type === 'sms')
+    .filter((n) => isMessage(n.type))
     .map((n, i) => ({
       value: n.id,
       label: n.label,
-      description: (n.type === 'email' ? 'Email' : 'SMS') + ' · message ' + (i + 1),
+      description: (isMessage(n.type) ? channelNames[n.type] : '') + ' · message ' + (i + 1),
     })),
 );
 async function applyProposal(proposal: { workflow: Workflow; name: string; description: string }) {
@@ -177,8 +177,7 @@ async function applyProposal(proposal: { workflow: Workflow; name: string; descr
 function previewNode(id: string) {
   messageNodeID.value = id;
   const selected = draft.value.nodes.find((n) => n.id === id);
-  previewTab.value =
-    selected?.type === 'email' || selected?.type === 'sms' ? 'Messages' : 'Test Lab';
+  previewTab.value = isMessage(selected?.type) ? 'Messages' : 'Test Lab';
   if (previewTab.value === 'Test Lab') testNodeID.value = id;
   tab.value = 'Preview & Test';
 }
@@ -835,10 +834,10 @@ function back() {
         v-if="messageStep"
         :key="messageStep.id"
         v-model="messageStep.config"
-        :channel="messageStep.type === 'email' ? 'email' : 'sms'"
+        :channel="isMessage(messageStep.type) ? messageStep.type : 'email'"
         :readonly="readonly"
       />
-      <p v-else class="panel">Add an email or SMS node in Builder to preview a message.</p>
+      <p v-else class="panel">Add an email, SMS or push step in Builder to preview a message.</p>
     </template>
   </section>
   <AnalyticsView

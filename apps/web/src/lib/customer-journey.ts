@@ -1,4 +1,4 @@
-import type { Kind, Step, Workflow } from './workflow';
+import { channelNames, type Channel, type Kind, type Step, type Workflow } from './workflow.ts';
 
 // Turns one execution into the route a person actually took, in words a marketer can read.
 export type ExecutionStep = {
@@ -92,7 +92,7 @@ export function spanLabel(from?: string | null, to?: string | null) {
 }
 
 const words = (value: string) => value.replaceAll('_', ' ').toLowerCase();
-const channelName = (kind: string) => (kind === 'sms' ? 'SMS' : 'Email');
+const channelName = (kind: string) => channelNames[kind as Channel] || 'Email';
 const blockedReasons: Record<string, string> = {
   consent_denied: 'no permission for this channel',
   frequency_cap: 'sending limit reached',
@@ -150,7 +150,8 @@ function describe(
         ? { tone: 'done', outcome: 'Condition was met', branch: 'Yes' }
         : { tone: 'done', outcome: 'Condition was not met', branch: 'No' };
     case 'email':
-    case 'sms': {
+    case 'sms':
+    case 'push': {
       const delivery = execution.deliveries.find((item) => item.node_id === step.node_id);
       const name = channelName(kind);
       if (!delivery) return { tone: 'done', outcome: `${name} step passed`, branch: '' };

@@ -15,6 +15,8 @@ const props = defineProps<{
   label: string;
   hideLabel?: boolean;
   disabled?: boolean;
+  /** Icons only; the chosen option also shows its name. For narrow columns. */
+  compact?: boolean;
 }>();
 const emit = defineEmits<{ 'update:modelValue': [unknown]; change: [unknown] }>();
 const buttons = ref<HTMLButtonElement[]>([]);
@@ -94,10 +96,15 @@ function move(event: KeyboardEvent, i: number) {
           isChosen(option.value) || (i === 0 && !options.some((o) => isChosen(o.value))) ? 0 : -1
         "
         :disabled="disabled"
+        :aria-label="compact ? option.label : undefined"
+        :title="compact && !isChosen(option.value) ? option.label : undefined"
         @click="pick(option.value)"
         @keydown="move($event, i)"
       >
-        <AppIcon v-if="option.icon" :name="option.icon" :size="14" />{{ option.label }}
+        <AppIcon v-if="option.icon" :name="option.icon" :size="14" /><template
+          v-if="!compact || !option.icon || isChosen(option.value)"
+          >{{ option.label }}</template
+        >
       </button>
     </div>
   </div>

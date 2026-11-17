@@ -4,8 +4,9 @@ import { errorMessage, plural } from '../lib/format';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import CustomerProfileFields from './ui/CustomerProfileFields.vue';
 import { api } from '../lib/api';
-import type { Config } from '../lib/workflow';
-const props = defineProps<{ modelValue: Config; channel: 'email' | 'sms'; readonly?: boolean }>();
+import PushPreview from './PushPreview.vue';
+import { channelNames, type Channel, type Config } from '../lib/workflow';
+const props = defineProps<{ modelValue: Config; channel: Channel; readonly?: boolean }>();
 const emit = defineEmits<{ 'update:modelValue': [Config] }>();
 type Message = {
   channel: string;
@@ -21,6 +22,7 @@ type Message = {
   encoding: string;
   units: number;
   segments: number;
+  url?: string;
   longest_case?: {
     values: Record<string, string>;
     encoding: string;
@@ -39,10 +41,11 @@ const customer = ref(
     {
       email: 'preview@example.invalid',
       phone: '+905551234567',
+      push_token: 'preview-device-token',
       locale: 'en',
       timezone: 'UTC',
       attributes: { first_name: 'Ada', total_orders: 0, cart_amount: 2450 },
-      consents: { email: true, sms: true },
+      consents: { email: true, sms: true, push: true },
     },
     null,
     2,
@@ -54,6 +57,8 @@ const error = ref('');
 const notice = ref('');
 const loading = ref(false);
 const device = ref('desktop');
+const pushView = ref<'banner' | 'lock'>('banner');
+const channelName = computed(() => channelNames[props.channel]);
 const recipient = ref('');
 const testKey = ref(crypto.randomUUID());
 const sending = ref(false);
@@ -113,6 +118,7 @@ function chooseProfile() {
     {
       email: 'preview@example.invalid',
       phone: '+905551234567',
+      push_token: 'preview-device-token',
       locale: 'en',
       timezone: 'UTC',
       attributes: {
@@ -123,7 +129,7 @@ function chooseProfile() {
           ? { last_seen_at: new Date(Date.now() - 90 * 86400000).toISOString() }
           : {}),
       },
-      consents: { email: true, sms: true },
+      consents: { email: true, sms: true, push: true },
     },
     null,
     2,
@@ -169,9 +175,10 @@ const codeHelp = computed(() => {
     return showsCode.value
       ? `The body shows the code where it writes ${codeVariable}.`
       : 'The email shows the code in a box of its own below the body.';
+  const kind = props.channel === 'push' ? 'notification' : 'SMS';
   return showsCode.value
-    ? `Filled in where the SMS writes ${codeVariable}, so it cannot be mistyped.`
-    : `An SMS must show its code: add ${codeVariable} to the message.`;
+    ? `Filled in where the ${kind} writes ${codeVariable}, so it cannot be mistyped.`
+    : `A${props.channel === 'push' ? ' push' : 'n SMS'} must show its code: add ${codeVariable} to the message.`;
 });
 function insertCode() {
   const text = props.modelValue.text || '';
@@ -266,7 +273,7 @@ onBeforeUnmount(() => {
   <div class="channel-studio">
     <section class="panel editor-form">
       <div class="card-top">
-        <h2>{{ channel === 'email' ? 'Email studio' : 'SMS studio' }}</h2>
+        <h2>{{ channel === 'push' ? 'Push studio' : channelName + ' studio' }}</h2>
         <span class="pill">{{ channel.toUpperCase() }}</span>
       </div>
       <label
@@ -301,14 +308,30 @@ onBeforeUnmount(() => {
             class="code-input"
             @input="patch({ html: ($event.target as HTMLTextAreaElement).value })"
           /></label></template
+      ><label v-if="channel === 'push'"
+        >Title<input
+          :value="modelValue.subject"
+          :disabled="readonly"
+          maxlength="120"
+          @input="patch({ subject: ($event.target as HTMLInputElement).value })" /></label
       ><label
-        >{{ channel === 'email' ? 'Text fallback' : 'SMS message'
+        >{{ channel === 'email' ? 'Text fallback' : channel === 'push' ? 'Message' : 'SMS message'
         }}<textarea
           :value="modelValue.text"
           :disabled="readonly"
-          rows="5"
+          :rows="channel === 'push' ? 3 : 5"
+          :maxlength="channel === 'push' ? 1000 : undefined"
           @input="patch({ text: ($event.target as HTMLTextAreaElement).value })"
         /></label
+      ><label v-if="channel === 'push'"
+        >Link when tapped<input
+          :value="modelValue.url || ''"
+          :disabled="readonly"
+          type="url"
+          inputmode="url"
+          placeholder="https://example.com/cart"
+          maxlength="2000"
+          @input="patch({ url: ($event.target as HTMLInputElement).value || undefined })" /></label
       ><small
         >Use variables such as &#123;&#123; customer.attributes.first_name &#125;&#125;. Values are
         rendered safely; no code or expressions run.</small
@@ -324,7 +347,7 @@ onBeforeUnmount(() => {
             spellcheck="false"
             @input="setCode(($event.target as HTMLInputElement).value)" /></label
         ><button
-          v-if="!readonly && channel === 'sms' && modelValue.discount_code && !showsCode"
+          v-if="!readonly && channel !== 'email' && modelValue.discount_code && !showsCode"
           type="button"
           @click="insertCode"
         >
@@ -422,7 +445,13 @@ onBeforeUnmount(() => {
               sandbox=""
               referrerpolicy="no-referrer"
             /></div></template
-        ><template v-else
+        ><PushPreview
+          v-else-if="channel === 'push'"
+          v-model:view="pushView"
+          :title="preview.subject"
+          :body="preview.text"
+          :url="preview.url"
+        /><template v-else
           ><div class="phone-preview">
             <small>MESSAGES · NOW</small>
             <div class="sms-bubble">{{ preview.text }}</div>
@@ -454,7 +483,11 @@ onBeforeUnmount(() => {
           <p v-for="link in preview.links" :key="link">{{ link }}</p>
         </details>
       </div>
-      <div v-if="!readonly" class="panel editor-form">
+      <p v-if="!readonly && channel === 'push'" class="panel help-text">
+        Push notifications are not sent to a real device from here. Run a scenario in the Test Lab
+        to see this notification in the Test Inbox.
+      </p>
+      <div v-else-if="!readonly" class="panel editor-form">
         <h3>Send a test {{ channel === 'email' ? 'email' : 'SMS' }}</h3>
         <p>
           Use an allowlisted test recipient. Email uses SMTP; SMS uses the mock provider. This is

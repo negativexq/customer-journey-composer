@@ -3,7 +3,16 @@ import ToastHost from './components/ui/ToastHost.vue';
 import SkeletonBlock from './components/ui/SkeletonBlock.vue';
 import { errorMessage } from './lib/format';
 import { applyTheme, nextTheme, theme, themeLabel } from './lib/theme';
-import { computed, nextTick, onBeforeUnmount, onMounted, onErrorCaptured, ref, watch } from 'vue';
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  onErrorCaptured,
+  provide,
+  ref,
+  watch,
+} from 'vue';
 import {
   pageRoute,
   readRoute,
@@ -28,6 +37,11 @@ import AppIcon from './components/ui/AppIcon.vue';
 import JourneyCreation from './components/JourneyCreation.vue';
 import NotificationBell from './components/NotificationBell.vue';
 const identity = ref<Identity>();
+// Previews of what a customer receives show the workspace as the sender's name.
+provide(
+  'workspace-name',
+  computed(() => identity.value?.workspace || ''),
+);
 const loading = ref(true);
 const accessUnavailable = ref(false);
 async function restoreSession() {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { metric, type Insights } from '../lib/insights';
+import { channelNames, messageKinds } from '../lib/workflow';
 
 // Messages per channel by outcome. Each count opens the messages behind it.
 const props = defineProps<{ insights: Insights }>();
@@ -34,8 +35,8 @@ const columns = [
           </tr>
         </thead>
         <tbody>
-          <tr v-for="c in ['email', 'sms']" :key="c">
-            <td>{{ c === 'sms' ? 'SMS' : 'Email' }}</td>
+          <tr v-for="c in messageKinds" :key="c">
+            <td>{{ channelNames[c] }}</td>
             <td v-for="column in columns" :key="column.metric">
               <button class="metric-link" @click="emit('browse', c, column.status)">
                 {{ value(column.metric, c) }}
