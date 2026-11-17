@@ -29,7 +29,7 @@ const manifest = {
   draft_cadence: demo.draftCadence,
   viewport,
   device_scale_factor: 2,
-  live_showcase_provider: 'mock_sms',
+  live_showcase_provider: 'mock_sms and mock_push',
   email_previews: 'isolated simulation',
   screenshots: [],
 };
@@ -105,7 +105,7 @@ try {
   await expect(page.getByRole('complementary', { name: 'Step settings' })).toBeVisible();
   // Close enough to read: centre the selected step rather than fit all seven.
   await page.getByLabel('More canvas actions').click();
-  await page.getByRole('button', { name: 'Focus selected step', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Focus selected step', exact: true }).click();
   await settle();
   // Selecting a step can scroll the page; measure with the header in view.
   await page.locator('.canvas').evaluate((el) => {
@@ -155,7 +155,7 @@ try {
     .getByRole('option', { name: /Email, push and SMS · no purchase/ })
     .first()
     .click();
-  await expect(page.locator('.inbox-row')).toHaveCount(2);
+  await expect(page.locator('.inbox-row')).toHaveCount(3);
   await page.locator('.inbox-row').filter({ hasText: 'EMAIL' }).click();
   await expect(
     page.frameLocator('iframe[title="Test email preview"]').getByText(/Made for your everyday/),
@@ -167,6 +167,9 @@ try {
   await page.locator('.inbox-row').filter({ hasText: 'SMS' }).click();
   await expect(page.locator('.sms-phone')).toContainText('COMEBACK10');
   await shot('test-inbox-sms');
+  await page.locator('.inbox-row').filter({ hasText: 'Push' }).click();
+  await expect(page.locator('.push-phone')).toBeVisible();
+  await shot('test-inbox-push');
   await open(`/journeys/${demo.journeyId}?tab=live-monitor&execution=${demo.monitorExecutionId}`);
   await expect(page.getByRole('region', { name: 'Execution details' })).toContainText(
     demo.monitorCustomerId,
@@ -188,8 +191,10 @@ try {
   await expect(page.getByRole('heading', { name: 'Journey outcomes', exact: true })).toBeVisible();
   await shot('journey-observability/analytics');
   await open('/analytics');
-  await page.getByRole('button', { name: 'Trend period: Last 30 days', exact: true }).click();
-  await page.getByRole('option', { name: /Last 7 days/ }).click();
+  await page
+    .getByRole('radiogroup', { name: 'Trend period', exact: true })
+    .getByRole('radio', { name: '7 days', exact: true })
+    .click();
   await shot('analytics');
   await open(`/customers?customer=${demo.customerId}`);
   await expect(page.getByRole('heading', { level: 2, name: 'Alex Morgan' })).toBeVisible();

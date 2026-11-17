@@ -1,6 +1,6 @@
 # Product gallery
 
-Refreshed November 16, 2026. Real application captures at a 1280 × 800 CSS viewport and 2× display scale (**2560 × 1600 PNGs**). The single-journey list is shorter, and the email preview and publish review are taller so they show whole. One clean Northstar workspace, one Abandoned Cart Recovery journey and 14 fictional customers. Live email uses local Mailpit, SMS uses the mock provider and Inbox previews use isolated simulations. No historical activity or open/click rates are invented.
+Refreshed November 17, 2026. Real application captures at a 1280 × 800 CSS viewport and 2× display scale (**2560 × 1600 PNGs**). The single-journey list is shorter, and the email preview and publish review are taller so they show whole. One clean Northstar workspace, one Abandoned Cart Recovery journey and 14 fictional customers. Live email uses local Mailpit, push and SMS use the mock providers and Inbox previews use isolated simulations. No historical activity or open/click rates are invented.
 
 [Run the demo or reproduce these captures](../SHOWCASE.md) · [Capture manifest](manifest.json) · [Project README](../../README.md)
 
@@ -49,6 +49,12 @@ Virtual time, saved recovery scenarios, assertions and execution history.
 Personalized email from an isolated recovery simulation.
 
 ![Email preview in Test Inbox](test-inbox-email.png)
+
+## Push preview
+
+The push follow-up as a banner on the customer's phone, with its device token and delivery tabs.
+
+![Push preview in Test Inbox](test-inbox-push.png)
 
 ## SMS preview
 

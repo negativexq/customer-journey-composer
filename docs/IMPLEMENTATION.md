@@ -1284,3 +1284,13 @@ applied it to Draft; no publication or delivery occurred. The operational demo
 remains separate. The capture script has an explicit paid opt-in and observes a
 cloned stream without replacing the provider response. Earlier failed generation
 and capture-tool failures are disclosed in the [capture report](reports/live-creation-capture-2026-11-13.md).
+
+### Product screenshots with push — 2026-11-17
+
+`npm run screenshots:product` recaptured the 14 operational views at 2560 × 1600
+from the local Northstar demo, with the push step and mock push provider. The
+capture script now selects the overflow menu item by its `menuitem` role, uses the
+segmented trend period control, expects three Test Inbox messages and adds
+`test-inbox-push.png`. The customer profile now shows a push consent chip next to
+email and SMS. Live entries stayed the same before and after capture. The creation
+gallery was not recaptured.

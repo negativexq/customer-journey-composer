@@ -52,19 +52,21 @@ The proposal is drawn as a diagram, with each alternative path. Request a change
 
 Every step is editable: triggers, waits for a time or an event, conditions, multi-way branches, A/B splits, email, SMS, webhooks, profile updates and exits. Changes save automatically and can be undone.
 
-![Builder: the journey on the canvas with the purchase wait selected and its event, timeout and connections in the side panel](docs/images/journey-builder.png)
+![Builder: the journey on the canvas with the purchase wait selected, its push follow-up on the timeout path, and the wait's event, timeout and connections in the side panel](docs/images/journey-builder.png)
 
 ### 4. Run days in seconds
 
 The Test Lab runs saved scenarios on a virtual clock: a purchase before the first reminder, an opted-out customer, a purchase of a different cart. Each shows the path taken and whether its assertions passed.
 
-![Test Lab: the saved Email and SMS, no purchase scenario on a virtual clock, passed, with its assertions and timeline](docs/images/test-lab.png)
+![Test Lab: the saved Email, push and SMS, no purchase scenario on a virtual clock, passed, with its assertions and timeline](docs/images/test-lab.png)
 
 ### 5. See what the customer gets
 
 The test inbox shows each message a scenario produced, personalized for its customer, with its payload, execution trace, consent decision and every attempt.
 
 ![Test inbox: the cart reminder email for Alex Morgan with the Everyday Carry Tote, its price and the button back to the cart](docs/images/test-inbox-email.png)
+
+![Test inbox: the push notification for Alex Morgan's device on a phone banner preview, with its title and body](docs/images/test-inbox-push.png)
 
 ![Test inbox: the follow-up SMS with the COMEBACK10 code, its segment count and the personalization values](docs/images/test-inbox-sms.png)
 
