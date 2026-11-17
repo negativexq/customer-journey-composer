@@ -11,6 +11,7 @@ import CustomerJourney, { type CustomerExecution } from './CustomerJourney.vue';
 import { activityFeed, displayName, initials } from '../lib/customer-journey';
 import { plural } from '../lib/format';
 import { toast } from '../lib/toast';
+import { channelNames, messageKinds } from '../lib/workflow';
 type Customer = {
   customer_id: string;
   external_id?: string;
@@ -360,12 +361,14 @@ onMounted(() => {
               >
             </p>
             <div class="profile-chips">
-              <span :class="selected.consents?.email ? 'chip-yes' : 'chip-no'"
-                ><AppIcon :name="selected.consents?.email ? 'check' : 'close'" :size="12" />Email
-                {{ selected.consents?.email ? 'allowed' : 'not allowed' }}</span
-              ><span :class="selected.consents?.sms ? 'chip-yes' : 'chip-no'"
-                ><AppIcon :name="selected.consents?.sms ? 'check' : 'close'" :size="12" />SMS
-                {{ selected.consents?.sms ? 'allowed' : 'not allowed' }}</span
+              <span
+                v-for="kind in messageKinds"
+                :key="kind"
+                :class="selected.consents?.[kind] ? 'chip-yes' : 'chip-no'"
+                ><AppIcon :name="selected.consents?.[kind] ? 'check' : 'close'" :size="12" />{{
+                  channelNames[kind]
+                }}
+                {{ selected.consents?.[kind] ? 'allowed' : 'not allowed' }}</span
               ><span><AppIcon name="clock" :size="12" />{{ selected.timezone }}</span
               ><span>{{ selected.locale }}</span>
             </div>
