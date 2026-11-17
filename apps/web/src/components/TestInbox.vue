@@ -3,60 +3,24 @@ import AppSelect from './ui/AppSelect.vue';
 import SegmentedControl from './ui/SegmentedControl.vue';
 import { runTitle, type TestRunSummary } from '../lib/test-runs';
 import EmptyState from './ui/EmptyState.vue';
-import { errorMessage, formatDateTime, plural } from '../lib/format';
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { errorMessage, formatDateTime } from '../lib/format';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import AppIcon from './ui/AppIcon.vue';
 import StatusBadge from './ui/StatusBadge.vue';
 import DecisionSummary from './ui/DecisionSummary.vue';
 import AttemptHistory from './ui/AttemptHistory.vue';
-import type { DeliveryEngagement } from '../lib/engagement';
+import type { TestInboxRow, TestMessage } from '../lib/test-inbox';
+import MessagePreview from './MessagePreview.vue';
+import PayloadSummary from './PayloadSummary.vue';
 import { api, type Journey } from '../lib/api';
-type Row = {
-  id: string;
-  test_run_id?: string;
-  delivery_id?: string;
-  journey_id?: string;
-  journey_name?: string;
-  customer_id?: string;
-  node_label: string;
-  source_node?: string;
-  channel: string;
-  mode: string;
-  status: string;
-  simulated_at: string;
-  created_at: string;
-  version?: number;
-};
-type Detail = Row & {
-  message: {
-    subject?: string;
-    preheader?: string;
-    html?: string;
-    text?: string;
-    to?: string;
-    personalization_values?: Record<string, string>;
-    template_id?: string;
-    encoding?: string;
-    segments?: number;
-  };
-  decision: unknown;
-  attempt_history: unknown[];
-  engagement?: DeliveryEngagement[];
-  provider_response?: string;
-  provider_status?: string;
-  provider?: string;
-  execution_trace: unknown[];
-  trace_id: string;
-  workflow_hash?: string;
-};
 const props = defineProps<{
   readonly?: boolean;
   embedded?: boolean;
   testRunId?: string;
   runRevision?: number;
 }>();
-const rows = ref<Row[]>([]);
-const selected = ref<Detail>();
+const rows = ref<TestInboxRow[]>([]);
+const selected = ref<TestMessage>();
 const previous = ref<unknown>();
 const runs = ref<TestRunSummary[]>([]);
 const journeys = ref<Journey[]>([]);
@@ -78,46 +42,6 @@ const detailTabs = computed(() =>
     ? ['Preview', 'Decision', 'Attempts']
     : ['Preview', 'Payload', 'Trace', 'Decision', 'Attempts'],
 );
-// Desktop email renders at a typical client width and is scaled down to fit the column.
-const MAIL_WIDTH = 640;
-const MAIL_HEIGHT = 760;
-const mailBody = ref<HTMLElement>();
-const mailDialog = ref<HTMLDialogElement>();
-const mailOpen = ref(false);
-function openMail() {
-  mailOpen.value = true;
-  mailDialog.value?.showModal();
-}
-const mailScale = ref(1);
-const mailHeight = computed(() => Math.round(MAIL_HEIGHT * mailScale.value));
-const mailObserver =
-  typeof ResizeObserver === 'undefined'
-    ? undefined
-    : new ResizeObserver(([entry]) => {
-        mailScale.value = Math.min(1, entry.contentRect.width / MAIL_WIDTH);
-      });
-watch(mailBody, (element, old) => {
-  if (old) mailObserver?.unobserve(old);
-  if (element) mailObserver?.observe(element);
-});
-// The phone shows the email at a real phone's width (390 px) scaled to its screen.
-const PHONE_WIDTH = 390;
-const phoneScreen = ref<HTMLElement>();
-const phoneScale = ref(0.77);
-const phoneObserver =
-  typeof ResizeObserver === 'undefined'
-    ? undefined
-    : new ResizeObserver(([entry]) => {
-        if (entry.contentRect.width) phoneScale.value = entry.contentRect.width / PHONE_WIDTH;
-      });
-watch(phoneScreen, (element, old) => {
-  if (old) phoneObserver?.unobserve(old);
-  if (element) phoneObserver?.observe(element);
-});
-onBeforeUnmount(() => {
-  mailObserver?.disconnect();
-  phoneObserver?.disconnect();
-});
 const tabBar = ref<HTMLElement>();
 const underline = ref<{ x: number; width: number; ready: boolean }>();
 function placeUnderline() {
@@ -142,12 +66,6 @@ watch([tab, selected, tabBar], () => nextTick(placeUnderline));
 const customers = computed(() => [
   ...new Set(rows.value.map((r) => r.customer_id).filter((c): c is string => !!c)),
 ]);
-const escape = (s: string) =>
-  s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-const document = computed(
-  () =>
-    `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none';style-src 'unsafe-inline';img-src data:;form-action 'none';base-uri 'none'"><meta name="viewport" content="width=device-width"><style>body{margin:0;font:16px/1.6 Arial}body>:not(table){margin-left:20px;margin-right:20px}img{max-width:100%}</style></head><body>${selected.value?.message.html || '<pre>' + escape(selected.value?.message.text || '') + '</pre>'}</body></html>`,
-);
 async function perform(action: () => Promise<void>) {
   busy.value = true;
   error.value = '';
@@ -173,7 +91,7 @@ async function load(more = false) {
       params.set('before', last.created_at);
       params.set('before_id', last.id);
     }
-    const result = await api<Row[]>('/test-inbox?' + params);
+    const result = await api<TestInboxRow[]>('/test-inbox?' + params);
     if (request !== loadSequence) return;
     rows.value = more ? [...rows.value, ...result] : result;
     if (props.embedded) {
@@ -183,10 +101,10 @@ async function load(more = false) {
     }
   });
 }
-async function open(row: Row) {
+async function open(row: TestInboxRow) {
   const request = ++detailSequence;
   await perform(async () => {
-    const detail = await api<Detail>('/test-messages/' + row.id);
+    const detail = await api<TestMessage>('/test-messages/' + row.id);
     if (request !== detailSequence) return;
     selected.value = detail;
     previous.value = undefined;
@@ -216,20 +134,6 @@ async function compare() {
     tab.value = 'Compare';
   });
 }
-const personalization = computed(() =>
-  Object.entries(selected.value?.message.personalization_values || {}),
-);
-const payloadIds = computed(() => [
-  { label: 'Trace', icon: 'history', value: selected.value?.trace_id, empty: 'Not recorded' },
-  {
-    label: 'Workflow snapshot',
-    icon: 'lock',
-    value: selected.value?.workflow_hash,
-    empty: 'Standalone message',
-  },
-]);
-// Long IDs stay readable at a glance; the full value is in the tooltip and copy button.
-const shortId = (value: string) => (value.length > 16 ? value.slice(0, 12) + '…' : value);
 async function copyValue(value: string, message: string) {
   await perform(async () => {
     await navigator.clipboard.writeText(value);
@@ -244,13 +148,6 @@ async function copy() {
     notice.value = 'Rendered content copied';
   });
 }
-// SMS text split so links can be drawn as a phone draws them.
-const smsParts = computed(() =>
-  (selected.value?.message.text || '')
-    .split(/(https?:\/\/\S+)/)
-    .filter(Boolean)
-    .map((text) => ({ text, link: /^https?:\/\//.test(text) })),
-);
 // "alex-morgan" → "AM"; a single word gives its first two letters.
 function initials(id: string) {
   const parts = id.split(/[-_.\s]+/).filter(Boolean);
@@ -497,179 +394,8 @@ onMounted(
               :style="{ width: underline.width + 'px', transform: `translateX(${underline.x}px)` }"
             />
           </div>
-          <template v-if="tab === 'Preview'"
-            ><SegmentedControl
-              v-if="selected.channel === 'email'"
-              v-model="device"
-              class="device-segments"
-              label="Device"
-              hide-label
-              :options="[
-                { value: 'desktop', label: 'Desktop', icon: 'monitor' },
-                { value: 'mobile', label: 'Mobile' },
-              ]"
-            /><!-- A mail client window, so the desktop view reads as an opened email. -->
-            <div v-if="selected.channel === 'email' && device === 'desktop'" class="mail-stage">
-              <div class="mail-window">
-                <div class="mail-titlebar">
-                  <span aria-hidden="true"><i /><i /><i /></span>
-                  <button type="button" class="mail-expand" @click="openMail">
-                    <AppIcon name="maximize" :size="13" />Open full size
-                  </button>
-                </div>
-                <header class="mail-header">
-                  <span class="mail-avatar" aria-hidden="true"
-                    ><AppIcon name="email" :size="16"
-                  /></span>
-                  <div>
-                    <strong>{{ selected.message.subject || 'No subject' }}</strong>
-                    <span
-                      >To {{ selected.message.to || selected.customer_id }} ·
-                      {{ formatDateTime(selected.simulated_at) }}</span
-                    >
-                    <small v-if="selected.message.preheader">{{
-                      selected.message.preheader
-                    }}</small>
-                  </div>
-                </header>
-                <div ref="mailBody" class="mail-body" :style="{ height: mailHeight + 'px' }">
-                  <iframe
-                    title="Test email preview"
-                    sandbox=""
-                    :srcdoc="document"
-                    :style="{ transform: `scale(${mailScale})` }"
-                  />
-                </div>
-              </div>
-              <dialog
-                ref="mailDialog"
-                class="mail-dialog"
-                aria-labelledby="mail-dialog-title"
-                @close="mailOpen = false"
-                @click="$event.target === mailDialog && mailDialog?.close()"
-              >
-                <header>
-                  <h2 id="mail-dialog-title">
-                    {{ selected.message.subject || 'Test email' }}
-                  </h2>
-                  <button
-                    type="button"
-                    class="icon-button"
-                    aria-label="Close full size preview"
-                    @click="mailDialog?.close()"
-                  >
-                    <AppIcon name="close" :size="16" />
-                  </button>
-                </header>
-                <iframe
-                  v-if="mailOpen"
-                  title="Test email preview, full size"
-                  sandbox=""
-                  :srcdoc="document"
-                />
-              </dialog>
-            </div>
-            <!-- The preview shows what the customer sees; technical details are under Payload. -->
-            <div v-else class="inbox-phone-preview">
-              <div
-                class="phone"
-                :class="selected.channel === 'email' ? 'phone-email' : 'phone-sms'"
-              >
-                <div class="phone-status" aria-hidden="true">
-                  <span>9:41</span><span class="phone-island" /><span class="phone-signal"
-                    ><i /><i /><i /><i
-                  /></span>
-                </div>
-                <div v-if="selected.channel === 'email'" ref="phoneScreen" class="phone-screen">
-                  <iframe
-                    title="Test email preview"
-                    sandbox=""
-                    :srcdoc="document"
-                    :style="{
-                      transform: `scale(${phoneScale})`,
-                      height: `calc(100% / ${phoneScale})`,
-                    }"
-                  />
-                </div>
-                <template v-else>
-                  <div class="phone-thread-head">
-                    <span class="phone-avatar" aria-hidden="true"
-                      ><AppIcon name="message" :size="16"
-                    /></span>
-                    <strong>{{ selected.journey_name || 'Test message' }}</strong>
-                    <small>Text message</small>
-                  </div>
-                  <div class="phone-thread">
-                    <small class="phone-time">{{ formatDateTime(selected.simulated_at) }}</small>
-                    <p class="sms-phone">
-                      <template v-for="(part, i) in smsParts" :key="i"
-                        ><span v-if="part.link" class="sms-link">{{ part.text }}</span
-                        ><template v-else>{{ part.text }}</template></template
-                      >
-                    </p>
-                  </div>
-                  <div class="phone-compose" aria-hidden="true"><span>Text message</span></div>
-                </template>
-                <span class="phone-home" aria-hidden="true" />
-              </div>
-              <small v-if="selected.channel === 'sms'" class="phone-meta"
-                >{{ (selected.message.text || '').length }} characters ·
-                {{ selected.message.encoding }} ·
-                {{ plural(selected.message.segments ?? 0, 'segment') }}</small
-              >
-            </div></template
-          >
-          <template v-else-if="tab === 'Payload'">
-            <dl class="payload-summary">
-              <div>
-                <dt><AppIcon name="templates" :size="14" />Template</dt>
-                <dd>{{ selected.message.template_id || 'Inline content' }}</dd>
-              </div>
-              <div>
-                <dt><AppIcon name="workflow" :size="14" />Source step</dt>
-                <dd>{{ selected.source_node || 'Explicit test' }}</dd>
-              </div>
-              <div v-for="id in payloadIds" :key="id.label" class="payload-id">
-                <dt><AppIcon :name="id.icon" :size="14" />{{ id.label }}</dt>
-                <dd>
-                  <code :title="id.value">{{ id.value ? shortId(id.value) : id.empty }}</code>
-                  <button
-                    v-if="id.value"
-                    type="button"
-                    class="icon-button payload-copy"
-                    :aria-label="`Copy ${id.label.toLowerCase()} ID`"
-                    @click="copyValue(id.value, `${id.label} ID copied`)"
-                  >
-                    <AppIcon name="copy" :size="13" />
-                  </button>
-                </dd>
-              </div>
-            </dl>
-            <section class="payload-section" aria-labelledby="personalization-heading">
-              <h3 id="personalization-heading">
-                Personalization values
-                <span v-if="personalization.length" class="payload-count">{{
-                  personalization.length
-                }}</span>
-              </h3>
-              <ul v-if="personalization.length" class="token-list">
-                <li v-for="[key, value] in personalization" :key="key">
-                  <code class="token-key">{{ key }}</code>
-                  <AppIcon name="arrow" :size="14" class="token-arrow" />
-                  <span class="token-value">{{ value || 'Empty' }}</span>
-                </li>
-              </ul>
-              <p v-else class="help-text">This message uses no personalization.</p>
-            </section>
-            <details class="raw-payload">
-              <summary>
-                <AppIcon name="file" :size="14" />Raw payload
-                <span>JSON</span>
-                <AppIcon name="down" :size="14" class="raw-chevron" />
-              </summary>
-              <pre>{{ JSON.stringify(selected, null, 2) }}</pre>
-            </details>
-          </template>
+          <MessagePreview v-if="tab === 'Preview'" v-model:device="device" :detail="selected" />
+          <PayloadSummary v-else-if="tab === 'Payload'" :detail="selected" @copy="copyValue" />
           <pre v-else-if="tab === 'Trace'">{{
             JSON.stringify(selected.execution_trace, null, 2)
           }}</pre>
@@ -949,133 +675,6 @@ onMounted(
 .inbox-detail {
   min-width: 0;
 }
-.mail-stage {
-  padding: 16px 12px;
-  border-radius: 12px;
-  background: var(--gray-96);
-}
-.mail-window {
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-  box-shadow:
-    0 1px 2px #10182814,
-    0 12px 32px -12px #10182833;
-}
-.mail-titlebar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-  background: var(--gray-99);
-}
-.mail-titlebar > span {
-  display: flex;
-  gap: 6px;
-}
-.mail-expand {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 26px;
-  margin: -4px -4px -4px auto;
-  padding: 0 8px;
-  border: 0;
-  border-radius: 6px;
-  background: none;
-  color: var(--muted);
-  font-size: 12px;
-}
-.mail-expand:hover {
-  background: var(--gray-96);
-  color: var(--text);
-}
-.mail-dialog {
-  width: min(760px, calc(100vw - 32px));
-  max-height: calc(100vh - 48px);
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--surface);
-  color: var(--text);
-}
-.mail-dialog::backdrop {
-  background: #0f111599;
-}
-.mail-dialog header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 12px 12px 20px;
-  border-bottom: 1px solid var(--border);
-}
-.mail-dialog h2 {
-  flex: 1;
-  margin: 0;
-  font-size: 15px;
-}
-.mail-dialog iframe {
-  display: block;
-  width: 100%;
-  height: min(78vh, 900px);
-  border: 0;
-  background: var(--phone-screen);
-}
-.mail-titlebar i {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--edge-muted);
-}
-.mail-header {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 10px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-}
-.mail-avatar {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: var(--accent-soft);
-  color: var(--accent-text-strong);
-}
-.mail-header div {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-.mail-header strong {
-  font-size: 14px;
-  color: var(--text);
-  overflow-wrap: anywhere;
-}
-.mail-header span,
-.mail-header small {
-  font-size: 12px;
-  color: var(--muted);
-  overflow-wrap: anywhere;
-}
-.mail-body {
-  position: relative;
-  overflow: hidden;
-  background: var(--phone-screen);
-}
-.mail-body iframe {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 640px;
-  height: 760px;
-  border: 0;
-  transform-origin: 0 0;
-}
 .inbox-detail pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -1133,315 +732,6 @@ onMounted(
   }
 }
 /* A phone drawn around the message, so the preview reads as what the customer sees. */
-.inbox-phone-preview {
-  display: grid;
-  justify-items: center;
-  gap: 12px;
-  padding: 24px 12px;
-  border-radius: 12px;
-  background: var(--gray-96);
-}
-.phone {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  width: min(100%, 320px);
-  height: 600px;
-  padding: 10px 12px 14px;
-  border: 9px solid var(--gray-25);
-  border-radius: 46px;
-  background: var(--phone-screen);
-  box-shadow:
-    0 0 0 1px var(--gray-74),
-    0 24px 48px -16px #17213b4d;
-  overflow: hidden;
-}
-.phone-status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 2px 14px 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-}
-.phone-island {
-  width: 86px;
-  height: 24px;
-  border-radius: 999px;
-  background: var(--gray-25);
-}
-.phone-signal {
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  height: 11px;
-}
-.phone-signal i {
-  width: 3px;
-  border-radius: 1px;
-  background: var(--text);
-}
-.phone-signal i:nth-child(1) {
-  height: 4px;
-}
-.phone-signal i:nth-child(2) {
-  height: 6px;
-}
-.phone-signal i:nth-child(3) {
-  height: 8px;
-}
-.phone-signal i:nth-child(4) {
-  height: 11px;
-}
-.phone-thread-head {
-  display: grid;
-  justify-items: center;
-  gap: 3px;
-  padding: 6px 0 12px;
-  border-bottom: 1px solid var(--border);
-}
-.phone-avatar {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: linear-gradient(160deg, var(--gray-74), var(--gray-55));
-  color: var(--on-solid);
-}
-.phone-thread-head strong {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 13px;
-  color: var(--text);
-}
-.phone-thread-head small {
-  font-size: 11px;
-  color: var(--muted);
-}
-.phone-thread {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 14px 4px;
-  overflow: auto;
-}
-.phone-time {
-  align-self: center;
-  font-size: 11px;
-  color: var(--muted);
-}
-.sms-phone {
-  max-width: 82%;
-  margin: 0;
-  padding: 9px 13px;
-  border-radius: 18px 18px 18px 5px;
-  background: var(--phone-bubble);
-  color: var(--text);
-  font-size: 14px;
-  line-height: 1.4;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-.sms-link {
-  color: var(--phone-link);
-  text-decoration: underline;
-}
-.phone-compose {
-  display: flex;
-  align-items: center;
-  min-height: 34px;
-  margin: 0 4px 10px;
-  padding: 0 14px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font-size: 13px;
-  color: var(--gray-60);
-}
-.phone-home {
-  align-self: center;
-  width: 110px;
-  height: 4px;
-  border-radius: 999px;
-  background: var(--text);
-  opacity: 0.8;
-}
-.phone-screen {
-  position: relative;
-  flex: 1;
-  margin: 0 -12px 8px;
-  overflow: hidden;
-}
-.phone-screen iframe {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 390px;
-  border: 0;
-  border-radius: 0;
-  transform-origin: 0 0;
-}
-.phone-meta {
-  font-size: 12px;
-  color: var(--muted);
-}
-.payload-summary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin: 0 0 20px;
-}
-.payload-summary > div {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-  padding: 11px 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--gray-99);
-}
-.payload-summary dt {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--muted);
-}
-.payload-summary dt :deep(svg) {
-  color: var(--accent-text);
-}
-.payload-summary dd {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-  overflow-wrap: anywhere;
-}
-.payload-id code {
-  min-width: 0;
-  font-size: 13px;
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.payload-copy {
-  flex: none;
-  width: 28px;
-  height: 28px;
-  margin: -4px -4px -4px auto;
-}
-.payload-section h3 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 10px;
-  font-size: 14px;
-}
-.payload-count {
-  min-width: 20px;
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-text-strong);
-  font-size: 12px;
-  text-align: center;
-}
-.token-list {
-  display: grid;
-  gap: 8px;
-  margin: 0 0 20px;
-  padding: 0;
-  list-style: none;
-}
-.token-list li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-}
-.token-key {
-  justify-self: start;
-  max-width: 100%;
-  padding: 3px 8px;
-  border-radius: 6px;
-  background: var(--accent-soft);
-  color: var(--accent-text-strong);
-  font-size: 12px;
-  overflow-wrap: anywhere;
-}
-.token-arrow {
-  color: var(--muted);
-}
-.token-value {
-  margin-left: auto;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-  overflow-wrap: anywhere;
-}
-.raw-payload {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-}
-.raw-payload summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  cursor: pointer;
-  list-style: none;
-}
-.raw-payload summary::-webkit-details-marker {
-  display: none;
-}
-.raw-payload summary:hover {
-  background: var(--gray-99);
-}
-.raw-payload summary span {
-  padding: 1px 6px;
-  border-radius: 5px;
-  background: var(--gray-96);
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 500;
-}
-.raw-chevron {
-  margin-left: auto;
-  color: var(--muted);
-  transition: transform 0.2s ease;
-}
-.raw-payload[open] .raw-chevron {
-  transform: rotate(180deg);
-}
-.raw-payload pre {
-  margin: 0;
-  border-top: 1px solid var(--border);
-  border-radius: 0;
-}
-@media (max-width: 520px) {
-  .payload-summary {
-    grid-template-columns: 1fr;
-  }
-}
 @media (max-width: 1200px) {
   .inbox-layout {
     grid-template-columns: 200px 1fr;
