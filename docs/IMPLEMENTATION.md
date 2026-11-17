@@ -290,6 +290,26 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Large web components split — 2026-11-17
+
+- The four largest Vue components were split into smaller parts without changing what they render. Markup and class names were moved as they were, so the browser tests and capture scripts kept working unchanged.
+  - Builder: `StepInspector`, `InsertStepDialog`, `AddStepDialog`, `StepLibrary` and `CanvasToolbar`, plus the `useUndoHistory`, `useCanvasClipboard` and `useCanvasShortcuts` composables and `lib/step-catalog`. `WorkflowCanvas.vue` went from 61 KB to 21 KB.
+  - Live Monitor: `ExecutionDetails`, `StepBreakdown`, `MonitorKpis`, `StepReachTable`, `JourneyOutcomes`, `ChannelPerformance` and `lib/executions`. `LiveMonitor.vue` went from 56 KB to 32 KB. It still owns scope, filters, polling and selection.
+  - Test Inbox: `MessagePreview` and `PayloadSummary` took their markup, scaling logic and scoped styles with them, and the message types moved to `lib/test-inbox`. `TestInbox.vue` went from 42 KB to 22 KB.
+  - Test Lab: `VirtualClock`, `SandboxResult`, `RecentTestRuns` and `lib/test-lab`. `TestLab.vue` went from 40 KB to 32 KB. The scenario form stays in `TestLab.vue` because its fields share state with the run lifecycle.
+- The GitHub CI failure on the mobile `canvas-add` test was fixed first. A step's add button sat under the canvas toolbar, and the canvas could no longer be scrolled to reveal it. Focusing any control inside a step now pans that step and the control clear of the toolbar. The test focuses each add button before clicking it.
+
+Verified locally:
+
+- `make fmt-check`, `make lint`, `make typecheck`, `make test`, `git diff --check`, and the full `npx playwright test` (104 passed) after each split, with the web image rebuilt each time. The local e2e suite runs against the Docker web image, so a stale image would test old code.
+- A temporary browser test covered builder copy, paste, duplicate, undo/redo shortcuts and the shortcuts dialog. No committed test covers these. A temporary test also checked that focusing a covered add button reveals it. Both were deleted afterwards.
+- Test Inbox preview and payload screenshots at desktop and phone width matched pixel for pixel before and after the split. One desktop email capture varied between runs regardless of the change.
+- GitHub CI passed on `d12bedc`, the CI fix. The CI runs on the refactor commits are not checked here.
+
+Not covered:
+
+- `management.spec.ts` failed once in a full local run and passed 16 times on its own. The cause is unknown.
+
 ## Brief first on the creation brief step — 2026-11-17
 
 - On the Brief step, the workspace data summary and the example cards sat above the brief box, so the brief itself was easy to miss. The step now reads: the "Your brief" box, one line under it saying how many workspace events and fields the AI can use (with a Refresh link, or an amber note when no events are defined), then "Or start from an example".
