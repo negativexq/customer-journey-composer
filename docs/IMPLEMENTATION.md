@@ -1304,3 +1304,24 @@ the purchase comes first, so the contract editor shows push consent and the revi
 lists push counts. The brief and replayed explanation mention the push reminder,
 and the replay uses `composer.v7`. Recapturing exposed a missing space before the
 push count in the behavior summary ("SMS ·1 push"); it is fixed.
+
+### Delivery claim and per-execution cost — 2026-11-17
+
+Local `scripts/benchmark.sh` runs (10,000 customers, 450 offered events/s, PG17 at
+2 CPU / 2 GiB) found the pipeline taking 319 s to accept every message at `2be2b7d`
+(65–67 s on Nov 11). Claims queued on one locked provider channel row; `cdad969`
+admits healthy channels without the lock (89.6 s at 1,000 calls/s). At the default
+50 calls/s the claim's channel gate still made the planner sort every due message
+(27.4 ms, 22,087 blocks per claim). `dd2990b` filters on a list of held channels,
+waits out held channels and splits the rate-window count: claims took 1.8 ms and
+1,294 blocks, stage B SQL time fell from 527 s to 166 s, and acceptance took
+251 s, close to the 200 s floor the rate sets. A clean 1,000 calls/s run accepted
+every message in 87.6 s. Two runs taken while the host was busy were slower in
+ingestion, which these changes do not touch, and are not used here.
+
+The report now records database work per 1,000 executions from the PostgreSQL
+container's cgroup CPU, WAL position and statement totals. Stage A used 5.5–6.2
+CPU-seconds, about 21,900 statements and 18 MiB WAL per 1,000 executions at an
+average of 1.93 of 2 cores; stage B used 15–17 CPU-seconds, 57,600–63,400
+statements and 52 MiB WAL. Every run kept 10,000 logical sends, zero duplicate
+actions and zero failed executions. These are single local runs, not remote CI.

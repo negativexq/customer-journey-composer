@@ -252,6 +252,10 @@ func run(customers int, out string, rate, delayMS, delayEvery, spreadSeconds int
 	if _, err = apiPool.Exec(ctx, `SELECT pg_stat_statements_reset()`); err != nil {
 		return err
 	}
+	costAStart, err := costAt(ctx, apiPool)
+	if err != nil {
+		return err
+	}
 	probe := probeReads(ctx, reader, server.URL, journey)
 	defer func() { probe.stop(); <-probe.done }()
 	waits, stopWaits, err := startWaitProbe(ctx, dsn, func() string { return probe.phase.Load().(string) })
@@ -403,6 +407,10 @@ func run(customers int, out string, rate, delayMS, delayEvery, spreadSeconds int
 		}
 	}
 	probe.phase.Store("waiting_drain")
+	costAEnd, err := costAt(ctx, apiPool)
+	if err != nil {
+		return err
+	}
 	stageAQueries, err := queryStats(ctx, apiPool)
 	if err != nil {
 		return err
@@ -426,6 +434,10 @@ func run(customers int, out string, rate, delayMS, delayEvery, spreadSeconds int
 		return err
 	}
 	if _, err = apiPool.Exec(ctx, `SELECT pg_stat_statements_reset()`); err != nil {
+		return err
+	}
+	costBStart, err := costAt(ctx, apiPool)
+	if err != nil {
 		return err
 	}
 	probe.phase.Store("timer_burst")
@@ -497,6 +509,10 @@ func run(customers int, out string, rate, delayMS, delayEvery, spreadSeconds int
 	if err != nil {
 		return err
 	}
+	costBEnd, err := costAt(ctx, apiPool)
+	if err != nil {
+		return err
+	}
 	stageBQueries, err := queryStats(ctx, apiPool)
 	if err != nil {
 		return err
@@ -556,7 +572,7 @@ func run(customers int, out string, rate, delayMS, delayEvery, spreadSeconds int
 	if err = apiPool.QueryRow(ctx, `SELECT version()`).Scan(&postgres); err != nil {
 		return err
 	}
-	report := map[string]any{"recorded_at": time.Now().UTC(), "commit": os.Getenv("BENCH_COMMIT"), "working_tree_dirty": os.Getenv("BENCH_DIRTY") == "true", "customers": customers, "mvp_load_threshold_met": customers >= 10000, "offered_events_per_second": rate, "timer_schedule": map[string]any{"spread_seconds": spreadSeconds, "first_due_at": due, "last_due_at": lastDue}, "fault_configuration": map[string]int{"provider_delay_ms": delayMS, "delay_every_attempts": delayEvery}, "provider_rate_per_second": providerRate, "telemetry": map[string]any{"metrics_enabled": true, "queue_probe_interval_seconds": 5, "trace_export_enabled": false}, "environment": map[string]any{"go": runtime.Version(), "os": runtime.GOOS, "arch": runtime.GOARCH, "logical_cpu_count": runtime.NumCPU(), "postgres": postgres, "postgres_container_cpu_limit": 2, "postgres_container_memory_limit_bytes": 2 << 30, "http_concurrency": 20, "runtime_concurrency": 8, "delivery_concurrency": 4, "pool_max_per_process": 20}, "method": "Real loopback HTTP ingestion and actual PostgreSQL runtime/delivery/projector, warm local Docker database. Fixture creates 1,000 inactive draft journeys and synthetic customers. Stage A reaches the requested number of simultaneously WAITING durable executions (MVP threshold: 10,000). Stage B moves only isolated fixture timer deadlines to a declared burst or spread beginning five seconds ahead, then lets real workers process. No frozen clock, SMTP or LLM requests. Completion polling interval is 1s; Go memory includes benchmark client+API+worker in one process. Two transient mock provider outcomes (429/500) are injected. Up to five serial authenticated UI reads/sec rotate across nine routes, including journey insights and drilldowns, throughout loaded phases; requests are not an open-loop saturation test. pg_stat_statements records top-level statement execution (including trigger cost); client network/round-trip time is not included. Timer lateness measures step completion after due_at, not claim time. EXPLAIN probes do not modify job state. Metrics/SQL timing and bounded queue sampling are enabled; no trace exporter is started. Optional pacing and provider delay are declared in the report. Successful-attempt latency excludes earlier 429 waits; logical latency includes them.", "ingestion": map[string]any{"seconds": ingestElapsed.Seconds(), "events_per_second": float64(customers) / ingestElapsed.Seconds(), "event_to_committed_execution_upper_bound": percentiles(latencies), "successful_http_attempt_latency": percentiles(successfulLatencies), "http_429_retries": throttled.Load(), "duplicate_requests": min(100, customers)}, "database_queries": map[string]any{"stage_a": stageAQueries, "stage_b": stageBQueries}, "loaded_read_http_latency": loadedReads, "loaded_read_failures": readFailures, "runtime": map[string]any{"peak_confirmed_active": active, "stage_a_until_all_waiting_seconds": waitingAt.Sub(started).Seconds(), "stage_a_jobs_per_second": float64(2*customers) / waitingAt.Sub(started).Seconds(), "stage_b_due_at": due, "stage_b_until_all_completed_seconds": runtimeDone.Sub(due).Seconds(), "stage_b_jobs_per_second": float64(4*customers) / runtimeDone.Sub(due).Seconds(), "pipeline_until_all_provider_accepted_seconds": deliveryDone.Sub(due).Seconds(), "timer_step_completion_lateness_ms": map[string]any{"p50": lag[0], "p95": lag[1], "p99": lag[2], "max": lag[3]}}, "consistency": map[string]any{"events": eventCount, "executions": executionCount, "logical_deliveries": logical, "provider_attempts": attempts, "runtime_retry_attempts": jobRetries, "delivery_retry_attempts": deliveryRetries, "failed_executions": failures, "duplicate_logical_actions": duplicates}, "read_http_latency": readLatency, "memory": map[string]any{"go_peak_heap_alloc_bytes": observed.Heap, "go_peak_heap_sys_bytes": observed.HeapSys, "peak_goroutines": observed.Goroutines}, "pools": observed.Pools, "query_plans": plans}
+	report := map[string]any{"recorded_at": time.Now().UTC(), "commit": os.Getenv("BENCH_COMMIT"), "working_tree_dirty": os.Getenv("BENCH_DIRTY") == "true", "customers": customers, "mvp_load_threshold_met": customers >= 10000, "offered_events_per_second": rate, "timer_schedule": map[string]any{"spread_seconds": spreadSeconds, "first_due_at": due, "last_due_at": lastDue}, "fault_configuration": map[string]int{"provider_delay_ms": delayMS, "delay_every_attempts": delayEvery}, "provider_rate_per_second": providerRate, "telemetry": map[string]any{"metrics_enabled": true, "queue_probe_interval_seconds": 5, "trace_export_enabled": false}, "environment": map[string]any{"go": runtime.Version(), "os": runtime.GOOS, "arch": runtime.GOARCH, "logical_cpu_count": runtime.NumCPU(), "postgres": postgres, "postgres_container_cpu_limit": 2, "postgres_container_memory_limit_bytes": 2 << 30, "http_concurrency": 20, "runtime_concurrency": 8, "delivery_concurrency": 4, "pool_max_per_process": 20}, "method": "Real loopback HTTP ingestion and actual PostgreSQL runtime/delivery/projector, warm local Docker database. Fixture creates 1,000 inactive draft journeys and synthetic customers. Stage A reaches the requested number of simultaneously WAITING durable executions (MVP threshold: 10,000). Stage B moves only isolated fixture timer deadlines to a declared burst or spread beginning five seconds ahead, then lets real workers process. No frozen clock, SMTP or LLM requests. Completion polling interval is 1s; Go memory includes benchmark client+API+worker in one process. Two transient mock provider outcomes (429/500) are injected. Up to five serial authenticated UI reads/sec rotate across nine routes, including journey insights and drilldowns, throughout loaded phases; requests are not an open-loop saturation test. pg_stat_statements records top-level statement execution (including trigger cost); client network/round-trip time is not included. Timer lateness measures step completion after due_at, not claim time. EXPLAIN probes do not modify job state. Metrics/SQL timing and bounded queue sampling are enabled; no trace exporter is started. Optional pacing and provider delay are declared in the report. Successful-attempt latency excludes earlier 429 waits; logical latency includes them.", "ingestion": map[string]any{"seconds": ingestElapsed.Seconds(), "events_per_second": float64(customers) / ingestElapsed.Seconds(), "event_to_committed_execution_upper_bound": percentiles(latencies), "successful_http_attempt_latency": percentiles(successfulLatencies), "http_429_retries": throttled.Load(), "duplicate_requests": min(100, customers)}, "database_queries": map[string]any{"stage_a": stageAQueries, "stage_b": stageBQueries}, "loaded_read_http_latency": loadedReads, "loaded_read_failures": readFailures, "runtime": map[string]any{"peak_confirmed_active": active, "stage_a_until_all_waiting_seconds": waitingAt.Sub(started).Seconds(), "stage_a_jobs_per_second": float64(2*customers) / waitingAt.Sub(started).Seconds(), "stage_b_due_at": due, "stage_b_until_all_completed_seconds": runtimeDone.Sub(due).Seconds(), "stage_b_jobs_per_second": float64(4*customers) / runtimeDone.Sub(due).Seconds(), "pipeline_until_all_provider_accepted_seconds": deliveryDone.Sub(due).Seconds(), "timer_step_completion_lateness_ms": map[string]any{"p50": lag[0], "p95": lag[1], "p99": lag[2], "max": lag[3]}}, "consistency": map[string]any{"events": eventCount, "executions": executionCount, "logical_deliveries": logical, "provider_attempts": attempts, "runtime_retry_attempts": jobRetries, "delivery_retry_attempts": deliveryRetries, "failed_executions": failures, "duplicate_logical_actions": duplicates}, "read_http_latency": readLatency, "memory": map[string]any{"go_peak_heap_alloc_bytes": observed.Heap, "go_peak_heap_sys_bytes": observed.HeapSys, "peak_goroutines": observed.Goroutines}, "pools": observed.Pools, "query_plans": plans, "work_cost": map[string]any{"meaning": "PostgreSQL work per 1,000 executions that finished the stage (stage A: reached the durable wait; stage B: completed with the message accepted and projections caught up). CPU is the database container's cgroup usage, so it holds regardless of what else runs on the host. SQL figures cover top-level statements, including the benchmark's own reads, polling and EXPLAIN probes.", "stage_a": costAEnd.since(costAStart, customers), "stage_b": costBEnd.since(costBStart, customers)}}
 	stopWaits()
 	report["database_wait_sampling"] = waits.report()
 	report["journey_observability"] = map[string]any{
@@ -606,4 +622,45 @@ func main() {
 		fmt.Fprintln(os.Stderr, "Benchmark failed:", err)
 		os.Exit(1)
 	}
+}
+
+// costPoint is a reading of how much work PostgreSQL has done so far.
+type costPoint struct {
+	at        time.Time
+	cpuMicros *int64
+	walBytes  int64
+	calls     int64
+	execMs    float64
+	blocks    int64
+}
+
+// costAt reads the database container's CPU use, the WAL position and the
+// statement totals. CPU is unknown where the cgroup file cannot be read.
+func costAt(ctx context.Context, pool *pgxpool.Pool) (costPoint, error) {
+	p := costPoint{at: time.Now()}
+	var cpu int64
+	if pool.QueryRow(ctx, `SELECT (regexp_match(pg_read_file('/sys/fs/cgroup/cpu.stat'),'usage_usec (\d+)'))[1]::bigint`).Scan(&cpu) == nil {
+		p.cpuMicros = &cpu
+	}
+	err := pool.QueryRow(ctx, `SELECT pg_wal_lsn_diff(pg_current_wal_lsn(),'0/0')::bigint,COALESCE(sum(calls),0)::bigint,COALESCE(sum(total_exec_time),0),COALESCE(sum(shared_blks_hit+shared_blks_read),0)::bigint FROM pg_stat_statements`).Scan(&p.walBytes, &p.calls, &p.execMs, &p.blocks)
+	return p, err
+}
+
+// since is the work done between start and p, per 1,000 executions.
+func (p costPoint) since(start costPoint, executions int) map[string]any {
+	per := 1000 / float64(executions)
+	seconds := p.at.Sub(start.at).Seconds()
+	out := map[string]any{
+		"wall_seconds":              seconds,
+		"wal_mib_per_1000":          float64(p.walBytes-start.walBytes) / (1 << 20) * per,
+		"sql_calls_per_1000":        float64(p.calls-start.calls) * per,
+		"sql_exec_seconds_per_1000": (p.execMs - start.execMs) / 1000 * per,
+		"shared_blocks_per_1000":    float64(p.blocks-start.blocks) * per,
+	}
+	if p.cpuMicros != nil && start.cpuMicros != nil {
+		cpu := float64(*p.cpuMicros-*start.cpuMicros) / 1e6
+		out["db_cpu_seconds_per_1000"] = cpu * per
+		out["db_cpu_cores_average"] = cpu / seconds
+	}
+	return out
 }
