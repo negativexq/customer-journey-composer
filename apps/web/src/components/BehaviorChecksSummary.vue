@@ -15,11 +15,9 @@ defineProps<{ checks?: BehaviorChecks }>();
       >{{ checks.case_name }} · {{ (checks.events || []).length }} subsequent events</span
     >
     <span
-      >{{ checks.email_count }} email · {{ checks.sms_count }} SMS ·<template
-        v-if="checks.push_count !== undefined"
-      >
-        {{ checks.push_count }} push ·</template
-      >
+      >{{ checks.email_count }} email · {{ checks.sms_count }} SMS ·{{
+        checks.push_count === undefined ? '' : ' ' + checks.push_count + ' push ·'
+      }}
       {{
         checks.outcome === 'completed'
           ? 'Completed without conversion'
@@ -41,11 +39,9 @@ defineProps<{ checks?: BehaviorChecks }>();
       <li v-for="(clause, index) in checks.alternatives" :key="index">
         <strong>{{ clause.name }}</strong
         ><span
-          >{{ clause.email_count }} email · {{ clause.sms_count }} SMS ·<template
-            v-if="clause.push_count !== undefined"
-          >
-            {{ clause.push_count }} push ·</template
-          >
+          >{{ clause.email_count }} email · {{ clause.sms_count }} SMS ·{{
+            clause.push_count === undefined ? '' : ' ' + clause.push_count + ' push ·'
+          }}
           {{ clause.outcome }}</span
         ><span
           >{{ (clause.events || []).length }} subsequent events<span
