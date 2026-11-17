@@ -424,7 +424,7 @@ En az **10.000 aktif execution** yük senaryosu: ingestion throughput, event-to-
 
 ## 21. MVP dışı
 
-WhatsApp; web/native push; gerçek zamanlı CDP; A/B/experimentation; next best channel; AI decisioning/contextual bandits; runtime AI reasoning node; advanced segmentation; complex loops; tenant billing; büyük Kubernetes; Figma; send-time optimization. Çekirdek runtime ve testing sonrası ayrı fazlar.
+WhatsApp; gerçek web/native push sağlayıcıları (APNs/FCM; demo push kanalı yalnızca mock sağlayıcıyla eklendi); gerçek zamanlı CDP; A/B/experimentation; next best channel; AI decisioning/contextual bandits; runtime AI reasoning node; advanced segmentation; complex loops; tenant billing; büyük Kubernetes; Figma; send-time optimization. Çekirdek runtime ve testing sonrası ayrı fazlar.
 
 ## 22. Son ürün demosu
 

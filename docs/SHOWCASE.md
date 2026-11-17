@@ -2,7 +2,7 @@
 
 The gallery follows one newly authored story: **Northstar Commerce / Abandoned
 Cart Recovery**. It uses 14 fictional customers, Alex Morgan's €89.90 cart and a
-consistent Northstar email/SMS throughout. The shared recipe is
+consistent Northstar email, push and SMS throughout. The shared recipe is
 [showcase-recipe.mjs](../scripts/showcase-recipe.mjs).
 
 ## Start clean
@@ -27,25 +27,26 @@ silently photographing a cluttered workspace.
 ## One journey, two cadences
 
 The intended draft waits **one hour**, sends the email, waits up to **24 hours** for
-a purchase of the entry cart, then sends an eligible SMS and completes. A matching
+a purchase of the entry cart, then sends an eligible push notification and SMS
+and completes. A matching
 purchase exits immediately as converted. Entry requires EUR amount >=50; reentry
 has a seven-day cooldown. Channel consent is enforced by delivery policy.
 
 The published local v1 uses accelerated real timers: **5 seconds / 30 seconds**.
 The draft retains **1 hour / 24 hours**. Existing executions use immutable v1 while
 the editable draft remains separate. Email goes only to local **Mailpit SMTP**;
-SMS uses the **mock provider**. Seeding refuses another SMTP host/port. No external
+SMS and push use the **mock providers**. Seeding refuses another SMTP host/port. No external
 message or paid LLM request is made.
 
 Twelve initial customers demonstrate early purchase, purchase after email,
-completion, email opt-out and SMS opt-out. Two later entrants populate the same
+completion, email opt-out, SMS opt-out and a customer with no push device. Two later entrants populate the same
 journey. Production-mode counts come from real local API events and workers,
 never inserted analytics totals. Real waits may finish before a later capture;
 completed paths and their history remain inspectable. Repeated seeds retain
 original event timestamps and deduplication keys.
 
 Five saved sandbox scenarios cover the full path, early purchase, purchase after
-email, SMS opt-out and an unrelated cart purchase. Each must pass against the
+email, SMS and push opt-out and an unrelated cart purchase. Each must pass against the
 current draft before publish review is ready. They use virtual time, not live
 provider calls. Inbox previews are selected from a fresh run of the saved Alex
 scenario, using current-draft regression mode.

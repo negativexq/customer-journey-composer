@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/negativexq/customer-journey-composer/actions/workflows/ci.yml/badge.svg)](https://github.com/negativexq/customer-journey-composer/actions/workflows/ci.yml)
 
-Turns a plain-language brief into a customer journey on a visual canvas: an entry event, waits, conditions, branches, email and SMS steps, and a goal that ends the journey. Claude or OpenAI proposes the journey, a person reviews and applies it, and a Go runtime on PostgreSQL executes the published version step by step for each customer. A Test Lab runs days of a journey in seconds on a virtual clock, and the live monitor follows every customer through it.
+Turns a plain-language brief into a customer journey on a visual canvas: an entry event, waits, conditions, branches, email, SMS and push steps, and a goal that ends the journey. Claude or OpenAI proposes the journey, a person reviews and applies it, and a Go runtime on PostgreSQL executes the published version step by step for each customer. A Test Lab runs days of a journey in seconds on a virtual clock, and the live monitor follows every customer through it.
 
 The AI only proposes. It cannot save, publish or send anything: a person applies its draft, a person publishes it, and the runtime then runs that fixed version without a model. Email goes to a local Mailpit inbox and SMS to a mock provider, so nothing leaves your machine.
 
@@ -209,7 +209,7 @@ docker compose down -v
 
 ## LLM provider
 
-Claude (Messages API) and OpenAI (Responses API) implement one provider interface and share the versioned [composer.v6 schema](docs/schemas/composer.v6.json). `AI_PROVIDER=disabled` is the default. A call gets 90 seconds, and a request at most two model attempts, including one repair.
+Claude (Messages API) and OpenAI (Responses API) implement one provider interface and share the versioned [composer.v7 schema](docs/schemas/composer.v7.json). `AI_PROVIDER=disabled` is the default. A call gets 90 seconds, and a request at most two model attempts, including one repair.
 
 Tests never call a paid provider; they use local fixtures. Live runs were made only when the user authorized them, with OpenAI `gpt-6-luna`, and their outputs and limits are kept in the [validation history](docs/reports/README.md). The latest, on November 15, generated ten different journeys and passed all 47 of their Test Lab cases. Live Claude quality has not been measured.
 

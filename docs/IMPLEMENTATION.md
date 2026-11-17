@@ -290,6 +290,23 @@ Not covered:
 
 - The check's live cost was measured afterwards on the ten reviewed briefs: [live-factcheck-2026-11-15](reports/live-factcheck-2026-11-15.md). It refused nothing and caused no repair. How often it catches an invented fact live is not measured.
 
+## Push notifications as a third channel — 2026-11-17
+
+- Push is a message step next to email and SMS (`9b5b6df`, API). Migration `0029` adds `customers.push_token` and widens the channel and provider checks. A push has a title (`subject`, at most 120 bytes), a body (`text`, at most 1000) and an optional http(s) link. The link is tracked, so a tap counts as a click. Delivery goes to the `mock_push` provider only, which needs a device token and push consent. A token starting `expired-` bounces in the simulated provider report. Push has no opened or unsubscribed event. The AI schema moved to `composer.v7`, which adds the push node; `composer.v6.json` stays. Sending a test push from the message studio returns 422 and points to the Test Lab.
+- The web app builds, previews and monitors push steps (`035ce79`). The step library, inspector and message studio have Title, Message and "Link when tapped" fields. `PushPreview` shows the notification on a phone, either as a banner dropping from the top or on the lock screen, with the workspace as the app name. The Test Inbox channel filter is an icon-only control that labels the chosen channel. The recipients block sits at the end of the filter column, so filtering to push no longer moves the controls. Monitor, analytics, customers and Test Lab count and filter push. Channel settings showed the push row as "SMS"; it is now labelled from the channel name, and each row has its channel icon (`7c62e76`).
+- The Northstar showcase sends a push, "Still thinking it over?", between the 24-hour purchase wait and the SMS. The five saved scenarios check push counts: 1 on the full path and the unrelated purchase, 0 elsewhere. The email-only scenario turns off push consent too. Eleven of the twelve seeded live customers have a device; one has no token and no push consent.
+- A behavior contract clause accepted at most two channel consents, so a reset of the showcase failed with "Clause exceeds bounded limits". The limit now follows the list of message channels. The demo seed now prints the API's error body when a request fails. The contract still counts only email and SMS messages, and the contract editor has no push consent toggle.
+
+Verified locally:
+
+- API: `go test` for the new push tests in workflow, messaging, delivery and simulation, plus the delivery and channel-health integration tests. The full integration suite passed for `9b5b6df`.
+- `make fmt-check`, `make lint`, `make typecheck`, `make test` and `git diff --check` passed before each commit.
+- `tests/e2e/push.spec.ts` checks the studio banner, the Test Inbox banner and lock views, and that the live worker records `push mock_push ACCEPTED`. A full `npx playwright test` before the channel label fix had 104 passed and 2 failed. Both failures were the mislabelled push row in `channel-resilience.spec.ts`, which passed after the fix.
+- After the showcase and consent-limit changes, the push, scoped-contract, behavior-checks, Test Lab, recovery, channel-resilience and acceptance specs passed 16/16 on desktop and mobile. Two full-suite runs at the same time were cut short because another local session was rebuilding the shared web container. Those runs failed with connection refused, so they say nothing about the code.
+- `node scripts/seed-product-demo.mjs --reset` rebuilt Northstar with five passing scenarios after the consent limit fix. In the browser, the Northstar Test Inbox lists push messages, and the push filter and both preview views render them.
+
+Not covered: README screenshots were not recaptured, so they show the journey without the push step. No real APNs or FCM provider, no paid LLM call and no remote CI run for these commits.
+
 ## Large web components split — 2026-11-17
 
 - The four largest Vue components were split into smaller parts without changing what they render. Markup and class names were moved as they were, so the browser tests and capture scripts kept working unchanged.
