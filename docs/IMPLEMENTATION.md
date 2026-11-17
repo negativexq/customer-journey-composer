@@ -1355,6 +1355,12 @@ still reads about 1,300 blocks per call under load and only about 20 at rest; it
 cause is not yet measured. Single local runs; all kept 10,000 logical sends with
 no duplicates or failures.
 
+Correction (2026-11-18): the claim is not independent of statistics. Its plan test
+passed when committed but now fails every time: with `delivery_jobs` analyzed
+while empty, the planner reads the whole due queue through a bitmap scan and sorts
+it (3,000 messages). The test now checks the plan after the queue is analyzed,
+where the claim reads only the earliest due messages, and states the cold case.
+
 ### Scheduling fence under load — 2026-11-17
 
 `auto_explain` during the 1,000 calls/s burst showed where the fence's blocks go:
