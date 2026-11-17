@@ -37,9 +37,9 @@ test('creates a consent-aware customer and inspects a deduplicated event', async
     .click();
   await page.getByLabel('Customer ID', { exact: true }).fill('browser_customer');
   await page.getByRole('button', { name: 'Send event', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('ACCEPTED');
+  await expect(page.getByRole('status')).toContainText('Accepted');
   await page.getByRole('button', { name: 'Send event', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('DUPLICATE');
+  await expect(page.getByRole('status')).toContainText('Duplicate');
   await page.locator('.event-row').first().click();
   const drawer = page.getByRole('dialog', { name: 'Event details', exact: true });
   await expect(drawer.locator('pre').first()).toContainText('cart_demo');
