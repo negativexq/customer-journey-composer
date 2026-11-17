@@ -53,7 +53,10 @@ export async function seedProductDemo({
       signal: AbortSignal.timeout(25000),
     });
     if (response.status === 404 && method === 'GET') return null;
-    if (!response.ok) throw new Error(`${method} ${path}: HTTP ${response.status}`);
+    if (!response.ok)
+      throw new Error(
+        `${method} ${path}: HTTP ${response.status} ${(await response.text()).slice(0, 400)}`,
+      );
     if (response.headers.has('set-cookie'))
       cookie = response.headers.get('set-cookie').split(';')[0];
     return response.json();
@@ -152,7 +155,7 @@ export async function seedProductDemo({
     journey = await call('/journeys', 'POST', {
       name: showcaseName,
       description: showcaseDescription,
-      tags: [showcaseTag, 'Retention', 'Email + SMS'],
+      tags: [showcaseTag, 'Retention', 'Email, push + SMS'],
     });
     journey = await call(`/journeys/${journey.id}/draft`, 'PUT', {
       name: journey.name,
@@ -194,6 +197,7 @@ export async function seedProductDemo({
         external_id: 'NS-' + (1001 + i),
         email: `${first.toLowerCase()}.${last.toLowerCase()}@example.invalid`,
         phone: '+1202555' + String(100 + i).padStart(4, '0'),
+        push_token: i === 9 ? undefined : 'device-' + id,
         locale: 'en',
         timezone: 'Europe/London',
         attributes: {
@@ -203,7 +207,7 @@ export async function seedProductDemo({
           total_orders: i % 5,
           cart_total: 89.9,
         },
-        consents: { email: i !== 10, sms: i !== 11 },
+        consents: { email: i !== 10, sms: i !== 11, push: i !== 9 },
       });
       await call('/events', 'POST', {
         event_id: 'northstar-cart-' + id,
@@ -263,6 +267,7 @@ export async function seedProductDemo({
         external_id: 'NS-' + (1013 + index),
         email: id + '@example.invalid',
         phone: '+120255501' + (12 + index),
+        push_token: 'device-' + id,
         locale: 'en',
         timezone: 'Europe/London',
         attributes: {
@@ -272,7 +277,7 @@ export async function seedProductDemo({
           total_orders: 1,
           cart_total: 89.9,
         },
-        consents: { email: true, sms: true },
+        consents: { email: true, sms: true, push: true },
       });
       await call('/events', 'POST', {
         event_id: 'northstar-cart-' + id,
@@ -332,7 +337,7 @@ export async function seedProductDemo({
   await mkdir('.tmp', { recursive: true });
   await writeFile('.tmp/product-demo.json', JSON.stringify(metadata, null, 2) + '\n');
   log(
-    'Northstar ready: one journey, 14 customers, real Mailpit/mock-SMS activity and five passing business-cadence scenarios.',
+    'Northstar ready: one journey, 14 customers, real Mailpit, mock push and mock SMS activity and five passing business-cadence scenarios.',
   );
   return metadata;
 }

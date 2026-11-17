@@ -134,7 +134,7 @@ try {
   await shot('journey-builder');
   await open(`/journeys/${demo.journeyId}?tab=preview-test&view=test-lab`);
   await page.getByRole('combobox', { name: 'Saved scenario' }).click();
-  await page.getByRole('option', { name: 'Email and SMS · no purchase' }).click();
+  await page.getByRole('option', { name: 'Email, push and SMS · no purchase' }).click();
   await page.getByLabel('Use current draft for regression', { exact: false }).check();
   const creating = page.waitForResponse(
     (response) =>
@@ -152,7 +152,7 @@ try {
   void inboxRunId;
   await page.getByRole('combobox', { name: 'Test run', exact: true }).click();
   await page
-    .getByRole('option', { name: /Email and SMS · no purchase/ })
+    .getByRole('option', { name: /Email, push and SMS · no purchase/ })
     .first()
     .click();
   await expect(page.locator('.inbox-row')).toHaveCount(2);

@@ -47,14 +47,23 @@ export function showcaseRecipe({ accelerated = false } = {}) {
         event_name: 'purchase_completed',
         timeout_seconds: purchaseWait,
       }),
-      node('sms', 'sms', 'A little extra incentive', 580, 790, {
+      node('push', 'push', 'Still thinking it over?', 580, 790, {
+        subject: '{{ customer.attributes.first_name }}, your cart is still here',
+        text: 'Your {{ event.properties.amount_display }} Northstar cart is saved. Tap to pick up where you left off.',
+        url: 'https://northstar.example.invalid/cart',
+        fallbacks: {
+          'customer.attributes.first_name': 'Hi there',
+          'event.properties.amount_display': 'saved',
+        },
+      }),
+      node('sms', 'sms', 'A little extra incentive', 580, 990, {
         text: 'Hi {{ customer.attributes.first_name }}! Your {{ event.properties.amount_display }} Northstar cart is waiting. Take 10% off with COMEBACK10. https://northstar.example.invalid/cart',
         fallbacks: {
           'customer.attributes.first_name': 'there',
           'event.properties.amount_display': 'saved',
         },
       }),
-      node('completed', 'exit', 'Recovery complete', 580, 990, { reason: 'completed' }),
+      node('completed', 'exit', 'Recovery complete', 580, 1190, { reason: 'completed' }),
       node('converted', 'exit', 'Purchase completed', 80, 790, { reason: 'converted' }),
     ],
     edges: [
@@ -62,7 +71,8 @@ export function showcaseRecipe({ accelerated = false } = {}) {
       edge('reminder_wait', 'email', 'completed'),
       edge('email', 'purchase_wait', 'next'),
       edge('purchase_wait', 'converted', 'matched'),
-      edge('purchase_wait', 'sms', 'timeout'),
+      edge('purchase_wait', 'push', 'timeout'),
+      edge('push', 'sms', 'next'),
       edge('sms', 'completed', 'next'),
     ],
   };
@@ -71,8 +81,9 @@ export function showcaseRecipe({ accelerated = false } = {}) {
     customer_id: 'alex-morgan',
     email: 'alex.morgan@example.invalid',
     phone: '+12025550100',
+    push_token: 'device-alex-morgan-ios',
     attributes: { first_name: 'Alex', last_name: 'Morgan' },
-    consents: { email: true, sms: true },
+    consents: { email: true, sms: true, push: true },
   };
   const properties = {
     cart_id: 'CART-ALEX-001',
@@ -80,7 +91,7 @@ export function showcaseRecipe({ accelerated = false } = {}) {
     amount_display: '€89.90',
     currency: 'EUR',
   };
-  const scenario = (name, email, sms, outcome) => ({
+  const scenario = (name, email, push, sms, outcome) => ({
     name,
     start_time: start,
     customer: structuredClone(customer),
@@ -94,13 +105,14 @@ export function showcaseRecipe({ accelerated = false } = {}) {
     assertions: [
       { type: 'enrollment_count', expected: 1 },
       { type: 'message_count', channel: 'email', expected: email },
+      { type: 'message_count', channel: 'push', expected: push },
       { type: 'message_count', channel: 'sms', expected: sms },
       { type: 'exit_reason', expected: outcome },
       { type: 'no_duplicate_delivery', expected: true },
     ],
   });
-  const full = scenario('Email and SMS · no purchase', 1, 1, 'completed');
-  const early = scenario('Purchase before the reminder', 0, 0, 'converted');
+  const full = scenario('Email, push and SMS · no purchase', 1, 1, 1, 'completed');
+  const early = scenario('Purchase before the reminder', 0, 0, 0, 'converted');
   early.events = [
     {
       after_seconds: accelerated ? 2 : 1800,
@@ -111,7 +123,7 @@ export function showcaseRecipe({ accelerated = false } = {}) {
       },
     },
   ];
-  const afterEmail = scenario('Purchase after the email', 1, 0, 'converted');
+  const afterEmail = scenario('Purchase after the email', 1, 0, 0, 'converted');
   afterEmail.events = [
     {
       after_seconds: accelerated ? 10 : 7200,
@@ -122,9 +134,10 @@ export function showcaseRecipe({ accelerated = false } = {}) {
       },
     },
   ];
-  const noSMS = scenario('Email consent only', 1, 0, 'completed');
+  const noSMS = scenario('Email consent only', 1, 0, 0, 'completed');
   noSMS.customer.consents.sms = false;
-  const unrelated = scenario('Another cart is purchased', 1, 1, 'completed');
+  noSMS.customer.consents.push = false;
+  const unrelated = scenario('Another cart is purchased', 1, 1, 1, 'completed');
   unrelated.events = [
     {
       after_seconds: accelerated ? 10 : 7200,
@@ -150,7 +163,7 @@ export function showcaseRecipe({ accelerated = false } = {}) {
         Object.entries(properties).map(([k, v]) => ['event.properties.' + k, v]),
       ),
     },
-    consents: { email: true, sms: true },
+    consents: { email: true, sms: true, push: true },
     email_count: 1,
     sms_count: 1,
     outcome: 'completed',
