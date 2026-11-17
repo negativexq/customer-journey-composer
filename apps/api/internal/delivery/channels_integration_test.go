@@ -375,3 +375,95 @@ func TestConcurrentClaimsStayWithinTheRate(t *testing.T) {
 		t.Fatalf("%d calls in flight for a rate of %d", n, rate)
 	}
 }
+
+func TestTheRateWindowCountsOnlyCallsThatHoldAPlace(t *testing.T) {
+	c := channelSetup(t)
+	ids := c.queue(1)
+	now := c.now.Now()
+	ago := func(d time.Duration) *time.Time { at := now.Add(-d); return &at }
+	type call struct {
+		status    string
+		code      *int
+		started   time.Duration
+		completed *time.Time
+		counts    bool
+	}
+	timeout := 408
+	calls := []call{
+		{"STARTED", nil, time.Second, nil, true},                              // in flight
+		{"STARTED", nil, 40 * time.Second, nil, false},                        // lost long ago
+		{"ACCEPTED", nil, 2 * time.Second, ago(500 * time.Millisecond), true}, // answered within its second
+		{"ACCEPTED", nil, 3 * time.Second, ago(2 * time.Second), false},       // answered and done
+		{"UNKNOWN", nil, 5 * time.Second, ago(4 * time.Second), true},         // may still reach the provider
+		{"RETRY", &timeout, 6 * time.Second, ago(5 * time.Second), true},      // timed out, may still arrive
+		{"UNKNOWN", nil, 20 * time.Second, ago(19 * time.Second), false},      // past the unanswered hold
+		{"CANCELLED", nil, time.Second, nil, false},
+	}
+	want := 0
+	for i, call := range calls {
+		if _, err := c.pool.Exec(c.ctx, `INSERT INTO delivery_attempts(workspace_id,delivery_id,attempt,status,provider_code,started_at,completed_at,provider) VALUES($1,$2,$3,$4,$5,$6,$7,'mock_sms')`, c.workspace, ids[0], i+1, call.status, call.code, now.Add(-call.started), call.completed); err != nil {
+			t.Fatal(err)
+		}
+		if call.counts {
+			want++
+		}
+	}
+	tx, err := c.pool.Begin(c.ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback(c.ctx) }()
+	got, err := callsInFlight(c.ctx, tx, c.workspace, "mock_sms", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != want {
+		t.Fatalf("counted %d calls, want %d", got, want)
+	}
+}
+
+func TestADispatcherWaitsOutHeldChannelsInsteadOfRescanningThem(t *testing.T) {
+	c := channelSetup(t)
+	if _, err := c.pool.Exec(c.ctx, `INSERT INTO provider_channels(workspace_id,provider,paused_until,pause_reason) VALUES($1,'mock_sms',$2,'rate_limit')`, c.workspace, c.now.Now().Add(rateRest)); err != nil {
+		t.Fatal(err)
+	}
+	if wait, err := c.sender.heldWait(c.ctx); err != nil || wait != 0 {
+		t.Fatalf("a held channel with nothing due holds no one: %v %v", wait, err)
+	}
+	c.queue(3)
+	if job := c.claim(); job != nil {
+		t.Fatal("a held channel's messages stay where they are")
+	}
+	wait, err := c.sender.heldWait(c.ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Another workspace may hold its own channel; no wait passes the bound.
+	if wait <= 0 || wait > maxHeldWait {
+		t.Fatalf("waits %v, bound %v", wait, maxHeldWait)
+	}
+	c.now.now = c.now.now.Add(rateRest)
+	if job := c.claim(); job == nil {
+		t.Fatal("the channel takes calls again once its rest is over")
+	}
+}
+
+func TestAHeldChannelLetsAnotherChannelsLaterMessageGoFirst(t *testing.T) {
+	c := channelSetup(t)
+	if _, err := c.pool.Exec(c.ctx, `INSERT INTO provider_channels(workspace_id,provider,paused_until,pause_reason) VALUES($1,'mock_sms',$2,'throttled')`, c.workspace, c.now.Now().Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	c.queue(3)
+	var push string
+	if err := c.pool.QueryRow(c.ctx, `INSERT INTO delivery_jobs(workspace_id,mode,channel,provider,idempotent_provider,logical_key,message,decision,status,due_at,created_at) VALUES($1,'TEST','push','mock_push',true,$2,'{}','{}','SCHEDULED',$3,$3) RETURNING id::text`, c.workspace, "test:"+randomID(), c.now.Now().Add(time.Millisecond)).Scan(&push); err != nil {
+		t.Fatal(err)
+	}
+	c.now.now = c.now.now.Add(time.Second)
+	job := c.claim()
+	if job == nil || job.ID != push {
+		t.Fatalf("claimed %+v, want the push message behind the held SMS channel", job)
+	}
+	if job := c.claim(); job != nil {
+		t.Fatal("the held SMS messages keep waiting")
+	}
+}

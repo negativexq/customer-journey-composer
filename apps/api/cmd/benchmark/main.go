@@ -473,7 +473,11 @@ func run(customers int, out string, rate, delayMS, delayEvery, spreadSeconds int
 	}
 	runtimeDone := time.Now()
 	probe.phase.Store("delivery_drain")
-	if err = explain("loaded_delivery_claim", `SELECT d.id FROM delivery_jobs d JOIN customers c ON c.workspace_id=d.workspace_id AND c.customer_id=d.customer_id WHERE d.status='SCHEDULED' AND d.mode='LIVE' AND d.due_at<=$1 AND (SELECT j.status IN ('Active','Sunset') FROM journey_executions e JOIN journeys j ON j.id=e.journey_id WHERE e.id=d.execution_id) AND `+delivery.ClaimGate+` ORDER BY d.due_at,d.id LIMIT 1 FOR UPDATE OF c SKIP LOCKED`, time.Now().UTC()); err != nil {
+	held, err := delivery.HeldChannels(ctx, apiPool, time.Now().UTC())
+	if err != nil {
+		return err
+	}
+	if err = explain("loaded_delivery_claim", delivery.ClaimLive, time.Now().UTC(), held); err != nil {
 		return err
 	}
 	if err = waitFor(ctx, "Accepted mock deliveries", customers, apiPool, `SELECT count(*) FROM delivery_jobs WHERE workspace_id=$1 AND status='ACCEPTED'`, workspace); err != nil {

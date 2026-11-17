@@ -331,9 +331,13 @@ func (s *Service) Claim(ctx context.Context) (*Job, error) {
 	var id string
 	// Lock the customer before the delivery row, matching runtime/global-exit order.
 	// A held channel's messages are left where they are, so others go first.
-	err = tx.QueryRow(ctx, `SELECT d.id::text FROM delivery_jobs d JOIN customers c ON c.workspace_id=d.workspace_id AND c.customer_id=d.customer_id WHERE d.status='SCHEDULED' AND d.mode='LIVE' AND d.due_at<=$1 AND (SELECT j.status IN ('Active','Sunset') FROM journey_executions e JOIN journeys j ON j.id=e.journey_id WHERE e.id=d.execution_id) AND `+gatedChannel+` ORDER BY d.due_at,d.id LIMIT 1 FOR UPDATE OF c SKIP LOCKED`, now).Scan(&id)
+	held, err := HeldChannels(ctx, tx, now)
+	if err != nil {
+		return nil, err
+	}
+	err = tx.QueryRow(ctx, ClaimLive, now, held).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
-		err = tx.QueryRow(ctx, `SELECT d.id::text FROM delivery_jobs d WHERE d.status='SCHEDULED' AND d.mode='TEST' AND d.due_at<=$1 AND `+gatedChannel+` ORDER BY d.due_at,d.id LIMIT 1 FOR UPDATE SKIP LOCKED`, now).Scan(&id)
+		err = tx.QueryRow(ctx, claimTest, now, held).Scan(&id)
 	}
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -611,6 +615,20 @@ func (s *Service) Run(ctx context.Context) error {
 					continue
 				}
 				if job == nil {
+					// New work does not cut a wait on held channels short: it would
+					// only queue behind them and send the dispatcher back to skip them.
+					request, cancel := context.WithTimeout(ctx, 5*time.Second)
+					held, err := s.heldWait(request)
+					cancel()
+					if err != nil && ctx.Err() == nil {
+						s.Log.ErrorContext(ctx, "delivery held channel check failed")
+					}
+					if held > 0 {
+						if !deliveryPause(ctx, nil, held) {
+							return
+						}
+						continue
+					}
 					if !deliveryPause(ctx, wake, 250*time.Millisecond) {
 						return
 					}

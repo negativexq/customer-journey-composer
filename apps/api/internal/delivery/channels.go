@@ -52,11 +52,62 @@ const (
 	rateHeadroom = 16
 )
 
-// ClaimGate is the claim's channel filter, for diagnostics that explain the claim.
-const ClaimGate = gatedChannel
+// openChannel keeps a claim off messages whose channel is held. $2 lists the
+// held channels as "workspace/provider", read by heldChannels just before. A
+// plain filter keeps the claim walking the due index in order and stopping at
+// the first message it may take; a join against provider_channels made the
+// planner expect almost nothing to pass, so it fetched and sorted every due
+// message on each claim.
+const openChannel = `NOT (d.workspace_id::text||'/'||d.provider = ANY($2::text[]))`
 
-// gatedChannel excludes messages whose channel is held. It reads $1 as now.
-const gatedChannel = `NOT EXISTS (SELECT 1 FROM provider_channels g WHERE g.workspace_id=d.workspace_id AND g.provider=d.provider AND (g.paused_until>$1 OR (g.credentials_refused_at IS NOT NULL AND g.next_probe_at>$1) OR (g.breaker='open' AND g.breaker_until>$1) OR (g.breaker='probing' AND g.probes_left=0 AND g.updated_at>$1::timestamptz-interval '1 minute')))`
+// ClaimLive is the claim of the next due live message, for diagnostics that
+// explain it. It reads $1 as now and $2 as HeldChannels.
+const ClaimLive = `SELECT d.id::text FROM delivery_jobs d JOIN customers c ON c.workspace_id=d.workspace_id AND c.customer_id=d.customer_id WHERE d.status='SCHEDULED' AND d.mode='LIVE' AND d.due_at<=$1 AND (SELECT j.status IN ('Active','Sunset') FROM journey_executions e JOIN journeys j ON j.id=e.journey_id WHERE e.id=d.execution_id) AND ` + openChannel + ` ORDER BY d.due_at,d.id LIMIT 1 FOR UPDATE OF c SKIP LOCKED`
+
+const claimTest = `SELECT d.id::text FROM delivery_jobs d WHERE d.status='SCHEDULED' AND d.mode='TEST' AND d.due_at<=$1 AND ` + openChannel + ` ORDER BY d.due_at,d.id LIMIT 1 FOR UPDATE SKIP LOCKED`
+
+type querier interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+}
+
+// HeldChannels lists the channels that may not call their provider at now, as
+// "workspace/provider": paused, locked by a refused key, behind an open
+// breaker or out of breaker probes.
+func HeldChannels(ctx context.Context, db querier, now time.Time) ([]string, error) {
+	rows, err := db.Query(ctx, `SELECT g.workspace_id::text||'/'||g.provider FROM provider_channels g WHERE `+heldGate+` IS NOT NULL`, now)
+	if err != nil {
+		return nil, err
+	}
+	held, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if held == nil {
+		// An empty list, not NULL: NULL would hold every channel.
+		held = []string{}
+	}
+	return held, err
+}
+
+// heldGate is when a held channel may be asked again: the latest of the
+// reasons that hold it. It reads $1 as now and g as the channel row.
+const heldGate = `GREATEST(CASE WHEN g.paused_until>$1 THEN g.paused_until END,CASE WHEN g.credentials_refused_at IS NOT NULL AND g.next_probe_at>$1 THEN g.next_probe_at END,CASE WHEN g.breaker='open' AND g.breaker_until>$1 THEN g.breaker_until END,CASE WHEN g.breaker='probing' AND g.probes_left=0 AND g.updated_at>$1::timestamptz-interval '1 minute' THEN g.updated_at+interval '1 minute' END)`
+
+// maxHeldWait bounds how long a dispatcher sleeps on held channels, so work
+// for a channel that is not held waits at most this long behind them.
+const maxHeldWait = time.Second
+
+// heldWait says how long a dispatcher that found nothing to claim should wait
+// because the messages that are due all sit behind held channels: until the
+// first of those channels may be asked again, at most maxHeldWait. It is zero
+// when nothing due is held, and the dispatcher then waits for new work as usual.
+// Without it, every wake-up would rescan the held messages only to skip them.
+func (s *Service) heldWait(ctx context.Context) (time.Duration, error) {
+	now := s.Clock.Now()
+	var until *time.Time
+	err := s.Pool.QueryRow(ctx, `SELECT min(`+heldGate+`) FROM provider_channels g WHERE `+heldGate+` IS NOT NULL AND EXISTS (SELECT 1 FROM delivery_jobs d WHERE d.workspace_id=g.workspace_id AND d.provider=g.provider AND d.status='SCHEDULED' AND d.due_at<=$1)`, now).Scan(&until)
+	if err != nil || until == nil {
+		return 0, err
+	}
+	return min(max(until.Sub(now), 10*time.Millisecond), maxHeldWait), nil
+}
 
 // FaultOutcome is what a provider answers while the workspace simulates a fault.
 func FaultOutcome(fault string) (Outcome, bool) {
@@ -158,9 +209,16 @@ func admit(ctx context.Context, tx pgx.Tx, workspace, provider string, now time.
 	return
 }
 
-// callsInFlight counts the calls that hold a place in the channel's rate window.
+// callsInFlight counts the calls that hold a place in the channel's rate window:
+// those not yet answered, those answered within rateHold, and those whose answer
+// was unknown or a timeout, which may still reach the provider for
+// unansweredHold. The three parts are disjoint on completed_at and each reads
+// its own index, so the count touches only the calls that count.
 func callsInFlight(ctx context.Context, tx pgx.Tx, workspace, provider string, now time.Time) (n int, err error) {
-	err = tx.QueryRow(ctx, `SELECT count(*) FROM delivery_attempts WHERE workspace_id=$1 AND provider=$2 AND started_at>$3::timestamptz-interval '30 seconds' AND status<>'CANCELLED' AND (completed_at IS NULL OR completed_at>$4 OR ((status='UNKNOWN' OR provider_code=408) AND started_at>$5))`, workspace, provider, now, now.Add(-rateHold), now.Add(-unansweredHold)).Scan(&n)
+	err = tx.QueryRow(ctx, `SELECT
+  (SELECT count(*) FROM delivery_attempts WHERE workspace_id=$1 AND provider=$2 AND completed_at IS NULL AND started_at>$3::timestamptz-interval '30 seconds' AND status<>'CANCELLED')
+ +(SELECT count(*) FROM delivery_attempts WHERE workspace_id=$1 AND provider=$2 AND completed_at>$4 AND started_at>$3::timestamptz-interval '30 seconds' AND status<>'CANCELLED')
+ +(SELECT count(*) FROM delivery_attempts WHERE workspace_id=$1 AND provider=$2 AND (status='UNKNOWN' OR provider_code=408) AND completed_at<=$4 AND started_at>$5 AND status<>'CANCELLED')`, workspace, provider, now, now.Add(-rateHold), now.Add(-unansweredHold)).Scan(&n)
 	return
 }
 
