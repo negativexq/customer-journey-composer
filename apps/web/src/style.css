@@ -7704,3 +7704,16 @@ fieldset.scenario-form {
   font-size: 12px;
   color: var(--muted);
 }
+/* A field label with a quiet counter on the right, such as "38 / 120". */
+.field-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.field-count {
+  font-size: 11px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}

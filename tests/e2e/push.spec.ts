@@ -70,6 +70,18 @@ test('a push step previews on the phone, lands in the Test Inbox and reaches the
   await expect(studioCard).toContainText('Ada, your cart is waiting');
   await expect(studioCard).toContainText('Northwind Store');
   await expect(page.getByText('Tapping opens shop.example/cart')).toBeVisible();
+  // A length check says what each phone cuts off; a long message is cut on both.
+  const fit = page.getByRole('list', { name: 'Text length check' });
+  await expect(fit).toContainText('iPhone');
+  await expect(fit).toContainText('Android');
+  await page
+    .getByRole('textbox', { name: 'Message', exact: true })
+    .fill('Come back to your cart. '.repeat(12));
+  await expect(fit).toContainText('Message cut after 4 lines');
+  await expect(fit).toContainText('Message cut after 2 lines; expanding shows the rest');
+  await page.getByRole('radio', { name: 'Android', exact: true }).click();
+  await expect(page.locator('.push-phone.android')).toBeVisible();
+  await page.getByRole('radio', { name: 'iPhone', exact: true }).click();
   if (shots)
     await page
       .locator('.push-preview')

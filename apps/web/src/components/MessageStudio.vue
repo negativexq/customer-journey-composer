@@ -309,14 +309,23 @@ onBeforeUnmount(() => {
             @input="patch({ html: ($event.target as HTMLTextAreaElement).value })"
           /></label></template
       ><label v-if="channel === 'push'"
-        >Title<input
+        ><span class="field-heading"
+          >Title<small class="field-count" aria-hidden="true"
+            >{{ modelValue.subject?.length || 0 }} / 120</small
+          ></span
+        ><input
           :value="modelValue.subject"
           :disabled="readonly"
           maxlength="120"
           @input="patch({ subject: ($event.target as HTMLInputElement).value })" /></label
       ><label
-        >{{ channel === 'email' ? 'Text fallback' : channel === 'push' ? 'Message' : 'SMS message'
-        }}<textarea
+        ><span class="field-heading"
+          >{{
+            channel === 'email' ? 'Text fallback' : channel === 'push' ? 'Message' : 'SMS message'
+          }}<small v-if="channel === 'push'" class="field-count" aria-hidden="true"
+            >{{ modelValue.text?.length || 0 }} / 1000</small
+          ></span
+        ><textarea
           :value="modelValue.text"
           :disabled="readonly"
           :rows="channel === 'push' ? 3 : 5"
