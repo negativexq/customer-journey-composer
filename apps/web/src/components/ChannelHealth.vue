@@ -4,7 +4,8 @@ import { api } from '../lib/api';
 import { errorMessage, formatDateTime } from '../lib/format';
 import { toast } from '../lib/toast';
 import AppSelect from './ui/AppSelect.vue';
-import { channelNames } from '../lib/workflow';
+import AppIcon from './ui/AppIcon.vue';
+import { channelIcons, channelNames } from '../lib/workflow';
 
 type Channel = {
   provider: 'smtp' | 'mock_sms' | 'mock_push';
@@ -126,7 +127,10 @@ onBeforeUnmount(() => clearInterval(timer));
     <div class="channel-list">
       <article v-for="c in channels" :key="c.provider" class="channel-row">
         <div class="channel-head">
-          <strong>{{ label(c) }}</strong
+          <span class="channel-name"
+            ><span class="channel-icon" :class="c.channel" aria-hidden="true"
+              ><AppIcon :name="channelIcons[c.channel]" :size="16" /></span
+            ><strong>{{ label(c) }}</strong></span
           ><span :class="['channel-state', states[c.state].tone]"
             ><i aria-hidden="true" />{{ states[c.state].label }}</span
           >
@@ -218,6 +222,12 @@ onBeforeUnmount(() => clearInterval(timer));
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+.channel-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 .channel-state {
   display: inline-flex;
