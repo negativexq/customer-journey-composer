@@ -2,6 +2,7 @@
 import AppSelect from './ui/AppSelect.vue';
 import SegmentedControl from './ui/SegmentedControl.vue';
 import { runTitle, type TestRunSummary } from '../lib/test-runs';
+import TraceTimeline from './TraceTimeline.vue';
 import EmptyState from './ui/EmptyState.vue';
 import { errorMessage, formatDateTime } from '../lib/format';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
@@ -403,9 +404,11 @@ onMounted(
           </div>
           <MessagePreview v-if="tab === 'Preview'" v-model:device="device" :detail="selected" />
           <PayloadSummary v-else-if="tab === 'Payload'" :detail="selected" @copy="copyValue" />
-          <pre v-else-if="tab === 'Trace'">{{
-            JSON.stringify(selected.execution_trace, null, 2)
-          }}</pre>
+          <TraceTimeline
+            v-else-if="tab === 'Trace'"
+            :trace="selected.execution_trace"
+            :source-node="selected.source_node"
+          />
           <DecisionSummary v-else-if="tab === 'Decision'" :decision="selected.decision" />
           <AttemptHistory
             v-else-if="tab === 'Attempts'"
