@@ -523,18 +523,18 @@ func run(customers int, out string, rate, delayMS, delayEvery, spreadSeconds int
 		return err
 	}
 	tableScans := map[string]map[string]int64{}
-	scanRows, err := apiPool.Query(ctx, `SELECT relname,seq_scan,seq_tup_read,COALESCE(idx_scan,0),COALESCE(idx_tup_fetch,0),n_tup_upd,n_tup_hot_upd,n_dead_tup FROM pg_stat_user_tables WHERE relname IN ('action_outbox','delivery_jobs','delivery_attempts','scheduled_jobs','journey_executions','step_executions','customers','metric_queue','provider_channels')`)
+	scanRows, err := apiPool.Query(ctx, `SELECT relname,seq_scan,seq_tup_read,COALESCE(idx_scan,0),COALESCE(idx_tup_fetch,0),n_tup_upd,n_tup_hot_upd,n_dead_tup,autoanalyze_count,COALESCE((EXTRACT(epoch FROM last_autoanalyze-$1)*1000)::bigint,-1) FROM pg_stat_user_tables WHERE relname IN ('action_outbox','delivery_jobs','delivery_attempts','scheduled_jobs','journey_executions','step_executions','customers','metric_queue','provider_channels')`, due)
 	if err != nil {
 		return err
 	}
 	for scanRows.Next() {
 		var name string
-		var seq, seqRead, idx, idxFetch, upd, hot, dead int64
-		if err = scanRows.Scan(&name, &seq, &seqRead, &idx, &idxFetch, &upd, &hot, &dead); err != nil {
+		var seq, seqRead, idx, idxFetch, upd, hot, dead, analyzes, lastAnalyze int64
+		if err = scanRows.Scan(&name, &seq, &seqRead, &idx, &idxFetch, &upd, &hot, &dead, &analyzes, &lastAnalyze); err != nil {
 			scanRows.Close()
 			return err
 		}
-		tableScans[name] = map[string]int64{"seq_scan": seq, "seq_tup_read": seqRead, "idx_scan": idx, "idx_tup_fetch": idxFetch, "updates": upd, "hot_updates": hot, "dead_tuples": dead}
+		tableScans[name] = map[string]int64{"seq_scan": seq, "seq_tup_read": seqRead, "idx_scan": idx, "idx_tup_fetch": idxFetch, "updates": upd, "hot_updates": hot, "dead_tuples": dead, "autoanalyze_count": analyzes, "last_autoanalyze_ms_after_stage_b_due": lastAnalyze}
 	}
 	scanRows.Close()
 	stageBQueries, err := queryStats(ctx, apiPool)

@@ -1354,3 +1354,21 @@ calls/s; every message was accepted in 75.6 s and 250.4 s. The scheduling fence
 still reads about 1,300 blocks per call under load and only about 20 at rest; its
 cause is not yet measured. Single local runs; all kept 10,000 logical sends with
 no duplicates or failures.
+
+### Scheduling fence under load — 2026-11-17
+
+`auto_explain` during the 1,000 calls/s burst showed where the fence's blocks go:
+its frequency count read `delivery_execution_node_recent` by workspace alone and
+filtered out up to about 3,800 of the workspace's messages per check. The benchmark
+analyzes `delivery_jobs` while it is empty, so until autovacuum analyzes it the
+planner estimates one row for every index on the workspace and picks among them
+almost at random. The table activity report now records each table's autoanalyze
+count and when the last one ran relative to the stage B deadline: `delivery_jobs`
+was analyzed 56 s into an 80 s burst. A never-analyzed table behaves the same in a
+local experiment, so a new database pays this until its first analyze, after which
+the same count read 5 blocks. Three query rewrites (an ordering only the frequency
+index provides, a row-comparison range, and one scan whose status list matches the
+index predicate) chose the frequency index in isolated experiments but not reliably
+under load (the last still used the workspace index in 346 of 365 slow fences), so
+none was kept. Single local runs; all kept 10,000 logical sends with no duplicates
+or failures.
