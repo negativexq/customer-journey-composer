@@ -1632,3 +1632,36 @@ per request, and the runtime fell behind. The `scheduled_jobs` claim then read
 about 27 times as many blocks per call. The 500/s limit therefore acts as back
 pressure that keeps stage A shorter, so it stays the default. Both runs had no
 failed executions and no duplicate logical actions.
+
+### Runtime claim without statistics — 2026-11-19
+
+`auto_explain` during an unpaced run with the 5,000/s limit showed why the
+`scheduled_jobs` claim grew with the backlog. In stage A the table has no
+useful statistics. The planner estimated 3 due jobs where 3,810 were due, so it
+chose a bitmap scan and a sort instead of walking `jobs_due` in order. That
+meant the eligibility subquery ran for every due job before LIMIT: 3,658
+lookups, 22,151 blocks and 42 ms to claim five jobs. `3e375e8` sends
+`SET LOCAL enable_sort = off` in the same pgx batch as the claim. With sorting
+ruled out, the ordered `jobs_due` scan is the only plan. The setting ends with
+the batch's implicit transaction. An integration test checks that the pooled
+connection still has `enable_sort=on` afterwards, and the test fails when
+`SET LOCAL` is replaced with `SET`. The runtime and delivery integration
+packages passed.
+
+Same setup as the previous entry, one run each:
+
+| Measure                         | 5,000/s before | 5,000/s after | Default before | Default after |
+| ------------------------------- | -------------- | ------------- | -------------- | ------------- |
+| Claim mean ms / blocks per call | 7.43 / 10,069  | 0.95 / 220    | 0.60 / 370     | 0.45 / 148    |
+| Ingestion                       | 731 ev/s       | 489 ev/s      | 554 ev/s       | 553 ev/s      |
+| All executions waiting          | 25.8 s         | 24.5 s        | 19.1 s         | 19.1 s        |
+| Stage A DB CPU s per 1,000      | 7.6            | 7.5           | 5.1            | 5.4           |
+| All accepted after the burst    | 35.5 s         | 35.4 s        | 35.4 s         | 35.4 s        |
+
+The claim no longer scales with the backlog. Without the ingestion limit,
+however, stage A still takes longer than with it. No statement has a bad plan
+any more, but each write took about 1.5 times as long with 20 ingestion
+requests and 16 runtime jobs writing at once, and CPU per execution stayed
+about 40% higher. Ingestion fell because the runtime now keeps up and shares
+the database, where before it had stalled on the claim. The 500/s default stays.
+None of the runs had failed executions or duplicate logical actions.
