@@ -1533,3 +1533,41 @@ database's capacity, about 215 completed executions/s end to end. Further gains
 need more database cores or fewer statements and round trips per job and message.
 Every run kept 10,000 logical sends with no duplicates or failures. The product
 default stays at eight runtime slots.
+
+### Batched delivery claims and results — 2026-11-19
+
+`f1bb99f` adds a batched delivery path behind `Service.Batch` (default one, which
+keeps the earlier behavior). A dispatcher claims up to that many due live messages
+in one transaction, one per customer, only when no channel is held and every
+channel involved is closed, has no refused key or simulated fault and is under its
+rate by the per-call headroom times the batch size; otherwise the claim goes
+through the locked single-message path. The batch passes the dispatch fence in
+one transaction: customers are locked in a fixed order, journeys are share-locked,
+each message gets the same consent, exit and recipient checks as `Dispatch`, and
+those that may go out become DISPATCHING together, so a consent change or exit
+that commits first still stops the send. Provider calls run concurrently and
+their answers are written in one transaction, reading a healthy channel's breaker
+state once. Integration tests cover one send per message, consent revoked between
+claim and dispatch inside a batch, and the fallback on a channel without room.
+
+Local runs at `7b06810` with the uncommitted changes that became `f1bb99f` and
+`123615a` (PostgreSQL limited to 4 CPUs, warm `delivery_jobs` statistics, four
+scheduling loops, runtime concurrency 16, provider limit 1,000 calls/s, mock
+providers that answer at once):
+
+| Dispatchers | Batch | All accepted  | DB CPU s/1k until accepted | SQL calls/1k    | DB cores until accepted |
+| ----------- | ----- | ------------- | -------------------------- | --------------- | ----------------------- |
+| 16          | 1     | 46.6 s        | 17.5                       | 59,965          | 3.40                    |
+| 16          | 8     | 45.6 s        | 17.2                       | 57,482          | 3.40                    |
+| 8           | 8     | 39.4 s        | 14.6                       | 48,538          | 3.28                    |
+| 4           | 8     | 35.4 / 36.4 s | 12.8 / 13.6                | 42,584 / 42,414 | 3.16 / 3.27             |
+
+The first row is the run from the previous entry; the last row was run twice.
+Batching pays only when batches fill: with sixteen dispatchers sharing a short
+queue most claims took one or two messages, while four dispatchers took full
+batches, cut SQL calls by about 29% and database CPU per execution by about 25%,
+and accepted every message about 23% sooner than the best unbatched setting with
+the database below saturation. Every run kept 10,000 logical sends with no
+duplicates or failures. With a real provider a slow call holds its whole batch's
+result write, and the batch's operation metric carries one outcome for all its
+messages; neither was measured here.
