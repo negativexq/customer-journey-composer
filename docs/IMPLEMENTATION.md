@@ -1571,3 +1571,36 @@ the database below saturation. Every run kept 10,000 logical sends with no
 duplicates or failures. With a real provider a slow call holds its whole batch's
 result write, and the batch's operation metric carries one outcome for all its
 messages; neither was measured here.
+
+### Redundant execution indexes — 2026-11-19
+
+The busiest tables had no HOT updates in stage B (`journey_executions` 40,270
+updates, `scheduled_jobs` 90,540, `delivery_jobs` 30,006, all non-HOT), because
+the updates change indexed or index-predicate columns such as `state`. Each one
+writes every index of its table, and `journey_executions` had 14. `adfc54f` adds
+per-index scans and sizes to the benchmark report. Indexes with no scans in a run
+were checked against the application's SQL, since the benchmark does not visit
+every page; those with a query of their own (execution trace, customer timeline,
+customer list, archive check) stay. `592d201` drops three that another index
+serves as well: `executions_reentry`, the leading part of
+`executions_journey_customer_recent`; `executions_journey`, for which no query
+orders a journey's executions by start alone; and
+`executions_journey_state_recent`, whose only reader, the active-or-waiting check
+before archiving, matches `executions_one_active` (confirmed with EXPLAIN on a
+30,000-execution lab table). All integration packages passed, and none of the
+benchmark's 19 plan probes used the dropped indexes before the change.
+
+Same setup as the batched delivery entry (4 database CPUs, warm statistics, four
+dispatchers, batch 8, runtime concurrency 16): three runs before, two after.
+
+| Measure                               | Before               | After         |
+| ------------------------------------- | -------------------- | ------------- |
+| All accepted                          | 35.4 / 36.4 / 36.5 s | 36.4 / 35.4 s |
+| `journey_executions` index size       | 20.5 MB              | 11.5–13.3 MB  |
+| Stage A WAL per 1,000 executions      | 16.7 MiB             | 15.8 MiB      |
+| Stage B DB CPU s per 1,000 executions | 12.8–13.6            | 12.8–13.6     |
+
+The indexes shrank by about 40% and ingestion wrote about 5% less WAL, but
+throughput and CPU did not change beyond run-to-run noise: index maintenance is
+not where stage B spends its time. The database runs on tmpfs, so the WAL and
+storage saving would matter more on a real disk; that was not measured.
