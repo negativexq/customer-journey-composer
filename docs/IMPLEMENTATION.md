@@ -1665,3 +1665,53 @@ requests and 16 runtime jobs writing at once, and CPU per execution stayed
 about 40% higher. Ingestion fell because the runtime now keeps up and shares
 the database, where before it had stalled on the claim. The 500/s default stays.
 None of the runs had failed executions or duplicate logical actions.
+
+### Metric projector and triggers, measured and left — 2026-11-19
+
+These measurements led to no code change. With the projector paused for the
+whole burst (`-projector paused`), messages were all accepted after 32.4 s
+instead of 35.4 s, and projections then needed 17.4 s to catch up instead of
+2 s. So 3 s is the most any projector change could give. `auto_explain` showed
+healthy plans. The queue drain takes 7,843 blocks per 1,000 rows (median
+46 ms), 3,000 of them because the DELETE finds each claimed row again by
+primary key. The snapshot upsert takes 8,258 blocks, most of them writing about
+700 snapshots of 680 bytes each.
+
+A lab with the real schema timed 4,000 server-side `step_executions` inserts:
+about 27 µs per row with the metric trigger disabled and 70 µs with it enabled.
+About 32 µs of that went on building the delta and snapshot JSON; the queue
+insert itself took about 10 µs. A rewrite that calls `jsonb_build_object`
+directly produced the same 860 queue rows for a mix of inserts and three kinds
+of update, and took 58 µs per row. A rewrite as a single `INSERT … SELECT` was
+slower, at 122 µs. Applied to the step, execution and delivery triggers, that
+saving would be about 1–1.5 s of the roughly 131 s of stage B database CPU, which
+is below run-to-run variation, so the triggers were left unchanged.
+
+### Open provider calls — 2026-11-19
+
+`callsInFlight` ran 2,416 times in stage B at 2.54 ms and 1,161 blocks per
+call, 6.1 s in all. `auto_explain` showed the generic plan estimating one row on
+every index and choosing `delivery_attempts_provider_recent`. To count 11 open
+calls, it read every call of the last 30 seconds: 6,732 rows and 1,959 blocks.
+In a lab where the statistics had been taken while every call was open, the
+planner chose a sequential scan instead. `7ac21ea` adds
+`delivery_attempts_provider_open` on (workspace, provider, started_at), limited
+to calls that are open and not cancelled. An answered call leaves the index, so
+it stayed at 16–200 KB, and its predicate covers the whole filter. The database
+and delivery integration packages passed.
+
+Same setup as the batched delivery entry, one run before and two after:
+
+| Measure                        | Before       | After, run 1 | After, run 2 |
+| ------------------------------ | ------------ | ------------ | ------------ |
+| In-flight count: ms / blocks   | 2.54 / 1,161 | 0.87 / 388   | 0.45 / 154   |
+| In-flight count total, stage B | 6.1 s        | 2.2 s        | 1.1 s        |
+| Calls served by the new index  | —            | 1,935/2,508  | 2,116/2,485  |
+| All accepted after the burst   | 35.4 s       | 36.4 s       | 34.4 s       |
+
+The count is three to six times cheaper. The remaining calls still took
+another index when the estimates tied. Throughput did not change beyond
+run-to-run variation, so the count was not on the critical path. Run 1 used 17.7
+DB CPU seconds per 1,000 in stage B against about 13 in the others, for no reason
+found; other containers were running on the host. None of the runs had failed
+executions or duplicate logical actions.
