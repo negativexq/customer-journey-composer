@@ -6,7 +6,7 @@ RUN npm ci --workspace apps/web --include-workspace-root=false
 COPY apps/web apps/web
 RUN npm run build --workspace apps/web
 
-FROM nginx/nginx-unprivileged:1.30.6-alpine
+FROM nginx/nginx-unprivileged:1.30.7-alpine
 USER root
 RUN apk upgrade --no-cache libxslt
 USER nginx
