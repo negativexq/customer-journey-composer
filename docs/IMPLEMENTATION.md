@@ -1509,3 +1509,27 @@ instead of 41.3 s) with delivery using more of the database; whether runtime
 waited on the database or on the shared host was not measured. The product keeps
 one scheduling loop and four dispatchers; the counts are settings on the delivery
 service and benchmark flags.
+
+### Runtime concurrency against four database cores — 2026-11-19
+
+Local runs at `dd97367` with the uncommitted changes that became `a031826` and
+`f770619`, same setup as the entry above (PostgreSQL limited to 4 CPUs, warm
+`delivery_jobs` statistics, four scheduling loops, sixteen dispatchers, one run per
+setting). The host has 8 cores shared with the Docker VM.
+
+| Runtime concurrency | Burst completed | All accepted | Timer lateness p95 | DB cores until accepted | Benchmark process cores | DB CPU s/1k until accepted | LWLock share of sampled waits |
+| ------------------- | --------------- | ------------ | ------------------ | ----------------------- | ----------------------- | -------------------------- | ----------------------------- |
+| 8                   | 52.4 s          | 52.4 s       | 9.7 s              | 2.92                    | 0.47                    | 16.8                       | 9%                            |
+| 16                  | 46.6 s          | 46.6 s       | 7.1 s              | 3.40                    | 0.50                    | 17.5                       | 9%                            |
+| 24                  | 40.5 s          | 46.6 s       | 6.4 s              | 3.45                    | 0.50                    | 17.8                       | 14%                           |
+
+The benchmark process (client, API and workers) averaged about half a core, so the
+host was not the limit. With eight slots the runtime was bound by its sequential
+round trips (about 1 ms of SQL per job). Sixteen slots finished the burst and
+delivery together at 46.6 s. At 24 the burst finished at 40.5 s but delivery
+trailed it to the same 46.6 s, the database averaged 3.45 of its 4 cores, the
+LWLock share of waits rose and CPU per execution kept growing: this setup is at the
+database's capacity, about 215 completed executions/s end to end. Further gains
+need more database cores or fewer statements and round trips per job and message.
+Every run kept 10,000 logical sends with no duplicates or failures. The product
+default stays at eight runtime slots.
