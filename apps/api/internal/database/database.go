@@ -18,12 +18,18 @@ import (
 var migrations embed.FS
 
 func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
+	return OpenSized(ctx, url, 20)
+}
+
+// OpenSized opens a pool with room for maxConns connections, for processes that
+// run more concurrent workers than the default pool serves.
+func OpenSized(ctx context.Context, url string, maxConns int32) (*pgxpool.Pool, error) {
 	cfg, err := pgxpool.ParseConfig(url)
 	if err != nil {
 		// Do not echo the DSN, which may contain credentials.
 		return nil, fmt.Errorf("invalid database connection configuration")
 	}
-	cfg.MaxConns = 20
+	cfg.MaxConns = maxConns
 	cfg.MinConns = 1
 	cfg.MaxConnLifetime = time.Hour
 	cfg.MaxConnIdleTime = 5 * time.Minute

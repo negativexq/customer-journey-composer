@@ -26,6 +26,11 @@ type Service struct {
 	Clock     engine.Clock
 	Providers map[string]Provider
 	Log       *slog.Logger
+	// Dispatchers is how many claim-and-send loops Run keeps; zero means four.
+	Dispatchers int
+	// Schedulers is how many loops Run keeps turning pending actions into
+	// delivery decisions; zero means one.
+	Schedulers int
 }
 type Eligibility struct {
 	Eligible     bool   `json:"eligible"`
@@ -157,6 +162,14 @@ func (s *Service) pendingPage(ctx context.Context, after *scheduleCursor, limit 
 }
 
 func (s *Service) Schedule(ctx context.Context) (int, error) {
+	return s.scheduleShard(ctx, 0, 1)
+}
+
+// scheduleShard drains like Schedule but takes only every shards-th action of
+// each page, so parallel loops reading the same page mostly start on different
+// customers. An action left behind is picked up by a later drain; the customer
+// lock and pending recheck in scheduleItem keep overlapping loops correct.
+func (s *Service) scheduleShard(ctx context.Context, shard, shards int) (int, error) {
 	total := 0
 	var after *scheduleCursor
 	for total < scheduleDrainBudget {
@@ -164,7 +177,10 @@ func (s *Service) Schedule(ctx context.Context) (int, error) {
 		if err != nil {
 			return total, err
 		}
-		for _, item := range page {
+		for i, item := range page {
+			if i%shards != shard {
+				continue
+			}
 			n, err := s.scheduleItem(ctx, item.id)
 			total += n
 			if err != nil {
@@ -589,37 +605,50 @@ func (s *Service) Dispatch(ctx context.Context, job Job) (err error) {
 	}
 	return nil
 }
-func (s *Service) Run(ctx context.Context) error {
-	wake := make(chan struct{}, 4)
-	var group sync.WaitGroup
-	// Scheduling and lease recovery do not wait for provider network calls.
-	group.Go(func() {
-		for ctx.Err() == nil {
-			request, cancel := context.WithTimeout(ctx, 15*time.Second)
-			n, err := s.Schedule(request)
-			cancel()
-			if err != nil {
-				if ctx.Err() == nil {
-					s.Log.ErrorContext(ctx, "delivery scheduling failed")
-				}
-				if !deliveryPause(ctx, nil, time.Second) {
-					return
-				}
-				continue
+
+// scheduleLoop keeps one scheduling shard draining and wakes dispatchers when
+// it turns actions into messages.
+func (s *Service) scheduleLoop(ctx context.Context, shard, shards, dispatchers int, wake chan struct{}) {
+	for ctx.Err() == nil {
+		request, cancel := context.WithTimeout(ctx, 15*time.Second)
+		n, err := s.scheduleShard(request, shard, shards)
+		cancel()
+		if err != nil {
+			if ctx.Err() == nil {
+				s.Log.ErrorContext(ctx, "delivery scheduling failed")
 			}
-			if n > 0 {
-				for range 4 {
-					select {
-					case wake <- struct{}{}:
-					default:
-					}
-				}
-			}
-			if n < scheduleDrainBudget && !deliveryPause(ctx, nil, 250*time.Millisecond) {
+			if !deliveryPause(ctx, nil, time.Second) {
 				return
 			}
+			continue
 		}
-	})
+		if n > 0 {
+			for range dispatchers {
+				select {
+				case wake <- struct{}{}:
+				default:
+				}
+			}
+		}
+		if n < scheduleDrainBudget && !deliveryPause(ctx, nil, 250*time.Millisecond) {
+			return
+		}
+	}
+}
+func (s *Service) Run(ctx context.Context) error {
+	dispatchers := s.Dispatchers
+	if dispatchers < 1 {
+		dispatchers = 4
+	}
+	wake := make(chan struct{}, dispatchers)
+	var group sync.WaitGroup
+	schedulers := max(s.Schedulers, 1)
+	// Scheduling and lease recovery do not wait for provider network calls.
+	for shard := range schedulers {
+		group.Go(func() {
+			s.scheduleLoop(ctx, shard, schedulers, dispatchers, wake)
+		})
+	}
 	group.Go(func() {
 		for ctx.Err() == nil {
 			request, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -633,7 +662,7 @@ func (s *Service) Run(ctx context.Context) error {
 			}
 		}
 	})
-	for range 4 {
+	for range dispatchers {
 		group.Go(func() {
 			for ctx.Err() == nil {
 				request, cancel := context.WithTimeout(ctx, 15*time.Second)

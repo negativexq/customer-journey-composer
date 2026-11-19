@@ -265,3 +265,44 @@ func TestDeliveryClaimSkipsPausedAndLockedCustomers(t *testing.T) {
 		t.Fatal("paused deliveries changed", changed, err)
 	}
 }
+
+// Parallel scheduling loops share pages and customers: every action is decided
+// once, and the frequency cap still counts the reservation another loop made.
+func TestParallelSchedulingShardsKeepTheCapAndDecideOnce(t *testing.T) {
+	ctx, pool, now, workspace, _ := seeded(t, true)
+	if _, err := pool.Exec(ctx, `INSERT INTO workspace_settings(workspace_id,frequency_limit) VALUES($1,1)`, workspace); err != nil {
+		t.Fatal(err)
+	}
+	sender := New(pool, now)
+	for round := 0; ; round++ {
+		var group sync.WaitGroup
+		errs := make(chan error, 8)
+		for _, shards := range []int{4, 1} {
+			for shard := range shards {
+				group.Go(func() { _, err := sender.scheduleShard(ctx, shard, shards); errs <- err })
+			}
+		}
+		group.Wait()
+		close(errs)
+		for err := range errs {
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		var pending int
+		if err := pool.QueryRow(ctx, `SELECT count(*) FROM action_outbox WHERE workspace_id=$1 AND state='PENDING'`, workspace).Scan(&pending); err != nil {
+			t.Fatal(err)
+		}
+		if pending == 0 {
+			break
+		}
+		if round == 10 {
+			t.Fatalf("%d actions still pending", pending)
+		}
+	}
+	var decided, reserved, blocked int
+	pool.QueryRow(ctx, `SELECT count(*),count(*) FILTER(WHERE status='SCHEDULED'),count(*) FILTER(WHERE status='BLOCKED' AND decision->>'reason'='frequency_cap') FROM delivery_jobs WHERE workspace_id=$1`, workspace).Scan(&decided, &reserved, &blocked)
+	if decided != 2 || reserved != 1 || blocked != 1 {
+		t.Fatalf("decided=%d reserved=%d blocked=%d", decided, reserved, blocked)
+	}
+}
