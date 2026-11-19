@@ -1604,3 +1604,31 @@ The indexes shrank by about 40% and ingestion wrote about 5% less WAL, but
 throughput and CPU did not change beyond run-to-run noise: index maintenance is
 not where stage B spends its time. The database runs on tmpfs, so the WAL and
 storage saving would matter more on a real disk; that was not measured.
+
+### Ingestion limit and the runtime claim — 2026-11-19
+
+Unpaced ingestion had stopped at about 550 events/s. That figure is the
+per-workspace ingestion limit of 500 requests/s with a burst of 1,000, not API
+capacity. `f340dd2` lets the server read it from `INGEST_RATE_PER_SECOND` and
+`INGEST_BURST`, and the default stays the same. `1cde6de` adds `-ingest-limit`
+to the benchmark (burst set to twice the rate) and records the limit in the
+report.
+
+Same setup as the batched delivery entry, unpaced (`-ingest-rate 0`), one run
+each:
+
+| Measure                                  | Default limit | Limit 5,000/s |
+| ---------------------------------------- | ------------- | ------------- |
+| Ingestion                                | 554 ev/s      | 731 ev/s      |
+| HTTP 429 retries                         | 4,818         | 0             |
+| Successful attempt p50 / p99             | 8.6 / 41 ms   | 24 / 79 ms    |
+| All executions waiting                   | 19.1 s        | 25.8 s        |
+| Stage A DB CPU s per 1,000               | 5.1           | 7.6           |
+| Runtime claim: mean ms / blocks per call | 0.60 / 370    | 7.43 / 10,069 |
+| All accepted after the burst             | 35.4 s        | 35.5 s        |
+
+Without the limit, ingestion was bound by 20 benchmark clients at about 24 ms
+per request, and the runtime fell behind. The `scheduled_jobs` claim then read
+about 27 times as many blocks per call. The 500/s limit therefore acts as back
+pressure that keeps stage A shorter, so it stays the default. Both runs had no
+failed executions and no duplicate logical actions.
