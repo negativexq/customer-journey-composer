@@ -1421,3 +1421,29 @@ projector's statements are about 15% of SQL time in both stages, and each queue
 row carries about 1 KB (deltas and a full snapshot), about a fifth of WAL. An
 earlier estimate that metrics took a third of database time was wrong. The
 benchmark report can now record function time when the server tracks functions.
+
+### Deferring metric projection during a burst — 2026-11-19
+
+The benchmark takes `--projector normal|paused|throttled`, applied from the timer
+burst until every message is accepted. Paused drains nothing; throttled drains one
+1,000-row batch every 5 s while timer or delivery work is due (benchmark-only, not
+product behavior). The report adds the cost up to acceptance, the projection
+catch-up cost, and the metric queue size at acceptance. Two local runs per mode at
+`e92153a` with the benchmark change (10,000 customers, 450 events/s, provider limit
+1,000 calls/s, PostgreSQL limited to 2 CPUs; the second round ran in reverse
+order; host load average 4–6):
+
+| Mode      | Burst completed | All accepted  | Timer lateness p95 | DB CPU s/1k until accepted | Queue rows at acceptance | Catch-up after acceptance | Stage B DB CPU s/1k incl. catch-up |
+| --------- | --------------- | ------------- | ------------------ | -------------------------- | ------------------------ | ------------------------- | ---------------------------------- |
+| normal    | 57.5 / 54.5 s   | 72.6 / 73.5 s | 10.3 / 10.0 s      | 13.56 / 13.26              | 582 / 0                  | ~1 s                      | 13.57 / 13.26                      |
+| paused    | 47.4 / 48.4 s   | 68.4 / 68.5 s | 8.9 / 9.1 s        | 12.01 / 12.02              | 110,906 / 110,144        | 18.2 / 17.2 s             | 13.34 / 13.23                      |
+| throttled | 48.4 / 48.4 s   | 64.4 / 66.5 s | 9.3 / 9.4 s        | 11.38 / 11.62              | 98,154 / 97,507          | 14.2 / 17.2 s             | 12.45 / 12.70                      |
+
+Projection takes about 11–15% of the database CPU during the burst. Deferring it
+finished the burst about 14% sooner and accepted every message about 6% (paused)
+to 10% (throttled) sooner, at the cost of metrics trailing by 14–18 s once sending
+ended. The total work is not removed: stage B CPU including catch-up stayed within
+about 6% of normal, so a sustained load gains nothing and the queue would grow
+without bound. With projection deferred the database averaged 1.64 cores instead
+of about 1.7, so delivery begins to meet another limit; it was not measured. All
+runs kept 10,000 logical sends with no duplicates or failures.
