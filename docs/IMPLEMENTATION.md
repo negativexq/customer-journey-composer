@@ -1447,3 +1447,65 @@ about 6% of normal, so a sustained load gains nothing and the queue would grow
 without bound. With projection deferred the database averaged 1.64 cores instead
 of about 1.7, so delivery begins to meet another limit; it was not measured. All
 runs kept 10,000 logical sends with no duplicates or failures.
+
+### Four database cores, scheduling statistics and parallel delivery loops — 2026-11-19
+
+Local runs at `ab3cc6d` with the uncommitted changes that became `5b4b7b1` and
+`dd97367` (10,000 customers, 450 events/s unless noted, provider limit 1,000
+calls/s, PostgreSQL limited to 4 CPUs and 4 GiB, one run per setting, host shared
+with the benchmark process). Every run kept 10,000 logical sends with no
+duplicates or failures.
+
+**More database cores.** With 4 CPUs instead of 2 the burst finished in 39.3 s
+(about 254 executions/s, up from about 184) and stage A reached the durable wait
+at 426 executions/s, or 524 unpaced. Ingestion stayed at about 550 events/s: the
+unpaced run met 4,883 HTTP 429 retries with p99 263 ms, so admission is limited in
+the API, not by database CPU. Acceptance of every message stayed at 72–75 s, and
+the database averaged 2.0–2.9 of its 4 cores.
+
+| Statistics | Schedulers | Dispatchers | Burst completed | All accepted | Peak pending actions | Peak queued messages | DB cores until accepted |
+| ---------- | ---------- | ----------- | --------------- | ------------ | -------------------- | -------------------- | ----------------------- |
+| cold       | 1          | 4           | 39.3 s          | 74.5 s       | —                    | —                    | 2.48                    |
+| cold       | 1          | 8           | 40.3 s          | 72.4 s       | —                    | —                    | 2.62                    |
+| cold       | 1          | 16          | 41.3 s          | 72.5 s       | —                    | —                    | 2.23                    |
+| warm       | 1          | 4           | 41.3 s          | 52.4 s       | 6,506                | 307                  | 2.66                    |
+| warm       | 1          | 16          | 44.3 s          | 54.4 s       | —                    | —                    | 2.50                    |
+| warm       | 4          | 4           | 44.4 s          | 57.5 s       | 281                  | 6,406                | 2.43                    |
+| warm       | 8          | 4           | 43.4 s          | 58.5 s       | 260                  | —                    | 2.32                    |
+| warm       | 4          | 16          | 52.5 s          | 53.5 s       | 199                  | 595                  | 2.79                    |
+
+"Warm" runs analyze `delivery_jobs` once the burst has queued 500 messages
+(`-analyze-delivery-at 500`, 12.5–13.5 s after the burst was due). Peaks come from
+the per-second stage B timeline, which only the later runs recorded.
+
+**Cold planner statistics on the scheduling fence.** Under load the fence averaged
+2.7–2.8 ms and about 6,000 buffer hits per call, against 0.14 ms and 22 hits in the
+EXPLAIN probe taken afterwards. The benchmark analyzes the whole database after
+stage A, while `delivery_jobs` is empty. A lab copy reproduced it: without column
+statistics the frequency count used `delivery_execution_node_recent` with only
+`workspace_id` as its index condition and read every message in the workspace
+(12,078 hits, 2.75 ms); after ANALYZE it used the customer indexes (5 hits,
+0.05 ms). A table never analyzed behaved the same. Removing the subqueries'
+`LIMIT` appeared to fix it in the lab, but the plan costs were tied (8.30 against
+8.31) and a session copy of the same table picked the workspace-only index again,
+so the change was not kept. With statistics in place the fence fell to 0.09 ms and
+37 hits, stage B database CPU per 1,000 executions fell from 19.7 s to 13.7 s, and
+every message was accepted 28% sooner. A long-running deployment has statistics
+on this table; a fresh one meets the cold plan until the first autoanalyze.
+
+**Where messages wait.** With warm statistics and one scheduling loop, up to 6,506
+actions waited in the outbox while the queue of scheduled messages stayed near
+zero: dispatchers were idle, and acceptance followed the scheduling loop at about
+215 actions/s during the burst and 330/s after it. Scheduling spent about 0.75 ms
+of SQL per action but about 3–4.6 ms of wall time, mostly round trips taken one
+after another. Four scheduling loops kept the outbox under 300 actions and moved
+the backlog to the scheduled queue, where four dispatchers sent about 200
+messages/s (a claim and a dispatch take about 16 round trips and 3.5 ms of SQL).
+With four scheduling loops and sixteen dispatchers both queues stayed small, about
+320 messages/s were accepted while the burst ran, and 98% of messages were
+accepted 43 s after the burst was due instead of 52 s. Acceptance of the last
+message did not improve (53.5 s), because the burst itself finished later (52.5 s
+instead of 41.3 s) with delivery using more of the database; whether runtime
+waited on the database or on the shared host was not measured. The product keeps
+one scheduling loop and four dispatchers; the counts are settings on the delivery
+service and benchmark flags.
