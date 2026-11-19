@@ -7,14 +7,15 @@ import (
 
 // Baselines are lower priority than every real transition snapshot, regardless
 // of enqueue time. Cursor backfill therefore needs no locks on runtime rows.
-func enqueueBackfill(ctx context.Context, tx pgx.Tx) error {
+// more reports whether a source kind still has rows to backfill.
+func enqueueBackfill(ctx context.Context, tx pgx.Tx) (more bool, err error) {
 	var kind, cursor string
-	err := tx.QueryRow(ctx, `SELECT source_kind,after_id::text FROM metric_snapshot_backfill WHERE NOT complete ORDER BY CASE source_kind WHEN 'execution' THEN 0 WHEN 'step' THEN 1 ELSE 2 END LIMIT 1`).Scan(&kind, &cursor)
+	err = tx.QueryRow(ctx, `SELECT source_kind,after_id::text FROM metric_snapshot_backfill WHERE NOT complete ORDER BY CASE source_kind WHEN 'execution' THEN 0 WHEN 'step' THEN 1 ELSE 2 END LIMIT 1`).Scan(&kind, &cursor)
 	if err == pgx.ErrNoRows {
-		return nil
+		return false, nil
 	}
 	if err != nil {
-		return err
+		return false, err
 	}
 	var query string
 	switch kind {
@@ -29,10 +30,10 @@ func enqueueBackfill(ctx context.Context, tx pgx.Tx) error {
 	var count int
 	err = tx.QueryRow(ctx, `WITH batch AS MATERIALIZED (`+query+`),queued AS (INSERT INTO metric_queue(workspace_id,journey_id,version_id,cohort_at,deltas,snapshot,baseline) SELECT (snapshot->>'workspace_id')::uuid,(snapshot->>'journey_id')::uuid,(snapshot->>'version_id')::uuid,(snapshot->>'cohort_day')::date AT TIME ZONE 'UTC','[]',snapshot,true FROM batch WHERE snapshot IS NOT NULL RETURNING 1) SELECT COALESCE((SELECT id::text FROM batch ORDER BY id DESC LIMIT 1),$1::text),(SELECT count(*) FROM batch)`, cursor).Scan(&last, &count)
 	if err != nil {
-		return err
+		return false, err
 	}
 	_, err = tx.Exec(ctx, `UPDATE metric_snapshot_backfill SET after_id=$2,complete=$3 WHERE source_kind=$1`, kind, last, count < 200)
-	return err
+	return err == nil, err
 }
 
 // Pick only the newest snapshot per source in a batch. Subtract the previously

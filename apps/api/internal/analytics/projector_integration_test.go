@@ -141,3 +141,55 @@ func TestAtomicProjectionCountsAndIsolation(t *testing.T) {
 	}
 
 }
+
+func TestProjectorYieldsToDueWorkWithinTheLagLimit(t *testing.T) {
+	ctx := context.Background()
+	pool, err := database.Open(ctx, os.Getenv("TEST_DATABASE_URL"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	if err = database.Migrate(ctx, pool); err != nil {
+		t.Fatal(err)
+	}
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	// Rolled back at the end; references are not checked so rows can stand alone.
+	for _, sql := range []string{`SET LOCAL session_replication_role=replica`, `DELETE FROM scheduled_jobs`, `DELETE FROM delivery_jobs`, `DELETE FROM metric_queue`} {
+		if _, err = tx.Exec(ctx, sql); err != nil {
+			t.Fatal(err)
+		}
+	}
+	const zero = "00000000-0000-0000-0000-000000000000"
+	step := func(sql string, args ...any) {
+		t.Helper()
+		if _, err := tx.Exec(ctx, sql, args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	check := func(want bool, situation string) {
+		t.Helper()
+		got, err := Yield(ctx, tx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != want {
+			t.Fatalf("%s: yield=%v, want %v", situation, got, want)
+		}
+	}
+	check(false, "nothing due")
+	step(`INSERT INTO metric_queue(workspace_id,journey_id,version_id,cohort_at,deltas,created_at) VALUES($1,$1,$1,now(),'[]',now()-interval '5 seconds')`, zero)
+	check(false, "metrics queued, nothing due")
+	step(`INSERT INTO scheduled_jobs(workspace_id,execution_id,node_id,due_at) VALUES($1,gen_random_uuid(),'wait',now()-interval '1 second')`, zero)
+	check(true, "runtime work due, metrics 5 s behind")
+	step(`INSERT INTO metric_queue(workspace_id,journey_id,version_id,cohort_at,deltas,created_at) VALUES($1,$1,$1,now(),'[]',now()-interval '31 seconds')`, zero)
+	step(`DELETE FROM metric_queue WHERE created_at>now()-interval '10 seconds'`)
+	check(false, "runtime work due, metrics past the lag limit")
+	step(`DELETE FROM metric_queue`)
+	step(`DELETE FROM scheduled_jobs`)
+	step(`INSERT INTO delivery_jobs(workspace_id,mode,channel,provider,idempotent_provider,logical_key,message,decision,status,due_at,created_at) VALUES($1,'TEST','sms','mock_sms',true,'yield','{}','{}','SCHEDULED',now()-interval '1 second',now())`, zero)
+	check(true, "delivery work due, metric queue empty")
+}

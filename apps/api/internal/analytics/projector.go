@@ -5,6 +5,7 @@ package analytics
 import (
 	"context"
 	"encoding/json"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log/slog"
 	"time"
@@ -19,63 +20,97 @@ const expanded = `SELECT b.workspace_id,b.journey_id,b.version_id,date_trunc('ho
 // producers never acquire this advisory lock. Bounded JSON batches avoid repeated
 // temporary-table DDL/catalog churn and require no persistent staging indexes.
 func Drain(ctx context.Context, pool *pgxpool.Pool) (int, error) {
+	n, _, err := drain(ctx, pool)
+	return n, err
+}
+
+// drain also reports whether the snapshot backfill still has rows to queue.
+func drain(ctx context.Context, pool *pgxpool.Pool) (n int, backfilling bool, err error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	tx, err := pool.Begin(ctx)
 	if err != nil {
-		return 0, err
+		return 0, backfilling, err
 	}
 	defer func() { _ = tx.Rollback(context.Background()) }()
 	var locked bool
 	if err = tx.QueryRow(ctx, `SELECT pg_try_advisory_xact_lock(716294803)`).Scan(&locked); err != nil || !locked {
-		return 0, err
+		return 0, backfilling, err
 	}
-	if err = enqueueBackfill(ctx, tx); err != nil {
-		return 0, err
+	if backfilling, err = enqueueBackfill(ctx, tx); err != nil {
+		return 0, false, err
 	}
 	var batch []byte
 	err = tx.QueryRow(ctx, `WITH claimed AS (SELECT id FROM metric_queue ORDER BY id LIMIT 1000 FOR UPDATE SKIP LOCKED),removed AS (DELETE FROM metric_queue q USING claimed c WHERE q.id=c.id RETURNING q.*) SELECT COALESCE(jsonb_agg(to_jsonb(r)),'[]'::jsonb) FROM removed r`).Scan(&batch)
 	if err != nil {
-		return 0, err
+		return 0, backfilling, err
 	}
 	var rows []json.RawMessage
 	if err = json.Unmarshal(batch, &rows); err != nil {
-		return 0, err
+		return 0, backfilling, err
 	}
-	n := len(rows)
+	n = len(rows)
 	if _, err = tx.Exec(ctx, `INSERT INTO metric_projection_health(id,last_success) VALUES(true,clock_timestamp()) ON CONFLICT(id) DO UPDATE SET last_success=EXCLUDED.last_success`); err != nil {
-		return 0, err
+		return 0, backfilling, err
 	}
 	if n == 0 {
-		return 0, tx.Commit(ctx)
+		return 0, backfilling, tx.Commit(ctx)
 	}
 	if _, err = tx.Exec(ctx, projectSnapshots, batch); err != nil {
-		return 0, err
+		return 0, backfilling, err
 	}
 	_, err = tx.Exec(ctx, `WITH candidates AS (SELECT workspace_id,journey_id,customer_id FROM `+batchRows+` WHERE customer_id IS NOT NULL UNION SELECT workspace_id,'00000000-0000-0000-0000-000000000000'::uuid,customer_id FROM `+batchRows+` WHERE customer_id IS NOT NULL), added AS (INSERT INTO metric_customers SELECT * FROM candidates ON CONFLICT DO NOTHING RETURNING workspace_id,journey_id) INSERT INTO metric_totals(workspace_id,journey_id,version_id,dimension,dimension_key,metric,value) SELECT workspace_id,journey_id,'00000000-0000-0000-0000-000000000000','execution','','unique_customers',count(*) FROM added GROUP BY workspace_id,journey_id ON CONFLICT(workspace_id,journey_id,version_id,dimension,dimension_key,metric) DO UPDATE SET value=metric_totals.value+excluded.value`, batch)
 	if err != nil {
-		return 0, err
+		return 0, backfilling, err
 	}
 	_, err = tx.Exec(ctx, `WITH expanded AS (`+expanded+`), totals AS (INSERT INTO metric_totals SELECT workspace_id,COALESCE(journey_id,'00000000-0000-0000-0000-000000000000'),COALESCE(version_id,'00000000-0000-0000-0000-000000000000'),dimension,dimension_key,metric,sum(value) FROM expanded WHERE dimension<>'journey' GROUP BY GROUPING SETS((workspace_id,journey_id,version_id,dimension,dimension_key,metric),(workspace_id,journey_id,dimension,dimension_key,metric),(workspace_id,dimension,dimension_key,metric)) HAVING sum(value)<>0 AND (dimension<>'node' OR grouping(version_id)=0) ON CONFLICT(workspace_id,journey_id,version_id,dimension,dimension_key,metric) DO UPDATE SET value=metric_totals.value+excluded.value RETURNING 1), journeys AS (INSERT INTO metric_totals SELECT workspace_id,journey_id,version_id,dimension,dimension_key,metric,sum(value) FROM expanded WHERE dimension='journey' GROUP BY workspace_id,journey_id,version_id,dimension,dimension_key,metric HAVING sum(value)<>0 ON CONFLICT(workspace_id,journey_id,version_id,dimension,dimension_key,metric) DO UPDATE SET value=metric_totals.value+excluded.value RETURNING 1) INSERT INTO metric_hourly SELECT workspace_id,COALESCE(journey_id,'00000000-0000-0000-0000-000000000000'),COALESCE(version_id,'00000000-0000-0000-0000-000000000000'),bucket,dimension,dimension_key,metric,sum(value) FROM expanded WHERE dimension IN ('execution','channel') GROUP BY GROUPING SETS((workspace_id,journey_id,version_id,bucket,dimension,dimension_key,metric),(workspace_id,journey_id,bucket,dimension,dimension_key,metric),(workspace_id,bucket,dimension,dimension_key,metric)) HAVING sum(value)<>0 ON CONFLICT(workspace_id,journey_id,bucket,version_id,dimension,dimension_key,metric) DO UPDATE SET value=metric_hourly.value+excluded.value`, batch)
 	if err != nil {
-		return 0, err
+		return 0, backfilling, err
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO metric_watermarks SELECT workspace_id,clock_timestamp(),max(created_at) FROM `+batchRows+` GROUP BY workspace_id ON CONFLICT(workspace_id) DO UPDATE SET processed_at=excluded.processed_at,source_at=greatest(metric_watermarks.source_at,excluded.source_at)`, batch)
 	if err != nil {
-		return 0, err
+		return 0, backfilling, err
 	}
-	return n, tx.Commit(ctx)
+	return n, backfilling, tx.Commit(ctx)
 }
+
+// The projector competes with the runtime and delivery for the same database.
+// While their work is due it drains one batch every yieldPause instead of
+// back to back, as long as the oldest queued metric is younger than yieldLag,
+// the lag at which the JourneyAnalyticsBehind alert starts counting. Past that,
+// or once no work is due, it drains at full speed again. A full batch or an
+// unfinished snapshot backfill means more is waiting, so neither waits a second.
+const (
+	yieldPause = 5 * time.Second
+	yieldLag   = 30 * time.Second
+)
+
+// Yield reports whether runtime or delivery work is due while metrics are
+// still within yieldLag.
+func Yield(ctx context.Context, db interface {
+	QueryRow(context.Context, string, ...any) pgx.Row
+}) (bool, error) {
+	var yield bool
+	err := db.QueryRow(ctx, `SELECT (EXISTS(SELECT 1 FROM scheduled_jobs WHERE state='SCHEDULED' AND due_at<=now()) OR EXISTS(SELECT 1 FROM delivery_jobs WHERE status='SCHEDULED' AND due_at<=now()))
+ AND COALESCE((SELECT created_at FROM metric_queue ORDER BY id LIMIT 1)>now()-make_interval(secs=>$1),true)`, yieldLag.Seconds()).Scan(&yield)
+	return yield, err
+}
+
 func Run(ctx context.Context, pool *pgxpool.Pool, log *slog.Logger) {
 	for ctx.Err() == nil {
-		n, err := Drain(ctx, pool)
+		n, backfilling, err := drain(ctx, pool)
 		if err != nil && ctx.Err() == nil {
 			log.Error("analytics projection failed")
 		}
-		if err == nil && n == 1000 {
-			continue
+		wait := time.Second
+		if err == nil && (n == 1000 || backfilling) {
+			yield, err := Yield(ctx, pool)
+			if err != nil || !yield {
+				continue
+			}
+			wait = yieldPause
 		}
-		timer := time.NewTimer(time.Second)
+		timer := time.NewTimer(wait)
 		select {
 		case <-ctx.Done():
 			timer.Stop()
