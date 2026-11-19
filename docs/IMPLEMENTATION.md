@@ -1715,3 +1715,43 @@ run-to-run variation, so the count was not on the critical path. Run 1 used 17.7
 DB CPU seconds per 1,000 in stage B against about 13 in the others, for no reason
 found; other containers were running on the host. None of the runs had failed
 executions or duplicate logical actions.
+
+### Metric projector yields to runtime and delivery — 2026-11-19
+
+On two database CPUs with product defaults, executions took 63.5 s to complete
+against 45.3 s on 2026-11-10, while stage B SQL time rose from 74 s to 159 s.
+Wait sampling showed CPU in about 88% of samples, and the `metric_queue` drain
+was the largest single consumer (311 ms per 1,000-row batch). Three control
+runs changed one thing each. With the projector paused, completion took 47.3 s.
+With early `ANALYZE delivery_jobs`, the fence went from 17.2 s to 1.0 s but
+completion stayed at 63.6 s. The benchmark's throttled projector gave 51.4 s.
+The cause is the per-source snapshots the projector has diffed and upserted
+since `41871aa` (2026-11-12); on two cores they compete with the runtime.
+
+`b2a457b` makes the projector yield. While runtime or delivery work is due and
+the oldest queued metric is younger than 30 s, it drains one batch every 5 s.
+That 30 s is the threshold of the `JourneyAnalyticsBehind` alert. Past it, or
+once no work is due, it drains at full speed again. With yielding, the snapshot
+backfill cursor, which moves 200 rows per drain, was left unfinished and then
+advanced once a second. It now continues without that wait while it has rows
+left. An integration test covers the yield decision with nothing due, with
+runtime work due while metrics are fresh, with metrics past the limit, with only
+delivery work due, and with an empty queue. A sampled 4-CPU run kept the oldest
+queued metric at or below about 33 s throughout the burst.
+
+| Run                    | Raw result                                          | Completed (s) | All accepted (s) | Metrics caught up after (s) |
+| ---------------------- | --------------------------------------------------- | ------------: | ---------------: | --------------------------: |
+| 2 CPU defaults, before | [current-2cpu.json](benchmarks/current-2cpu.json)   |          63.5 |             81.6 |                         1.0 |
+| 2 CPU defaults, after  | [yielding-2cpu.json](benchmarks/yielding-2cpu.json) |          52.5 |             74.6 |                         9.1 |
+| 4 CPU tuned, before    | [current-4cpu.json](benchmarks/current-4cpu.json)   |          37.4 |             37.5 |                         2.0 |
+| 4 CPU tuned, after     | [yielding-4cpu.json](benchmarks/yielding-4cpu.json) |          32.4 |             32.4 |                        26.6 |
+
+Two earlier uncommitted 2-CPU runs of the same change accepted all messages at
+68.5 s and 76.6 s, so single 2-CPU runs vary by several seconds. Under load, the
+metrics now trail by up to about 30 s and catch up within 9–27 s once the work
+is done. The benchmark's reconciliation found the projected counts complete and
+equal to the source rows in every run, and no run had failed executions or
+duplicate logical actions. The 4-CPU file is marked dirty only because the
+2-CPU result file had not yet been committed. Completion on two CPUs, 52.5 s, is
+still above the 45.3 s of 2026-11-10: snapshot projection still costs CPU even
+when it waits.
