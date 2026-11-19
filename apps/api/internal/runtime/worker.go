@@ -23,6 +23,8 @@ type Worker struct {
 	Pool  *pgxpool.Pool
 	Clock Clock
 	Log   *slog.Logger
+	// Concurrency is how many jobs Run processes at once; zero means eight.
+	Concurrency int
 }
 type Job struct {
 	ID, WorkspaceID, ExecutionID, CustomerID, JourneyID, NodeID, Kind, Token, TraceParent string
@@ -81,8 +83,12 @@ func (w *Worker) claimReady(ctx context.Context, limit int) ([]Job, error) {
 	return jobs, rows.Err()
 }
 func (w *Worker) Run(ctx context.Context) error {
-	slots := make(chan struct{}, 8)
-	completed := make(chan struct{}, 8)
+	concurrency := w.Concurrency
+	if concurrency < 1 {
+		concurrency = 8
+	}
+	slots := make(chan struct{}, concurrency)
+	completed := make(chan struct{}, concurrency)
 	var group sync.WaitGroup
 	defer group.Wait()
 	var nextRecovery time.Time
