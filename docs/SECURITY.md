@@ -10,7 +10,7 @@ The generated local demo login is intentionally public only in development. Prod
 
 ## Bounded work and content
 
-HTTP requests have operation deadlines; AI has its separate bounded budget. In-memory token buckets bound per-workspace interactive traffic (10/s, burst 200), ingestion (500/s, burst 1,000), AI (one token per six seconds, burst two), and authentication per direct network peer. Authentication is relaxed for local development. Buckets retain no raw peer identities, cap memory at 4,096 keys and expire inactive entries. These are per-process limits; deploy edge limits for a shared proxy or multiple API replicas. Workspace consent/frequency policies remain transactionally enforced across workers in PostgreSQL.
+HTTP requests have operation deadlines; AI has its separate bounded budget. In-memory token buckets bound per-workspace interactive traffic (10/s, burst 200), ingestion (500/s, burst 1,000, set with INGEST_RATE_PER_SECOND and INGEST_BURST), AI (one token per six seconds, burst two), and authentication per direct network peer. Authentication is relaxed for local development. Buckets retain no raw peer identities, cap memory at 4,096 keys and expire inactive entries. These are per-process limits; deploy edge limits for a shared proxy or multiple API replicas. Workspace consent/frequency policies remain transactionally enforced across workers in PostgreSQL.
 
 Message variables cannot execute code. HTML is sanitized and dynamic values escaped; previews use sandboxed iframes and restrictive CSP. Test recipients must be allowlisted. Sandbox simulations have no provider handle and never schedule live delivery jobs. Preview overrides never modify source customer profiles.
 

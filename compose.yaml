@@ -55,6 +55,8 @@ services:
       SMTP_PORT: ${SMTP_SERVER_PORT:-1025}
       SMTP_FROM: ${SMTP_FROM:-journeys@localhost.invalid}
       PUBLIC_SIGNUP: ${PUBLIC_SIGNUP:-false}
+      INGEST_RATE_PER_SECOND: ${INGEST_RATE_PER_SECOND:-}
+      INGEST_BURST: ${INGEST_BURST:-}
       APP_ENV: ${APP_ENV:-production}
       DEMO_ENABLED: ${DEMO_ENABLED:-false}
       DEMO_EMAIL: ${DEMO_EMAIL:-}

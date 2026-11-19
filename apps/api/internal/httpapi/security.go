@@ -4,6 +4,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -52,8 +53,23 @@ func (l *requestLimiter) allow(key string, rate, burst float64, now time.Time) b
 func signupEnabled() bool {
 	return os.Getenv("APP_ENV") == "development" || os.Getenv("PUBLIC_SIGNUP") == "true"
 }
+
+// ingestLimit is the per-workspace event ingestion limit, requests a second
+// and burst: INGEST_RATE_PER_SECOND and INGEST_BURST when set to positive
+// numbers, 500 and 1,000 otherwise.
+func ingestLimit() (rate, burst float64) {
+	rate, burst = 500, 1000
+	if v, err := strconv.ParseFloat(os.Getenv("INGEST_RATE_PER_SECOND"), 64); err == nil && v > 0 {
+		rate = v
+	}
+	if v, err := strconv.ParseFloat(os.Getenv("INGEST_BURST"), 64); err == nil && v >= 1 {
+		burst = v
+	}
+	return rate, burst
+}
 func registerSecurityMiddleware(api huma.API) {
 	limiter := &requestLimiter{}
+	ingestRate, ingestBurst := ingestLimit()
 	api.UseMiddleware(func(ctx huma.Context, next func(huma.Context)) {
 		path := ctx.URL().Path
 		if p, ok := ctx.Context().Value(principalKey{}).(Identity); ok {
@@ -61,7 +77,7 @@ func registerSecurityMiddleware(api huma.API) {
 			rate, burst := 10.0, 200.0
 			if strings.HasPrefix(path, "/api/v1/events") && ctx.Method() == "POST" {
 				key = "ingest:" + p.WorkspaceID
-				rate, burst = 500, 1000
+				rate, burst = ingestRate, ingestBurst
 			}
 			if strings.HasPrefix(path, "/api/v1/ai/") {
 				key = "ai:" + p.WorkspaceID
