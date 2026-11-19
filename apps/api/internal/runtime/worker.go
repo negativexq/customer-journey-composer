@@ -60,7 +60,16 @@ func (w *Worker) claimReady(ctx context.Context, limit int) ([]Job, error) {
 	// Joining from a selective Active journey made LIMIT 32 sort/probe every
 	// execution first. The guard is applied before LIMIT, so paused or locked
 	// old jobs cannot starve eligible work behind them. Process still rechecks.
-	rows, err := w.Pool.Query(ctx, `WITH due AS (
+	//
+	// The scan must follow jobs_due and stop at the limit. Without statistics on
+	// scheduled_jobs, as on a new or just-filled queue, the planner may instead
+	// read every due job, run the eligibility check on each and sort: 22,000
+	// blocks to claim five jobs from a 3,800-job backlog. Sorting is turned off
+	// for this one statement, in the same round trip, so the index order is the
+	// only plan; SET LOCAL ends with the batch's implicit transaction.
+	batch := &pgx.Batch{}
+	batch.Queue(`SET LOCAL enable_sort = off`)
+	batch.Queue(`WITH due AS (
  SELECT j.id FROM scheduled_jobs j
  WHERE j.state='SCHEDULED' AND j.due_at<=$1
  AND (SELECT e.state IN ('RUNNING','WAITING') AND f.status IN ('Active','Sunset')
@@ -68,6 +77,12 @@ func (w *Worker) claimReady(ctx context.Context, limit int) ([]Job, error) {
  ORDER BY j.due_at,j.id LIMIT $2 FOR UPDATE OF j SKIP LOCKED
  ), claimed AS (UPDATE scheduled_jobs j SET state='CLAIMED',claim_token=gen_random_uuid(),lease_until=$1+interval '30 seconds',attempts=j.attempts+1 FROM due WHERE j.id=due.id RETURNING j.*)
  SELECT c.id::text,c.workspace_id::text,c.execution_id::text,e.customer_id,e.journey_id::text,c.node_id,c.kind,c.claim_token::text,c.attempts,e.trace_parent,c.due_at FROM claimed c JOIN journey_executions e ON e.id=c.execution_id`, now, limit)
+	results := w.Pool.SendBatch(ctx, batch)
+	defer results.Close()
+	if _, err := results.Exec(); err != nil {
+		return nil, err
+	}
+	rows, err := results.Query()
 	if err != nil {
 		return nil, err
 	}

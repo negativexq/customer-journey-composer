@@ -370,3 +370,37 @@ func TestGlobalExitCorrelatesEntryPropertiesAndPreservesTimers(t *testing.T) {
 		t.Fatal(reason, err)
 	}
 }
+
+// The claim turns sorting off for its own statement only; the connection goes
+// back to the pool with the server default.
+func TestClaimLeavesTheConnectionSettingsAlone(t *testing.T) {
+	ctx, pool, _, _, _, _ := fixture(t)
+	config := pool.Config()
+	config.MaxConns, config.MinConns = 1, 0
+	single, err := pgxpool.NewWithConfig(ctx, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(single.Close)
+	conn, err := single.Acquire(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pid := conn.Conn().PgConn().PID()
+	conn.Release()
+	if _, err := NewWorker(single, nil).Claim(ctx, 4); err != nil {
+		t.Fatal(err)
+	}
+	conn, err = single.Acquire(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Release()
+	var sorting string
+	if err := conn.QueryRow(ctx, `SHOW enable_sort`).Scan(&sorting); err != nil {
+		t.Fatal(err)
+	}
+	if conn.Conn().PgConn().PID() != pid || sorting != "on" {
+		t.Fatalf("connection %d (claimed on %d) has enable_sort=%s, want on", conn.Conn().PgConn().PID(), pid, sorting)
+	}
+}
