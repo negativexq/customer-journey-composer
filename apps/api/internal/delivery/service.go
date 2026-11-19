@@ -31,6 +31,9 @@ type Service struct {
 	// Schedulers is how many loops Run keeps turning pending actions into
 	// delivery decisions; zero means one.
 	Schedulers int
+	// Batch is how many messages a dispatcher claims and sends together on a
+	// healthy channel; zero or one sends them one at a time.
+	Batch int
 }
 type Eligibility struct {
 	Eligible     bool   `json:"eligible"`
@@ -461,19 +464,10 @@ func (s *Service) Dispatch(ctx context.Context, job Job) (err error) {
 		if err := tx.QueryRow(ctx, `SELECT e.state,j.status FROM journey_executions e JOIN journeys j ON j.id=e.journey_id WHERE e.id=$1 FOR SHARE OF j`, job.ExecutionID).Scan(&state, &status); err != nil {
 			return err
 		}
-		var consent map[string]bool
-		_ = json.Unmarshal(consents, &consent)
-		if state == "EXITED" || state == "CANCELLED" || state == "FAILED" {
-			blocked = "execution_terminated"
-		} else if !consent[job.Message.Channel] {
-			blocked = "consent_revoked"
-		} else if job.Message.Channel == "email" && (email == nil || *email != job.Message.To) || job.Message.Channel == "sms" && (phone == nil || *phone != job.Message.To) || job.Message.Channel == "push" && (pushToken == nil || *pushToken != job.Message.To) {
-			blocked = "recipient_changed"
-		} else if status != "Active" && status != "Sunset" {
-			if _, err := tx.Exec(ctx, `UPDATE delivery_jobs SET status='SCHEDULED',claim_token=NULL,lease_until=NULL,attempts=attempts-1 WHERE id=$1 AND claim_token=$2 AND status='CLAIMED'`, job.ID, job.Token); err != nil {
-				return err
-			}
-			if _, err := tx.Exec(ctx, `DELETE FROM delivery_attempts WHERE delivery_id=$1 AND attempt=$2 AND status='STARTED'`, job.ID, job.Attempt); err != nil {
+		var held bool
+		blocked, held = liveDecision(job, recipient{consents, email, phone, pushToken}, state, status)
+		if held {
+			if err := handBack(ctx, tx, job); err != nil {
 				return err
 			}
 			return tx.Commit(ctx)
@@ -495,10 +489,7 @@ func (s *Service) Dispatch(ctx context.Context, job Job) (err error) {
 		}
 	}
 	if blocked != "" {
-		if _, err := tx.Exec(ctx, `UPDATE delivery_jobs SET status='BLOCKED',decision=decision||jsonb_build_object('eligible',false,'reason',$3::text),lease_until=NULL,claim_token=NULL WHERE id=$1 AND claim_token=$2 AND status='CLAIMED'`, job.ID, job.Token, blocked); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `UPDATE delivery_attempts SET status='CANCELLED',completed_at=$3,response=$4 WHERE delivery_id=$1 AND attempt=$2 AND status='STARTED'`, job.ID, job.Attempt, now, blocked); err != nil {
+		if err := block(ctx, tx, job, blocked, now); err != nil {
 			return err
 		}
 		return tx.Commit(ctx)
@@ -514,56 +505,10 @@ func (s *Service) Dispatch(ctx context.Context, job Job) (err error) {
 		return err
 	}
 	provider := s.Providers[job.Provider]
-	out := Outcome{Status: "FAILED", Response: "Provider is not configured"}
-	// called is whether the answer came from the provider, or stands in for it.
-	called := false
-	if job.Counted() > 5 {
-		out = Outcome{Status: "FAILED", Response: "Retry limit exhausted"}
-	} else if fault, ok := FaultOutcome(job.Fault); ok {
-		// The workspace is acting out a provider problem; nothing is called.
-		out, called = fault, true
-	} else if provider != nil {
-		called = true
-		request, cancel := context.WithTimeout(ctx, 10*time.Second)
-		providerCtx, providerSpan := observability.Start(request, "messaging.provider.send", attribute.String("provider.name", job.Provider), attribute.String("messaging.channel", job.Message.Channel))
-		began := time.Now()
-		out = provider.Send(providerCtx, job.Message, job.WorkspaceID+":"+job.LogicalKey)
-		observability.ObserveProvider(job.Provider, job.Message.Channel, out.Status, time.Since(began))
-		providerSpan.SetAttributes(attribute.String("provider.outcome", out.Status), attribute.Int("provider.response.code", out.Code))
-		if out.Status != "ACCEPTED" {
-			observability.Fail(providerSpan, "provider_"+strings.ToLower(out.Status))
-		}
-		providerSpan.End()
-		cancel()
-	}
-	switch out.Status {
-	case "RETRY":
-		observability.SetOutcome(ctx, "retry")
-	case "FAILED":
-		observability.SetOutcome(ctx, "failed")
-	case "UNKNOWN":
-		observability.SetOutcome(ctx, "unknown")
-	}
-	verdict := classify(out)
-	free := job.free(verdict)
-	counted := job.Counted()
-	if free {
-		counted--
-	}
-	status := out.Status
-	if status == "RETRY" {
-		if counted >= 5 {
-			out.Status = "FAILED"
-			observability.SetOutcome(ctx, "failed")
-			out.Response += "; retry limit exhausted"
-			status = "FAILED"
-		} else {
-			status = "SCHEDULED"
-		}
-	}
-	if status != "SCHEDULED" && status != "ACCEPTED" && status != "FAILED" && status != "UNKNOWN" {
-		status = "FAILED"
-	}
+	out, called := s.call(ctx, job)
+	r := settle(ctx, job, out)
+	verdict, free, status := r.verdict, r.free, r.status
+	out = r.out
 	completed, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	tx2, err := s.Pool.Begin(completed)
@@ -572,7 +517,7 @@ func (s *Service) Dispatch(ctx context.Context, job Job) (err error) {
 	}
 	defer func() { _ = tx2.Rollback(context.Background()) }()
 	finished := s.Clock.Now()
-	delay := retryAfter(verdict, out, counted)
+	delay := r.delay
 	tag, err = tx2.Exec(completed, `UPDATE delivery_jobs SET status=$3,due_at=$4,accepted_at=CASE WHEN $3='ACCEPTED' THEN $5::timestamptz ELSE NULL END,lease_until=NULL,claim_token=NULL,last_error=CASE WHEN $3='ACCEPTED' THEN NULL ELSE $6 END,free_attempts=free_attempts+$7 WHERE id=$1 AND claim_token=$2 AND status='DISPATCHING'`, job.ID, job.Token, status, finished.Add(delay), finished, out.Response, map[bool]int{true: 1}[free])
 	if err != nil {
 		return err
@@ -666,7 +611,7 @@ func (s *Service) Run(ctx context.Context) error {
 		group.Go(func() {
 			for ctx.Err() == nil {
 				request, cancel := context.WithTimeout(ctx, 15*time.Second)
-				job, err := s.Claim(request)
+				jobs, err := s.ClaimBatch(request, s.Batch)
 				cancel()
 				if errors.Is(err, ErrGated) {
 					// Another channel's messages may be waiting behind this one.
@@ -681,7 +626,7 @@ func (s *Service) Run(ctx context.Context) error {
 					}
 					continue
 				}
-				if job == nil {
+				if len(jobs) == 0 {
 					// New work does not cut a wait on held channels short: it would
 					// only queue behind them and send the dispatcher back to skip them.
 					request, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -701,7 +646,7 @@ func (s *Service) Run(ctx context.Context) error {
 					}
 					continue
 				}
-				_ = s.Dispatch(ctx, *job)
+				_ = s.DispatchBatch(ctx, jobs)
 			}
 		})
 	}
