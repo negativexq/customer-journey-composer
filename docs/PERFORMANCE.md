@@ -6,6 +6,25 @@ The main bottleneck was queue SQL access order, not the analytics summary model.
 
 Ingestion p95/p99 did **not** improve: the faster producer hits the unchanged request limiter and retries. Those end-to-end latencies are included below rather than hidden by reporting successful requests alone.
 
+## Current state — 2026-11-19
+
+After the 2026-11-19 work recorded in [IMPLEMENTATION.md](IMPLEMENTATION.md), these runs used the same workload on commit `6777e58`. The provider channel limit was added after this report's original runs. It defaults to 50 calls/s, which by itself takes 200 s for 10,000 messages, so every run below lifts it to 1,000/s. "Tuned" means four scheduling loops, four dispatchers, runtime concurrency 16, batches of eight messages, and one `ANALYZE delivery_jobs` early in the burst. The product defaults are one, four, eight and single messages. The two 2-CPU runs are marked dirty only because earlier result files in this folder were not yet committed.
+
+| Run                     | Raw result                                                    | All waiting (s) | All completed (s) | All accepted (s) | Timer lateness p95 (s) | DB cores used |
+| ----------------------- | ------------------------------------------------------------- | --------------: | ----------------: | ---------------: | ---------------------: | ------------: |
+| 2026-11-10 final, 2 CPU | [perf-after-2.json](benchmarks/perf-after-2.json)             |           33.28 |             45.34 |            87.46 |                   9.25 |             — |
+| 2 CPU, product defaults | [current-2cpu.json](benchmarks/current-2cpu.json)             |           26.45 |             63.52 |            81.63 |                  10.49 |          1.77 |
+| 2 CPU, tuned            | [current-2cpu-tuned.json](benchmarks/current-2cpu-tuned.json) |           28.72 |             61.79 |            61.81 |                  10.71 |          1.81 |
+| 4 CPU, tuned            | [current-4cpu.json](benchmarks/current-4cpu.json)             |           19.17 |             37.44 |            37.45 |                   7.65 |          3.12 |
+
+- On the same 2-CPU database with defaults, all messages are accepted 6 s sooner than on 2026-11-10. Executions, however, take 18 s longer to complete. Many features have been added since, and this regression has not been investigated.
+- With the tuned settings, delivery keeps pace with the runtime: messages are accepted the moment the last execution completes, 20 s sooner than with the defaults.
+- From 2 to 4 database CPUs, the tuned pipeline is 1.65 times faster. The database uses nearly every core it is given, so it remains the limit. Earlier 4-CPU runs in IMPLEMENTATION.md finished in 34.4–36.5 s.
+- Ingestion ran at 544–551 events/s in the 2-CPU default and 4-CPU runs, which is the per-workspace ingestion limit (500/s, burst 1,000), and at 442 events/s in the 2-CPU tuned run, where 16 runtime jobs compete with it for two cores. Raising the limit made stage A slower, not faster; see IMPLEMENTATION.md.
+- All four runs had no failed executions and no duplicate logical actions. These are single local runs on tmpfs, not confidence intervals or production SLAs.
+
+The tuned settings are benchmark flags; they are not product defaults.
+
 ## Reproduce and inspect source data
 
 ```sh
